@@ -36,6 +36,7 @@ Materiały do pozyskania design partnerów (Etap 0):
 
 - [Profil design partnera](outreach/profil-design-partnera.md) — kryteria, pytania kwalifikacyjne, kanały (dokument wewnętrzny)
 - [Propozycja dla PM-ów](outreach/propozycja-dla-pm.md) — jednostronicowe zaproszenie
+- [Lista kandydatów — jak ją zbudować](outreach/lista-kandydatow.md) + [szablon rejestru](outreach/rejestr-kandydatow-szablon.csv) (wypełniony rejestr jest w `.gitignore`)
 - [Szablony pierwszego kontaktu](outreach/wiadomosc-kontaktowa.md)
 - [Zasady poufności](outreach/zasady-poufnosci.md) — wersja robocza
 

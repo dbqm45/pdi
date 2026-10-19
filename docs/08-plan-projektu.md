@@ -340,7 +340,7 @@ Pełna lista założeń nośnych projektu: [07](07-ryzyka-i-otwarte-pytania.md).
 
 Nie zaczynamy od kodowania ani wyboru technologii.
 
-**Dzień 1 — opisz proces i listę kandydatów.** Opisz typową drogę od pomysłu do refinementu i estymacji (z własnego doświadczenia), zaznacz momenty istotnych decyzji. Profil design partnera jest gotowy: [outreach/profil-design-partnera.md](../outreach/profil-design-partnera.md) — na jego podstawie spisz listę 15–20 kandydatów.
+**Dzień 1 — opisz proces i listę kandydatów.** Opisz typową drogę od pomysłu do refinementu i estymacji (z własnego doświadczenia), zaznacz momenty istotnych decyzji. Profil design partnera jest gotowy: [outreach/profil-design-partnera.md](../outreach/profil-design-partnera.md) — na jego podstawie spisz listę 15–20 kandydatów według przewodnika [outreach/lista-kandydatow.md](../outreach/lista-kandydatow.md).
 
 **Dzień 2 — zbierz przypadki z własnego doświadczenia.** Trzy sytuacje, w których brak informacji, sprzeczność lub błędne założenie spowodowały problem. Zaznacz, że to rekonstrukcja z pamięci — przydatna do kalibracji, nie jako dowód wartości.
 
