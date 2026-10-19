@@ -343,7 +343,7 @@ Nie zaczynamy od kodowania ani wyboru technologii.
 
 **Dzień 3 — zrekonstruuj decyzje.** Dla każdego przypadku: co było wiadomo w chwili decyzji, czego nie wiedziano, co odkryto później. Zapisz jeden z nich w schemacie LDM (wzorem `examples/status-zamowienia.yaml`) i sprawdź, czy schemat i katalog R1–R12 go pokrywają.
 
-**Dzień 4 — ręczny test koncepcji.** Na przykładzie z dnia 3 i na `status-zamowienia`: porównaj (a) ogólnego asystenta AI z dobrym promptem i (b) asystenta AI prowadzonego modelem PDI (schemat + katalog wzorców + format Briefa). Zapisz różnice. To pierwsza, wstępna wersja testu z Etapu 2.3.
+**Dzień 4 — ręczny test koncepcji.** Gotowy zestaw: [eval/status-zamowienia](../eval/status-zamowienia/README.md) (materiały, prompty A i B, klucz odpowiedzi, karta oceny, kryteria). Na przykładzie z dnia 3 i na `status-zamowienia`: porównaj (a) ogólnego asystenta AI z dobrym promptem i (b) asystenta AI prowadzonego modelem PDI (schemat + katalog wzorców + format Briefa). Zapisz różnice. To pierwsza, wstępna wersja testu z Etapu 2.3.
 
 **Dzień 5 — pierwszy kontakt.** Propozycja ([outreach/propozycja-dla-pm.md](../outreach/propozycja-dla-pm.md)), zasady poufności i szablony wiadomości są gotowe. Uzupełnij miejsca `[…]` (kontakt, dostawca modelu AI) i wyślij do pierwszych 5 kandydatów.
 

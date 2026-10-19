@@ -42,7 +42,8 @@ Artefakty techniczne:
 
 - [`model/living-decision-model.schema.json`](model/living-decision-model.schema.json) — schemat danych modelu decyzji (JSON Schema)
 - [`examples/status-zamowienia.yaml`](examples/status-zamowienia.yaml) — przykład roboczy: inicjatywa „panel statusu zamówienia” wraz z oczekiwanym wynikiem radaru
+- [`eval/status-zamowienia/`](eval/status-zamowienia/README.md) — **test praktyczny**: ogólny asystent AI vs prototyp PDI na tym przypadku, w dwóch rundach (analiza i reakcja na nowe informacje)
 
 ## Status
 
-Faza koncepcyjna. Następny krok: [pierwsze pięć dni planu](docs/08-plan-projektu.md#8-pierwsze-pięć-dni-dostosowane-do-braku-inicjatyw). Teza o luce rynkowej jest **hipotezą do weryfikacji**, a nie ustaleniem — patrz [ryzyka](docs/07-ryzyka-i-otwarte-pytania.md).
+Faza koncepcyjna. Następny krok: [test praktyczny](eval/status-zamowienia/README.md) i [pierwsze pięć dni planu](docs/08-plan-projektu.md#8-pierwsze-pięć-dni-dostosowane-do-braku-inicjatyw). Teza o luce rynkowej jest **hipotezą do weryfikacji**, a nie ustaleniem — patrz [ryzyka](docs/07-ryzyka-i-otwarte-pytania.md).
