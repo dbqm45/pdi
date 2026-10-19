@@ -30,7 +30,7 @@ Stosujemy do własnego projektu tę samą zasadę, którą PDI ma stosować wobe
 
 Dotychczasowe odniesienia do rynku (Productboard — AI w product discovery; Jama Connect — traceability i analiza wpływu zmian; podejścia „AI-native product discovery”) pochodzą z wcześniejszej rozmowy i **nie zostały zweryfikowane** w tym repozytorium (odnośniki źródłowe nie zachowały się).
 
-Do zrobienia przed etapem 1:
+Do zrobienia w Etapie 0–2 [planu](08-plan-projektu.md):
 
 - [ ] Mapa: narzędzia discovery (Productboard, Dovetail, Enterpret, …), traceability (Jama, Polarion, …), decision records / ADR, funkcje AI w Jira/Confluence/Notion/Linear.
 - [ ] Dla każdego: czy modeluje **decyzję** jako obiekt? czy rozróżnia fakt/hipotezę? czy kwestionuje decyzje? czy ocenia proporcjonalność do stawki? czy działa w tle?
@@ -38,15 +38,14 @@ Do zrobienia przed etapem 1:
 
 ## 7.4. Otwarte pytania produktowe
 
-1. **Dla kogo pierwszego?** PM jako właściciel decyzji, Head of Product jako właściciel procesu, czy zespół produktowy wspólnie? To zmienia wszystko: od formy Briefa po model uprawnień.
+1. ~~**Dla kogo pierwszego?**~~ **Rozstrzygnięte:** PM jako właściciel decyzji. Konsekwencje: [09 §9.3](09-weryfikacja-planu.md#93-konsekwencje-wyboru-pm-jako-właściciel-decyzji).
 2. **Gdzie żyje system?** Osobna aplikacja, czy warstwa w istniejących narzędziach (komentarz w Confluence, panel w Jira, bot w Slacku)? Hipoteza: Guardian powinien żyć tam, gdzie ludzie już pracują.
 3. **Kto utrzymuje model?** Jeśli wymaga ręcznego potwierdzania rekonstrukcji — jak ograniczyć ten koszt do minimum?
-4. **Jaki kontekst pilotażu?** Czy mamy dostęp do organizacji z 8–15 zakończonymi inicjatywami i materiałami z chwili decyzji?
+4. ~~**Jaki kontekst pilotażu?**~~ **Rozstrzygnięte:** brak dostępu do inicjatyw. Rozwiązanie: Etap 0 — design partnerzy ([plan](08-plan-projektu.md#etap-0-design-partnerzy-i-przypadki-k1-k3)).
+6. **Charakter projektu:** produkt komercyjny, narzędzie wewnętrzne czy projekt badawczy? Zmienia kryteria walidacji przewagi.
+7. **Skąd design partnerzy?** Sieć kontaktów, społeczności PM, poprzedni pracodawcy?
 5. **Jak domyślnie traktować widoczność Briefów?** (patrz ryzyko polityczne)
 
 ## 7.5. Proponowane następne kroki
 
-1. Rozstrzygnąć pytania 1 i 4 z sekcji 7.4 — determinują projekt pilotażu.
-2. Przeprowadzić analizę konkurencji (7.3).
-3. Zebrać 2–3 rzeczywiste inicjatywy i ręcznie (bez systemu) zbudować dla nich LDM i Brief — „Wizard of Oz”. To najtańszy test Z1–Z3 i jednocześnie walidacja schematu i katalogu wzorców.
-4. Dopiero po kroku 3: prototyp ekstrakcji + detektorów R1–R12.
+Zastąpione planem projektu: [08-plan-projektu.md](08-plan-projektu.md), zaczynając od sekcji 8 („Pierwsze pięć dni”).

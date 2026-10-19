@@ -56,11 +56,13 @@ Organizacja może mieć kompletną dokumentację, dopracowane makiety i szczegó
 
 Poszczególne zdolności mają odpowiedniki na rynku. Hipoteza dotyczy ich **połączenia wokół decyzji jako obiektu centralnego**. Weryfikacja: [MVP i pilotaż](06-mvp-i-pilotaz.md), [ryzyka](07-ryzyka-i-otwarte-pytania.md).
 
-## Ścieżka rozwoju
+## Ścieżka rozwoju produktu
 
-| Etap | Zakres | Warunek przejścia |
+Fazy produktu (nie mylić z etapami projektu w [planie](08-plan-projektu.md); faza F0 odpowiada etapom 2–5 planu).
+
+| Faza | Zakres | Warunek przejścia |
 |---|---|---|
-| 0. Pilotaż retrospektywny | Analiza zakończonych inicjatyw, porównanie z ekspertami | System wykrywa istotne problemy przeoczone przez ludzi przy akceptowalnym odsetku fałszywych alarmów |
-| 1. Copilot | Aktywna praca nad bieżącymi inicjatywami (A+B na żądanie) | Zespoły wracają do systemu bez przymusu; rekomendacje są realizowane |
-| 2. Guardian | Monitoring źródeł i ocena wpływu zmian na zatwierdzone decyzje | Powiadomienia poziomu 2–3 są w większości uznawane za trafne |
-| 3. Organizational DI | Wzorce na poziomie portfolio, uczenie na wynikach decyzji | Dostępne wiarygodne dane o rezultatach wdrożeń |
+| F0. Walidacja (retrospektywna i na bieżących inicjatywach design partnerów) | Analiza zakończonych inicjatyw, porównanie z ekspertami | System wykrywa istotne problemy przeoczone przez ludzi przy akceptowalnym odsetku fałszywych alarmów |
+| F1. Copilot | Aktywna praca nad bieżącymi inicjatywami (A+B na żądanie) | Zespoły wracają do systemu bez przymusu; rekomendacje są realizowane |
+| F2. Guardian | Monitoring źródeł i ocena wpływu zmian na zatwierdzone decyzje | Powiadomienia poziomu 2–3 są w większości uznawane za trafne |
+| F3. Organizational DI | Wzorce na poziomie portfolio, uczenie na wynikach decyzji | Dostępne wiarygodne dane o rezultatach wdrożeń |

@@ -36,11 +36,11 @@ Poza zakresem MVP: integracje na żywo (Jira, Confluence, Figma, Amplitude…), 
 
 Zasada konstrukcyjna: **wykrywanie wzorców w możliwie dużej części deterministyczne, na grafie**; LLM odpowiada za ekstrakcję, ocenę semantyczną (np. „czy ta opcja rzeczywiście adresuje tę hipotezę”) i sformułowanie wyniku. Dzięki temu każde ostrzeżenie da się prześledzić do węzłów i krawędzi, a jakość da się testować regresyjnie.
 
-## 6.3. Protokół pilotażu (etap 0 — retrospektywny)
+## 6.3. Protokół oceny retrospektywnej
 
 **Cel:** sprawdzić, czy system wykrywa istotne problemy decyzyjne, zanim zrobi się to kosztowne — zanim zbudujemy cokolwiek więcej.
 
-**Materiał:** 8–15 zakończonych inicjatyw z dostępnymi materiałami z chwili decyzji, znaną historią decyzji i obserwowalnym rezultatem. Celowo mieszanka: inicjatywy udane, nieudane i takie, w których decyzja została później zmieniona.
+**Materiał:** zakończone inicjatywy design partnerów (cel: 8–15, minimum 6 — patrz [plan, Etap 0](08-plan-projektu.md#etap-0-design-partnerzy-i-przypadki-k1-k3)) z dostępnymi materiałami z chwili decyzji, znaną historią decyzji i obserwowalnym rezultatem. Celowo mieszanka: inicjatywy udane, nieudane i takie, w których decyzja została później zmieniona.
 
 **Procedura:**
 
@@ -54,7 +54,7 @@ Zasada konstrukcyjna: **wykrywanie wzorców w możliwie dużej części determin
 
 ## 6.4. Metryki
 
-| Metryka | Definicja | Próg sukcesu (wstępny, do dyskusji) |
+| Metryka | Definicja | Próg sukcesu (wstępny; ostateczny zapisać przed testem) |
 |---|---|---|
 | **Wartość dodana** (główna) | Odsetek inicjatyw, w których system wskazał ≥1 istotny problem nieznaleziony przez ekspertów | ≥ 30% |
 | Precyzja | Odsetek zarzutów poziomu 2–3 ocenionych jako istotne i trafne | ≥ 60% |
@@ -63,11 +63,11 @@ Zasada konstrukcyjna: **wykrywanie wzorców w możliwie dużej części determin
 | Koszt uwagi | Liczba komunikatów 2–3 na inicjatywę i czas ich przejrzenia | ≤ 5 komunikatów, ≤ 15 min |
 | Trafność rekonstrukcji | Odsetek zrekonstruowanych hipotez/założeń potwierdzonych przez autorów | ≥ 70% |
 
-Jeśli wartość dodana i precyzja nie przekroczą progów, nie przechodzimy do etapu 1 — wracamy do katalogu wzorców i reguł oceny.
+Jeśli wartość dodana i precyzja nie przekroczą progów, nie przechodzimy do pilotażu na żywo — wracamy do katalogu wzorców i reguł oceny.
 
-## 6.5. Etap 1 — pilotaż na żywo (po pozytywnym etapie 0)
+## 6.5. Pilotaż na żywo (po pozytywnej ocenie retrospektywnej)
 
-2–3 zespoły, 6–8 tygodni, bieżące inicjatywy. Dodatkowe metryki:
+PM-owie design partnerów (min. 3), 6–8 tygodni, ich bieżące inicjatywy. Brief jest prywatny dla PM-a. Dodatkowo mierzymy, co PM zrobił inaczej dzięki systemowi ([09 §9.3](09-weryfikacja-planu.md#93-konsekwencje-wyboru-pm-jako-właściciel-decyzji)). Dodatkowe metryki:
 
 - czas od wykrycia luki do jej rozstrzygnięcia (lub świadomej akceptacji ryzyka),
 - odsetek rekomendacji zrealizowanych,
