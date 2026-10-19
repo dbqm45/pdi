@@ -133,6 +133,16 @@ Harmonogram liczony jest **od zamknięcia Etapu 0**, bo bez design partnerów et
 
 Punkty wyjścia: Productboard, Jama Connect, funkcje AI w narzędziach do pracy z wiedzą — bez traktowania ich jako pełnej listy. Kryteria porównania z [07 §7.3](07-ryzyka-i-otwarte-pytania.md#73-analiza-konkurencji--do-wykonania).
 
+**Analiza konkurencji rozstrzyga też charakter projektu** (ustalenie: produkt komercyjny, jeśli jest potencjał rynkowy i luka; narzędzie wewnętrzne, jeśli konkurencja jest silna). Żeby ta decyzja nie była intuicyjna, przyjmujemy regułę:
+
+| Wynik | Charakter |
+|---|---|
+| Żadne narzędzie nie radzi sobie dobrze z ≥ 3 z 6 scenariuszy z 2.2 **i** partnerzy wykazują zainteresowanie dalszym korzystaniem (patrz Etap 5, grupa mierników D) | Kierunek komercyjny — kontynuujemy walidację rynkową |
+| Istniejące narzędzia pokrywają większość scenariuszy, ale wariant PDI wygrywa w teście 2.3 | Narzędzie wewnętrzne / metoda pracy — wartość jest, ale nie jako osobny produkt |
+| Istniejące narzędzia pokrywają scenariusze, a wariant PDI nie wygrywa w 2.3 | Zatrzymanie lub zmiana koncepcji |
+
+Uwaga: „silna konkurencja” mierzymy pokryciem **scenariuszy**, nie liczbą firm w kategorii. Wiele narzędzi z funkcjami AI nie oznacza, że któreś rozwiązuje ten sam problem.
+
 **2.2. Porównanie na scenariuszach**, nie na listach funkcji: wykrycie nieuzasadnionego założenia, sprzeczności badanie–rozwiązanie, brakującej informacji, propozycja działania zamykającego lukę, wykrycie zmiany podważającej decyzję, ograniczanie niepotrzebnych powiadomień.
 
 **2.3. Test wartości** na 3–6 przypadkach partnerów. Trzy warianty analizy tych samych materiałów:
@@ -276,7 +286,25 @@ Progi liczbowe są wstępne ([06 §6.4](06-mvp-i-pilotaz.md#64-metryki)). Mogą 
 | Ekspert domenowy | Ocena jakości rekomendacji i trafności problemów |
 | Bezpieczeństwo (konsultacyjnie) | Dostęp do danych, prywatność, uprawnienia |
 
-**Wariant minimalny [M7]:** 1–2 osoby (Product Lead + AI Engineer), a role eksperta domenowego i oceniających pełnią design partnerzy. Wtedy harmonogram Etapów 3–4 należy wydłużyć mniej więcej o połowę.
+**Stan faktyczny: projekt prowadzi jedna osoba.** Autor łączy role Product Leada, PM-a / eksperta procesowego, inżyniera AI i projektanta. Role eksperta domenowego i oceniających pełnią design partnerzy; konsultacja bezpieczeństwa — doraźnie przed Etapem 0 (zasady poufności).
+
+Konsekwencje:
+
+1. **Harmonogram przy jednej osobie** (szacunek, przy pracy w niepełnym wymiarze należy go odpowiednio wydłużyć):
+
+   | Etap | Szacunek przy jednej osobie |
+   |---|---|
+   | 0. Partnerzy | 3–6 tygodni (zależy od odzewu, nie od pracy) |
+   | 1–2. Discovery i walidacja | 4–5 tygodni |
+   | 3. Projekt | 2–3 tygodnie |
+   | 4. MVP | 6–8 tygodni |
+   | 5. Pilotaż | 4–6 tygodni |
+   | **Razem po Etapie 0** | **ok. 16–22 tygodni** |
+
+2. **Wizard of Oz jest ograniczony czasem autora.** Jedna ręczna analiza to szacunkowo 4–6 godzin. Przy 6 przypadkach jest to wykonalne; przy większej liczbie trzeba wcześniej zautomatyzować ekstrakcję.
+3. **Autor nie może być oceniającym własnego systemu.** Wszystkie oceny trafności i istotności w Etapach 2 i 5 wykonują partnerzy (zaślepieni co do źródła).
+4. **Etapy 1 i 2 wykonywane po kolei, nie równolegle** — poza analizą konkurencji (2.1), którą można prowadzić w czasie oczekiwania na odpowiedzi partnerów w Etapie 0.
+5. **MVP ma być możliwie najprostszy technicznie** — jeden język, pliki zamiast bazy danych, gotowe API modelu, brak własnej infrastruktury.
 
 Najważniejsze nie jest zbudowanie dużego zespołu technicznego, lecz dostęp do rzeczywistych przypadków i ekspertów potrafiących ocenić, czy system dostarcza wartości.
 
@@ -286,7 +314,8 @@ Najważniejsze nie jest zbudowanie dużego zespołu technicznego, lecz dostęp d
 
 | Ryzyko | Sposób ograniczenia |
 |---|---|
-| **Brak design partnerów i przypadków** **[K1]** | Etap 0 z twardym warunkiem przejścia i limitem czasu |
+| **Brak design partnerów i przypadków** **[K1]** | Etap 0 z twardym warunkiem przejścia i limitem czasu; [profil partnera](../outreach/profil-design-partnera.md) i [propozycja](../outreach/propozycja-dla-pm.md) |
+| **Projekt prowadzi jedna osoba** | Wąski zakres, oceny wykonują partnerzy, analiza konkurencji w czasie oczekiwania na partnerów, proste MVP |
 | **Poufność blokuje udostępnienie materiałów** **[K3]** | Zasady poufności i anonimizacji przed rekrutacją |
 | **PM odbiera system jako audyt swojej pracy** | Brief prywatny dla PM-a, ton sparingpartnera, PM decyduje o udostępnianiu |
 | System generuje przekonujące, ale nieprawdziwe wnioski | Źródła dla istotnych twierdzeń, oznaczanie rekonstrukcji, testy na rzeczywistych przypadkach |
@@ -306,7 +335,7 @@ Pełna lista założeń nośnych projektu: [07](07-ryzyka-i-otwarte-pytania.md).
 
 Nie zaczynamy od kodowania ani wyboru technologii.
 
-**Dzień 1 — opisz proces i profil partnera.** Opisz typową drogę od pomysłu do refinementu i estymacji (z własnego doświadczenia), zaznacz momenty istotnych decyzji. Spisz profil design partnera i listę 15–20 kandydatów.
+**Dzień 1 — opisz proces i listę kandydatów.** Opisz typową drogę od pomysłu do refinementu i estymacji (z własnego doświadczenia), zaznacz momenty istotnych decyzji. Profil design partnera jest gotowy: [outreach/profil-design-partnera.md](../outreach/profil-design-partnera.md) — na jego podstawie spisz listę 15–20 kandydatów.
 
 **Dzień 2 — zbierz przypadki z własnego doświadczenia.** Trzy sytuacje, w których brak informacji, sprzeczność lub błędne założenie spowodowały problem. Zaznacz, że to rekonstrukcja z pamięci — przydatna do kalibracji, nie jako dowód wartości.
 
@@ -314,7 +343,7 @@ Nie zaczynamy od kodowania ani wyboru technologii.
 
 **Dzień 4 — ręczny test koncepcji.** Na przykładzie z dnia 3 i na `status-zamowienia`: porównaj (a) ogólnego asystenta AI z dobrym promptem i (b) asystenta AI prowadzonego modelem PDI (schemat + katalog wzorców + format Briefa). Zapisz różnice. To pierwsza, wstępna wersja testu z Etapu 2.3.
 
-**Dzień 5 — propozycja dla partnerów i pierwszy kontakt.** Jednostronicowy opis: co PM zyskuje, czego oczekujemy, jak chronimy poufność. Wyślij do pierwszych 5 kandydatów.
+**Dzień 5 — pierwszy kontakt.** Propozycja ([outreach/propozycja-dla-pm.md](../outreach/propozycja-dla-pm.md)), zasady poufności i szablony wiadomości są gotowe. Uzupełnij miejsca `[…]` (kontakt, dostawca modelu AI) i wyślij do pierwszych 5 kandydatów.
 
 **Rezultat pięciu dni:** krótki dokument z opisem problemu, hipotezą wartości, wynikiem testu z dnia 4, propozycją dla partnerów i listą kontaktów.
 

@@ -42,8 +42,8 @@ Do zrobienia w Etapie 0–2 [planu](08-plan-projektu.md):
 2. **Gdzie żyje system?** Osobna aplikacja, czy warstwa w istniejących narzędziach (komentarz w Confluence, panel w Jira, bot w Slacku)? Hipoteza: Guardian powinien żyć tam, gdzie ludzie już pracują.
 3. **Kto utrzymuje model?** Jeśli wymaga ręcznego potwierdzania rekonstrukcji — jak ograniczyć ten koszt do minimum?
 4. ~~**Jaki kontekst pilotażu?**~~ **Rozstrzygnięte:** brak dostępu do inicjatyw. Rozwiązanie: Etap 0 — design partnerzy ([plan](08-plan-projektu.md#etap-0-design-partnerzy-i-przypadki-k1-k3)).
-6. **Charakter projektu:** produkt komercyjny, narzędzie wewnętrzne czy projekt badawczy? Zmienia kryteria walidacji przewagi.
-7. **Skąd design partnerzy?** Sieć kontaktów, społeczności PM, poprzedni pracodawcy?
+6. **Charakter projektu:** warunkowo — komercyjny przy luce rynkowej, wewnętrzny przy silnej konkurencji; reguła w [planie, Etap 2.1](08-plan-projektu.md#etap-2-walidacja-koncepcji-i-przewagi). Otwarte: wewnętrzny — dla jakiej organizacji? ([09 §9.6](09-weryfikacja-planu.md#96-rozstrzygnięcia-i-pytania-otwarte))
+7. **Skąd design partnerzy?** Otwarte — kanały do przetestowania w [profilu partnera §8](../outreach/profil-design-partnera.md#8-kanały-pozyskiwania).
 5. **Jak domyślnie traktować widoczność Briefów?** (patrz ryzyko polityczne)
 
 ## 7.5. Proponowane następne kroki

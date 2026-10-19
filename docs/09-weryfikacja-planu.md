@@ -86,8 +86,12 @@ Plan był pisany neutralnie wobec użytkownika. Wybór PM-a zmienia kilka rzeczy
 | Mierniki bez progów | Progi wstępne w [06 §6.4](06-mvp-i-pilotaz.md#64-metryki) | Pogodzone w K2 |
 | „Nie zakładajmy bazy grafowej” | Schemat JSON + reguły na grafie w pamięci | Zgodne — graf jest modelem pojęciowym, nie wyborem bazy danych |
 
-## 9.6. Czego plan nadal nie rozstrzyga
+## 9.6. Rozstrzygnięcia i pytania otwarte
 
-1. Kto, poza autorem projektu, pracuje nad nim i ile czasu.
-2. Skąd pozyskać design partnerów (sieć kontaktów, społeczności PM, poprzedni pracodawcy).
-3. Czy PDI ma być produktem komercyjnym, narzędziem wewnętrznym, czy projektem badawczym — to zmienia kryteria w Etapie 2 (przewaga konkurencyjna ma znaczenie tylko w pierwszym przypadku).
+| Pytanie | Stan | Gdzie w planie |
+|---|---|---|
+| Kto pracuje nad projektem | **Rozstrzygnięte:** jedna osoba | [Plan §6](08-plan-projektu.md#6-zespół) — harmonogram ok. 16–22 tygodni po Etapie 0 |
+| Charakter projektu | **Warunkowo:** komercyjny przy potencjale rynkowym i luce, wewnętrzny przy silnej konkurencji | [Plan, Etap 2.1](08-plan-projektu.md#etap-2-walidacja-koncepcji-i-przewagi) — reguła decyzyjna oparta na pokryciu scenariuszy |
+| Źródło design partnerów | **Otwarte** | [Profil partnera §8](../outreach/profil-design-partnera.md#8-kanały-pozyskiwania) — kanały do przetestowania |
+
+**Nowe pytanie wynikające z odpowiedzi o charakterze projektu:** „narzędzie wewnętrzne” zakłada organizację, w której będzie używane. Skoro obecnie nie ma dostępu do żadnej organizacji — dla kogo byłoby to narzędzie wewnętrzne? Możliwe odpowiedzi: organizacja, w której autor pracuje lub będzie pracował; organizacja jednego z design partnerów; własne narzędzie autora do pracy doradczej. Każda z nich zmienia dalszy kierunek, więc warto ją ustalić najpóźniej na koniec Etapu 2.
