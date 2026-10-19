@@ -11,7 +11,7 @@ PDI nie jest kolejnym narzędziem do zarządzania wymaganiami, generatorem PRD a
 | Problem do wyeliminowania | **E** — wszystkie cztery (niepełne przesłanki, rozproszona wiedza, utrata spójności, zbyt szybkie przejście do rozwiązania), z naciskiem na wykrywanie zagrożeń dla jakości decyzji, zanim staną się kosztownymi błędami |
 | Poziom ambicji | Poziom 2 (Product Decision Intelligence) jako cel, poziom 3 (Organizational Decision Intelligence) jako wizja |
 | Autonomia | Wariant 2 (**Active Decision Copilot**) na start + wariant 3 (**Continuous Decision Guardian**) jako kierunek docelowy |
-| Rdzeń pierwszej wersji | **A. Decision Risk Radar** — główna wartość · **B. Knowledge Gap Closure** — mechanizm działania · **C. Decision Integrity Graph** — fundament |
+| Propozycja wartości (od 2026-10-19) | **Strażnik podstaw decyzji** — pamięta liczby, założenia i warunki decyzji PM-a i ostrzega, gdy nowa informacja z firmy je unieważnia; poza tym milczy ([decyzja 11](docs/11-propozycja-wartosci.md)). Radar (A) to pierwszy krok — spisanie podstaw; fundamentem pozostaje model decyzji (C) |
 | Pierwszy użytkownik | **PM jako właściciel decyzji** — system jest jego sparingpartnerem; wyniki domyślnie prywatne dla PM-a |
 | Punkt startu | Brak dostępu do inicjatyw → projekt zaczyna się od pozyskania design partnerów (Etap 0) |
 | Zespół | Jedna osoba — plan dostosowany ([§6 planu](docs/08-plan-projektu.md#6-zespół)) |
@@ -30,6 +30,7 @@ PDI nie jest kolejnym narzędziem do zarządzania wymaganiami, generatorem PRD a
 8. **[Plan projektu](docs/08-plan-projektu.md)** — etapy 0–6, bramki, kryteria zatrzymania, pierwsze 5 dni
 9. [Weryfikacja planu](docs/09-weryfikacja-planu.md) — co poprawiono w planie wstępnym i dlaczego
 10. **[Analiza konkurencji](docs/10-analiza-konkurencji.md)** — mapa rynku, macierz scenariuszy S1–S6, wnioski dla decyzji komercyjny / wewnętrzny ([dowody](docs/research/20261019-konkurencja/evidence.md))
+11. **[Decyzja: zawężenie propozycji wartości](docs/11-propozycja-wartosci.md)** — co obiecujemy po testach v1 i v2, co się zmienia, kiedy wrócić do decyzji
 
 Materiały do pozyskania design partnerów (Etap 0):
 
@@ -47,4 +48,4 @@ Artefakty techniczne:
 
 ## Status
 
-Faza koncepcyjna. Test praktyczny wykonany ([raport](eval/status-zamowienia/wyniki/raport.md)): jednorazowa analiza nie odróżnia PDI od ogólnego asystenta AI; kandydat na wyróżnik to pamięć uzasadnienia decyzji w czasie. Test v2 wykonany ([raport](eval/v2-pamiec-decyzji/wyniki/raport.md)): pamięć uzasadnienia pomaga tylko przy informacjach unieważniających liczby lub warunki decyzji; szum ogranicza metoda; przewaga jest łatwa do odtworzenia, co przesuwa rekomendację w stronę narzędzia wewnętrznego. Następny krok: decyzja o propozycji wartości, potem [pierwsze pięć dni planu](docs/08-plan-projektu.md#8-pierwsze-pięć-dni-dostosowane-do-braku-inicjatyw). Teza o luce rynkowej jest **hipotezą do weryfikacji**, a nie ustaleniem — patrz [ryzyka](docs/07-ryzyka-i-otwarte-pytania.md).
+Faza koncepcyjna. Test praktyczny wykonany ([raport](eval/status-zamowienia/wyniki/raport.md)): jednorazowa analiza nie odróżnia PDI od ogólnego asystenta AI; kandydat na wyróżnik to pamięć uzasadnienia decyzji w czasie. Test v2 wykonany ([raport](eval/v2-pamiec-decyzji/wyniki/raport.md)): pamięć uzasadnienia pomaga tylko przy informacjach unieważniających liczby lub warunki decyzji; szum ogranicza metoda; przewaga jest łatwa do odtworzenia, co przesuwa rekomendację w stronę narzędzia wewnętrznego. Propozycja wartości zawężona ([decyzja 11](docs/11-propozycja-wartosci.md)), materiały dla PM-ów przepisane. Następny krok: uzupełnić `[…]` w propozycji i zacząć rozmowy według [pierwsze pięć dni planu](docs/08-plan-projektu.md#8-pierwsze-pięć-dni-dostosowane-do-braku-inicjatyw). Teza o luce rynkowej jest **hipotezą do weryfikacji**, a nie ustaleniem — patrz [ryzyka](docs/07-ryzyka-i-otwarte-pytania.md).

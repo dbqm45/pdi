@@ -10,6 +10,8 @@
 
 **Stan wyjściowy:** nie mamy jeszcze dostępu do inicjatyw ani organizacji pilotażowej. Pierwszym zadaniem jest ich pozyskanie. **[K1]**
 
+**Aktualizacja 2026-10-19 — propozycja wartości zawężona** do „strażnika podstaw decyzji” ([decyzja 11](11-propozycja-wartosci.md)) na podstawie testów [v1](../eval/status-zamowienia/wyniki/raport.md) i [v2](../eval/v2-pamiec-decyzji/wyniki/raport.md). Zmienia się Etap 0 (partnerzy z decyzjami we wdrażaniu, obserwacja 4–6 tygodni) i pierwsze pięć dni. Etapy 2.1 (analiza konkurencji) i test praktyczny z dnia 4 — wykonane.
+
 ---
 
 ## 1. Cel i zakres projektu
@@ -86,18 +88,19 @@ Harmonogram liczony jest **od zamknięcia Etapu 0**, bo bez design partnerów et
 
 **Zadania:**
 
-- **0.1. Profil design partnera.** PM odpowiedzialny za decyzje o inicjatywach, w organizacji z co najmniej kilkoma zespołami produktowymi, gotowy poświęcić ok. 3–4 godziny w miesiącu i udostępnić materiały.
-- **0.2. Propozycja dla partnera.** Jednostronicowy opis: co PM dostaje (analiza swojej bieżącej inicjatywy według modelu PDI, prywatnie), czego oczekujemy (wywiad, materiały, ocena wyników), jak chronimy poufność.
+- **0.1. Profil design partnera.** PM odpowiedzialny za decyzje, z 1–3 decyzjami w trakcie wdrażania, zależny od innych działów, gotowy przez 4–6 tygodni przekazywać co tydzień wybrane materiały z firmy (ok. 10–15 min) — [profil](../outreach/profil-design-partnera.md).
+- **0.2. Propozycja dla partnera.** Co PM dostaje: prywatne pilnowanie podstaw 1–3 swoich decyzji przez 4–6 tygodni; czego oczekujemy: rozmowa, materiały o decyzjach, cotygodniowe materiały z firmy, ocena ostrzeżeń — [propozycja](../outreach/propozycja-dla-pm.md).
 - **0.3. Zasady poufności.** Prosta umowa poufności, anonimizacja, jawna informacja o dostawcy modelu i warunkach przetwarzania (bez trenowania na danych), prawo do usunięcia materiałów.
 - **0.4. Rekrutacja.** Lista 15–20 kandydatów, kontakt, rozmowy kwalifikacyjne.
-- **0.5. Zbiór przypadków.** Od partnerów: inicjatywy bieżące i zakończone, z materiałami z chwili podjęcia decyzji. Dodatkowo: przypadki z własnego doświadczenia i syntetyczne — wyłącznie do kalibracji i testów regresyjnych, **nie** do wykazania wartości ([9.2 K1](09-weryfikacja-planu.md#k1-brak-źródła-przypadków-i-użytkowników--dodany-etap-0)).
+- **0.5. Zbiór przypadków.** Od partnerów: decyzje we wdrażaniu (z zapisanym uzasadnieniem) oraz **historie z przeszłości, w których decyzja straciła podstawy przez informację z innego działu** (pytanie P8 — zadawane każdemu rozmówcy; dane o częstości problemu i materiał do testu v3). Dodatkowo: przypadki z własnego doświadczenia i syntetyczne — wyłącznie do kalibracji i testów regresyjnych, **nie** do wykazania wartości ([9.2 K1](09-weryfikacja-planu.md#k1-brak-źródła-przypadków-i-użytkowników--dodany-etap-0)).
 
 **Rezultaty:** propozycja dla partnerów, zasady poufności, lista partnerów, rejestr przypadków (`cases/` — bez poufnych treści w repozytorium).
 
 **Warunek przejścia:**
 
 - ≥ 3 PM-ów z ≥ 2 organizacji potwierdziło udział,
-- ≥ 6 przypadków z materiałami z chwili decyzji,
+- ≥ 6 decyzji we wdrażaniu ze spisanym uzasadnieniem (łącznie u wszystkich partnerów),
+- odpowiedzi na P8 od ≥ 10 rozmówców (także tych, którzy nie zostali partnerami),
 - zasady poufności zaakceptowane przez partnerów.
 
 **Jeśli warunku nie uda się spełnić w 6 tygodni:** to sygnał o samym produkcie (PM-owie nie widzą wystarczającej wartości, żeby udostępnić materiały, lub bariera poufności jest za wysoka). Decyzja: zmienić propozycję dla partnerów, zawęzić segment albo wstrzymać projekt.
@@ -343,9 +346,9 @@ Nie zaczynamy od kodowania ani wyboru technologii.
 
 **Dzień 3 — zrekonstruuj decyzje.** Dla każdego przypadku: co było wiadomo w chwili decyzji, czego nie wiedziano, co odkryto później. Zapisz jeden z nich w schemacie LDM (wzorem `examples/status-zamowienia.yaml`) i sprawdź, czy schemat i katalog R1–R12 go pokrywają.
 
-**Dzień 4 — ręczny test koncepcji.** Gotowy zestaw: [eval/status-zamowienia](../eval/status-zamowienia/README.md) (materiały, prompty A i B, klucz odpowiedzi, karta oceny, kryteria). Na przykładzie z dnia 3 i na `status-zamowienia`: porównaj (a) ogólnego asystenta AI z dobrym promptem i (b) asystenta AI prowadzonego modelem PDI (schemat + katalog wzorców + format Briefa). Zapisz różnice. To pierwsza, wstępna wersja testu z Etapu 2.3.
+**Dzień 4 — ręczny test koncepcji. ✅ Wykonany (testy [v1](../eval/status-zamowienia/wyniki/raport.md) i [v2](../eval/v2-pamiec-decyzji/wyniki/raport.md)).** Gotowy zestaw: [eval/status-zamowienia](../eval/status-zamowienia/README.md) (materiały, prompty A i B, klucz odpowiedzi, karta oceny, kryteria). Na przykładzie z dnia 3 i na `status-zamowienia`: porównaj (a) ogólnego asystenta AI z dobrym promptem i (b) asystenta AI prowadzonego modelem PDI (schemat + katalog wzorców + format Briefa). Zapisz różnice. To pierwsza, wstępna wersja testu z Etapu 2.3.
 
-**Dzień 5 — pierwszy kontakt.** Propozycja ([outreach/propozycja-dla-pm.md](../outreach/propozycja-dla-pm.md)), zasady poufności i szablony wiadomości są gotowe. Uzupełnij miejsca `[…]` (kontakt, dostawca modelu AI) i wyślij do pierwszych 5 kandydatów.
+**Dzień 5 — pierwszy kontakt.** Materiały przepisane pod zawężoną propozycję wartości ([decyzja 11](11-propozycja-wartosci.md)). Propozycja ([outreach/propozycja-dla-pm.md](../outreach/propozycja-dla-pm.md)), zasady poufności i szablony wiadomości są gotowe. Uzupełnij miejsca `[…]` (kontakt, dostawca modelu AI) i wyślij do pierwszych 5 kandydatów.
 
 **Rezultat pięciu dni:** krótki dokument z opisem problemu, hipotezą wartości, wynikiem testu z dnia 4, propozycją dla partnerów i listą kontaktów.
 

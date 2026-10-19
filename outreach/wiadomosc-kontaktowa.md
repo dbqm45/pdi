@@ -1,37 +1,35 @@
 # Szablony pierwszego kontaktu
 
-Krótko, o problemie, nie o produkcie. Propozycję ([propozycja-dla-pm.md](propozycja-dla-pm.md)) wysyłamy dopiero po odpowiedzi albo jako załącznik w e-mailu.
+Krótko, o problemie, nie o produkcie. Pierwsze zdanie to pytanie o sytuację, którą rozmówca mógł przeżyć — odpowiedź na nie jest wartościowa nawet wtedy, gdy rozmówca nie zostanie partnerem. Propozycję ([propozycja-dla-pm.md](propozycja-dla-pm.md)) wysyłamy dopiero po odpowiedzi albo jako załącznik w e-mailu.
 
 ## Wariant A — osoba znana (sieć kontaktów)
 
 > Cześć [imię],
 >
-> pracuję nad projektem o tym, jak decyzje produktowe opierają się na założeniach, których nikt nie sprawdził — choć dokumentacja wygląda na kompletną. Szukam kilku PM-ów, którzy pomogą mi sprawdzić, czy moje podejście ma sens.
+> mam pytanie z Twojej praktyki: czy zdarzyło Ci się, że decyzja produktowa przestała mieć sens przez coś, co wydarzyło się w innym dziale — nowy aneks z dostawcą, zmiana w integracji, plan marketingu — a dowiedziałeś się o tym dopiero po wdrożeniu?
 >
-> W zamian przygotuję prywatną analizę uzasadnienia jednej Twojej bieżącej inicjatywy: co jest poparte dowodami, a co jest założeniem, jakie założenie jest nośne i jaki najtańszy krok zmniejszy niepewność. To ok. 3–4 h Twojego czasu w ciągu 6–8 tygodni, materiały po anonimizacji.
+> Pracuję nad podejściem, które pamięta, na jakich liczbach i warunkach opierają się decyzje PM-a, i ostrzega, gdy nowa informacja z firmy je podważa. Szukam kilku PM-ów, którzy przez 4–6 tygodni pozwolą mi „pilnować” 1–3 swoich decyzji — prywatnie, ok. 10–15 minut tygodniowo, materiały po anonimizacji.
 >
-> Masz w najbliższych tygodniach jakąś ważniejszą decyzję produktową? Jeśli tak — dasz się namówić na 20 minut rozmowy?
+> Jeśli masz taki przypadek z przeszłości — chętnie o nim posłucham przez 20 minut, nawet jeśli na resztę nie znajdziesz czasu.
 
 ## Wariant B — osoba z polecenia
 
 > Dzień dobry [imię],
 >
-> [osoba polecająca] zasugerował(a), że może Pan/Pani być zainteresowany/a. Prowadzę wczesną walidację podejścia, które analizuje nie dokumentację inicjatyw produktowych, lecz uzasadnienie decyzji: na jakich dowodach się opiera i co mogłoby je podważyć.
+> [osoba polecająca] zasugerował(a), że może Pan/Pani być zainteresowany/a. Badam, jak często decyzje produktowe tracą podstawy przez zmiany w innych działach firmy — umowy z dostawcami, integracje, plany wejścia na nowe rynki — które tych decyzji w ogóle nie wspominają.
 >
-> Szukam 3–5 PM-ów, którzy w zamian za prywatną analizę jednej swojej inicjatywy ocenią, czy taka analiza wnosi coś, czego nie widać na co dzień. Krótki opis w załączniku.
+> Testuję podejście, które pamięta uzasadnienie decyzji PM-a i co tydzień sprawdza, czy nowe informacje z firmy go nie podważają. Szukam 3–5 PM-ów do kilkutygodniowej, prywatnej próby. Krótki opis w załączniku.
 >
 > Czy znalazłby/znalazłaby Pan/Pani 20 minut na rozmowę?
 
 ## Wariant C — post w społeczności
 
-> Ile z Waszych ostatnich decyzji produktowych opierało się na założeniu, które w dokumentach brzmiało jak fakt, a nikt go nie sprawdził?
+> Ile razy Twoja decyzja produktowa przestała się opłacać przez coś, czego nikt Ci nie powiedział? Aneks z przewoźnikiem, zmiana API dostawcy, nowy rynek w planach marketingu — dokumenty, które nie wspominają Twojej decyzji, ale po cichu zmieniają jej rachunek.
 >
-> Pracuję nad podejściem, które analizuje uzasadnienie decyzji produktowych — co jest dowodem, co interpretacją, a co niesprawdzonym założeniem — i wskazuje najtańszy sposób, żeby zmniejszyć najważniejszą niepewność przed kosztowną decyzją.
->
-> Szukam kilku PM-ów, którzy mają przed sobą ważną decyzję i chcą dostać prywatną, krytyczną analizę jej uzasadnienia w zamian za szczerą ocenę. Szczegóły na priv.
+> Testuję podejście, które pamięta, na jakich liczbach i warunkach opiera się decyzja, i ostrzega, gdy coś je podważa — a poza tym milczy. Szukam kilku PM-ów, którzy chcą sprawdzić to na swoich decyzjach przez 4–6 tygodni. Zbieram też historie takich sytuacji — jeśli masz jedną, napisz na priv.
 
 ## Zasady
 
 - Jeden follow-up po 5–7 dniach, potem koniec.
 - Nie wysyłać propozycji masowo — każda wiadomość z imieniem i kontekstem.
-- Notować w rejestrze kandydatów: kanał, wariant wiadomości, odpowiedź. Odsetek odpowiedzi na każdy wariant to dane o tym, jak PM-owie postrzegają problem.
+- Notować w rejestrze kandydatów: kanał, wariant wiadomości, odpowiedź **i odpowiedź na pytanie z pierwszego zdania** (był przypadek / nie było). Odsetek „był przypadek” to pierwsza miara częstości problemu.

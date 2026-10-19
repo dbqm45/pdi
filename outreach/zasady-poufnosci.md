@@ -6,6 +6,14 @@
 
 Wyłącznie te, które partner sam wybierze i przekaże. Nie proszę o dostęp do systemów organizacji (Jira, Confluence, analityka itp.) — partner eksportuje lub kopiuje to, co uzna za stosowne.
 
+## 1a. Materiały cotygodniowe
+
+W trakcie współpracy partner raz w tygodniu przekazuje wybrane materiały z firmy (notatki, tickety, fragmenty maili, streszczenia umów). Obowiązują te same zasady co dla materiałów o decyzjach:
+
+- partner wybiera, co przekazuje — nie musi oceniać, czy materiał „ma znaczenie”, ale może pominąć wszystko, czego nie chce udostępnić;
+- przed przekazaniem stosuje anonimizację z punktu 2; przy umowach i finansach wystarczą proporcje i zmiany procentowe zamiast kwot;
+- nie przekazuje dokumentów objętych tajemnicą prawną lub wymagających zgody kontrahenta, jeśli jej nie ma.
+
 ## 2. Anonimizacja przed przekazaniem
 
 Przed przekazaniem partner (wspólnie ze mną, jeśli chce) usuwa lub zastępuje:
