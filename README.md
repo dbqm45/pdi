@@ -42,6 +42,7 @@ Artefakty techniczne:
 
 - [`model/living-decision-model.schema.json`](model/living-decision-model.schema.json) — schemat danych modelu decyzji (JSON Schema)
 - [`examples/status-zamowienia.yaml`](examples/status-zamowienia.yaml) — przykład roboczy: inicjatywa „panel statusu zamówienia” wraz z oczekiwanym wynikiem radaru
+- [`eval/v2-pamiec-decyzji/`](eval/v2-pamiec-decyzji/README.md) — **test v2**: czy pamięć uzasadnienia decyzji daje przewagę nad ogólnym asystentem AI (3 decyzje, 28 dokumentów w 4 tygodniach, 4 warianty)
 - [`eval/status-zamowienia/`](eval/status-zamowienia/README.md) — **test praktyczny**: ogólny asystent AI vs prototyp PDI na tym przypadku, w dwóch rundach (analiza i reakcja na nowe informacje)
 
 ## Status

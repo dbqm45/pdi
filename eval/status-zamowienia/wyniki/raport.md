@@ -74,7 +74,7 @@ Zgodność z drugim oceniającym: **nie mierzona** — oceniał tylko sędzia LL
 - Jedyny kandydat na wyróżnik, który test pokazał, to **pamięć uzasadnienia decyzji w czasie**: system wie, *dlaczego* zdecydowano, więc potrafi powiedzieć, że nowa informacja to uzasadnienie podważa — także wtedy, gdy PM nie ma już kontekstu i nie wkleja materiałów. To jest węższe i bardziej konkretne niż pierwotna wizja „Decision Risk Radar jako główna wartość”.
 - Do sprawdzenia, czy to wystarczy jako produkt: **jak często w praktyce PM traci kontekst decyzji** (zmiana osoby, upływ tygodni, wiele równoległych inicjatyw, informacje przychodzące z miejsc, których PM nie obserwuje). To pytanie do wywiadów z design partnerami — dopisane do Etapu 1.
 
-**Dla testu (wersja 2):**
+**Dla testu (wersja 2):** — przygotowana: [eval/v2-pamiec-decyzji](../../v2-pamiec-decyzji/README.md)
 1. **Trudniejsza runda 2:** nowa informacja, której związek z decyzją **nie wynika z niej samej** — np. notatka z umowy z przewoźnikiem o zmianie API, zmiana procesu w magazynie, ticket inżynierski o kolejce webhooków. Bez pamięci uzasadnienia nie da się jej powiązać z panelem.
 2. **Skala:** 30–60 dokumentów i strumień nowych dokumentów, w większości nieistotnych — test S6 (szum) i sytuacji, w której PM nie wkleja wszystkiego do jednej rozmowy.
 3. **Klucz:** N1 pełne tylko za wprost nazwane podważone założenie decyzji (nie za samo powiązanie dokumentu z inicjatywą); N4 doprecyzować — „komentarz o dokumencie 10 wynikający z innego dokumentu nie jest fałszywym alarmem”.
