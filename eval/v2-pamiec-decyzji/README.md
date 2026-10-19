@@ -1,5 +1,7 @@
 # Test v2: pamięć uzasadnienia decyzji
 
+> **Wykonano 2026-10-19 — [raport z wynikami](wyniki/raport.md).** K1 spełnione, K2–K4 niespełnione. Pamięć daje przewagę tylko przy sygnale zależnym od liczb w uzasadnieniu (S1: 3/3 vs 0/3); szum ogranicza metoda, nie pamięć.
+
 Druga wersja testu praktycznego. Powstała na podstawie [wyników v1](../status-zamowienia/wyniki/raport.md). Test v1 pokazał, że jednorazowa analiza i reakcja na nowy dokument w tej samej rozmowie nie odróżniają PDI od ogólnego asystenta AI. Jedynym kandydatem na wyróżnik okazała się **pamięć uzasadnienia decyzji w czasie**. Wersja 2 sprawdza wyłącznie ten wyróżnik.
 
 ## Co test ma na celu
