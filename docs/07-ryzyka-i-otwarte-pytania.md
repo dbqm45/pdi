@@ -10,7 +10,7 @@ Stosujemy do własnego projektu tę samą zasadę, którą PDI ma stosować wobe
 | Z2 | Materiały wystarczają do zrekonstruowania logiki decyzji | Uzasadnienia żyją głównie w rozmowach i głowach; rekonstrukcja jest zgadywaniem | Metryka trafności rekonstrukcji w pilotażu | hipoteza — **największe ryzyko techniczne** |
 | Z3 | System znajduje rzeczy, których eksperci nie widzą | Eksperci znajdują wszystko, co system — system tylko przyspiesza | Metryka „wartość dodana” w pilotażu | hipoteza |
 | Z4 | Ludzie przyjmą zakwestionowanie swojej decyzji od systemu | Ostrzeżenia odbierane jako atak / biurokracja; system jest ignorowany lub wyłączany | Pilotaż na żywo: reakcje, powroty | hipoteza — **największe ryzyko adopcyjne** |
-| Z5 | Połączenie A+B+C wokół decyzji nie jest już oferowane przez istniejące narzędzia | Konkurencja (lub funkcje AI w Productboard/Jira/Notion) pokrywa tę wartość | Analiza konkurencji (patrz 7.3) | **niezweryfikowane** |
+| Z5 | Połączenie A+B+C wokół decyzji nie jest już oferowane przez istniejące narzędzia | Konkurencja (lub funkcje AI w Productboard/Jira/Notion) pokrywa tę wartość | Analiza konkurencji ([10](10-analiza-konkurencji.md)) | **wstępnie wsparte dla połączenia** (nie znaleziono narzędzia łączącego wszystkie elementy); **podważone dla jednorazowej analizy** (ogólny asystent AI); wymaga testu praktycznego |
 
 ## 7.2. Główne ryzyka
 
@@ -30,11 +30,11 @@ Stosujemy do własnego projektu tę samą zasadę, którą PDI ma stosować wobe
 
 Dotychczasowe odniesienia do rynku (Productboard — AI w product discovery; Jama Connect — traceability i analiza wpływu zmian; podejścia „AI-native product discovery”) pochodzą z wcześniejszej rozmowy i **nie zostały zweryfikowane** w tym repozytorium (odnośniki źródłowe nie zachowały się).
 
-Do zrobienia w Etapie 0–2 [planu](08-plan-projektu.md):
+Wykonano wstępnie 2026-10-19 — [10-analiza-konkurencji.md](10-analiza-konkurencji.md). Pozostaje: otwarcie źródeł z werdyktem „C” i test praktyczny na trialach. Pierwotna lista zadań:
 
-- [ ] Mapa: narzędzia discovery (Productboard, Dovetail, Enterpret, …), traceability (Jama, Polarion, …), decision records / ADR, funkcje AI w Jira/Confluence/Notion/Linear.
-- [ ] Dla każdego: czy modeluje **decyzję** jako obiekt? czy rozróżnia fakt/hipotezę? czy kwestionuje decyzje? czy ocenia proporcjonalność do stawki? czy działa w tle?
-- [ ] Wnioski: gdzie realnie jest luka i czy jest wystarczająco duża, by na niej budować.
+- [x] Mapa: narzędzia discovery (Productboard, Dovetail, Enterpret, …), traceability (Jama, Polarion, …), decision records / ADR, funkcje AI w Jira/Confluence/Notion/Linear.
+- [x] Dla każdego: czy modeluje **decyzję** jako obiekt? czy rozróżnia fakt/hipotezę? czy kwestionuje decyzje? czy ocenia proporcjonalność do stawki? czy działa w tle?
+- [x] Wnioski: gdzie realnie jest luka i czy jest wystarczająco duża, by na niej budować.
 
 ## 7.4. Otwarte pytania produktowe
 

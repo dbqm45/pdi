@@ -29,6 +29,7 @@ PDI nie jest kolejnym narzędziem do zarządzania wymaganiami, generatorem PRD a
 7. [Ryzyka projektu i otwarte pytania](docs/07-ryzyka-i-otwarte-pytania.md)
 8. **[Plan projektu](docs/08-plan-projektu.md)** — etapy 0–6, bramki, kryteria zatrzymania, pierwsze 5 dni
 9. [Weryfikacja planu](docs/09-weryfikacja-planu.md) — co poprawiono w planie wstępnym i dlaczego
+10. **[Analiza konkurencji](docs/10-analiza-konkurencji.md)** — mapa rynku, macierz scenariuszy S1–S6, wnioski dla decyzji komercyjny / wewnętrzny ([dowody](docs/research/20261019-konkurencja/evidence.md))
 
 Materiały do pozyskania design partnerów (Etap 0):
 

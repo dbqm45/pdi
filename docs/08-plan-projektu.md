@@ -122,7 +122,7 @@ Harmonogram liczony jest **od zamknięcia Etapu 0**, bo bez design partnerów et
 
 **Czas: tygodnie 2–4 po Etapie 0** (2.1 może rozpocząć się już w Etapie 0)
 
-**2.1. Analiza konkurencji** — co najmniej cztery kategorie:
+**2.1. Analiza konkurencji** — **wykonana wstępnie 2026-10-19: [10-analiza-konkurencji.md](10-analiza-konkurencji.md)** (bez otwierania źródeł — do domknięcia). Co najmniej cztery kategorie:
 
 | Kategoria | Co sprawdzić |
 |---|---|
@@ -143,6 +143,8 @@ Punkty wyjścia: Productboard, Jama Connect, funkcje AI w narzędziach do pracy 
 
 Uwaga: „silna konkurencja” mierzymy pokryciem **scenariuszy**, nie liczbą firm w kategorii. Wiele narzędzi z funkcjami AI nie oznacza, że któreś rozwiązuje ten sam problem.
 
+Scenariusz uznajemy za **pokryty**, jeśli PM uzyskuje wynik **bez budowania własnego agenta i bez ponownego dostarczania kontekstu** (doprecyzowanie po analizie konkurencji, [10 §6](10-analiza-konkurencji.md#6-wnioski-dla-decyzji-produkt-komercyjny-czy-narzędzie-wewnętrzne)). Stan wstępny: warunek „luki” spełniony dla S2, S3, S5, S6 wśród gotowych produktów; ogólny asystent AI pokrywa S1–S4 metodą DIY; zainteresowanie partnerów — niesprawdzone.
+
 **2.2. Porównanie na scenariuszach**, nie na listach funkcji: wykrycie nieuzasadnionego założenia, sprzeczności badanie–rozwiązanie, brakującej informacji, propozycja działania zamykającego lukę, wykrycie zmiany podważającej decyzję, ograniczanie niepotrzebnych powiadomień.
 
 **2.3. Test wartości** na 3–6 przypadkach partnerów. Trzy warianty analizy tych samych materiałów:
@@ -151,7 +153,7 @@ Uwaga: „silna konkurencja” mierzymy pokryciem **scenariuszy**, nie liczbą f
 2. ogólny asystent AI — **te same materiały i sensowny, nie celowo słaby prompt** **[M2]**,
 3. „prototyp PDI” = analiza według modelu PDI (schemat LDM + katalog R1–R12 + format Briefa), wykonana przez LLM z ustrukturyzowanym promptem i poprawiona ręcznie (Wizard of Oz) **[M3]**.
 
-Oceniający (partnerzy, nie autor projektu) nie wiedzą, który wariant jest który **[M2]**. Oceniają istotność i trafność wykrytych problemów, zasadność rekomendacji, użyteczność wyników.
+Oceniający (partnerzy, nie autor projektu) nie wiedzą, który wariant jest który **[M2]**. Test obejmuje **drugi przebieg**: po pierwszej analizie dodajemy nowy dowód podważający założenie decyzji i sprawdzamy, czy wariant sam to wykryje i jak zareaguje — jednorazowa analiza jest łatwa do zastąpienia ogólnym asystentem AI ([10, U2–U3](10-analiza-konkurencji.md#4-ustalenia)). Jeśli to możliwe, porównanie rozszerzamy o triale ProdPad CoPilot i Productboard Spark. Oceniają istotność i trafność wykrytych problemów, zasadność rekomendacji, użyteczność wyników.
 
 **Rezultaty:** mapa konkurencji, lista istniejących funkcji i nierozwiązanych problemów, hipoteza przewagi, wyniki porównania, decyzja o budowie MVP.
 
