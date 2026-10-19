@@ -1,1 +1,34 @@
-# pdi
+# PDI — Product Decision Intelligence
+
+> System, który rozpoznaje, kiedy organizacja jeszcze nie rozumie problemu wystarczająco dobrze, aby bezpiecznie przejść do rozwiązania — i aktywnie pomaga tę lukę zamknąć.
+
+PDI nie jest kolejnym narzędziem do zarządzania wymaganiami, generatorem PRD ani asystentem do dokumentacji. Jego centralnym obiektem jest **decyzja produktowa wraz z pełnym uzasadnieniem**, a celem — jakość tego uzasadnienia: od pierwszej hipotezy, przez realizację, aż po ocenę rezultatu.
+
+## Ustalenia (stan na teraz)
+
+| Obszar | Decyzja |
+|---|---|
+| Problem do wyeliminowania | **E** — wszystkie cztery (niepełne przesłanki, rozproszona wiedza, utrata spójności, zbyt szybkie przejście do rozwiązania), z naciskiem na wykrywanie zagrożeń dla jakości decyzji, zanim staną się kosztownymi błędami |
+| Poziom ambicji | Poziom 2 (Product Decision Intelligence) jako cel, poziom 3 (Organizational Decision Intelligence) jako wizja |
+| Autonomia | Wariant 2 (**Active Decision Copilot**) na start + wariant 3 (**Continuous Decision Guardian**) jako kierunek docelowy |
+| Rdzeń pierwszej wersji | **A. Decision Risk Radar** — główna wartość · **B. Knowledge Gap Closure** — mechanizm działania · **C. Decision Integrity Graph** — fundament |
+| Zasada nadrzędna | System ujawnia, uzasadnia i proponuje. Nie blokuje inicjatyw i nie podejmuje decyzji za ludzi. Chroni uwagę ludzi równie świadomie jak jakość decyzji. |
+
+## Dokumentacja
+
+1. [Wizja i pozycjonowanie](docs/01-wizja.md)
+2. [Living Decision Model — model wiedzy (fundament C)](docs/02-living-decision-model.md)
+3. [Decision Risk Radar (A)](docs/03-decision-risk-radar.md)
+4. [Knowledge Gap Closure (B)](docs/04-knowledge-gap-closure.md)
+5. [Attention Intelligence — kiedy system się odzywa](docs/05-attention-intelligence.md)
+6. [MVP i protokół pilotażu](docs/06-mvp-i-pilotaz.md)
+7. [Ryzyka projektu i otwarte pytania](docs/07-ryzyka-i-otwarte-pytania.md)
+
+Artefakty techniczne:
+
+- [`model/living-decision-model.schema.json`](model/living-decision-model.schema.json) — schemat danych modelu decyzji (JSON Schema)
+- [`examples/status-zamowienia.yaml`](examples/status-zamowienia.yaml) — przykład roboczy: inicjatywa „panel statusu zamówienia” wraz z oczekiwanym wynikiem radaru
+
+## Status
+
+Faza koncepcyjna. Teza o luce rynkowej jest **hipotezą do weryfikacji**, a nie ustaleniem — patrz [ryzyka](docs/07-ryzyka-i-otwarte-pytania.md).
