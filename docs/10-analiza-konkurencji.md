@@ -76,7 +76,7 @@ Przypisy:
 
 Wyszukiwanie przeciwne („czy istnieje narzędzie, które sygnalizuje sprzeczność wymagań z badaniami”) zwróciło tylko zestawy promptów i ogólne poradniki. *Siła dowodu: umiarkowana. Brak wyniku wyszukiwania to nie dowód braku produktu.*
 
-**U2. Najsilniejszym zamiennikiem nie jest konkurent z kategorii, tylko ogólny asystent AI z dobrym promptem.** Scenariusze S1–S4 to rdzeń Decision Risk Radar. PM może je uzyskać jednorazowo w ChatGPT lub Claude, jeśli wklei materiały i dobrze zada pytanie. Istnieją już otwarte zestawy promptów, które robią dokładnie to. Przykładem jest Assumption-Loop-Toolkit, który oznacza każde wymaganie jako „validated” albo „assumed”. **Jednorazowa analiza nie może więc być główną przewagą PDI.** *To ocena, nie fakt; rozstrzyga ją test z Etapu 2.3.*
+**U2. Najsilniejszym zamiennikiem nie jest konkurent z kategorii, tylko ogólny asystent AI z dobrym promptem.** Scenariusze S1–S4 to rdzeń Decision Risk Radar. PM może je uzyskać jednorazowo w ChatGPT lub Claude, jeśli wklei materiały i dobrze zada pytanie. Istnieją już otwarte zestawy promptów, które robią dokładnie to. Przykładem jest Assumption-Loop-Toolkit, który oznacza każde wymaganie jako „validated” albo „assumed”. **Jednorazowa analiza nie może więc być główną przewagą PDI.** *Potwierdzone testem praktycznym 2026-10-19 ([raport](../eval/status-zamowienia/wyniki/raport.md)): ogólny asystent z dobrym promptem uzyskał ten sam wynik co prototyp PDI, także w reakcji na nowe informacje w tej samej rozmowie.*
 
 **U3. Prawdziwa luka leży w tym, co jest trwałe i ciągłe:**
 - model decyzji, który zachowuje się między sesjami: co było wiadomo, co jest hipotezą, co zaakceptowano;

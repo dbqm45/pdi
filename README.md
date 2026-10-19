@@ -46,4 +46,4 @@ Artefakty techniczne:
 
 ## Status
 
-Faza koncepcyjna. Następny krok: [test praktyczny](eval/status-zamowienia/README.md) i [pierwsze pięć dni planu](docs/08-plan-projektu.md#8-pierwsze-pięć-dni-dostosowane-do-braku-inicjatyw). Teza o luce rynkowej jest **hipotezą do weryfikacji**, a nie ustaleniem — patrz [ryzyka](docs/07-ryzyka-i-otwarte-pytania.md).
+Faza koncepcyjna. Test praktyczny wykonany ([raport](eval/status-zamowienia/wyniki/raport.md)): jednorazowa analiza nie odróżnia PDI od ogólnego asystenta AI; kandydat na wyróżnik to pamięć uzasadnienia decyzji w czasie. Następny krok: decyzja o zawężeniu propozycji wartości i test w wersji 2, potem [pierwsze pięć dni planu](docs/08-plan-projektu.md#8-pierwsze-pięć-dni-dostosowane-do-braku-inicjatyw). Teza o luce rynkowej jest **hipotezą do weryfikacji**, a nie ustaleniem — patrz [ryzyka](docs/07-ryzyka-i-otwarte-pytania.md).

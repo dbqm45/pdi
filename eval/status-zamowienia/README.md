@@ -1,5 +1,7 @@
 # Test praktyczny: panel statusu zamówienia
 
+> **Wykonano 2026-10-19 — [raport z wynikami](wyniki/raport.md).** K1 i K4 spełnione, K2 i K3 niespełnione (efekt sufitu: ogólny asystent wypadł tak samo jak prototyp PDI).
+
 Pierwszy praktyczny test koncepcji PDI na przygotowanym przypadku. Odpowiada dniu 4 z [pierwszych pięciu dni planu](../../docs/08-plan-projektu.md#8-pierwsze-pięć-dni-dostosowane-do-braku-inicjatyw) i jest próbą generalną testu z Etapu 2.3.
 
 ## Co test ma na celu

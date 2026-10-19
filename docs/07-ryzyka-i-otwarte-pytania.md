@@ -8,7 +8,7 @@ Stosujemy do własnego projektu tę samą zasadę, którą PDI ma stosować wobe
 |---|---|---|---|---|
 | Z1 | Błędne decyzje produktowe w istotnej mierze wynikają z wad uzasadnienia (a nie np. z polityki, egzekucji, zmian rynku) | Analiza nieudanych inicjatyw pokazuje, że przyczyny leżały poza uzasadnieniem | Retrospektywa 10–15 inicjatyw, klasyfikacja przyczyn | hipoteza |
 | Z2 | Materiały wystarczają do zrekonstruowania logiki decyzji | Uzasadnienia żyją głównie w rozmowach i głowach; rekonstrukcja jest zgadywaniem | Metryka trafności rekonstrukcji w pilotażu | hipoteza — **największe ryzyko techniczne** |
-| Z3 | System znajduje rzeczy, których eksperci nie widzą | Eksperci znajdują wszystko, co system — system tylko przyspiesza | Metryka „wartość dodana” w pilotażu | hipoteza |
+| Z3 | System znajduje rzeczy, których eksperci nie widzą | Eksperci znajdują wszystko, co system — system tylko przyspiesza | Metryka „wartość dodana” w pilotażu | **osłabione** dla jednorazowej analizy przez test praktyczny ([raport](../eval/status-zamowienia/wyniki/raport.md)); otwarte dla pamięci uzasadnienia w czasie |
 | Z4 | Ludzie przyjmą zakwestionowanie swojej decyzji od systemu | Ostrzeżenia odbierane jako atak / biurokracja; system jest ignorowany lub wyłączany | Pilotaż na żywo: reakcje, powroty | hipoteza — **największe ryzyko adopcyjne** |
 | Z5 | Połączenie A+B+C wokół decyzji nie jest już oferowane przez istniejące narzędzia | Konkurencja (lub funkcje AI w Productboard/Jira/Notion) pokrywa tę wartość | Analiza konkurencji ([10](10-analiza-konkurencji.md)) | **wstępnie wsparte dla połączenia** (nie znaleziono narzędzia łączącego wszystkie elementy); **podważone dla jednorazowej analizy** (ogólny asystent AI); wymaga testu praktycznego |
 
