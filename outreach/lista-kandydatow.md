@@ -1,5 +1,7 @@
 # Lista kandydatów — jak ją zbudować w 90 minut
 
+> **Wstrzymane 2026-10-23** — pdi rozwijane jest jako warstwa decyzji we własnym flow SDLC, z pilotem na własnych problemach ([dokument 12](../docs/12-zmiana-kierunku-sdlc.md)). Materiał zostaje na wypadek, gdyby po F5 wróciło pytanie o użycie pdi poza tym flow.
+
 Uzupełnienie [profilu design partnera](profil-design-partnera.md). Cel: **15–20 nazwisk**, z których po rozmowach zostanie 3–5 partnerów i co najmniej 10 odpowiedzi na pytanie P8.
 
 **Nazwiska wpisujesz tylko do pliku `outreach/rejestr-kandydatow.csv`** (szablon: [rejestr-kandydatow-szablon.csv](rejestr-kandydatow-szablon.csv)). Ten plik jest w `.gitignore` — nie trafi do repozytorium. W repozytorium zostają tylko zagregowane liczby.

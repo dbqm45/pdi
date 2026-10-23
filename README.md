@@ -1,52 +1,31 @@
-# PDI — Product Decision Intelligence
+# pdi — Product Decision Intelligence
 
-> System, który rozpoznaje, kiedy organizacja jeszcze nie rozumie problemu wystarczająco dobrze, aby bezpiecznie przejść do rozwiązania — i aktywnie pomaga tę lukę zamknąć.
+Warstwa decyzji w procesie AI-native SDLC: zgłoszenia problemów, triaż, rejestr decyzji, skrzynka bramek,
+orkiestracja etapów, graf śladu od zgłoszenia do wydania na PROD i ocena skutku decyzji. Współpracuje z tf
+(fabryka agentów), ci_for_sdlc (kontrola spójności definicji) i ShipScope (status wydań).
 
-PDI nie jest kolejnym narzędziem do zarządzania wymaganiami, generatorem PRD ani asystentem do dokumentacji. Jego centralnym obiektem jest **decyzja produktowa wraz z pełnym uzasadnieniem**, a celem — jakość tego uzasadnienia: od pierwszej hipotezy, przez realizację, aż po ocenę rezultatu.
+Stan: projekt na etapie planu, bez kodu.
 
-## Ustalenia (stan na teraz)
+## Kierunek (od 2026-10-23)
 
-| Obszar | Decyzja |
-|---|---|
-| Problem do wyeliminowania | **E** — wszystkie cztery (niepełne przesłanki, rozproszona wiedza, utrata spójności, zbyt szybkie przejście do rozwiązania), z naciskiem na wykrywanie zagrożeń dla jakości decyzji, zanim staną się kosztownymi błędami |
-| Poziom ambicji | Poziom 2 (Product Decision Intelligence) jako cel, poziom 3 (Organizational Decision Intelligence) jako wizja |
-| Autonomia | Wariant 2 (**Active Decision Copilot**) na start + wariant 3 (**Continuous Decision Guardian**) jako kierunek docelowy |
-| Propozycja wartości (od 2026-10-19) | **Strażnik podstaw decyzji** — pamięta liczby, założenia i warunki decyzji PM-a i ostrzega, gdy nowa informacja z firmy je unieważnia; poza tym milczy ([decyzja 11](docs/11-propozycja-wartosci.md)). Radar (A) to pierwszy krok — spisanie podstaw; fundamentem pozostaje model decyzji (C) |
-| Pierwszy użytkownik | **PM jako właściciel decyzji** — system jest jego sparingpartnerem; wyniki domyślnie prywatne dla PM-a |
-| Punkt startu | Brak dostępu do inicjatyw → projekt zaczyna się od pozyskania design partnerów (Etap 0) |
-| Zespół | Jedna osoba — plan dostosowany ([§6 planu](docs/08-plan-projektu.md#6-zespół)) |
-| Charakter projektu | Warunkowy: komercyjny przy luce rynkowej, wewnętrzny przy silnej konkurencji — rozstrzyga Etap 2 |
-| Zasada nadrzędna | System ujawnia, uzasadnia i proponuje. Nie blokuje inicjatyw i nie podejmuje decyzji za ludzi. Chroni uwagę ludzi równie świadomie jak jakość decyzji. |
+- [`docs/plan-jeden-flow-sdlc.md`](docs/plan-jeden-flow-sdlc.md) — plan połączenia czterech projektów w jeden flow (fazy F0–F6, decyzje D1–D7).
+- [`docs/kontekst-rozmowy.md`](docs/kontekst-rozmowy.md) — kontekst i przekazanie dla kolejnej sesji.
+- [`docs/12-zmiana-kierunku-sdlc.md`](docs/12-zmiana-kierunku-sdlc.md) — **jak wcześniejsza praca koncepcyjna (dokumenty 01–11, testy v1 i v2) przechodzi do nowego kierunku**: co wchodzi do kontraktu i modułów pdi, co jest wstrzymane, propozycje do D2 i F0.
 
-## Dokumentacja
+## Wcześniejsza praca koncepcyjna (2026-10-19 – 2026-10-22)
 
-1. [Wizja i pozycjonowanie](docs/01-wizja.md)
-2. [Living Decision Model — model wiedzy (fundament C)](docs/02-living-decision-model.md)
-3. [Decision Risk Radar (A)](docs/03-decision-risk-radar.md)
-4. [Knowledge Gap Closure (B)](docs/04-knowledge-gap-closure.md)
-5. [Attention Intelligence — kiedy system się odzywa](docs/05-attention-intelligence.md)
-6. [MVP i protokół pilotażu](docs/06-mvp-i-pilotaz.md)
-7. [Ryzyka projektu i otwarte pytania](docs/07-ryzyka-i-otwarte-pytania.md)
-8. **[Plan projektu](docs/08-plan-projektu.md)** — etapy 0–6, bramki, kryteria zatrzymania, pierwsze 5 dni
-9. [Weryfikacja planu](docs/09-weryfikacja-planu.md) — co poprawiono w planie wstępnym i dlaczego
-10. **[Analiza konkurencji](docs/10-analiza-konkurencji.md)** — mapa rynku, macierz scenariuszy S1–S6, wnioski dla decyzji komercyjny / wewnętrzny ([dowody](docs/research/20261019-konkurencja/evidence.md))
-11. **[Decyzja: zawężenie propozycji wartości](docs/11-propozycja-wartosci.md)** — co obiecujemy po testach v1 i v2, co się zmienia, kiedy wrócić do decyzji
+Powstała, gdy pdi było projektowane jako samodzielne narzędzie dla PM-ów. Wnioski z niej zasilają nowy kierunek
+(szczegóły w [dokumencie 12](docs/12-zmiana-kierunku-sdlc.md)); dokumenty zostają jako uzasadnienie i materiał wejściowy.
 
-Materiały do pozyskania design partnerów (Etap 0):
-
-- [Profil design partnera](outreach/profil-design-partnera.md) — kryteria, pytania kwalifikacyjne, kanały (dokument wewnętrzny)
-- [Propozycja dla PM-ów](outreach/propozycja-dla-pm.md) — jednostronicowe zaproszenie
-- [Lista kandydatów — jak ją zbudować](outreach/lista-kandydatow.md) + [szablon rejestru](outreach/rejestr-kandydatow-szablon.csv) (wypełniony rejestr jest w `.gitignore`)
-- [Szablony pierwszego kontaktu](outreach/wiadomosc-kontaktowa.md)
-- [Zasady poufności](outreach/zasady-poufnosci.md) — wersja robocza
-
-Artefakty techniczne:
-
-- [`model/living-decision-model.schema.json`](model/living-decision-model.schema.json) — schemat danych modelu decyzji (JSON Schema)
-- [`examples/status-zamowienia.yaml`](examples/status-zamowienia.yaml) — przykład roboczy: inicjatywa „panel statusu zamówienia” wraz z oczekiwanym wynikiem radaru
-- [`eval/v2-pamiec-decyzji/`](eval/v2-pamiec-decyzji/README.md) — **test v2**: czy pamięć uzasadnienia decyzji daje przewagę nad ogólnym asystentem AI (3 decyzje, 28 dokumentów w 4 tygodniach, 4 warianty)
-- [`eval/status-zamowienia/`](eval/status-zamowienia/README.md) — **test praktyczny**: ogólny asystent AI vs prototyp PDI na tym przypadku, w dwóch rundach (analiza i reakcja na nowe informacje)
-
-## Status
-
-Faza koncepcyjna. Test praktyczny wykonany ([raport](eval/status-zamowienia/wyniki/raport.md)): jednorazowa analiza nie odróżnia PDI od ogólnego asystenta AI; kandydat na wyróżnik to pamięć uzasadnienia decyzji w czasie. Test v2 wykonany ([raport](eval/v2-pamiec-decyzji/wyniki/raport.md)): pamięć uzasadnienia pomaga tylko przy informacjach unieważniających liczby lub warunki decyzji; szum ogranicza metoda; przewaga jest łatwa do odtworzenia, co przesuwa rekomendację w stronę narzędzia wewnętrznego. Propozycja wartości zawężona ([decyzja 11](docs/11-propozycja-wartosci.md)), materiały dla PM-ów przepisane. Następny krok: uzupełnić `[…]` w propozycji i zacząć rozmowy według [pierwsze pięć dni planu](docs/08-plan-projektu.md#8-pierwsze-pięć-dni-dostosowane-do-braku-inicjatyw). Teza o luce rynkowej jest **hipotezą do weryfikacji**, a nie ustaleniem — patrz [ryzyka](docs/07-ryzyka-i-otwarte-pytania.md).
+| Obszar | Dokumenty | Status w nowym kierunku |
+|---|---|---|
+| Model decyzji (statusy epistemiczne, założenia nośne, warunki unieważnienia) | [02](docs/02-living-decision-model.md), [`model/living-decision-model.schema.json`](model/living-decision-model.schema.json) | **wejście do kontraktu** (schemat decyzji w `contract/`, F0) |
+| Wzorce ryzyka R1–R12 | [03](docs/03-decision-risk-radar.md) | wejście do wzbogacenia i przeglądu intencji (B1) |
+| Zamykanie luk w wiedzy | [04](docs/04-knowledge-gap-closure.md) | wejście do pytań doprecyzowujących (intake) |
+| Poziomy uwagi i reguły antyszumowe | [05](docs/05-attention-intelligence.md) | wejście do skrzynki bramek i powiadomień |
+| Strażnik podstaw decyzji (decyzja 11) | [11](docs/11-propozycja-wartosci.md) | wejście do rejestru decyzji i oceny skutku |
+| Testy v1 i v2 (metoda ewaluacji, wyniki) | [eval/status-zamowienia](eval/status-zamowienia/README.md), [eval/v2-pamiec-decyzji](eval/v2-pamiec-decyzji/README.md) | wejście do evali flow (F6) |
+| Wizja, plan projektu, weryfikacja planu, MVP | [01](docs/01-wizja.md), [06](docs/06-mvp-i-pilotaz.md), [08](docs/08-plan-projektu.md), [09](docs/09-weryfikacja-planu.md) | **zastąpione** planem jednego flow |
+| Ryzyka, analiza konkurencji | [07](docs/07-ryzyka-i-otwarte-pytania.md), [10](docs/10-analiza-konkurencji.md) | tło; pytanie „produkt czy narzędzie wewnętrzne” rozstrzygnięte na rzecz narzędzia w ramach flow |
+| Pozyskiwanie design partnerów (zewnętrzni PM-owie) | [outreach/](outreach/profil-design-partnera.md) | **wstrzymane** |
+| Przykład roboczy | [`examples/status-zamowienia.yaml`](examples/status-zamowienia.yaml) | materiał testowy |

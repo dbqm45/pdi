@@ -1,5 +1,7 @@
 # 9. Weryfikacja planu projektu
 
+> **Zastąpione 2026-10-23** przez [plan jednego flow SDLC](plan-jeden-flow-sdlc.md). Co z tego dokumentu przechodzi do nowego kierunku: [dokument 12](12-zmiana-kierunku-sdlc.md).
+
 Przegląd wstępnego planu ([08-plan-projektu.md](08-plan-projektu.md)) w świetle dwóch nowych ustaleń:
 
 - **Pierwszym użytkownikiem jest PM jako właściciel decyzji.**

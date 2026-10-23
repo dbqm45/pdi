@@ -1,5 +1,7 @@
 # 6. MVP i protokół pilotażu
 
+> **Zastąpione 2026-10-23** przez [plan jednego flow SDLC](plan-jeden-flow-sdlc.md). Co z tego dokumentu przechodzi do nowego kierunku: [dokument 12](12-zmiana-kierunku-sdlc.md).
+
 ## 6.1. Zakres MVP
 
 Jeden cykl decyzyjny: **od pojawienia się inicjatywy do decyzji o dalszym postępowaniu.**

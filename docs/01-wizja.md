@@ -1,5 +1,7 @@
 # 1. Wizja i pozycjonowanie
 
+> **Zastąpione 2026-10-23** przez [plan jednego flow SDLC](plan-jeden-flow-sdlc.md). Co z tego dokumentu przechodzi do nowego kierunku: [dokument 12](12-zmiana-kierunku-sdlc.md).
+
 > **Aktualizacja 2026-10-19 — zawężenie propozycji wartości ([decyzja](11-propozycja-wartosci.md)).** Po testach v1 i v2 główną wartością nie jest już krytyczna analiza przed decyzją (Decision Risk Radar), tylko **strażnik podstaw decyzji**: pamięć liczb, założeń i warunków decyzji + ostrzeganie, gdy nowa informacja z firmy je unieważnia, + ochrona uwagi. Poniższa wizja pozostaje kierunkiem długoterminowym; komponenty A–C zostają, zmienia się to, co obiecujemy jako pierwsze.
 
 ## Definicja

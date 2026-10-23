@@ -1,5 +1,7 @@
 # 8. Plan projektu: Product Decision Intelligence
 
+> **Zastąpione 2026-10-23** przez [plan jednego flow SDLC](plan-jeden-flow-sdlc.md). Co z tego dokumentu przechodzi do nowego kierunku: [dokument 12](12-zmiana-kierunku-sdlc.md).
+
 > Wersja po weryfikacji. Zmiany względem wersji wstępnej są oznaczone **[K1]**, **[M3]** itd. i wyjaśnione w [09-weryfikacja-planu.md](09-weryfikacja-planu.md).
 
 **Wizja:** system, który pomaga organizacji podejmować lepsze decyzje produktowe, wykrywa zagrożenia dla ich jakości i wskazuje działania potrzebne do ich rozwiązania — zanim błędy przełożą się na niepotrzebną pracę, koszty lub niewłaściwe rozwiązania.

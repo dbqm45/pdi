@@ -1,5 +1,7 @@
 # 11. Decyzja: zawężenie propozycji wartości
 
+> **2026-10-23:** pdi stało się warstwą decyzji w [jednym flow SDLC](plan-jeden-flow-sdlc.md). Wartość z tej decyzji (pamięć podstaw decyzji + ostrzeganie o ich unieważnieniu) przechodzi do rejestru decyzji — [dokument 12, §3–4](12-zmiana-kierunku-sdlc.md#3-co-przechodzi-do-nowego-kierunku). Część dotycząca zewnętrznych design partnerów jest wstrzymana.
+
 **Data:** 2026-10-19 · **Decydujący:** właściciel projektu · **Status:** przyjęta, do weryfikacji w rozmowach z design partnerami
 
 ## Decyzja

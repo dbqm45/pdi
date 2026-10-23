@@ -1,5 +1,7 @@
 # Szablony pierwszego kontaktu
 
+> **Wstrzymane 2026-10-23** — pdi rozwijane jest jako warstwa decyzji we własnym flow SDLC, z pilotem na własnych problemach ([dokument 12](../docs/12-zmiana-kierunku-sdlc.md)). Materiał zostaje na wypadek, gdyby po F5 wróciło pytanie o użycie pdi poza tym flow.
+
 Krótko, o problemie, nie o produkcie. Pierwsze zdanie to pytanie o sytuację, którą rozmówca mógł przeżyć — odpowiedź na nie jest wartościowa nawet wtedy, gdy rozmówca nie zostanie partnerem. Propozycję ([propozycja-dla-pm.md](propozycja-dla-pm.md)) wysyłamy dopiero po odpowiedzi albo jako załącznik w e-mailu.
 
 ## Wariant A — osoba znana (sieć kontaktów)

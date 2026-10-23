@@ -1,5 +1,7 @@
 # Profil design partnera
 
+> **Wstrzymane 2026-10-23** — pdi rozwijane jest jako warstwa decyzji we własnym flow SDLC, z pilotem na własnych problemach ([dokument 12](../docs/12-zmiana-kierunku-sdlc.md)). Materiał zostaje na wypadek, gdyby po F5 wróciło pytanie o użycie pdi poza tym flow.
+
 Dokument roboczy do Etapu 0 ([plan](../docs/08-plan-projektu.md#etap-0-design-partnerzy-i-przypadki-k1-k3)). Służy do wyboru kandydatów i prowadzenia rozmów kwalifikacyjnych. Nie wysyłać partnerom — dla nich jest [propozycja](propozycja-dla-pm.md).
 
 ## 1. Kim jest design partner
