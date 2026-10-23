@@ -91,13 +91,10 @@ zmiany w pdi, o zmianie w repo, pdi indeksuje) — rejestr w `docs/decyzje.md`. 
 1. Przeczytaj ten plik, `docs/plan-jeden-flow-sdlc.md`, `docs/13-rola-pdi-w-sdlc.md` (rola pdi, rozbieżność R1
    co do rejestru decyzji) i `docs/12-zmiana-kierunku-sdlc.md` (propozycje pól schematu
    decyzji i zdarzenia `decision.basis_invalidated`, wynikające z testów v1 i v2).
-2. Zatwierdź albo zmień D3 (D1, D2 i decyzje D-S1–S3 dla trybu standalone przyjęte — `docs/decyzje.md`;
-   **krok 1 z dokumentu 14 zbudowany** (`src/pdi/`, `contract/decision.schema.json`, `integrations/claude-code/`,
-   plan i wynik: `docs/plan-krok-1.md`). Następnie: właściciel tworzy prywatne repo `pdi-decisions`, instaluje
-   serwer wg `integrations/claude-code/README.md` i zaczyna 10 dni walidacji (W1–W4, notatki w `eval/dogfood/`).
-   **Pierwszy krok budowy (2026-10-23):** pdi standalone — `docs/14-pdi-standalone.md`: schemat decyzji,
-   rejestr w markdown, serwer MCP (`record_decision`, `find_decisions`), komenda `/record-decision`,
-   10 dni walidacji na sobie (kryteria W1–W4).
+2. D1–D3 i D-S1–S4 przyjęte (`docs/decyzje.md`; D-S4: decyzje w katalogach projektów, ID globalne).
+   **Krok 1 z dokumentu 14 zbudowany i scalony do `main`** (`src/pdi/`, `contract/`, `integrations/claude-code/`;
+   plan i wynik: `docs/plan-krok-1.md`). Właściciel ma repo `pdi-decisions` i zainstalowany serwer; trwa
+   10 dni walidacji na sobie (W1–W4, notatki w `eval/dogfood/`). Kolejne kanały dopiero po walidacji.
 3. F0 w pdi: `contract/` ze schematami JSON (problem, zmiana, decyzja, zdarzenie), zasady ID, testy walidacji;
    rozważ instalację tf w pdi (`tf`) i przejście fazy 0–4 cyklu tf dla samego pdi (przebieg próbny).
 4. F0 w tf (osobna sesja z repo tf): `core-project-record` — dziennik per zmiana `docs/project/changes/<ID>/`,

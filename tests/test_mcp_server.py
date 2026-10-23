@@ -40,7 +40,8 @@ async def test_exposes_four_task_oriented_tools(server: Any) -> None:
     assert tools["find_decisions"].annotations.read_only_hint is True
     assert tools["record_decision"].annotations.read_only_hint is False
     record_params = tools["record_decision"].input_schema["properties"]
-    assert {"statement", "why", "kind", "source", "drafted_by", "assumptions"} <= set(record_params)
+    assert {"statement", "why", "kind", "source", "drafted_by", "assumptions", "project"} <= set(record_params)
+    assert "project" in tools["find_decisions"].input_schema["properties"]
 
 
 async def test_record_then_find_and_get(server: Any, make_draft: Draft) -> None:
@@ -97,4 +98,4 @@ async def test_stdio_end_to_end(tmp_path: Path, make_draft: Draft) -> None:
 
     assert len(listed.tools) == 4
     assert json.loads(result.content[0].text)["id"] == "DEC-0001"
-    assert (tmp_path / "rejestr" / "decisions" / "DEC-0001.md").is_file()
+    assert (tmp_path / "rejestr" / "decisions" / "_ogolne" / "DEC-0001.md").is_file()

@@ -30,7 +30,7 @@ def test_record_assigns_id_status_and_timestamp(registry: Registry, make_draft: 
 def test_record_writes_markdown_with_frontmatter_and_readable_body(registry: Registry, make_draft: Draft) -> None:
     saved = registry.record(make_draft())
 
-    path = registry.root / "decisions" / "DEC-0001.md"
+    path = registry.root / "decisions" / "_ogolne" / "DEC-0001.md"
     assert saved["path"] == str(path)
     assert frontmatter(path)["statement"] == make_draft()["statement"]
     body = path.read_text(encoding="utf-8").split("---\n", 2)[2]
@@ -89,7 +89,7 @@ def test_invalid_draft_is_rejected_and_nothing_written(registry: Registry, make_
     with pytest.raises(InvalidDecision, match="kind"):
         registry.record(make_draft(kind="whim"))
 
-    assert not list((registry.root / "decisions").glob("*.md")) if (registry.root / "decisions").exists() else True
+    assert not list(registry.root.rglob("*.md"))
 
 
 def test_client_cannot_set_registry_fields(registry: Registry, make_draft: Draft) -> None:
@@ -103,7 +103,7 @@ def test_repeated_record_returns_existing_instead_of_duplicate(registry: Registr
 
     assert again["id"] == first["id"]
     assert again["duplicate"] is True
-    assert len(list((registry.root / "decisions").glob("*.md"))) == 1
+    assert len(list((registry.root / "decisions").rglob("*.md"))) == 1
 
 
 def test_find_matches_words_case_insensitively_and_ranks(registry: Registry, make_draft: Draft) -> None:
@@ -203,7 +203,7 @@ def test_from_env_requires_registry_path(monkeypatch: pytest.MonkeyPatch) -> Non
 
 def test_hand_edited_unquoted_dates_are_read_as_text(registry: Registry, make_draft: Draft) -> None:
     registry.record(make_draft())
-    path = registry.root / "decisions" / "DEC-0001.md"
+    path = registry.root / "decisions" / "_ogolne" / "DEC-0001.md"
     path.write_text(path.read_text(encoding="utf-8").replace("'2026-10-22'", "2026-10-22"), encoding="utf-8")
 
     assert registry.get("DEC-0001")["decided_at"] == "2026-10-22"
@@ -222,4 +222,124 @@ def test_failed_commit_keeps_decision_and_warns(
 
     assert saved["id"] == "DEC-0001"
     assert "git" in saved["warning"]
-    assert (root / "decisions" / "DEC-0001.md").is_file()
+    assert (root / "decisions" / "_ogolne" / "DEC-0001.md").is_file()
+
+
+def test_decision_is_stored_in_project_directory(registry: Registry, make_draft: Draft) -> None:
+    saved = registry.record(make_draft(project="sklep"))
+
+    assert saved["path"] == str(registry.root / "decisions" / "sklep" / "DEC-0001.md")
+    assert registry.get("DEC-0001")["project"] == "sklep"
+
+
+def test_decision_without_project_goes_to_general_directory(registry: Registry, make_draft: Draft) -> None:
+    saved = registry.record(make_draft())
+
+    assert saved["path"] == str(registry.root / "decisions" / "_ogolne" / "DEC-0001.md")
+
+
+def test_ids_are_global_across_projects(registry: Registry, make_draft: Draft) -> None:
+    registry.record(make_draft(statement="A.", project="sklep"))
+    second = registry.record(make_draft(statement="B.", project="pdi"))
+    third = registry.record(make_draft(statement="C."))
+
+    assert (second["id"], third["id"]) == ("DEC-0002", "DEC-0003")
+
+
+@pytest.mark.parametrize(
+    ("given", "stored"),
+    [("Sklep Online", "sklep-online"), ("Zamówienia_B2B", "zamowienia-b2b"), ("  pdi  ", "pdi"), ("Łódź", "lodz")],
+)
+def test_project_name_is_normalized_to_directory_slug(
+    registry: Registry, make_draft: Draft, given: str, stored: str
+) -> None:
+    assert registry.record(make_draft(project=given))["project"] == stored
+
+
+def test_project_name_that_normalizes_to_nothing_is_rejected(registry: Registry, make_draft: Draft) -> None:
+    with pytest.raises(InvalidDecision, match="project"):
+        registry.record(make_draft(project="///"))
+
+
+def test_find_filters_by_project(registry: Registry, make_draft: Draft) -> None:
+    registry.record(make_draft(statement="Próg w sklepie.", project="sklep"))
+    registry.record(make_draft(statement="Próg w pdi.", project="pdi"))
+
+    found = registry.find("próg", project="sklep")
+
+    assert [(f["id"], f["project"]) for f in found] == [("DEC-0001", "sklep")]
+
+
+def test_supersede_across_projects_updates_old_file_in_place(registry: Registry, make_draft: Draft) -> None:
+    registry.record(make_draft(project="sklep"))
+
+    new = registry.supersede("DEC-0001", make_draft(statement="Nowa.", project="pdi"))
+
+    assert registry.get("DEC-0001")["superseded_by"] == new["id"]
+    assert (registry.root / "decisions" / "sklep" / "DEC-0001.md").is_file()
+    assert (registry.root / "decisions" / "pdi" / "DEC-0002.md").is_file()
+
+
+def test_id_without_leading_zeros_finds_same_decision(registry: Registry, make_draft: Draft) -> None:
+    registry.record(make_draft())
+
+    assert registry.get("DEC-1")["id"] == "DEC-0001"
+
+
+def test_project_is_shown_in_readable_body(registry: Registry, make_draft: Draft) -> None:
+    saved = registry.record(make_draft(project="sklep"))
+
+    body = Path(saved["path"]).read_text(encoding="utf-8").split("---\n", 2)[2]
+    assert "projekt: sklep" in body
+
+
+def test_manually_moved_file_is_found_by_frontmatter_project(registry: Registry, make_draft: Draft) -> None:
+    saved = registry.record(make_draft(project="sklep"))
+    moved = registry.root / "decisions" / "inny" / "DEC-0001.md"
+    moved.parent.mkdir()
+    Path(saved["path"]).rename(moved)
+
+    assert registry.get("DEC-0001")["project"] == "sklep"
+    assert [f["id"] for f in registry.find(project="sklep")] == ["DEC-0001"]
+
+
+def test_rewriting_moved_file_returns_it_to_project_directory_without_copies(
+    registry: Registry, make_draft: Draft
+) -> None:
+    saved = registry.record(make_draft(project="sklep"))
+    moved = registry.root / "decisions" / "inny" / "DEC-0001.md"
+    moved.parent.mkdir()
+    Path(saved["path"]).rename(moved)
+
+    registry.supersede("DEC-0001", make_draft(statement="Nowa.", project="sklep"))
+
+    assert sorted(p.relative_to(registry.root).as_posix() for p in registry.root.rglob("*.md")) == [
+        "decisions/sklep/DEC-0001.md",
+        "decisions/sklep/DEC-0002.md",
+    ]
+    assert registry.get("DEC-0001")["status"] == "superseded"
+
+
+def test_moved_file_return_is_committed_in_git_registry(
+    tmp_path: Path, make_draft: Draft, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    for var in ("GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"):
+        monkeypatch.setenv(var, "t")
+    for var in ("GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"):
+        monkeypatch.setenv(var, "t@example.com")
+    root = tmp_path / "repo"
+    root.mkdir()
+    subprocess.run(["git", "init", "-q", str(root)], check=True)
+    reg = Registry(root)
+    reg.record(make_draft(project="sklep"))
+    subprocess.run(["git", "-C", str(root), "mv", "decisions/sklep", "decisions/inny"], check=True)
+    subprocess.run(["git", "-C", str(root), "commit", "-qm", "przeniesienie ręczne"], check=True)
+
+    saved = reg.supersede("DEC-0001", make_draft(statement="Nowa.", project="sklep"))
+
+    status = subprocess.run(
+        ["git", "-C", str(root), "status", "--porcelain"], check=True, capture_output=True, text=True
+    ).stdout
+    assert "warning" not in saved
+    assert status == ""
+    assert not (root / "decisions" / "inny" / "DEC-0001.md").exists()

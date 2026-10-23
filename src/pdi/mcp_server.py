@@ -65,6 +65,7 @@ DRAFT_FIELDS = (
     "statement",
     "why",
     "kind",
+    "project",
     "source",
     "drafted_by",
     "decided_by",
@@ -99,6 +100,7 @@ def build_server(registry: Callable[[], Registry] = Registry.from_env) -> MCPSer
         kind: Kind,
         source: Source,
         drafted_by: Literal["ai", "human"],
+        project: str | None = None,
         decided_by: str | None = None,
         decided_at: str | None = None,
         options: list[Option] | None = None,
@@ -114,6 +116,7 @@ def build_server(registry: Callable[[], Registry] = Registry.from_env) -> MCPSer
 
         Wywołuj dopiero po tym, jak człowiek zatwierdził szkic. statement: co zdecydowano, jedno zdanie.
         why: uzasadnienie, 1–5 zdań, tylko z rozmowy. source: skąd decyzja (kind, url wątku/strony, krótki cytat).
+        project: projekt, którego dotyczy decyzja — zwykle nazwa bieżącego repo; pomiń dla decyzji ogólnych.
         drafted_by: "ai", gdy szkic przygotował model. decided_at: RRRR-MM-DD (domyślnie dziś); decided_by:
         domyślnie PDI_DECIDED_BY. evidence.epistemic_status odróżnia obserwację od interpretacji, hipotezy
         i wniosku AI. assumptions: założenia; load_bearing=true, gdy ich upadek zmienia decyzję; invalidated_if:
@@ -133,15 +136,21 @@ def build_server(registry: Callable[[], Registry] = Registry.from_env) -> MCPSer
         since: str | None = None,
         status: Status | None = None,
         kind: Kind | None = None,
+        project: str | None = None,
         limit: int = 10,
     ) -> dict[str, list[Decision]]:
         """Szuka wcześniejszych decyzji: „co już zdecydowaliśmy w tej sprawie i dlaczego?”.
 
         query: słowa kluczowe (pasują też fragmenty słów, np. „dostaw” znajdzie „dostawy”); puste = najnowsze.
-        Filtry: tags (wszystkie muszą pasować), since (RRRR-MM-DD, data decyzji), status, kind; limit wyników.
+        Filtry: tags (wszystkie muszą pasować), since (RRRR-MM-DD, data decyzji), status, kind, project
+        (np. nazwa bieżącego repo; bez filtra — wszystkie projekty); limit wyników.
         Zwraca skróty z założeniami nośnymi; pełny wpis: get_decision.
         """
-        return {"decisions": open_registry().find(query, tags=tags, since=since, status=status, kind=kind, limit=limit)}
+        return {
+            "decisions": open_registry().find(
+                query, tags=tags, since=since, status=status, kind=kind, project=project, limit=limit
+            )
+        }
 
     @server.tool(annotations=_READ)
     def get_decision(decision_id: str) -> Decision:
@@ -159,6 +168,7 @@ def build_server(registry: Callable[[], Registry] = Registry.from_env) -> MCPSer
         kind: Kind,
         source: Source,
         drafted_by: Literal["ai", "human"],
+        project: str | None = None,
         decided_by: str | None = None,
         decided_at: str | None = None,
         options: list[Option] | None = None,

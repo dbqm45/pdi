@@ -57,3 +57,12 @@ def test_cli_prints_summary(
     out = capsys.readouterr().out
     assert "2026-W44: 1" in out
     assert "Razem: 1" in out
+
+
+def test_summary_counts_per_project(tmp_path: Path, make_draft: Draft) -> None:
+    reg = registry_at(tmp_path, *[datetime(2026, 10, 26, 9, tzinfo=UTC)] * 3)
+    reg.record(make_draft(statement="A.", project="sklep"))
+    reg.record(make_draft(statement="B.", project="sklep"))
+    reg.record(make_draft(statement="C."))
+
+    assert summarize(reg)["projects"] == {"sklep": 2, "_ogolne": 1}
