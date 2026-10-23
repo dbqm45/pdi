@@ -92,7 +92,9 @@ zmiany w pdi, o zmianie w repo, pdi indeksuje) — rejestr w `docs/decyzje.md`. 
    co do rejestru decyzji) i `docs/12-zmiana-kierunku-sdlc.md` (propozycje pól schematu
    decyzji i zdarzenia `decision.basis_invalidated`, wynikające z testów v1 i v2).
 2. Zatwierdź albo zmień D3 (D1, D2 i decyzje D-S1–S3 dla trybu standalone przyjęte — `docs/decyzje.md`;
-   krok 1 z dokumentu 14 można budować: Python, rejestr w osobnym prywatnym repo tworzonym przed walidacją).
+   **krok 1 z dokumentu 14 zbudowany** (`src/pdi/`, `contract/decision.schema.json`, `integrations/claude-code/`,
+   plan i wynik: `docs/plan-krok-1.md`). Następnie: właściciel tworzy prywatne repo `pdi-decisions`, instaluje
+   serwer wg `integrations/claude-code/README.md` i zaczyna 10 dni walidacji (W1–W4, notatki w `eval/dogfood/`).
    **Pierwszy krok budowy (2026-10-23):** pdi standalone — `docs/14-pdi-standalone.md`: schemat decyzji,
    rejestr w markdown, serwer MCP (`record_decision`, `find_decisions`), komenda `/record-decision`,
    10 dni walidacji na sobie (kryteria W1–W4).

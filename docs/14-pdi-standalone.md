@@ -45,6 +45,8 @@ Flow SDLC z [planu jednego flow](plan-jeden-flow-sdlc.md) staje się **jednym z 
 
 ## 4. Pierwszy krok (MVP) — specyfikacja
 
+> **Zbudowane 2026-10-23** ([plan i ustalenia](plan-krok-1.md)): `contract/decision.schema.json`, `src/pdi/` (rejestr, serwer MCP), [`integrations/claude-code/`](../integrations/claude-code/README.md). Następny krok: utworzenie repo rejestru i walidacja (§6).
+
 ### 4.1. Schemat decyzji (`contract/decision.schema.json`)
 
 Pierwszy schemat kontraktu (F0). Pola z [dokumentu 12 §4.1](12-zmiana-kierunku-sdlc.md#41-schemat-decyzji-w-contract-f0-uzupełnienie-d2), w wersji minimalnej dla trybu standalone:

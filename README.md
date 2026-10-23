@@ -4,7 +4,11 @@ Warstwa decyzji w procesie AI-native SDLC: zgłoszenia problemów, triaż, rejes
 orkiestracja etapów, graf śladu od zgłoszenia do wydania na PROD i ocena skutku decyzji. Współpracuje z tf
 (fabryka agentów), ci_for_sdlc (kontrola spójności definicji) i ShipScope (status wydań).
 
-Stan: projekt na etapie planu, bez kodu.
+Stan: **krok 1 trybu standalone zbudowany** — rejestr decyzji, serwer MCP i komenda `/record-decision`
+([instalacja w Claude Code](integrations/claude-code/README.md)). Reszta flow SDLC na etapie planu.
+
+Praca z kodem: `uv sync`, potem `uv run pytest`, `uv run ruff check src tests`, `uv run ruff format --check src tests`,
+`uv run mypy src`. Kod: `src/pdi/`, kontrakt: [`contract/`](contract/README.md), plan kroku: [`docs/plan-krok-1.md`](docs/plan-krok-1.md).
 
 ## Kierunek (od 2026-10-23)
 
