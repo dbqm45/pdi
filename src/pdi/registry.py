@@ -200,6 +200,10 @@ class Registry:
         hits.sort(key=lambda h: (h[0], h[1]["decided_at"], _number(h[1]["id"])), reverse=True)
         return [_summary(d) for _, d in hits[:limit]]
 
+    def decisions(self) -> list[Decision]:
+        """Wszystkie pełne wpisy rejestru, w kolejności ID."""
+        return self._all()
+
     # --- pliki ---
 
     def _path(self, decision_id: str) -> Path:

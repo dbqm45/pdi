@@ -13,6 +13,7 @@ dependencies = [
 
 [project.scripts]
 pdi-mcp = "pdi.mcp_server:main"
+pdi-stats = "pdi.stats:main"
 
 [build-system]
 requires = ["hatchling"]

@@ -118,7 +118,7 @@ Każdy kanał to osobna integracja do utrzymania — kolejny etap tylko wtedy, g
 
 ## 6. Walidacja: dwa tygodnie na sobie (kryteria zapisane przed startem)
 
-Po zbudowaniu kroku 1 (§4) właściciel projektu używa pdi przez **10 dni roboczych** w normalnej pracy. Notatka dzienna w `eval/dogfood/` (bez treści poufnych): liczba zapisów, czas zapisu, liczba poprawek szkicu, przypadki użycia `find_decisions`, zapisy porzucone.
+Po zbudowaniu kroku 1 (§4) właściciel projektu używa pdi przez **10 dni roboczych** w normalnej pracy. Notatka dzienna w [`eval/dogfood/`](../eval/dogfood/README.md) (bez treści poufnych; liczby z rejestru: `pdi-stats`): liczba zapisów, czas zapisu, liczba poprawek szkicu, przypadki użycia `find_decisions`, zapisy porzucone.
 
 | Kryterium | Spełnione, jeśli… |
 |---|---|
