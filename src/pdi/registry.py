@@ -115,11 +115,17 @@ class Registry:
             successor = old.get("superseded_by")
             hint = f" — zastąp aktualną decyzję {successor}" if successor else ""
             raise CannotSupersede(f"{old_id} ma status {old['status']}{hint}.")
+        old_file = self._locate(old_id)
         new = self._record(dict(draft), supersedes=old_id)
         old["status"] = "superseded"
         old["superseded_by"] = new["id"]
         self._write(old, overwrite=True)
-        return self._commit(new, [self._path(new), self._path(old)], f"{new['id']}: zastępuje {old_id}")
+        touched = [self._path(new), self._path(old)]
+        if old_file is not None and old_file != self._path(old):
+            # Plik przeniesiony ręcznie: wraca do katalogu z pola `project`, bez kopii w starym miejscu.
+            old_file.unlink()
+            touched.append(old_file)
+        return self._commit(new, touched, f"{new['id']}: zastępuje {old_id}")
 
     def _reject_registry_fields(self, draft: Decision) -> None:
         set_by_registry = [f for f in REGISTRY_FIELDS if f in draft]
@@ -316,7 +322,11 @@ def _summary(d: Decision) -> Decision:
 
 def _render_body(d: Decision) -> str:
     lines = [f"\n# {d['id']}: {d['statement']}\n", f"**Dlaczego:** {d['why']}\n"]
-    lines.append(f"Zdecydował(a): {d['decided_by']}, {d['decided_at']} · rodzaj: {d['kind']} · status: {d['status']}\n")
+    project = d.get("project", "ogólna (bez projektu)")
+    lines.append(
+        f"Zdecydował(a): {d['decided_by']}, {d['decided_at']} · projekt: {project} · rodzaj: {d['kind']}"
+        f" · status: {d['status']}\n"
+    )
     if d.get("options"):
         lines.append("## Opcje\n")
         lines += [f"- {'**[wybrana]** ' if o['chosen'] else ''}{o['option']}" for o in d["options"]]

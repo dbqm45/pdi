@@ -284,3 +284,62 @@ def test_id_without_leading_zeros_finds_same_decision(registry: Registry, make_d
     registry.record(make_draft())
 
     assert registry.get("DEC-1")["id"] == "DEC-0001"
+
+
+def test_project_is_shown_in_readable_body(registry: Registry, make_draft: Draft) -> None:
+    saved = registry.record(make_draft(project="sklep"))
+
+    body = Path(saved["path"]).read_text(encoding="utf-8").split("---\n", 2)[2]
+    assert "projekt: sklep" in body
+
+
+def test_manually_moved_file_is_found_by_frontmatter_project(registry: Registry, make_draft: Draft) -> None:
+    saved = registry.record(make_draft(project="sklep"))
+    moved = registry.root / "decisions" / "inny" / "DEC-0001.md"
+    moved.parent.mkdir()
+    Path(saved["path"]).rename(moved)
+
+    assert registry.get("DEC-0001")["project"] == "sklep"
+    assert [f["id"] for f in registry.find(project="sklep")] == ["DEC-0001"]
+
+
+def test_rewriting_moved_file_returns_it_to_project_directory_without_copies(
+    registry: Registry, make_draft: Draft
+) -> None:
+    saved = registry.record(make_draft(project="sklep"))
+    moved = registry.root / "decisions" / "inny" / "DEC-0001.md"
+    moved.parent.mkdir()
+    Path(saved["path"]).rename(moved)
+
+    registry.supersede("DEC-0001", make_draft(statement="Nowa.", project="sklep"))
+
+    assert sorted(p.relative_to(registry.root).as_posix() for p in registry.root.rglob("*.md")) == [
+        "decisions/sklep/DEC-0001.md",
+        "decisions/sklep/DEC-0002.md",
+    ]
+    assert registry.get("DEC-0001")["status"] == "superseded"
+
+
+def test_moved_file_return_is_committed_in_git_registry(
+    tmp_path: Path, make_draft: Draft, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    for var in ("GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"):
+        monkeypatch.setenv(var, "t")
+    for var in ("GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"):
+        monkeypatch.setenv(var, "t@example.com")
+    root = tmp_path / "repo"
+    root.mkdir()
+    subprocess.run(["git", "init", "-q", str(root)], check=True)
+    reg = Registry(root)
+    reg.record(make_draft(project="sklep"))
+    subprocess.run(["git", "-C", str(root), "mv", "decisions/sklep", "decisions/inny"], check=True)
+    subprocess.run(["git", "-C", str(root), "commit", "-qm", "przeniesienie ręczne"], check=True)
+
+    saved = reg.supersede("DEC-0001", make_draft(statement="Nowa.", project="sklep"))
+
+    status = subprocess.run(
+        ["git", "-C", str(root), "status", "--porcelain"], check=True, capture_output=True, text=True
+    ).stdout
+    assert "warning" not in saved
+    assert status == ""
+    assert not (root / "decisions" / "inny" / "DEC-0001.md").exists()

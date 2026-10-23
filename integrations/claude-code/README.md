@@ -60,3 +60,7 @@ Sprawdzenie: `claude mcp list` pokazuje `pdi` jako połączony; w sesji `/mcp` �
 - Plik decyzji: `$PDI_REGISTRY_PATH/decisions/<projekt>/DEC-nnnn.md` (frontmatter YAML + czytelna treść);
   projekt = nazwa repo, w którym pracujesz; decyzje ogólne w `decisions/_ogolne/`. Numery są wspólne dla wszystkich
   projektów.
+- Nazwa projektu jest też w samym pliku (pole `project` we frontmatterze i linia „projekt: …” w treści) i to ona
+  rozstrzyga. Plik przeniesiony ręcznie do innego katalogu nadal jest znajdowany; przy najbliższej zmianie tej decyzji
+  (np. zastąpieniu) rejestr odkłada go z powrotem do katalogu z pola `project`. Żeby zmienić projekt decyzji, zmień
+  pole `project` w pliku i przenieś plik do katalogu o tej nazwie.
