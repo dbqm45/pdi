@@ -28,8 +28,10 @@ Walidacja w Pythonie: `from pdi import contract; contract.errors("problem", obj)
 
 ## Stany zgłoszenia i mapowanie na tf
 
-Stany pdi według **rekomendacji R7** ([dokument 13](../docs/13-rola-pdi-w-sdlc.md#4-rozbieżności-między-wersjami-mapy-i-planem--do-rozstrzygnięcia))
-— **do zatwierdzenia przez właściciela**; zmiana decyzji zmienia tylko listę stanów.
+Stany biznesowe pdi — **R7, przyjęte 2026-10-23** ([decyzje](../docs/decyzje.md)). pdi jest źródłem prawdy o stanie
+zgłoszenia. tf zostaje przy swoich stanach (etykiety zgłoszeń na GitHubie); **tłumaczenie tylko na granicy, według tej
+tabeli**: gdy tf wykonuje triaż dla pdi (F3), jego rekomendacja jest wyrażona stanem pdi z kontraktu. `parked`
+i `duplicate` tf tylko rekomenduje; decyzję i pilnowanie progu powrotu przejmuje pdi.
 
 | Stan pdi | Wymaga | Stan tf `proc-issue-triage` |
 |---|---|---|
@@ -54,7 +56,7 @@ Powody odrzucenia: `out_of_strategy`, `works_as_designed`, `cost_disproportionat
 | `readiness.changed` | ci_for_sdlc | `change`, `readiness` (`ready` / `not_ready` / `drift`) |
 | `feature.released` | ShipScope | `change`, `released_at` |
 | `metric.breached` | tf (pasma kontrolne) | `metric`, `value`, `threshold` |
-| `decision.basis_invalidated` | pdi | `decision`, `assumption`, `signal`, `attention_level` (0–3) — propozycja z [dokumentu 12 §4.2](../docs/12-zmiana-kierunku-sdlc.md#42-nowe-zdarzenie-w-kontrakcie), używane od F5 |
+| `decision.basis_invalidated` | pdi | `decision`, `assumption`, `signal`, `attention_level` (0–3) — przyjęte 2026-10-23 ([dokument 12 §4.2](../docs/12-zmiana-kierunku-sdlc.md#42-nowe-zdarzenie-w-kontrakcie)), używane od F5 |
 
 Każde zdarzenie: `id` (do deduplikacji), `type`, `occurred_at` (UTC, `RRRR-MM-DDTGG:MM:SSZ`), `source`,
 `contract_version`, `payload`.

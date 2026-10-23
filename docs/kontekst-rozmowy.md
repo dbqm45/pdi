@@ -96,7 +96,7 @@ zmiany w pdi, o zmianie w repo, pdi indeksuje) — rejestr w `docs/decyzje.md`. 
    plan i wynik: `docs/plan-krok-1.md`). Właściciel ma repo `pdi-decisions` i zainstalowany serwer; trwa
    10 dni walidacji na sobie (W1–W4, notatki w `eval/dogfood/`). Kolejne kanały dopiero po walidacji.
    **F0 w pdi zrobione (kontrakt 0.3.0):** schematy zgłoszenia, artefaktu zmiany, cięcia i zdarzeń w `contract/`
-   (plan: `docs/plan-f0-kontrakt.md`). Do zatwierdzenia: R7 (stany zgłoszenia), `decision.basis_invalidated`.
+   (plan: `docs/plan-f0-kontrakt.md`). R7 (stany biznesowe w pdi, tf bez zmian, tłumaczenie na granicy) i `decision.basis_invalidated` przyjęte.
    Następne w F0: tf — dziennik per zmiana (`project_record.py change new`), osobna sesja z repo tf.
    Plan i polecenie startowe są w tf: `docs/plans/2026-10-23-integracja-pdi.md` (gałąź `claude/magical-dirac-wjvn8y`
    w `dbqm45/tf`).

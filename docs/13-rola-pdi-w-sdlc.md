@@ -88,6 +88,6 @@ Szczegóły: [dokument 12](12-zmiana-kierunku-sdlc.md). W skrócie, w kategoriac
 1. **D1–D3 z planu** — blokują F0. D1, D2 i D3 przyjęte 2026-10-23 ([decyzje](decyzje.md)).
 2. ~~**R1**~~ — **przyjęte 2026-10-23** ([decyzje](decyzje.md)): decyzje bez zmiany w pdi, decyzje o zmianie w repo, pdi jako indeks. Pola z dokumentu 12 §4.1 trafiają do wspólnego schematu w `contract/` (D1, przyjęte).
 3. **R2** — globalne `DEC-n` także w dzienniku tf.
-4. **R7** — statusy zgłoszenia w pdi (z `Parked` i `Duplicate`) i ich mapowanie na stany `proc-issue-triage`. Wpisane do kontraktu 0.3.0 według rekomendacji ([`contract/README.md`](../contract/README.md#stany-zgłoszenia-i-mapowanie-na-tf)) — do zatwierdzenia.
-5. Propozycje z dokumentu 12: pola schematu decyzji (§4.1) i zdarzenie `decision.basis_invalidated` (§4.2).
+4. **R7** — statusy zgłoszenia w pdi (z `Parked` i `Duplicate`) i ich mapowanie na stany `proc-issue-triage`. **Przyjęte 2026-10-23** ([decyzje](decyzje.md)): stany biznesowe w pdi, tf bez zmian, tłumaczenie na granicy ([`contract/README.md`](../contract/README.md#stany-zgłoszenia-i-mapowanie-na-tf)).
+5. Propozycje z dokumentu 12: pola schematu decyzji (§4.1) i zdarzenie `decision.basis_invalidated` (§4.2) — przyjęte 2026-10-23 (D-S3, D-Z1).
 6. Pierwszy krok budowy: **pdi standalone** — rejestr decyzji z zapisem z Claude CLI przez MCP, niezależny od tf, ci_for_sdlc i ShipScope ([dokument 14](14-pdi-standalone.md#9-decyzje-do-podjęcia-przed-budową)): miejsce rejestru na start, język serwera MCP, zakres pól schematu.

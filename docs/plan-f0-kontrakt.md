@@ -3,7 +3,7 @@
 **Data:** 2026-10-23 · **Źródła:** [plan jednego flow §3](plan-jeden-flow-sdlc.md#3-wspólny-kontrakt-zrobić-najpierw), [dokument 13 R7](13-rola-pdi-w-sdlc.md#4-rozbieżności-między-wersjami-mapy-i-planem--do-rozstrzygnięcia), [dokument 12 §4.2](12-zmiana-kierunku-sdlc.md#42-nowe-zdarzenie-w-kontrakcie), [decyzje D1, D3](decyzje.md); nagłówek artefaktu z tf `core-project-record`
 
 **Stan:** zrealizowany 2026-10-23 — kontrakt 0.3.0, 120 testów (w tym 51 dla kontraktu), ruff, mypy `--strict`.
-Otwarte: zatwierdzenie R7 (stany zgłoszenia) i zdarzenia `decision.basis_invalidated`.
+R7 i `decision.basis_invalidated` przyjęte 2026-10-23 ([decyzje](decyzje.md)).
 
 ## Zakres
 
@@ -21,12 +21,11 @@ Kontrakt 0.3.0 w `contract/`:
 
 ## Ustalenia do kodu
 
-- Stany zgłoszenia według **rekomendacji R7** (`new`, `clarifying`, `ready_for_triage`, `accepted`, `rejected`,
-  `parked`, `duplicate`) z mapowaniem na stany tf `proc-issue-triage` w `contract/README.md`. **R7 nie jest jeszcze
-  zatwierdzone** — przy zmianie decyzji zmienia się tylko enum (kontrakt 0.x).
+- Stany zgłoszenia według **R7 (przyjęte 2026-10-23; tf bez zmian, tłumaczenie na granicy)** (`new`, `clarifying`, `ready_for_triage`, `accepted`, `rejected`,
+  `parked`, `duplicate`) z mapowaniem na stany tf `proc-issue-triage` w `contract/README.md`.
 - Warunki: `rejected` wymaga powodu z listy; `parked` — progu powrotu; `duplicate` — `duplicate_of`; `accepted` —
   `change`.
-- `decision.basis_invalidated` z dokumentu 12 §4.2 wchodzi do kontraktu (propozycja; zdarzenie jest używane dopiero w F5).
+- `decision.basis_invalidated` z dokumentu 12 §4.2 wchodzi do kontraktu (przyjęte, D-Z1; używane dopiero w F5).
 - Nagłówek artefaktu zmiany zostaje „prostym YAML” jak w tf (`klucz: wartość`, `klucz: [a, b]`) — bez obiektów
   zagnieżdżonych, żeby parser tf go czytał; szczegóły cięć w treści `plan.md`, w nagłówku tylko lista `tasks`.
 - `contract_version` w każdym zdarzeniu (jak `schemaVersion` w ShipScope) — odbiorca przypina wersję.
