@@ -95,6 +95,9 @@ zmiany w pdi, o zmianie w repo, pdi indeksuje) — rejestr w `docs/decyzje.md`. 
    **Krok 1 z dokumentu 14 zbudowany i scalony do `main`** (`src/pdi/`, `contract/`, `integrations/claude-code/`;
    plan i wynik: `docs/plan-krok-1.md`). Właściciel ma repo `pdi-decisions` i zainstalowany serwer; trwa
    10 dni walidacji na sobie (W1–W4, notatki w `eval/dogfood/`). Kolejne kanały dopiero po walidacji.
+   **F0 w pdi zrobione (kontrakt 0.3.0):** schematy zgłoszenia, artefaktu zmiany, cięcia i zdarzeń w `contract/`
+   (plan: `docs/plan-f0-kontrakt.md`). Do zatwierdzenia: R7 (stany zgłoszenia), `decision.basis_invalidated`.
+   Następne w F0: tf — dziennik per zmiana (`project_record.py change new`), osobna sesja z repo tf.
 3. F0 w pdi: `contract/` ze schematami JSON (problem, zmiana, decyzja, zdarzenie), zasady ID, testy walidacji;
    rozważ instalację tf w pdi (`tf`) i przejście fazy 0–4 cyklu tf dla samego pdi (przebieg próbny).
 4. F0 w tf (osobna sesja z repo tf): `core-project-record` — dziennik per zmiana `docs/project/changes/<ID>/`,

@@ -8,7 +8,7 @@ Stan: **krok 1 trybu standalone zbudowany** — rejestr decyzji, serwer MCP i ko
 ([instalacja w Claude Code](integrations/claude-code/README.md)). Reszta flow SDLC na etapie planu.
 
 Praca z kodem: `uv sync`, potem `uv run pytest`, `uv run ruff check src tests`, `uv run ruff format --check src tests`,
-`uv run mypy src` (te same kroki w CI: `.github/workflows/ci.yml`). Walidacja na sobie: [`eval/dogfood/`](eval/dogfood/README.md). Kod: `src/pdi/`, kontrakt: [`contract/`](contract/README.md), plan kroku: [`docs/plan-krok-1.md`](docs/plan-krok-1.md).
+`uv run mypy src` (te same kroki w CI: `.github/workflows/ci.yml`). Walidacja na sobie: [`eval/dogfood/`](eval/dogfood/README.md). Kod: `src/pdi/`, kontrakt 0.3.0 (decyzja, zgłoszenie, zmiana, cięcie, zdarzenia): [`contract/`](contract/README.md), plan kroku: [`docs/plan-krok-1.md`](docs/plan-krok-1.md).
 
 ## Kierunek (od 2026-10-23)
 

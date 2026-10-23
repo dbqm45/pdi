@@ -5,21 +5,20 @@ Frontmatter YAML jest źródłem prawdy; treść pod nim to widok dla człowieka
 
 from __future__ import annotations
 
-import json
 import os
 import re
 import subprocess
 import unicodedata
 from collections.abc import Callable, Iterable
 from datetime import UTC, date, datetime
-from functools import cache
 from pathlib import Path
 from typing import Any, TypeAlias
 
 import yaml
-from jsonschema import Draft202012Validator
 
-SCHEMA_PATH = Path(__file__).resolve().parents[2] / "contract" / "decision.schema.json"
+from pdi import contract
+
+SCHEMA_PATH = contract.schema_path("decision")
 
 REGISTRY_FIELDS = ("id", "status", "recorded_at", "supersedes", "superseded_by")
 FIELD_ORDER = (
@@ -65,16 +64,9 @@ class CannotSupersede(ValueError):
     """Zastąpić można tylko decyzję o statusie `recorded`."""
 
 
-@cache
-def _validator() -> Draft202012Validator:
-    schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
-    return Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER)
-
-
 def schema_errors(decision: Decision) -> list[str]:
     """Błędy walidacji względem `contract/decision.schema.json`, w formie `ścieżka: problem`."""
-    errors = sorted(_validator().iter_errors(decision), key=lambda e: list(e.absolute_path))
-    return [f"{'.'.join(str(p) for p in e.absolute_path) or '(decyzja)'}: {e.message}" for e in errors]
+    return [e.replace("(obiekt)", "(decyzja)", 1) for e in contract.errors("decision", decision)]
 
 
 def _utc_now() -> datetime:
