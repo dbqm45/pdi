@@ -85,8 +85,8 @@ Szczegóły: [dokument 12](12-zmiana-kierunku-sdlc.md). W skrócie, w kategoriac
 
 ## 6. Decyzje do podjęcia (zebrane)
 
-1. **D1–D3 z planu** — blokują F0.
-2. **R1** — podział rejestru decyzji: PRB w pdi, zmiany w repo, pdi jako indeks. Od tego zależy, gdzie trafią pola z dokumentu 12 §4.1.
+1. **D1–D3 z planu** — blokują F0. D1 i D2 przyjęte 2026-10-23; otwarte D3.
+2. ~~**R1**~~ — **przyjęte 2026-10-23** ([decyzje](decyzje.md)): decyzje bez zmiany w pdi, decyzje o zmianie w repo, pdi jako indeks. Pola z dokumentu 12 §4.1 trafiają do wspólnego schematu w `contract/` (D1, przyjęte).
 3. **R2** — globalne `DEC-n` także w dzienniku tf.
 4. **R7** — statusy zgłoszenia w pdi (z `Parked` i `Duplicate`) i ich mapowanie na stany `proc-issue-triage`.
 5. Propozycje z dokumentu 12: pola schematu decyzji (§4.1) i zdarzenie `decision.basis_invalidated` (§4.2).

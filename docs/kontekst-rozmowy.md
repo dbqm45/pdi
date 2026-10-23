@@ -84,14 +84,14 @@ flagi · ocena skutku decyzji · B6 utrzymanie. Resztę robią agenci (AI) albo 
 
 ## Otwarte decyzje (szczegóły w planie, sekcja 9)
 D1 gdzie kontrakt · D2 właściciel rejestru decyzji · D3 format ID · D4 Jira w brownfieldzie · D5 model wdrożenia
-pdi · D6 budżet agentów · D7 format dziennika w ShipScope. Rekomendacje są w planie; **żadna nie została jeszcze
-zatwierdzona przez właściciela**.
+pdi · D6 budżet agentów · D7 format dziennika w ShipScope. Rekomendacje są w planie. **Przyjęte 2026-10-23: D1 (kontrakt w `pdi/contract/`) i D2 w wersji R1** (decyzje bez
+zmiany w pdi, o zmianie w repo, pdi indeksuje) — rejestr w `docs/decyzje.md`. Pozostałe otwarte.
 
 ## Przekazanie — jak kontynuować
 1. Przeczytaj ten plik, `docs/plan-jeden-flow-sdlc.md`, `docs/13-rola-pdi-w-sdlc.md` (rola pdi, rozbieżność R1
    co do rejestru decyzji) i `docs/12-zmiana-kierunku-sdlc.md` (propozycje pól schematu
    decyzji i zdarzenia `decision.basis_invalidated`, wynikające z testów v1 i v2).
-2. Zatwierdź albo zmień decyzje D1–D3 (blokują F0).
+2. Zatwierdź albo zmień D3 (D1 i D2 przyjęte — `docs/decyzje.md`).
    **Pierwszy krok budowy (2026-10-23):** pdi standalone — `docs/14-pdi-standalone.md`: schemat decyzji,
    rejestr w markdown, serwer MCP (`record_decision`, `find_decisions`), komenda `/record-decision`,
    10 dni walidacji na sobie (kryteria W1–W4).

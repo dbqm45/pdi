@@ -154,7 +154,7 @@ Po zbudowaniu kroku 1 (§4) właściciel projektu używa pdi przez **10 dni robo
 
 ## 9. Decyzje do podjęcia przed budową
 
-1. **D1** (kontrakt w `pdi/contract/`) — potrzebne dla §4.1.
+1. ~~**D1**~~ — przyjęte 2026-10-23: kontrakt w `pdi/contract/` ([decyzje](decyzje.md)); R1 też przyjęte.
 2. Gdzie trzymać rejestr na start: osobne prywatne repo (rekomendacja) czy katalog w pdi.
 3. TypeScript czy Python dla serwera MCP.
 4. Pola schematu z §4.1 — zatwierdzić albo skrócić.
