@@ -1,0 +1,8 @@
+{
+  "id": "TSK-57",
+  "parent": "CHG-12",
+  "title": "Endpoint zmiany taryfy dla listy ładowarek",
+  "value": "operator zmienia taryfę na wielu ładowarkach naraz",
+  "verification": "test API + raport częściowej porażki",
+  "status": "in_progress"
+}

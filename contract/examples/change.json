@@ -1,0 +1,18 @@
+{
+  "artifact": "plan",
+  "phase": "plan",
+  "status": "accepted",
+  "version": 1,
+  "author": "tomasz-solution-architect",
+  "created": "2026-10-23",
+  "updated": "2026-10-23",
+  "inputs": [
+    "docs/project/changes/CHG-12/requirements.md"
+  ],
+  "change": "CHG-12",
+  "source": "PRB-34",
+  "tasks": [
+    "TSK-57",
+    "TSK-58"
+  ]
+}

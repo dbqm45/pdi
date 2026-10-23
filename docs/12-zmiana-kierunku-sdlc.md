@@ -81,4 +81,4 @@ Przenieść z [dokumentu 05](05-attention-intelligence.md): poziomy 0–3, łąc
 
 1. Zatwierdzić D1–D3 (blokują F0) oraz zdecydować, czy pola z 4.1 wchodzą do schematu decyzji w F0.
 2. F0 w pdi: `contract/` ze schematami problem / zmiana / decyzja / zdarzenie — schemat decyzji na bazie [`model/living-decision-model.schema.json`](../model/living-decision-model.schema.json), uproszczony do pól z 4.1.
-3. Zdecydować, czy zdarzenie `decision.basis_invalidated` (4.2) dopisać do planu w F5.
+3. ~~Zdecydować, czy zdarzenie `decision.basis_invalidated` (4.2) dopisać do planu w F5.~~ Przyjęte 2026-10-23 (D-Z1 w [decyzjach](decyzje.md)); w kontrakcie 0.3.0.
