@@ -11,14 +11,13 @@ curl -LsSf https://astral.sh/uv/install.sh | sh      # albo: brew install uv
 ```
 Zamknij i otwórz terminal, sprawdź: `uv --version`.
 
-**2. Sklonuj pdi i przejdź na gałąź z kodem:**
+**2. Sklonuj pdi:**
 ```bash
 cd ~
 git clone https://github.com/dbqm45/pdi.git
 cd pdi
-git checkout claude/magical-dirac-wjvn8y
 ```
-(Po scaleniu gałęzi do `main` krok `git checkout` nie będzie potrzebny.)
+Jeśli masz już klon na gałęzi roboczej: `git checkout main && git pull`.
 
 **3. Zainstaluj zależności i sprawdź, że działa:**
 ```bash

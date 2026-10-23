@@ -2,9 +2,9 @@
 
 **Data:** 2026-10-23 · **Specyfikacja:** [dokument 14 §4](14-pdi-standalone.md#4-pierwszy-krok-mvp--specyfikacja) · **Decyzje:** D1, D-S1–S3 ([decyzje](decyzje.md))
 
-**Stan:** zrealizowany 2026-10-23 — 50 testów, ruff, mypy `--strict`; testy przechodzą też na Pythonie 3.11.
+**Stan:** zrealizowany 2026-10-23 — 53 testy (z `pdi-stats`), ruff, mypy `--strict`; testy przechodzą też na Pythonie 3.11.
 Sprawdzenie ręczne: serwer uruchomiony poleceniem z instrukcji (`uv run --directory … pdi-mcp`) przez klienta MCP —
-zapis i wyszukiwanie działają.
+zapis i wyszukiwanie działają. Instalacja u właściciela i próbny zapis przez `/record-decision` — działa (2026-10-23).
 
 ## Zakres
 
