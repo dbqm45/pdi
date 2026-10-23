@@ -227,7 +227,7 @@ Każda faza kończy się czymś, co działa samo, nawet jeśli następna się op
 |---|---|---|
 | D1 | Gdzie trzymać kontrakt? | w `pdi/contract/`, z wersją; osobne repo dopiero gdy pojawi się czwarty konsument — **przyjęte 2026-10-23** ([decyzje](decyzje.md)) |
 | D2 | Kto jest właścicielem rejestru decyzji? | pdi; ci_for_sdlc i tf trzymają lokalne wpisy z ID z pdi. Dwa niezależne rejestry szybko się rozjadą — **zmienione 2026-10-23:** przyjęty podział z R1 (decyzje bez zmiany w pdi, decyzje o zmianie w repo, pdi indeksuje; [decyzje](decyzje.md)) |
-| D3 | Format ID | kształt Jiry, prefiksy konfigurowalne per organizacja; cięcie jako osobne ID z rodzicem |
+| D3 | Format ID | kształt Jiry, prefiksy konfigurowalne per organizacja; cięcie jako osobne ID z rodzicem — **przyjęte 2026-10-23** ([decyzje](decyzje.md)) |
 | D4 | Jira w brownfieldzie | zostaje źródłem dla ci_for_sdlc i ShipScope; dla nowych zmian źródłem prawdy jest repo, Jira najwyżej jako lustro |
 | D5 | Model wdrożenia pdi | usługa dla wielu klientów jak ShipScope; między usługami tokeny serwisowe i podpisane webhooki |
 | D6 | Koszt agentów bez interakcji | twardy budżet per zmiana i per faza (mechanizm `--budget` z Talosa), raport kosztu w grafie śladu |

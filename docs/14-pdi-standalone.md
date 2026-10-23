@@ -58,6 +58,7 @@ Pierwszy schemat kontraktu (F0). Pola z [dokumentu 12 §4.1](12-zmiana-kierunku-
 | `why` | tak | uzasadnienie, 1–5 zdań |
 | `decided_at`, `decided_by` | tak | kiedy i kto |
 | `kind` | tak | `product` / `technical` / `process` / `triage` / `intent` / `gate` / … |
+| `project` | nie | projekt, którego dotyczy decyzja (dodane 2026-10-23, [D-S4](decyzje.md)); wyznacza katalog pliku |
 | `source` | tak | `{kind: claude-cli \| claude-ai \| slack \| confluence \| jira \| manual, url, excerpt}` |
 | `options[]` | nie | rozważane opcje, wybrana oznaczona |
 | `evidence[]` | nie | `{text, source_url, epistemic_status: observation \| interpretation \| hypothesis \| ai_inference}` |
@@ -73,7 +74,7 @@ Pierwszy schemat kontraktu (F0). Pola z [dokumentu 12 §4.1](12-zmiana-kierunku-
 
 ### 4.2. Przechowywanie
 
-**Rekomendacja na start: pliki markdown z frontmatterem YAML w prywatnym repo git** (np. `decisions/DEC-0001.md`).
+**Rekomendacja na start: pliki markdown z frontmatterem YAML w prywatnym repo git** (np. `decisions/<projekt>/DEC-0001.md`; katalog wynika z pola `project`, decyzje ogólne w `decisions/_ogolne/`, numeracja globalna — [D-S4](decyzje.md)).
 
 - zero infrastruktury, pełna historia w gicie, wyszukiwanie `grep`-em;
 - ten sam format co wpisy `changes/CHG-n/decisions.md` w tf → jedna konwencja dla obu światów (R1);

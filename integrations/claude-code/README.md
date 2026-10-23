@@ -57,4 +57,6 @@ Sprawdzenie: `claude mcp list` pokazuje `pdi` jako połączony; w sesji `/mcp` �
   Komenda ma z góry zezwolenie na narzędzia pdi, więc po „tak” nie ma drugiego pytania o uprawnienia
   (zapis jest w gicie i można go cofnąć).
 - „Co już zdecydowaliśmy o …?” — Claude wywołuje `find_decisions`.
-- Plik decyzji: `$PDI_REGISTRY_PATH/decisions/DEC-nnnn.md` (frontmatter YAML + czytelna treść).
+- Plik decyzji: `$PDI_REGISTRY_PATH/decisions/<projekt>/DEC-nnnn.md` (frontmatter YAML + czytelna treść);
+  projekt = nazwa repo, w którym pracujesz; decyzje ogólne w `decisions/_ogolne/`. Numery są wspólne dla wszystkich
+  projektów.

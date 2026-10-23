@@ -9,6 +9,7 @@ import json
 import os
 import re
 import subprocess
+import unicodedata
 from collections.abc import Callable, Iterable
 from datetime import UTC, date, datetime
 from functools import cache
@@ -29,6 +30,7 @@ FIELD_ORDER = (
     "decided_by",
     "recorded_at",
     "kind",
+    "project",
     "status",
     "drafted_by",
     "source",
@@ -46,6 +48,7 @@ FIELD_ORDER = (
 _ID = re.compile(r"^DEC-(\d+)$")
 _WORD = re.compile(r"\w{2,}")
 _MAX_ID_RETRIES = 5
+GENERAL_PROJECT_DIR = "_ogolne"
 
 Decision: TypeAlias = dict[str, Any]
 
@@ -102,7 +105,7 @@ class Registry:
         decision = self._record(dict(draft), supersedes=None)
         if decision.get("duplicate"):
             return decision
-        return self._commit(decision, [self._path(decision["id"])], f"{decision['id']}: {decision['statement'][:60]}")
+        return self._commit(decision, [self._path(decision)], f"{decision['id']}: {decision['statement'][:60]}")
 
     def supersede(self, old_id: str, draft: Decision) -> Decision:
         """Zapisuje nową decyzję zastępującą `old_id`; stara dostaje status `superseded`."""
@@ -116,7 +119,7 @@ class Registry:
         old["status"] = "superseded"
         old["superseded_by"] = new["id"]
         self._write(old, overwrite=True)
-        return self._commit(new, [self._path(new["id"]), self._path(old_id)], f"{new['id']}: zastępuje {old_id}")
+        return self._commit(new, [self._path(new), self._path(old)], f"{new['id']}: zastępuje {old_id}")
 
     def _reject_registry_fields(self, draft: Decision) -> None:
         set_by_registry = [f for f in REGISTRY_FIELDS if f in draft]
@@ -128,6 +131,8 @@ class Registry:
 
     def _record(self, draft: Decision, *, supersedes: str | None) -> Decision:
         now = self._clock()
+        if "project" in draft:
+            draft["project"] = project_slug(draft["project"])
         draft.setdefault("decided_at", now.date().isoformat())
         if "decided_by" not in draft:
             decider = os.environ.get("PDI_DECIDED_BY")
@@ -137,7 +142,7 @@ class Registry:
 
         existing = None if supersedes else self._find_same(draft)
         if existing is not None:
-            return {**existing, "path": str(self._path(existing["id"])), "duplicate": True}
+            return {**existing, "path": str(self._path(existing)), "duplicate": True}
 
         if supersedes:
             draft["supersedes"] = supersedes
@@ -156,13 +161,13 @@ class Registry:
             break
         else:
             raise RuntimeError("Nie udało się nadać ID decyzji — równoległe zapisy; ponów.")
-        return {**decision, "path": str(self._path(decision["id"]))}
+        return {**decision, "path": str(self._path(decision))}
 
     # --- odczyt ---
 
     def get(self, decision_id: str) -> Decision:
-        path = self._path(decision_id)
-        if not _ID.match(decision_id) or not path.is_file():
+        path = self._locate(decision_id) if _ID.match(decision_id) else None
+        if path is None:
             raise DecisionNotFound(f"Nie ma decyzji {decision_id} — sprawdź ID przez find_decisions.")
         return _read(path)
 
@@ -174,6 +179,7 @@ class Registry:
         since: str | None = None,
         status: str | None = None,
         kind: str | None = None,
+        project: str | None = None,
         limit: int = 10,
     ) -> list[Decision]:
         """Szuka decyzji po słowach zapytania (także fragmentach słów) i filtrach.
@@ -182,6 +188,7 @@ class Registry:
         """
         words = [w.lower() for w in _WORD.findall(query)]
         wanted_tags = set(tags or ())
+        wanted_project = project_slug(project) if project else None
         hits: list[tuple[int, Decision]] = []
         for decision in self._all():
             if wanted_tags and not wanted_tags <= set(decision.get("tags", ())):
@@ -191,6 +198,8 @@ class Registry:
             if status and decision["status"] != status:
                 continue
             if kind and decision["kind"] != kind:
+                continue
+            if wanted_project and decision.get("project") != wanted_project:
                 continue
             haystack = _searchable_text(decision)
             score = sum(1 for w in words if w in haystack)
@@ -206,16 +215,25 @@ class Registry:
 
     # --- pliki ---
 
-    def _path(self, decision_id: str) -> Path:
-        return self._dir / f"{decision_id}.md"
+    def _path(self, decision: Decision) -> Path:
+        """Plik decyzji: katalog projektu wynika z pola `project` (bez projektu: `_ogolne`)."""
+        project: str = decision.get("project", GENERAL_PROJECT_DIR)
+        return self._dir / project / f"{decision['id']}.md"
 
-    def _all(self) -> list[Decision]:
+    def _files(self) -> list[Path]:
         if not self._dir.is_dir():
             return []
-        return [_read(p) for p in sorted(self._dir.glob("DEC-*.md"))]
+        return sorted(self._dir.glob("*/DEC-*.md"), key=lambda p: _number(p.stem))
+
+    def _locate(self, decision_id: str) -> Path | None:
+        number = _number(decision_id)
+        return next((p for p in self._files() if _number(p.stem) == number), None)
+
+    def _all(self) -> list[Decision]:
+        return [_read(p) for p in self._files()]
 
     def _next_id(self) -> str:
-        numbers = [_number(p.stem) for p in self._dir.glob("DEC-*.md")] if self._dir.is_dir() else []
+        numbers = [_number(p.stem) for p in self._files()]
         return f"DEC-{max(numbers, default=0) + 1:04d}"
 
     def _find_same(self, draft: Decision) -> Decision | None:
@@ -226,11 +244,12 @@ class Registry:
         return None
 
     def _write(self, decision: Decision, *, overwrite: bool) -> None:
-        self._dir.mkdir(parents=True, exist_ok=True)
+        path = self._path(decision)
+        path.parent.mkdir(parents=True, exist_ok=True)
         ordered = {k: decision[k] for k in FIELD_ORDER if k in decision}
         head = yaml.safe_dump(ordered, sort_keys=False, allow_unicode=True, width=1000)
         text = f"---\n{head}---\n{_render_body(ordered)}"
-        with self._path(decision["id"]).open("w" if overwrite else "x", encoding="utf-8") as f:
+        with path.open("w" if overwrite else "x", encoding="utf-8") as f:
             f.write(text)
 
     def _commit(self, decision: Decision, paths: list[Path], message: str) -> Decision:
@@ -245,6 +264,16 @@ class Registry:
             detail = (e.stderr or b"").decode("utf-8", "replace").strip()
             return {**decision, "warning": f"Decyzja zapisana, ale commit git się nie udał: {detail}"}
         return decision
+
+
+def project_slug(name: str) -> str:
+    """Nazwa projektu jako nazwa katalogu: małe litery ASCII, cyfry i myślniki („Zamówienia B2B” → „zamowienia-b2b”)."""
+    ascii_name = unicodedata.normalize("NFKD", name.replace("ł", "l").replace("Ł", "L"))
+    ascii_name = ascii_name.encode("ascii", "ignore").decode().lower()
+    slug = re.sub(r"[^a-z0-9]+", "-", ascii_name).strip("-")
+    if not slug:
+        raise InvalidDecision(f"project: „{name}” nie zawiera liter ani cyfr — podaj nazwę projektu, np. nazwę repo.")
+    return slug
 
 
 def _read(path: Path) -> Decision:
@@ -271,7 +300,9 @@ def _searchable_text(d: Decision) -> str:
 
 
 def _summary(d: Decision) -> Decision:
-    summary: Decision = {k: d[k] for k in ("id", "statement", "why", "decided_at", "kind", "status") if k in d}
+    summary: Decision = {
+        k: d[k] for k in ("id", "statement", "why", "decided_at", "kind", "project", "status") if k in d
+    }
     for k in ("tags", "superseded_by"):
         if k in d:
             summary[k] = d[k]

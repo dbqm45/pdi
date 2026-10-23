@@ -3,7 +3,7 @@
 Schematy i zasady wspólne dla pdi, tf, ci_for_sdlc i ShipScope ([decyzja D1](../docs/decyzje.md)).
 Wersjonowany wg SemVer 2.0.0; zmiana niezgodna wstecz podnosi wersję główną.
 
-Wersja: `0.1.0`.
+Wersja: `0.2.0` (0.2.0: pole `project`; 0.1.0: pierwsza wersja).
 
 | Plik | Zawartość | Stan |
 |---|---|---|
