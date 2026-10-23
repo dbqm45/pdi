@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dbqm45/pdi/model/living-decision-model.schema.json",
+  "title": "Living Decision Model",
+  "description": "Model wiedzy o inicjatywie produktowej: węzły (elementy wiedzy) i krawędzie (relacje logiczne). Patrz docs/02-living-decision-model.md.",
+  "type": "object",
+  "required": ["initiative", "nodes", "edges"],
+  "properties": {
+    "initiative": { "$ref": "#/$defs/initiative" },
+    "nodes": { "type": "array", "items": { "$ref": "#/$defs/node" } },
+    "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" } },
+    "risks": {
+      "description": "Wynik Decision Risk Radar (opcjonalny, generowany).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/risk" }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9_-]*$" },
+    "level3": { "enum": ["low", "medium", "high"] },
+    "source": {
+      "type": "object",
+      "required": ["ref"],
+      "properties": {
+        "ref": { "type": "string", "description": "Identyfikator dokumentu / systemu / fragmentu" },
+        "excerpt": { "type": "string" },
+        "date": { "type": "string", "format": "date" }
+      }
+    },
+    "initiative": {
+      "type": "object",
+      "required": ["id", "title", "stage", "next_decision"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "title": { "type": "string" },
+        "owner": { "type": "string" },
+        "stage": { "enum": ["idea", "discovery", "solution_concept", "requirements_design", "refinement", "delivery", "outcome_review"] },
+        "next_decision": {
+          "type": "object",
+          "required": ["statement", "reversibility", "cost_of_error"],
+          "properties": {
+            "statement": { "type": "string" },
+            "reversibility": { "$ref": "#/$defs/level3", "description": "low = trudno odwracalna" },
+            "cost_of_error": { "$ref": "#/$defs/level3" },
+            "due": { "type": "string", "format": "date" }
+          }
+        }
+      }
+    },
+    "node": {
+      "type": "object",
+      "required": ["id", "type", "statement", "epistemic_status", "provenance"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "type": {
+          "enum": ["Problem", "Goal", "Evidence", "Hypothesis", "Option", "Decision", "Constraint", "Requirement", "DesignArtifact", "SuccessCriterion", "Unknown", "Signal"]
+        },
+        "statement": { "type": "string" },
+        "epistemic_status": { "enum": ["observation", "interpretation", "hypothesis", "decision", "ai_inference"] },
+        "provenance": { "enum": ["stated", "reconstructed", "confirmed"] },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1, "description": "Pewność ekstrakcji, nie prawdziwości twierdzenia" },
+        "sources": { "type": "array", "items": { "$ref": "#/$defs/source" } },
+        "owner": { "type": "string" },
+        "updated_at": { "type": "string", "format": "date" },
+        "valid_until": { "type": "string", "format": "date" },
+        "attributes": {
+          "type": "object",
+          "description": "Atrybuty specyficzne dla typu, np. Evidence.strength, Hypothesis.criticality, Unknown.state, Decision.superseded_by",
+          "properties": {
+            "strength": { "$ref": "#/$defs/level3" },
+            "criticality": { "$ref": "#/$defs/level3" },
+            "source_kind": { "enum": ["quantitative", "qualitative", "support", "stakeholder_opinion", "market", "technical"] },
+            "sample": { "type": "string" },
+            "state": {
+              "enum": ["detected", "framed", "searching_existing", "action_proposed", "in_progress", "evidence_received", "resolved", "reframed", "accepted_risk"]
+            },
+            "resolution_criterion": { "type": "string" },
+            "superseded_by": { "$ref": "#/$defs/id" }
+          }
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "required": ["from", "to", "type", "provenance"],
+      "properties": {
+        "from": { "$ref": "#/$defs/id" },
+        "to": { "$ref": "#/$defs/id" },
+        "type": {
+          "enum": ["supports", "contradicts", "interprets", "explains", "competes_with", "addresses", "assumes", "chooses", "rejects", "serves", "derives_from", "verifies", "violates", "blocks", "resolves", "affects", "same_concept", "diverging_concept"]
+        },
+        "provenance": { "enum": ["stated", "reconstructed", "confirmed"] },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "rationale": { "type": "string" }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "required": ["pattern", "nodes", "credibility", "decision_impact", "stakes", "urgency", "severity", "explanation"],
+      "properties": {
+        "pattern": { "type": "string", "pattern": "^R[0-9]+$" },
+        "nodes": { "type": "array", "items": { "$ref": "#/$defs/id" }, "minItems": 1 },
+        "credibility": { "$ref": "#/$defs/level3" },
+        "decision_impact": { "enum": ["none", "scope", "direction"] },
+        "stakes": { "$ref": "#/$defs/level3" },
+        "urgency": { "enum": ["now", "before_next_stage", "later"] },
+        "severity": { "enum": ["info", "observation", "recommendation", "critical"] },
+        "explanation": { "type": "string" },
+        "would_change_assessment": { "type": "string" },
+        "next_step": {
+          "type": "object",
+          "properties": {
+            "rung": { "type": "integer", "minimum": 0, "maximum": 5 },
+            "action": { "type": "string" },
+            "closes_unknown": { "$ref": "#/$defs/id" }
+          }
+        }
+      }
+    }
+  }
+}

@@ -10,7 +10,9 @@ zaczyna od tego pliku i od planu.
   (https://claude.com/resources/articles/the-ai-native-sdlc-playbook): pętla zamiast linii, łańcuch artefaktów
   w gicie, człowiek na bramkach, agent działa do bramki produkcyjnej i nie dalej.
 - **pdi = Product Decision Intelligence**: warstwa decyzji (zgłoszenia, triaż, rejestr decyzji, skrzynka bramek,
-  orkiestracja, graf śladu, ocena skutku). Repo było puste (tylko README).
+  orkiestracja, graf śladu, ocena skutku). Na `main` repo było puste (tylko README); równolegle na gałęzi
+  `claude/magical-dirac-wjvn8y` powstała wcześniejsza praca koncepcyjna (dokumenty 01–11, testy v1 i v2) —
+  jak przechodzi do tego kierunku: [`12-zmiana-kierunku-sdlc.md`](12-zmiana-kierunku-sdlc.md).
 - Stan: **nic nie zostało jeszcze zaimplementowane**. Jest plan, 7 decyzji do podjęcia i kolejność faz F0–F6.
 - Następny krok: **F0 — kontrakt** (schematy w `pdi/contract/` + dziennik per zmiana w tf).
 
@@ -82,12 +84,20 @@ flagi · ocena skutku decyzji · B6 utrzymanie. Resztę robią agenci (AI) albo 
 
 ## Otwarte decyzje (szczegóły w planie, sekcja 9)
 D1 gdzie kontrakt · D2 właściciel rejestru decyzji · D3 format ID · D4 Jira w brownfieldzie · D5 model wdrożenia
-pdi · D6 budżet agentów · D7 format dziennika w ShipScope. Rekomendacje są w planie; **żadna nie została jeszcze
-zatwierdzona przez właściciela**.
+pdi · D6 budżet agentów · D7 format dziennika w ShipScope. Rekomendacje są w planie. **Przyjęte 2026-10-23: D1 (kontrakt w `pdi/contract/`) i D2 w wersji R1** (decyzje bez
+zmiany w pdi, o zmianie w repo, pdi indeksuje) — rejestr w `docs/decyzje.md`. Pozostałe otwarte.
 
 ## Przekazanie — jak kontynuować
-1. Przeczytaj ten plik i `docs/plan-jeden-flow-sdlc.md`.
-2. Zatwierdź albo zmień decyzje D1–D3 (blokują F0).
+1. Przeczytaj ten plik, `docs/plan-jeden-flow-sdlc.md`, `docs/13-rola-pdi-w-sdlc.md` (rola pdi, rozbieżność R1
+   co do rejestru decyzji) i `docs/12-zmiana-kierunku-sdlc.md` (propozycje pól schematu
+   decyzji i zdarzenia `decision.basis_invalidated`, wynikające z testów v1 i v2).
+2. Zatwierdź albo zmień D3 (D1, D2 i decyzje D-S1–S3 dla trybu standalone przyjęte — `docs/decyzje.md`;
+   **krok 1 z dokumentu 14 zbudowany** (`src/pdi/`, `contract/decision.schema.json`, `integrations/claude-code/`,
+   plan i wynik: `docs/plan-krok-1.md`). Następnie: właściciel tworzy prywatne repo `pdi-decisions`, instaluje
+   serwer wg `integrations/claude-code/README.md` i zaczyna 10 dni walidacji (W1–W4, notatki w `eval/dogfood/`).
+   **Pierwszy krok budowy (2026-10-23):** pdi standalone — `docs/14-pdi-standalone.md`: schemat decyzji,
+   rejestr w markdown, serwer MCP (`record_decision`, `find_decisions`), komenda `/record-decision`,
+   10 dni walidacji na sobie (kryteria W1–W4).
 3. F0 w pdi: `contract/` ze schematami JSON (problem, zmiana, decyzja, zdarzenie), zasady ID, testy walidacji;
    rozważ instalację tf w pdi (`tf`) i przejście fazy 0–4 cyklu tf dla samego pdi (przebieg próbny).
 4. F0 w tf (osobna sesja z repo tf): `core-project-record` — dziennik per zmiana `docs/project/changes/<ID>/`,

@@ -1,0 +1,189 @@
+# Przykład roboczy: inicjatywa „panel statusu zamówienia”.
+# Zgodny ze schematem model/living-decision-model.schema.json.
+# Dane są fikcyjne. Sekcja `risks` pokazuje OCZEKIWANY wynik Decision Risk Radar
+# i służy jako przypadek testowy dla przyszłej implementacji.
+
+initiative:
+  id: order-status-panel
+  title: Panel statusu zamówienia
+  owner: PM Obsługa Zamówień
+  stage: solution_concept
+  next_decision:
+    statement: Czy przekazujemy panel statusu zamówienia do estymacji i realizacji (ok. 2 sprinty, 2 zespoły)?
+    reversibility: medium
+    cost_of_error: medium
+
+nodes:
+  # --- Dowody ---
+  - id: ev-research
+    type: Evidence
+    statement: W 6 z 8 wywiadów użytkownicy mówili, że nie rozumieją, co oznacza aktualny status zamówienia.
+    epistemic_status: observation
+    provenance: stated
+    sources: [{ ref: "badania/wywiady-2026-06.pdf", date: 2026-06-20 }]
+    attributes: { source_kind: qualitative, strength: medium, sample: "n=8" }
+
+  - id: ev-analytics
+    type: Evidence
+    statement: Użytkownicy często otwierają szczegóły zamówienia, ale rzadko korzystają z sekcji pomocy.
+    epistemic_status: observation
+    provenance: stated
+    sources: [{ ref: "analityka/dashboard-zamowienia", date: 2026-07-01 }]
+    attributes: { source_kind: quantitative, strength: medium }
+
+  - id: ev-support
+    type: Evidence
+    statement: Zgłoszenia dotyczące statusu zamówienia stanowią 38% kontaktów z obsługą (Q2).
+    epistemic_status: observation
+    provenance: stated
+    sources: [{ ref: "support/raport-q2.xlsx", date: 2026-07-05 }]
+    attributes: { source_kind: support, strength: high, sample: "n≈12 400 zgłoszeń" }
+    valid_until: 2026-12-31
+
+  - id: ev-support-timing
+    type: Evidence
+    statement: Część zgłoszeń o status dotyczy zamówień, których status nie zmienił się przez ponad 48 h mimo wysyłki.
+    epistemic_status: observation
+    provenance: stated
+    sources: [{ ref: "support/notatka-team-lead.md", excerpt: "klienci piszą, że paczka już u nich, a w aplikacji 'w przygotowaniu'", date: 2026-07-10 }]
+    attributes: { source_kind: support, strength: low }
+
+  # --- Problem, cel, interpretacja, hipotezy ---
+  - id: pr-status-confusion
+    type: Problem
+    statement: Użytkownicy nie rozumieją statusu swojego zamówienia, co generuje kontakty z obsługą.
+    epistemic_status: interpretation
+    provenance: stated
+
+  - id: goal-support-cost
+    type: Goal
+    statement: Ograniczyć koszty obsługi klienta — mniej kontaktów dotyczących statusu zamówienia.
+    epistemic_status: decision
+    provenance: stated
+    sources: [{ ref: "strategia/okr-h2-2026.md" }]
+
+  - id: hyp-missing-info-ui
+    type: Hypothesis
+    statement: Przyczyną problemu jest brak informacji o zamówieniu w interfejsie.
+    epistemic_status: hypothesis
+    provenance: reconstructed
+    confidence: 0.75
+    attributes: { criticality: high }
+
+  - id: hyp-stale-status
+    type: Hypothesis
+    statement: Przyczyną problemu są opóźnienia w aktualizacji statusu i niejednoznaczne komunikaty statusów.
+    epistemic_status: ai_inference
+    provenance: reconstructed
+    confidence: 0.6
+    attributes: { criticality: high }
+
+  # --- Rozwiązanie i decyzja ---
+  - id: opt-panel
+    type: Option
+    statement: Dodać nowy panel z rozszerzonymi informacjami o zamówieniu.
+    epistemic_status: hypothesis
+    provenance: stated
+
+  - id: dec-build-panel
+    type: Decision
+    statement: Budujemy panel statusu zamówienia.
+    epistemic_status: decision
+    provenance: stated
+    owner: PM Obsługa Zamówień
+    sources: [{ ref: "decyzje/2026-07-15-panel.md", date: 2026-07-15 }]
+
+  - id: req-panel-visible
+    type: Requirement
+    statement: Panel wyświetla się w szczegółach zamówienia i pokazuje historię zdarzeń.
+    epistemic_status: decision
+    provenance: stated
+    sources: [{ ref: "jira/ORD-412" }]
+
+  - id: sc-panel-shown
+    type: SuccessCriterion
+    statement: Kryterium akceptacji — panel wyświetla się poprawnie dla 100% zamówień.
+    epistemic_status: decision
+    provenance: stated
+    sources: [{ ref: "jira/ORD-412" }]
+
+  # --- Luka ---
+  - id: unk-root-cause
+    type: Unknown
+    statement: Czy zgłoszenia o status wynikają z braku informacji w UI, czy z nieaktualnych / niejasnych statusów?
+    epistemic_status: ai_inference
+    provenance: reconstructed
+    attributes:
+      state: action_proposed
+      resolution_criterion: >-
+        Odsetek zgłoszeń o status dotyczących zamówień z opóźnioną aktualizacją statusu
+        (>24 h od zdarzenia logistycznego). Jeśli > 40% — hipoteza hyp-stale-status
+        jest co najmniej równorzędna i panel nie adresuje głównej przyczyny.
+
+edges:
+  - { from: ev-research, to: pr-status-confusion, type: supports, provenance: stated }
+  - { from: ev-support, to: pr-status-confusion, type: supports, provenance: stated }
+  - { from: ev-analytics, to: pr-status-confusion, type: supports, provenance: reconstructed, confidence: 0.5,
+      rationale: "Częste otwieranie szczegółów jest zgodne z problemem, ale ma też inne wyjaśnienia (np. śledzenie paczki)." }
+  - { from: hyp-missing-info-ui, to: pr-status-confusion, type: explains, provenance: reconstructed }
+  - { from: hyp-stale-status, to: pr-status-confusion, type: explains, provenance: reconstructed }
+  - { from: hyp-stale-status, to: hyp-missing-info-ui, type: competes_with, provenance: reconstructed }
+  - { from: ev-support-timing, to: hyp-stale-status, type: supports, provenance: reconstructed, confidence: 0.6 }
+  - { from: opt-panel, to: hyp-missing-info-ui, type: addresses, provenance: reconstructed }
+  - { from: dec-build-panel, to: opt-panel, type: chooses, provenance: stated }
+  - { from: dec-build-panel, to: hyp-missing-info-ui, type: assumes, provenance: reconstructed }
+  - { from: dec-build-panel, to: goal-support-cost, type: serves, provenance: stated }
+  - { from: req-panel-visible, to: dec-build-panel, type: derives_from, provenance: stated }
+  - { from: sc-panel-shown, to: goal-support-cost, type: verifies, provenance: reconstructed, confidence: 0.3,
+      rationale: "Kryterium sprawdza wyświetlanie panelu, nie zmianę liczby kontaktów." }
+  - { from: unk-root-cause, to: dec-build-panel, type: blocks, provenance: reconstructed }
+
+# Oczekiwany wynik radaru dla next_decision.
+risks:
+  - pattern: R2
+    nodes: [hyp-missing-info-ui, dec-build-panel]
+    credibility: medium   # hipoteza jest zrekonstruowana — komunikat w formie pytania
+    decision_impact: direction
+    stakes: medium
+    urgency: now
+    severity: recommendation
+    explanation: >-
+      Decyzja zakłada (rekonstrukcja), że przyczyną jest brak informacji w UI. Żaden dowód
+      nie wspiera tego założenia bezpośrednio — dowody potwierdzają istnienie problemu, nie jego przyczynę.
+    would_change_assessment: Dowód łączący zgłoszenia z brakiem konkretnych informacji w interfejsie.
+    next_step:
+      rung: 2
+      action: Porównać daty zgłoszeń o status z logiem opóźnień aktualizacji statusu (ok. 2 dni pracy analityka).
+      closes_unknown: unk-root-cause
+
+  - pattern: R5
+    nodes: [hyp-stale-status, hyp-missing-info-ui]
+    credibility: medium
+    decision_impact: direction
+    stakes: medium
+    urgency: now
+    severity: recommendation
+    explanation: >-
+      Istnieje konkurencyjne wyjaśnienie (nieaktualne / niejasne statusy) wspierane sygnałem z supportu,
+      nierozważone w dokumencie decyzyjnym. Jeśli jest główną przyczyną, panel pokaże więcej nieaktualnych informacji.
+    would_change_assessment: Wynik analizy z next_step dla R2 (ta sama luka — komunikaty agregowane).
+
+  - pattern: R7
+    nodes: [sc-panel-shown, goal-support-cost]
+    credibility: high
+    decision_impact: scope
+    stakes: medium
+    urgency: before_next_stage
+    severity: recommendation
+    explanation: >-
+      Kryterium sukcesu weryfikuje, czy panel się wyświetla, a nie czy spada liczba kontaktów o status.
+      Nie będzie można ocenić, czy decyzja przyniosła oczekiwany rezultat.
+    next_step:
+      rung: 0
+      action: Dodać kryterium rezultatu, np. spadek udziału zgłoszeń o status z 38% do ≤ 30% w 8 tygodni po wdrożeniu.
+
+# Oczekiwany werdykt Briefa:
+#   „Można decydować w węższym zakresie” — przed estymacją pełnego panelu rozstrzygnąć unk-root-cause
+#   (szczebel 2, ~2 dni). Jeśli opóźnienia statusów okażą się główną przyczyną, rozważyć tańszą alternatywę
+#   (naprawa synchronizacji + przeredagowanie komunikatów statusów) przed budową panelu.
+# Oczekiwana liczba komunikatów poziomu 2–3: 2 (R2 i R5 agregowane w jeden, R7 osobno).
