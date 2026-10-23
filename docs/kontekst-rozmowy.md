@@ -92,6 +92,9 @@ zatwierdzona przez właściciela**.
    co do rejestru decyzji) i `docs/12-zmiana-kierunku-sdlc.md` (propozycje pól schematu
    decyzji i zdarzenia `decision.basis_invalidated`, wynikające z testów v1 i v2).
 2. Zatwierdź albo zmień decyzje D1–D3 (blokują F0).
+   **Pierwszy krok budowy (2026-10-23):** pdi standalone — `docs/14-pdi-standalone.md`: schemat decyzji,
+   rejestr w markdown, serwer MCP (`record_decision`, `find_decisions`), komenda `/record-decision`,
+   10 dni walidacji na sobie (kryteria W1–W4).
 3. F0 w pdi: `contract/` ze schematami JSON (problem, zmiana, decyzja, zdarzenie), zasady ID, testy walidacji;
    rozważ instalację tf w pdi (`tf`) i przejście fazy 0–4 cyklu tf dla samego pdi (przebieg próbny).
 4. F0 w tf (osobna sesja z repo tf): `core-project-record` — dziennik per zmiana `docs/project/changes/<ID>/`,

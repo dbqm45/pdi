@@ -8,6 +8,8 @@ Stan: projekt na etapie planu, bez kodu.
 
 ## Kierunek (od 2026-10-23)
 
+- [`docs/14-pdi-standalone.md`](docs/14-pdi-standalone.md) — **pierwszy krok: pdi jako niezależny rejestr decyzji** z zapisem jednym kliknięciem tam, gdzie decyzje zapadają (najpierw Claude CLI przez MCP i `/record-decision`, potem Slack, Confluence, Jira); flow SDLC korzysta z tego samego rejestru. Specyfikacja MVP i kryteria walidacji na sobie.
+
 - [`docs/plan-jeden-flow-sdlc.md`](docs/plan-jeden-flow-sdlc.md) — plan połączenia czterech projektów w jeden flow (fazy F0–F6, decyzje D1–D7).
 - [`docs/kontekst-rozmowy.md`](docs/kontekst-rozmowy.md) — kontekst i przekazanie dla kolejnej sesji.
 - [`docs/13-rola-pdi-w-sdlc.md`](docs/13-rola-pdi-w-sdlc.md) — **rola pdi w procesie**: co posiada, co wywołuje, na których etapach pojawia się człowiek w pdi; rozbieżności między wersjami mapy i planem (R1: gdzie żyje rejestr decyzji). Źródło: [mapa procesu, wersje 1 i 2](docs/zrodla/2026-10-23-mapa-sdlc.md).

@@ -178,6 +178,8 @@ Jiry), zdarzeń wychodzących i API dla innych usług.
 
 ## 8. Kolejność realizacji
 
+> **Aktualizacja 2026-10-23:** dodana faza **F0+ — pdi standalone** (rejestr decyzji z zapisem z Claude CLI przez MCP), niezależna od tf, ci_for_sdlc i ShipScope; w F0 najpierw schemat decyzji. Szczegóły: [`14-pdi-standalone.md`](14-pdi-standalone.md#7-zmiana-kolejności-w-planie-jednego-flow).
+
 Każda faza kończy się czymś, co działa samo, nawet jeśli następna się opóźni. Każdy punkt to osobny PR w danym repo.
 
 ### F0 — Kontrakt

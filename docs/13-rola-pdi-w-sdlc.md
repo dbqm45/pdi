@@ -90,3 +90,4 @@ Szczegóły: [dokument 12](12-zmiana-kierunku-sdlc.md). W skrócie, w kategoriac
 3. **R2** — globalne `DEC-n` także w dzienniku tf.
 4. **R7** — statusy zgłoszenia w pdi (z `Parked` i `Duplicate`) i ich mapowanie na stany `proc-issue-triage`.
 5. Propozycje z dokumentu 12: pola schematu decyzji (§4.1) i zdarzenie `decision.basis_invalidated` (§4.2).
+6. Pierwszy krok budowy: **pdi standalone** — rejestr decyzji z zapisem z Claude CLI przez MCP, niezależny od tf, ci_for_sdlc i ShipScope ([dokument 14](14-pdi-standalone.md#9-decyzje-do-podjęcia-przed-budową)): miejsce rejestru na start, język serwera MCP, zakres pól schematu.
