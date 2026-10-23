@@ -98,6 +98,8 @@ zmiany w pdi, o zmianie w repo, pdi indeksuje) — rejestr w `docs/decyzje.md`. 
    **F0 w pdi zrobione (kontrakt 0.3.0):** schematy zgłoszenia, artefaktu zmiany, cięcia i zdarzeń w `contract/`
    (plan: `docs/plan-f0-kontrakt.md`). Do zatwierdzenia: R7 (stany zgłoszenia), `decision.basis_invalidated`.
    Następne w F0: tf — dziennik per zmiana (`project_record.py change new`), osobna sesja z repo tf.
+   Plan i polecenie startowe są w tf: `docs/project/05-plan/plan-pdi.md` (gałąź `claude/magical-dirac-wjvn8y`
+   w `dbqm45/claude-team-factory`).
 3. F0 w pdi: `contract/` ze schematami JSON (problem, zmiana, decyzja, zdarzenie), zasady ID, testy walidacji;
    rozważ instalację tf w pdi (`tf`) i przejście fazy 0–4 cyklu tf dla samego pdi (przebieg próbny).
 4. F0 w tf (osobna sesja z repo tf): `core-project-record` — dziennik per zmiana `docs/project/changes/<ID>/`,
