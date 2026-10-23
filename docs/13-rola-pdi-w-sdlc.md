@@ -1,12 +1,28 @@
 # 13. Rola pdi w procesie SDLC
 
-**Data:** 2026-10-23 · **Źródła:** [plan jednego flow](plan-jeden-flow-sdlc.md), [mapa procesu — wersje 1 i 2](zrodla/2026-10-23-mapa-sdlc.md), [kontekst rozmowy](kontekst-rozmowy.md), [dokument 12](12-zmiana-kierunku-sdlc.md)
+**Data:** 2026-10-23 · **Źródła:** [plan jednego flow](plan-jeden-flow-sdlc.md), [wczesne etapy rozmowy](zrodla/2026-10-23-wczesne-etapy-rozmowy.md), [mapa procesu — wersje 1 i 2](zrodla/2026-10-23-mapa-sdlc.md), [kontekst rozmowy](kontekst-rozmowy.md), [dokument 12](12-zmiana-kierunku-sdlc.md)
 
 ## 1. Rola w jednym zdaniu
 
 > **pdi odpowiada na pytanie „co, czy i dlaczego?”** — przyjmuje problemy, prowadzi ludzi przez decyzje na bramkach, pamięta te decyzje i ich uzasadnienie, uruchamia kolejne etapy i pokazuje ślad od zgłoszenia do skutku na produkcji. **Nie wykonuje pracy** — pisanie i analizę robi tf, spójność sprawdza ci_for_sdlc, status wydania liczy ShipScope.
 
 Kluczowa zmiana między wersjami mapy: po przejrzeniu tf okazało się, że tf ma już cykl, bramki, dziennik, triaż i planowanie. Dlatego pdi jest **cienkie**: UI dla ludzi, decyzje, orkiestracja i ślad.
+
+## 1a. Zasady, z których wyrosła ta rola
+
+Z [wczesnych etapów rozmowy](zrodla/2026-10-23-wczesne-etapy-rozmowy.md) — obowiązują dalej i tłumaczą, dlaczego pdi ma być cienkie:
+
+| Zasada | Konsekwencja dla pdi |
+|---|---|
+| **Orkiestrator nad łańcuchem artefaktów w gicie**, nie jedna duża aplikacja | pdi nie przechowuje artefaktów zmian; czyta je z repo |
+| **Źródłem prawdy jest repo; bramka to PR** | na start bramki to zwykłe PR-y — pdi nie musi mieć własnego UI, żeby proces działał |
+| **Orkiestrator najpierw jako CLI; aplikacja pdi dopiero, gdy proces działa end-to-end** | kolejność budowy pdi: kontrakt → CLI/orkiestracja → UI (skrzynka bramek, graf) |
+| **Zgłoszenia w bazie pdi, nie w gicie; do repo trafia dopiero zaakceptowana intencja** | pdi jest jedynym miejscem dla zgłoszeń i decyzji triażu (podstawa rekomendacji R1) |
+| **Dwie bramki: tania (czy analizować?) i droga (czy budujemy?)** | triaż w pdi to decyzja tania i szybka; decyzja o budowie to akceptacja intencji (B1) |
+| **Człowiek decyduje co i czy; agent — jak; deterministyczne checki — wynik** | pdi pokazuje człowiekowi tylko decyzje; wszystko inne idzie do agentów i skryptów |
+| **Odrzucenie zawsze z powodem, wraca do zgłaszającego; „wydane” zamyka pętlę** | obowiązkowy powód z listy; powiadomienie po `feature.released`, nie po wdrożeniu za flagą |
+| **Parked z progiem powrotu** (np. 3 nowe zgłoszenia albo incydent) | pdi pilnuje progów i samo wraca do odłożonych zgłoszeń |
+| **Liczba zgłaszających to dowód** | duplikaty grupowane w jedno zgłoszenie z wieloma dowodami, nie zamykane |
 
 ## 2. Co pdi posiada, a co wywołuje
 
@@ -51,9 +67,10 @@ Około 8–10 decyzji człowieka na zmianę; wszystkie decyzyjne. pdi jest miejs
 | **R3** | Dopisek w commitach | `Change: PRB-123` | `Change: TSK-57` | F1 | Jak w planie (`TSK`): ShipScope liczy TSK do rodzica CHG, a CHG ma `source: PRB` — ślad do zgłoszenia jest pełny bez wpisywania PRB w commitach |
 | **R4** | Kto orkiestruje | pdi albo GitHub Actions | maszyna stanów w pdi + `workflow_dispatch` szablonu fazy z tf | F4 | Jak w planie: stan w pdi, wykonanie w GitHub Actions — pdi nie uruchamia agentów na swoich serwerach |
 | R5 | Idea chat (greenfield) | wejście w pdi, logika w tf | brak modułu w tabeli pdi | kosmetyczny | dopisać do Intake jako drugi formularz; logika w tf |
+| R7 | Statusy zgłoszenia | `needs-triage → needs-info → ready-for-agent / ready-for-human / wontfix` (tf `proc-issue-triage`) | wczesny etap: `New → Clarifying → Ready for triage → Accepted / Rejected / Parked / Duplicate`; plan: „stany z `proc-issue-triage`” | schemat problemu w F0 | Stany biznesowe z wczesnego etapu w pdi (`Parked` z progiem, `Duplicate`, `Rejected` z powodem z listy — tf tego nie ma); mapowanie na stany tf w kontrakcie, bo tf wykonuje wzbogacenie |
 | R6 | Kolejność: kiedy pdi | krok 5 z 6 (po zmianach w tf, ci_for_sdlc i ShipScope) | kontrakt w pdi w F0, MVP pdi w F3 | brak | spójne: najpierw kontrakt (bez którego pozostałe zmiany są kruche), MVP pdi dopiero gdy ślad w repo działa |
 
-R1 jest jedyną rozbieżnością merytoryczną. Wpływa na propozycje z [dokumentu 12](12-zmiana-kierunku-sdlc.md#41-schemat-decyzji-w-contract-f0-uzupełnienie-d2): pola `assumptions`, `invalidated_if`, `success_metric` powinny być w nagłówku wpisu w `changes/CHG-n/decisions.md` (tam je szkicuje persona tf przy B1), a pdi czyta je do sprawdzania podstaw i oceny skutku.
+R1 jest główną rozbieżnością merytoryczną. Wczesne etapy rozmowy ją wspierają: tam decyzje o zmianie lądują w repo (`decisions/*.md`), a zgłoszenia — w bazie pdi. Wpływa na propozycje z [dokumentu 12](12-zmiana-kierunku-sdlc.md#41-schemat-decyzji-w-contract-f0-uzupełnienie-d2): pola `assumptions`, `invalidated_if`, `success_metric` powinny być w nagłówku wpisu w `changes/CHG-n/decisions.md` (tam je szkicuje persona tf przy B1), a pdi czyta je do sprawdzania podstaw i oceny skutku.
 
 ## 5. Gdzie wnosi wcześniejsza praca koncepcyjna
 
@@ -71,4 +88,5 @@ Szczegóły: [dokument 12](12-zmiana-kierunku-sdlc.md). W skrócie, w kategoriac
 1. **D1–D3 z planu** — blokują F0.
 2. **R1** — podział rejestru decyzji: PRB w pdi, zmiany w repo, pdi jako indeks. Od tego zależy, gdzie trafią pola z dokumentu 12 §4.1.
 3. **R2** — globalne `DEC-n` także w dzienniku tf.
-4. Propozycje z dokumentu 12: pola schematu decyzji (§4.1) i zdarzenie `decision.basis_invalidated` (§4.2).
+4. **R7** — statusy zgłoszenia w pdi (z `Parked` i `Duplicate`) i ich mapowanie na stany `proc-issue-triage`.
+5. Propozycje z dokumentu 12: pola schematu decyzji (§4.1) i zdarzenie `decision.basis_invalidated` (§4.2).
