@@ -88,7 +88,8 @@ pdi · D6 budżet agentów · D7 format dziennika w ShipScope. Rekomendacje są 
 zatwierdzona przez właściciela**.
 
 ## Przekazanie — jak kontynuować
-1. Przeczytaj ten plik, `docs/plan-jeden-flow-sdlc.md` i `docs/12-zmiana-kierunku-sdlc.md` (propozycje pól schematu
+1. Przeczytaj ten plik, `docs/plan-jeden-flow-sdlc.md`, `docs/13-rola-pdi-w-sdlc.md` (rola pdi, rozbieżność R1
+   co do rejestru decyzji) i `docs/12-zmiana-kierunku-sdlc.md` (propozycje pól schematu
    decyzji i zdarzenia `decision.basis_invalidated`, wynikające z testów v1 i v2).
 2. Zatwierdź albo zmień decyzje D1–D3 (blokują F0).
 3. F0 w pdi: `contract/` ze schematami JSON (problem, zmiana, decyzja, zdarzenie), zasady ID, testy walidacji;

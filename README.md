@@ -10,6 +10,7 @@ Stan: projekt na etapie planu, bez kodu.
 
 - [`docs/plan-jeden-flow-sdlc.md`](docs/plan-jeden-flow-sdlc.md) — plan połączenia czterech projektów w jeden flow (fazy F0–F6, decyzje D1–D7).
 - [`docs/kontekst-rozmowy.md`](docs/kontekst-rozmowy.md) — kontekst i przekazanie dla kolejnej sesji.
+- [`docs/13-rola-pdi-w-sdlc.md`](docs/13-rola-pdi-w-sdlc.md) — **rola pdi w procesie**: co posiada, co wywołuje, na których etapach pojawia się człowiek w pdi; rozbieżności między wersjami mapy i planem (R1: gdzie żyje rejestr decyzji). Źródło: [mapa procesu, wersje 1 i 2](docs/zrodla/2026-10-23-mapa-sdlc.md).
 - [`docs/12-zmiana-kierunku-sdlc.md`](docs/12-zmiana-kierunku-sdlc.md) — **jak wcześniejsza praca koncepcyjna (dokumenty 01–11, testy v1 i v2) przechodzi do nowego kierunku**: co wchodzi do kontraktu i modułów pdi, co jest wstrzymane, propozycje do D2 i F0.
 
 ## Wcześniejsza praca koncepcyjna (2026-10-19 – 2026-10-22)
