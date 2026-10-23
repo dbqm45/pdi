@@ -91,7 +91,8 @@ zmiany w pdi, o zmianie w repo, pdi indeksuje) — rejestr w `docs/decyzje.md`. 
 1. Przeczytaj ten plik, `docs/plan-jeden-flow-sdlc.md`, `docs/13-rola-pdi-w-sdlc.md` (rola pdi, rozbieżność R1
    co do rejestru decyzji) i `docs/12-zmiana-kierunku-sdlc.md` (propozycje pól schematu
    decyzji i zdarzenia `decision.basis_invalidated`, wynikające z testów v1 i v2).
-2. Zatwierdź albo zmień D3 (D1 i D2 przyjęte — `docs/decyzje.md`).
+2. Zatwierdź albo zmień D3 (D1, D2 i decyzje D-S1–S3 dla trybu standalone przyjęte — `docs/decyzje.md`;
+   krok 1 z dokumentu 14 można budować: Python, rejestr w osobnym prywatnym repo tworzonym przed walidacją).
    **Pierwszy krok budowy (2026-10-23):** pdi standalone — `docs/14-pdi-standalone.md`: schemat decyzji,
    rejestr w markdown, serwer MCP (`record_decision`, `find_decisions`), komenda `/record-decision`,
    10 dni walidacji na sobie (kryteria W1–W4).

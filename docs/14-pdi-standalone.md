@@ -86,7 +86,7 @@ Pierwszy schemat kontraktu (F0). Pola z [dokumentu 12 §4.1](12-zmiana-kierunku-
 | `get_decision` | `id` | pełny wpis |
 | `supersede_decision` | `id` starej + pola nowej | nowa decyzja, stara ze statusem `superseded` |
 
-Język: TypeScript (spójny ze stackiem rekomendowanym w planie) z oficjalnym SDK MCP. *[do potwierdzenia w B3; Python też wystarczy]*
+Język: **Python** z oficjalnym SDK MCP (przyjęte 2026-10-23, [decyzje](decyzje.md)). Kod serwera żyje w repo pdi; ścieżkę do rejestru podaje zmienna środowiskowa (np. `PDI_REGISTRY_PATH`), więc testy działają na katalogu tymczasowym, a nie na prawdziwym rejestrze.
 
 ### 4.4. Komenda w Claude Code: `/record-decision`
 
@@ -155,6 +155,8 @@ Po zbudowaniu kroku 1 (§4) właściciel projektu używa pdi przez **10 dni robo
 ## 9. Decyzje do podjęcia przed budową
 
 1. ~~**D1**~~ — przyjęte 2026-10-23: kontrakt w `pdi/contract/` ([decyzje](decyzje.md)); R1 też przyjęte.
-2. Gdzie trzymać rejestr na start: osobne prywatne repo (rekomendacja) czy katalog w pdi.
-3. TypeScript czy Python dla serwera MCP.
-4. Pola schematu z §4.1 — zatwierdzić albo skrócić.
+2. ~~Miejsce rejestru~~ — przyjęte 2026-10-23: **osobne prywatne repo** (np. `pdi-decisions`). Tworzymy je, gdy serwer MCP i `/record-decision` przejdą testy na katalogu tymczasowym — tuż przed pierwszym dniem walidacji (§6). Wcześniej nie jest potrzebne.
+3. ~~Język serwera MCP~~ — przyjęte 2026-10-23: **Python**.
+4. ~~Pola schematu~~ — przyjęte 2026-10-23: zgodnie z §4.1.
+
+Wszystkie decyzje blokujące krok 1 są podjęte; można budować.
