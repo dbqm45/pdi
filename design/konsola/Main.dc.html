@@ -91,7 +91,7 @@ a{color:#2846B5}a:hover{color:#1B3285}
           <span style="font-size: 12px; color: #5B6878">Stan kart z prawdziwych zdarzeń: agenci, bramki, CI, flagi</span>
         </div>
         <div style="overflow-x: auto">
-          <div style="display: grid; grid-template-columns: repeat(6, minmax(168px, 1fr)); gap: 10px; min-width: 1060px">
+          <div style="display: grid; grid-template-columns: repeat(6, minmax(136px, 1fr)); gap: 8px; min-width: 860px">
             <sc-for list="{{cols}}" as="col" hint-placeholder-count="6">
               <div style="display: flex; flex-direction: column; gap: 8px; background: #F4F6F9; border-radius: 10px; padding: 10px">
                 <div style="display: flex; justify-content: space-between; align-items: baseline">
@@ -100,7 +100,7 @@ a{color:#2846B5}a:hover{color:#1B3285}
                 </div>
                 <sc-for list="{{col.cards}}" as="c" hint-placeholder-count="2">
                   <a href="#" class="card" style="display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: #15202B; background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 8px; padding: 10px">
-                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px">
+                    <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px">
                       <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #445163">{{c.id}}</span>
                       <span class="chip {{c.cls}}"><span class="dot"></span>{{c.state}}</span>
                     </div>
@@ -133,7 +133,7 @@ a{color:#2846B5}a:hover{color:#1B3285}
     </main>
 
     <!-- prawa: skrzynka i rozmowa -->
-    <aside aria-label="Skrzynka i rozmowa" style="flex: 1 1 360px; max-width: 440px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+    <aside aria-label="Skrzynka i rozmowa" style="flex: 1 1 340px; max-width: 400px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
 
       <section aria-label="Czeka na Ciebie" style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
         <div style="display: flex; align-items: baseline; justify-content: space-between">
