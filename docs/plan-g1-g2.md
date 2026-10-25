@@ -50,6 +50,8 @@ wszystkie pola są nowe i opcjonalne.
 **Działa po kroku:** repozytoria mają wspólną, wersjonowaną definicję historyjki i planu wydania oraz zestaw
 wzorcowy do testów.
 
+Polecenia startowe dla fali 2 (G2.4 w tf, G2.1 w ci_for_sdlc): [`polecenia-startowe-fala-2.md`](polecenia-startowe-fala-2.md).
+
 ## 4. G2 — kształt historyjki i kryteriów akceptacji
 
 ### 4.1. Co jest dziś i czego brakuje
