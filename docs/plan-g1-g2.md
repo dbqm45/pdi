@@ -1,6 +1,6 @@
 # Plan wydania i kształt historyjek — plan domknięcia luk G1 i G2
 
-Data: 2026-10-25 · Status: **propozycja** (nic jeszcze nie zrobione) · Wersja HTML: https://claude.ai/artifact/G9Z2ubF7EtoWxMST1M7Gy1
+Data: 2026-10-25 · Status: **K0 zrobione** (kontrakt 0.4.0, [plan K0](plan-k0-kontrakt-040.md)); decyzje DG1–DG7 do podjęcia · Wersja HTML: https://claude.ai/artifact/G9Z2ubF7EtoWxMST1M7Gy1
 
 Szczegółowy plan dla dwóch luk z mapy ekosystemu (https://claude.ai/artifact/9gz1UhJZRNXHq5VgUciava): **G2** —
 kształt historyjki i kryteriów akceptacji, **G1** — plan wydania i MVP. Dla każdej: reguły, zmiany w konkretnych

@@ -187,6 +187,10 @@ Każda faza kończy się czymś, co działa samo, nawet jeśli następna się op
 - **tf:** dziennik per zmiana (`project_record.py change new`), szablony intent/plan; instalacja tf w ShipScope i pdi.
 - **Działa po fazie:** zmianę da się opisać w repo w jednym, sprawdzalnym formacie.
 
+> **G1 i G2 (plan wydania, kształt historyjki)** — kroki z [planu G1/G2](plan-g1-g2.md) w fazach: K0 (kontrakt
+> 0.4.0) razem z F0; G2.1–G2.3 i G1.2 (tryb Jira w ci_for_sdlc), G2.4 i G1.1 (tf) bez zależności od F1–F5;
+> G1.3 (ShipScope) w trybie repo po F1; G1.4 (REL w repo) po F2; G1.5 (bramki etapów i zdarzenia) po F4–F5.
+
 ### F1 — Ślad w commitach
 - **tf:** dopisek `Change:` i hook; Talos czyta `plan.md` zmiany; raport przebiegu w repo.
 - **ShipScope:** sync elementów z repo, hierarchia CHG → TSK, grupowanie po zmianach, flagi z kluczami zmian.

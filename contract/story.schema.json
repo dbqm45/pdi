@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dbqm45/pdi/contract/story.schema.json",
+  "title": "Historyjka (pdi, kontrakt 0.4.0)",
+  "description": "Historyjka z identyfikowalnymi kryteriami akceptacji (AC-n). Do eksportu z tf i dla konektora repo ci_for_sdlc. Format AC: gwt (Given/When/Then, PL: Zakładając/Gdy/Wtedy), ears albo free (wolny tekst przed przepisaniem).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "actor",
+    "capability"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]+-[0-9]+$",
+      "description": "Klucz historyjki: US-n w tf albo klucz z Jiry (PAY-140)."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "lang": {
+      "type": "string",
+      "enum": [
+        "pl",
+        "en"
+      ]
+    },
+    "actor": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Jako kto."
+    },
+    "capability": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Co chce zrobić — jedna akcja (STORY-001)."
+    },
+    "benefit": {
+      "type": "string",
+      "description": "Po co."
+    },
+    "scenarios": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    },
+    "story_points": {
+      "type": "number",
+      "minimum": 0
+    },
+    "release": {
+      "type": "string",
+      "pattern": "^R[0-9]+$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      }
+    },
+    "links": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "chg": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9]+-[0-9]+$",
+          "description": "CHG"
+        },
+        "tsk": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9]+-[0-9]+$",
+          "description": "TSK"
+        },
+        "prb": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9]+-[0-9]+$",
+          "description": "PRB"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "format"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^AC-[0-9]+$"
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "gwt",
+            "ears",
+            "free"
+          ]
+        },
+        "given": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "GWT: warunki; EARS: stan (While/Where)."
+        },
+        "when": {
+          "type": "string",
+          "minLength": 1,
+          "description": "GWT: jedna akcja; EARS: wyzwalacz (When/If)."
+        },
+        "then": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Obserwowalny wynik (GWT Then, EARS shall)."
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Treść oryginalna; dla free — wymagana."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "format": {
+                "const": "gwt"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "when",
+              "then"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "format": {
+                "const": "ears"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "then"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "format": {
+                "const": "free"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "text"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

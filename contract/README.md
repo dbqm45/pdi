@@ -4,7 +4,9 @@ Schematy i zasady wspólne dla pdi, tf, ci_for_sdlc i ShipScope ([decyzja D1](..
 Wersjonowany wg SemVer 2.0.0 w [`contract.json`](contract.json); zmiana niezgodna wstecz podnosi wersję główną
 (w 0.x — drugą liczbę). Odbiorca zdarzeń przypina wersję przez pole `contract_version`.
 
-Wersja: `0.3.0`. Historia: 0.3.0 — zgłoszenie, artefakt zmiany, cięcie, zdarzenia, wspólny wzorzec klucza;
+Wersja: `0.4.0`. Historia: 0.4.0 — historyjka z kryteriami (G2), plan wydania (G1), nowe pola cięcia,
+`release` w `feature.released`, zdarzenie `release.stage_changed`, zestaw wzorcowy kształtu historyjki, konwencje;
+0.3.0 — zgłoszenie, artefakt zmiany, cięcie, zdarzenia, wspólny wzorzec klucza;
 0.2.0 — pole `project` w decyzji; 0.1.0 — schemat decyzji.
 
 | Plik | Obiekt | Gdzie żyje | Przykład |
@@ -14,8 +16,26 @@ Wersja: `0.3.0`. Historia: 0.3.0 — zgłoszenie, artefakt zmiany, cięcie, zdar
 | [`change.schema.json`](change.schema.json) | nagłówek YAML artefaktu w `docs/project/changes/CHG-n/` (nagłówek tf + `change`, `source`, `tasks`) | repo zmiany | [`examples/change.json`](examples/change.json) |
 | [`task.schema.json`](task.schema.json) | cięcie `TSK` z rodzicem `CHG` | `plan.md` zmiany | [`examples/task.json`](examples/task.json) |
 | [`event.schema.json`](event.schema.json) | koperta zdarzenia i treść dla każdego typu | wymiana między projektami | `examples/event-*.json` |
+| [`story.schema.json`](story.schema.json) | historyjka `US-n` (albo klucz z Jiry) ze scenariuszami `AC-n` w formacie `gwt`, `ears` albo `free` | eksport z tf, konektor repo ci_for_sdlc | [`examples/story.json`](examples/story.json) |
+| [`release-plan.schema.json`](release-plan.schema.json) | plan wydania zmiany: MVP z miarą, linie `R1…Rn` z cięciami, flagi z etapami udostępniania | `changes/CHG-n/release.yaml` | [`examples/release-plan.json`](examples/release-plan.json) |
+| [`fixtures/story-shape/`](fixtures/story-shape/README.md) | zestaw wzorcowy reguł STORY i AC: historyjki, oczekiwane wyniki, wspólne słownictwo | testy tf i ci_for_sdlc | — |
 
-Walidacja w Pythonie: `from pdi import contract; contract.errors("problem", obj)` (pusta lista = poprawny).
+Walidacja w Pythonie: `from pdi import contract; contract.errors("problem", obj)` (pusta lista = poprawny);
+nazwy: `decision`, `problem`, `change`, `task`, `event`, `story`, `release_plan`.
+
+## Konwencje (0.4.0) — wartości domyślne do czasu decyzji DG1–DG7
+
+`contract.json` → `conventions` (plan G1/G2 §2; decyzje jeszcze nieprzyjęte, zmiana decyzji zmienia tylko wartości):
+
+| Konwencja | Domyślnie | Decyzja |
+|---|---|---|
+| Format kryteriów akceptacji | `gwt`; dozwolone `ears` i `free` | DG1 |
+| Słowa kluczowe | EN: Given/When/Then/And/But; PL: Zakładając (że), Mając / Gdy, Kiedy, Jeżeli, Jeśli / Wtedy / Oraz, I / Ale — `fixtures/story-shape/vocabulary.json` | DG2 |
+| Linia wydania w Jirze | etykieta z prefiksem `release:` (np. `release:R1`); konfigurowalne: etykieta, fixVersion, pole | DG4 |
+| Plan wydania w repo | osobny plik `changes/CHG-n/release.yaml` | DG6 |
+
+Schemat planu wydania sprawdza strukturę. Spójność (`mvp.release` wśród linii, zbiór TSK zgodny z `plan.md`, flaga
+z etapami i `remove_by`) sprawdzają tf (`check`) i ci_for_sdlc (REL-001…008).
 
 ## Identyfikatory ([D3](../docs/decyzje.md))
 
@@ -54,8 +74,9 @@ Powody odrzucenia: `out_of_strategy`, `works_as_designed`, `cost_disproportionat
 | `gate.requested` | tf, ci_for_sdlc | `change`, `gate`, `summary` |
 | `gate.decided` | pdi | `change`, `gate`, `outcome` (`approved` / `changes_requested` / `rejected`), `decision` |
 | `readiness.changed` | ci_for_sdlc | `change`, `readiness` (`ready` / `not_ready` / `drift`) |
-| `feature.released` | ShipScope | `change`, `released_at` |
+| `feature.released` | ShipScope | `change`, `released_at` (od 0.4.0 opcjonalnie `release`: R1 wydane = MVP u ludzi) |
 | `metric.breached` | tf (pasma kontrolne) | `metric`, `value`, `threshold` |
+| `release.stage_changed` | ShipScope | `change`, `flag`, `to_stage` (opcjonalnie `release`, `from_stage`, `rollout` 0–100) — od 0.4.0 |
 | `decision.basis_invalidated` | pdi | `decision`, `assumption`, `signal`, `attention_level` (0–3) — przyjęte 2026-10-23 ([dokument 12 §4.2](../docs/12-zmiana-kierunku-sdlc.md#42-nowe-zdarzenie-w-kontrakcie)), używane od F5 |
 
 Każde zdarzenie: `id` (do deduplikacji), `type`, `occurred_at` (UTC, `RRRR-MM-DDTGG:MM:SSZ`), `source`,

@@ -1,0 +1,41 @@
+{
+  "id": "PAY-141",
+  "title": "Klient dodaje kartę",
+  "lang": "pl",
+  "actor": "klient",
+  "capability": "dodać kartę płatniczą",
+  "benefit": "płacić bez wpisywania danych karty",
+  "scenarios": [
+    {
+      "id": "AC-1",
+      "format": "gwt",
+      "given": [
+        "klient nie ma zapisanych kart"
+      ],
+      "when": "doda kartę z poprawnymi danymi",
+      "then": [
+        "widzi ją na liście jako domyślną",
+        "widzi ostatnie 4 cyfry numeru"
+      ]
+    },
+    {
+      "id": "AC-2",
+      "format": "gwt",
+      "given": [
+        "klient jest na formularzu karty"
+      ],
+      "when": "doda kartę z nieważną datą",
+      "then": [
+        "widzi komunikat „Karta wygasła” przy polu daty"
+      ]
+    }
+  ],
+  "release": "R1",
+  "source": {
+    "key": "PAY-140"
+  },
+  "links": {
+    "chg": "CHG-12",
+    "tsk": "TSK-57"
+  }
+}

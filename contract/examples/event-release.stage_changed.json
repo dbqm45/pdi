@@ -1,0 +1,15 @@
+{
+  "id": "evt-release.stage_changed",
+  "type": "release.stage_changed",
+  "occurred_at": "2026-11-10T09:00:00Z",
+  "source": "shipscope",
+  "contract_version": "0.4.0",
+  "payload": {
+    "change": "CHG-12",
+    "release": "R1",
+    "flag": "payment-retry",
+    "from_stage": "internal",
+    "to_stage": "10%",
+    "rollout": 10
+  }
+}
