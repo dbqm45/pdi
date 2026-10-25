@@ -1,6 +1,6 @@
 # Plan wydania i kształt historyjek — plan domknięcia luk G1 i G2
 
-Data: 2026-10-25 · Status: **K0 zrobione** (kontrakt 0.4.0, [plan K0](plan-k0-kontrakt-040.md)); decyzje DG1–DG7 do podjęcia · Wersja HTML: https://claude.ai/artifact/G9Z2ubF7EtoWxMST1M7Gy1
+Data: 2026-10-25 · Status: **w realizacji**: tryb Jira zrobiony poza G2.3 (stan w §10; [plan K0](plan-k0-kontrakt-040.md)); decyzje DG1–DG7 zastosowane, niewpisane do `decyzje.md` · Wersja HTML: https://claude.ai/artifact/G9Z2ubF7EtoWxMST1M7Gy1
 
 Szczegółowy plan dla dwóch luk z mapy ekosystemu (https://claude.ai/artifact/9gz1UhJZRNXHq5VgUciava): **G2** —
 kształt historyjki i kryteriów akceptacji, **G1** — plan wydania i MVP. Dla każdej: reguły, zmiany w konkretnych
@@ -378,6 +378,42 @@ flowchart TB
 Zależności techniczne: wszystkie aplikacje zależą od kontraktu (K0). Panel w Jirze zależy od ci_for_sdlc i ShipScope
 w trybie SaaS. Reguły REL w ci_for_sdlc korzystają z reguły STORY-003 z G2. ShipScope łączy flagi z cięciami przez
 dopisek `Flag:`, który dodaje Talos z tf. Zdarzenia do pdi wymagają wychodzących webhooków z fazy F5.
+
+## 10. Stan realizacji
+
+Stan na 2026-10-25, sprawdzony na gałęziach `main` wszystkich repozytoriów. Tryb Jira dla G1 i G2 jest zrobiony
+poza propozycjami AI (G2.3); reszta czeka na fazy planu jednego flow albo na tryb SaaS.
+
+| Krok | Repo | Stan | Gdzie | Uwagi |
+|---|---|---|---|---|
+| K0 kontrakt 0.4.0 | pdi | zrobione | #6 | [plan K0](plan-k0-kontrakt-040.md) |
+| G2.1 parser AC | ci_for_sdlc | zrobione | #58 | |
+| G2.2a reguły STORY i AC | ci_for_sdlc | zrobione | #59 | G2.2 podzielony na dwa PR-y. Odłożone do `docs/BACKLOG-DEFERRED.md` (G2-L1): AC zapisane jako lista, `COV-001` liczone po scenariuszach, sposób liczenia w STORY-002. |
+| G2.2b ustawienia kształtu w UI | ci_for_sdlc | zrobione | #60 | `storyShape` w `DEFAULT_POLICY`, `PUT /api/settings`, Settings → Policy |
+| G2.4 autor historyjek | tf | zrobione | #77 | słownictwo w `story_shape_vocabulary.json`, lint pojedynczej historyjki (`--story`) używany przez Talosa |
+| G1.1 plan wydania | tf | zrobione | #78 | |
+| G1.2 reguły REL w Jirze | ci_for_sdlc | zrobione | #61 | REL-001…006, wymiar `delivery`, panel planu na stronie epiku |
+| G1.3 zakładka „Plan wydania” | ShipScope | zrobione (tryb Jira) | #106 | migracja 036 zamiast 032 z planu (numeracja ShipScope poszła dalej); plan kroku w `design-docs/G1.3-PLAN.pl.md`; tryb repo (`release.yaml`) czeka na F1 |
+| G2.3 propozycje AI | ci_for_sdlc | do zrobienia | | jedyny krok bez zależności zewnętrznych |
+| G1.4 reguły REL w repo | ci_for_sdlc | czeka | | F2 (konektor repo) |
+| G1.5 bramki i zdarzenia | pdi + ShipScope | czeka | | F4–F5 (skrzynka bramek, wychodzące webhooki) |
+| G2.5 panel w Jirze | nowe repo + ci_for_sdlc | czeka | | tryb SaaS ci_for_sdlc i ShipScope |
+| G2.6 sygnał z estymacji | sprintdeck + ci_for_sdlc | czeka | | MVP sprintdecka z importem z Jiry; rola sprintdecka zmieniona decyzją [D-E1](decyzje.md) |
+| G1.6 edytor mapy historyjek | pdi | warunkowo | | po pilocie |
+
+Decyzje DG1–DG7 z §2 zostały zastosowane w kontrakcie 0.4.0 i w krokach powyżej (GWT z EARS jako opcją, słowa
+kluczowe EN/PL, etykieta `release:R1`, wymiar `delivery`, `release.yaml`), ale nie są jeszcze wpisane do
+[`decyzje.md`](decyzje.md).
+
+**Uwaga o jakości:** PR-y od #58 w ci_for_sdlc, #77 w tf i #106 w ShipScope scalono bez CI na GitHubie, bo GitHub
+Actions nie uruchamia zadań (płatności na koncie). Lokalnie sprawdzone: ci_for_sdlc `packages/core` 437/437 testów
+i typecheck na kodzie G1.2; tf `tools/workspace.py check --packs pack-it` na kodzie G2.4.
+
+**Następne kroki:**
+1. G2.3 w ci_for_sdlc.
+2. Pilot na prawdziwym backlogu według kryteriów z §4.8 i §5.9, zanim powstaną kolejne reguły.
+3. F1 i F2 z [planu jednego flow](plan-jeden-flow-sdlc.md): odblokowują G1.4 i tryb repo w G1.3.
+4. Wpisać DG1–DG7 do `decyzje.md`.
 
 ---
 
