@@ -327,6 +327,58 @@ planowania terminów.
 | Zespoły nie oznaczają linii wydań | Reguły REL odpalają na wszystkim albo na niczym | REL-001 jako pytanie, nie blokada; propozycja R1 z AI na podstawie podziału z G2; warunkowy edytor mapy (G1.6). |
 | ShipScope dziś liczy status po kluczach Jiry | Plan z repo (CHG/TSK) nie ma statusu przed F1 | Tryb Jira najpierw; tryb repo po F1 z planu jednego flow. |
 
+## 9. Jak wszystko będzie się łączyć
+
+Stan docelowy po G1 i G2. Linia ciągła cienka (`-->`) działa dziś; przerywana (`-.->`) jest w planie jednego flow
+(F1–F5) albo czeka na MVP sprintdecka; gruba (`==>`) to połączenie, które dokłada ten plan (G1 albo G2 w etykiecie).
+
+```mermaid
+flowchart TB
+  subgraph SRC["Źródła"]
+    REPO["repo + CI (GitHub)"]
+    JIRA["Jira: historyjki z AC, etykiety release:R1, flagi"]
+    PANEL["panel w Jirze (nowy, G2.5)"]
+    FLAGS["źródła stanu flag"]
+  end
+
+  subgraph APPS["Aplikacje"]
+    TF["tf: pisze historyjki (GWT, jedna ścieżka), plan i release.yaml; Talos"]
+    SD["sprintdeck: estymacja"]
+    CI["ci_for_sdlc: reguły STORY, AC, REL; propozycje AI; wymiar delivery"]
+    SS["ShipScope: plan kontra stan, etap flagi, R1 na PROD"]
+  end
+
+  PDI["pdi: rejestr decyzji, bramki, graf śladu"]
+  K0[("pdi/contract 0.4.0: story, release-plan, task, event, fixtures")]
+
+  TF <-->|"US/AC, plan.md, release.yaml, commity Change: i Flag:"| REPO
+  REPO -->|"wdrożenia, commity Change: i Flag:"| SS
+  REPO -.->|"US/AC i release.yaml (po F2)"| CI
+  JIRA -->|"czyta"| CI
+  JIRA -.->|"import historyjek"| SD
+  JIRA -->|"issues, release:R1"| SS
+  FLAGS -->|"stan i procent udostępnienia"| SS
+  CI ==>|"G2: findings, propozycje"| PANEL
+  PANEL -.->|"komentarz, nowe historyjki (DG3)"| JIRA
+  CI ==>|"G2: stan kształtu"| SD
+  SD ==>|"G2: zgłoś niejasność"| CI
+
+  TF -->|"decyzje B1–B6, zakres R1"| PDI
+  PDI -.->|"problem.accepted"| TF
+  SD -.->|"estymata + notatka → DEC"| PDI
+  CI ==>|"G2: zatwierdzony podział → DEC; gate.requested, readiness.changed"| PDI
+  PDI -.->|"gate.decided"| CI
+  SS ==>|"G1: release.stage_changed, feature.released (R1)"| PDI
+  PDI -.->|"daty PRB (lead time)"| SS
+
+  K0 -.-|"przypinają wersję, testy na zestawie wzorcowym"| APPS
+  K0 -.- PDI
+```
+
+Zależności techniczne: wszystkie aplikacje zależą od kontraktu (K0). Panel w Jirze zależy od ci_for_sdlc i ShipScope
+w trybie SaaS. Reguły REL w ci_for_sdlc korzystają z reguły STORY-003 z G2. ShipScope łączy flagi z cięciami przez
+dopisek `Flag:`, który dodaje Talos z tf. Zdarzenia do pdi wymagają wychodzących webhooków z fazy F5.
+
 ---
 
 Podstawa planu: kod i dokumentacja na gałęziach main (2026-10-25). ci_for_sdlc: `packages/core/src/model.ts`,
