@@ -10,7 +10,12 @@ from typing import Any
 from jsonschema import Draft202012Validator
 
 CONTRACT_DIR = Path(__file__).resolve().parents[2] / "contract"
-SCHEMA_NAMES = ("decision", "problem", "change", "task", "event")
+SCHEMA_NAMES = ("decision", "problem", "change", "task", "event", "story", "release_plan")
+# Schematy plików zestawu wzorcowego kształtu historyjki (dla testów tf i ci_for_sdlc, nie dla wymiany danych).
+FIXTURE_SCHEMAS = {
+    "story_shape_stories": Path("fixtures/story-shape/stories.schema.json"),
+    "story_shape_expected": Path("fixtures/story-shape/expected.schema.json"),
+}
 
 
 @cache
@@ -24,9 +29,11 @@ CONTRACT_VERSION: str = settings()["version"]
 
 
 def schema_path(name: str) -> Path:
+    if name in FIXTURE_SCHEMAS:
+        return CONTRACT_DIR / FIXTURE_SCHEMAS[name]
     if name not in SCHEMA_NAMES:
         raise KeyError(f"W kontrakcie nie ma schematu „{name}” — dostępne: {', '.join(SCHEMA_NAMES)}.")
-    return CONTRACT_DIR / f"{name}.schema.json"
+    return CONTRACT_DIR / f"{name.replace('_', '-')}.schema.json"
 
 
 @cache

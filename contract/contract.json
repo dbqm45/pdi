@@ -1,5 +1,34 @@
 {
-  "version": "0.3.0",
+  "version": "0.4.0",
   "key_pattern": "^[A-Z][A-Z0-9]+-[0-9]+$",
-  "prefixes": { "problem": "PRB", "change": "CHG", "task": "TSK", "decision": "DEC" }
+  "prefixes": {
+    "problem": "PRB",
+    "change": "CHG",
+    "task": "TSK",
+    "decision": "DEC"
+  },
+  "conventions": {
+    "acceptance_criteria": {
+      "default_format": "gwt",
+      "formats": [
+        "gwt",
+        "ears",
+        "free"
+      ],
+      "keywords_source": "contract/fixtures/story-shape/vocabulary.json",
+      "note": "Domyślne wartości wg rekomendacji DG1–DG2 (plan G1/G2); decyzje jeszcze nieprzyjęte."
+    },
+    "jira": {
+      "release_line": {
+        "mode": "label",
+        "prefix": "release:"
+      },
+      "flag_link": "jak jira_connections.flag_link w ShipScope",
+      "note": "DG4 (rekomendacja): linia wydania jako etykieta z prefiksem; konfigurowalne: label | fixVersion | field."
+    },
+    "repo": {
+      "release_plan_file": "release.yaml",
+      "note": "DG6 (rekomendacja): plan wydania w changes/CHG-n/release.yaml."
+    }
+  }
 }

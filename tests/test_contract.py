@@ -16,6 +16,7 @@ EVENT_TYPES = [
     "feature.released",
     "metric.breached",
     "decision.basis_invalidated",
+    "release.stage_changed",
 ]
 
 
@@ -26,7 +27,9 @@ def example(name: str) -> dict[str, Any]:
 
 
 def schema_for(path: Path) -> str:
-    return path.stem.split("-", 1)[0]
+    if path.stem.startswith("event-"):
+        return "event"
+    return path.stem.replace("-", "_")
 
 
 @pytest.mark.parametrize("name", contract.SCHEMA_NAMES)
@@ -37,16 +40,18 @@ def test_schema_is_valid_json_schema_2020_12(name: str) -> None:
 def test_settings_define_version_key_pattern_and_default_prefixes() -> None:
     settings = contract.settings()
 
-    assert settings["version"] == contract.CONTRACT_VERSION == "0.3.0"
+    assert settings["version"] == contract.CONTRACT_VERSION == "0.4.0"
     assert settings["prefixes"] == {"problem": "PRB", "change": "CHG", "task": "TSK", "decision": "DEC"}
     assert settings["key_pattern"] == "^[A-Z][A-Z0-9]+-[0-9]+$"
 
 
 def test_every_schema_and_event_type_has_an_example() -> None:
-    names = {p.stem for p in EXAMPLES}
+    names = {schema_for(p) for p in EXAMPLES if not p.stem.startswith("event-")}
+    stems = {p.stem for p in EXAMPLES}
 
-    assert set(contract.SCHEMA_NAMES) - {"event"} <= names
-    assert {f"event-{t}" for t in EVENT_TYPES} <= names
+    assert set(contract.SCHEMA_NAMES) - {"event"} == names
+    assert {"story", "release_plan"} <= set(contract.SCHEMA_NAMES)
+    assert {f"event-{t}" for t in EVENT_TYPES} <= stems
 
 
 @pytest.mark.parametrize("path", EXAMPLES, ids=lambda p: p.stem)
@@ -178,3 +183,123 @@ def test_basis_invalidated_attention_level_is_0_to_3() -> None:
 
 def test_decision_schema_uses_shared_key_pattern() -> None:
     assert contract.load("decision")["properties"]["id"]["pattern"] == contract.settings()["key_pattern"]
+
+
+# --- kontrakt 0.4.0: historyjka (story) ---
+
+
+def story_with_scenario(scenario: dict[str, Any]) -> dict[str, Any]:
+    return {**example("story"), "scenarios": [scenario]}
+
+
+@pytest.mark.parametrize(
+    "scenario",
+    [
+        pytest.param({"id": "AC-1", "format": "gwt", "given": ["x"], "when": "y"}, id="gwt-bez-then"),
+        pytest.param({"id": "AC-1", "format": "gwt", "then": ["z"]}, id="gwt-bez-when"),
+        pytest.param({"id": "AC-1", "format": "ears", "when": "y"}, id="ears-bez-then"),
+        pytest.param({"id": "AC-1", "format": "free"}, id="wolny-tekst-bez-tresci"),
+        pytest.param({"id": "1", "format": "free", "text": "x"}, id="id-nie-ac"),
+        pytest.param({"id": "AC-1", "format": "bdd", "text": "x"}, id="format-spoza-listy"),
+    ],
+)
+def test_invalid_story_scenarios_are_rejected(scenario: dict[str, Any]) -> None:
+    assert contract.errors("story", story_with_scenario(scenario)) != []
+
+
+@pytest.mark.parametrize(
+    "scenario",
+    [
+        pytest.param({"id": "AC-2", "format": "gwt", "when": "y", "then": ["z"]}, id="gwt-bez-given"),
+        pytest.param({"id": "AC-2", "format": "ears", "then": ["the system shall log out"]}, id="ears-wszechobecne"),
+        pytest.param({"id": "AC-2", "format": "free", "text": "Klient widzi potwierdzenie."}, id="wolny-tekst"),
+    ],
+)
+def test_valid_story_scenarios(scenario: dict[str, Any]) -> None:
+    assert contract.errors("story", story_with_scenario(scenario)) == []
+
+
+def test_story_requires_actor_and_capability() -> None:
+    for field in ("actor", "capability"):
+        story = {k: v for k, v in example("story").items() if k != field}
+        assert any(field in e for e in contract.errors("story", story))
+
+
+# --- kontrakt 0.4.0: plan wydania ---
+
+
+@pytest.mark.parametrize(
+    "patch",
+    [
+        pytest.param({"releases": [{"id": "MVP", "tasks": ["TSK-1"]}]}, id="linia-nie-rn"),
+        pytest.param({"change": "chg12"}, id="zly-klucz-zmiany"),
+        pytest.param({"flags": [{"key": "x", "remove_by": "31.12.2026"}]}, id="data-usuniecia-nie-iso"),
+        pytest.param({"flags": [{"key": "x", "rollout": [{"stage": "10%", "min_days": -1}]}]}, id="ujemne-dni"),
+        pytest.param({"mvp": {"release": "R1", "metric": {"name": "x"}}}, id="metryka-bez-celu"),
+    ],
+)
+def test_invalid_release_plans_are_rejected(patch: dict[str, Any]) -> None:
+    assert contract.errors("release_plan", {**example("release-plan"), **patch}) != []
+
+
+def test_release_plan_requires_change_and_releases() -> None:
+    for field in ("change", "releases"):
+        plan = {k: v for k, v in example("release-plan").items() if k != field}
+        assert any(field in e for e in contract.errors("release_plan", plan))
+
+
+def test_flag_without_rollout_plan_is_valid_schema_but_rule_material() -> None:
+    plan = {**example("release-plan"), "flags": [{"key": "payment-retry"}]}
+
+    assert contract.errors("release_plan", plan) == []  # brak etapów wykrywa REL-007, nie schemat
+
+
+# --- kontrakt 0.4.0: nowe pola cięcia i zdarzeń ---
+
+
+@pytest.mark.parametrize(
+    "patch",
+    [
+        pytest.param({"kind": "layer"}, id="rodzaj-spoza-listy"),
+        pytest.param({"release": "MVP"}, id="linia-nie-rn"),
+        pytest.param({"unblocks": ["tsk-1"]}, id="zly-klucz-odblokowania"),
+        pytest.param({"skeleton": "tak"}, id="szkielet-nie-bool"),
+    ],
+)
+def test_invalid_task_extensions_are_rejected(patch: dict[str, Any]) -> None:
+    assert contract.errors("task", {**example("task"), **patch}) != []
+
+
+def test_task_extensions_are_optional_and_valid() -> None:
+    task = {
+        **example("task"),
+        "kind": "slice",
+        "release": "R1",
+        "flag": "payment-retry",
+        "unblocks": [],
+        "skeleton": True,
+    }
+
+    assert contract.errors("task", task) == []
+
+
+def test_feature_released_may_name_release_line() -> None:
+    event = example("event-feature.released")
+    with_line = {**event, "payload": {**event["payload"], "release": "R1"}}
+
+    assert contract.errors("event", with_line) == []
+    assert contract.errors("event", {**event, "payload": {**event["payload"], "release": "MVP"}}) != []
+
+
+def test_stage_changed_rollout_is_percent() -> None:
+    event = example("event-release.stage_changed")
+
+    assert contract.errors("event", {**event, "payload": {**event["payload"], "rollout": 120}}) != []
+
+
+def test_conventions_hold_defaults_for_undecided_choices() -> None:
+    conventions = contract.settings()["conventions"]
+
+    assert conventions["acceptance_criteria"]["default_format"] == "gwt"
+    assert conventions["jira"]["release_line"] == {"mode": "label", "prefix": "release:"}
+    assert conventions["repo"]["release_plan_file"] == "release.yaml"
