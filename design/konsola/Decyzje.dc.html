@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Rejestr decyzji</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0;background:#F4F6F9}
+a{color:#2846B5}a:hover{color:#1B3285}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.st-run{background:#E6ECFB;color:#22409F}
+.st-wait{background:#FFF0D2;color:#7A4700}
+.st-block{background:#FCE6E3;color:#A1271D}
+.st-live{background:#DDF2E5;color:#17663A}
+.st-hidden{background:#ECEFF3;color:#3F4B5B}
+.st-measure{background:#EFE9F8;color:#5A3A8C}
+.who{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10.5px;font-weight:500;padding:1px 7px;border-radius:4px;white-space:nowrap}
+.who-human{background:#FFF0D2;color:#7A4700}
+.who-ai{background:#E6ECFB;color:#22409F}
+.who-app{background:#ECEFF3;color:#3F4B5B}
+.btn{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:13px;font-weight:500;border-radius:8px;padding:8px 12px;min-height:36px;cursor:pointer;border:1px solid #C9D1DC;background:#FFFFFF;color:#15202B}
+.btn-primary{background:#2846B5;border-color:#2846B5;color:#FFFFFF}
+.sel{font-family:inherit;font-size:13px;padding:6px 10px;border:1px solid #C9D1DC;border-radius:8px;background:#FFFFFF;color:#15202B;min-height:36px}
+.th{text-align:left;padding:8px 10px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;font-weight:500;color:#5B6878;border-bottom:1px solid #DDE3EA;white-space:nowrap}
+.td{padding:10px;border-bottom:1px solid #EEF1F5;vertical-align:top}
+.row-sel{background:#F2F5FD}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1180px; box-sizing: border-box; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #15202B; background: #F4F6F9; display: flex; flex-direction: column">
+
+  <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 14px 24px; background: #FFFFFF; border-bottom: 1px solid #DDE3EA">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 15px; color: #2846B5">pdi</span>
+      <span style="font-weight: 600; font-size: 16px">Konsola</span>
+    </div>
+    <span style="font-size: 13px; color: #445163">Sprintdeck</span>
+    <nav aria-label="Widoki" style="display: flex; gap: 4px">
+      <a href="Main.dc.html" style="font-size: 13px; color: #445163; text-decoration: none; padding: 8px 10px">Tablica</a>
+      <a href="Slad.dc.html" style="font-size: 13px; color: #445163; text-decoration: none; padding: 8px 10px">Ślad zmiany</a>
+      <a href="#" style="font-size: 13px; font-weight: 600; color: #15202B; text-decoration: none; padding: 8px 10px; border-radius: 8px; background: #EEF1F5">Decyzje</a>
+      <a href="Autonomia.dc.html" style="font-size: 13px; color: #445163; text-decoration: none; padding: 8px 10px">Autonomia</a>
+    </nav>
+    <div style="flex: 1 1 200px"></div>
+    <span style="font-size: 12px; color: #5B6878">Dane przykładowe</span>
+    <button class="btn" type="button">Zapisz decyzję</button>
+  </header>
+
+  <section aria-label="Rejestr" style="padding: 18px 24px 8px; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px">
+      <h1 style="margin: 0; font-size: 22px; font-weight: 600">Rejestr decyzji</h1>
+      <span style="font-size: 13px; color: #445163">Każda decyzja z powodem, dowodami i założeniami. Nic nie jest nadpisywane: zmiana to nowa wersja.</span>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 10px">
+      <div style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px; padding: 8px 12px; display: flex; align-items: center; gap: 10px">
+        <span class="chip st-block"><span class="dot"></span>podważone założenie</span>
+        <span style="font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums">1</span>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px; padding: 8px 12px; display: flex; align-items: center; gap: 10px">
+        <span class="chip st-wait"><span class="dot"></span>przegląd w tym tygodniu</span>
+        <span style="font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums">2</span>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px; padding: 8px 12px; display: flex; align-items: center; gap: 10px">
+        <span style="font-size: 12px; color: #5B6878">Decyzje w 30 dni</span>
+        <span style="font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums">41</span>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px; padding: 8px 12px; display: flex; align-items: center; gap: 10px">
+        <span style="font-size: 12px; color: #5B6878">Szkic AI zatwierdzony bez zmian</span>
+        <span style="font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums">78%</span>
+      </div>
+    </div>
+
+    <form aria-label="Filtry" style="display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center">
+      <label for="q" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Szukaj w decyzjach</label>
+      <input id="q" type="text" placeholder="Szukaj: treść, powód, założenie…" style="flex: 1 1 260px; min-width: 0; font-family: inherit; font-size: 13px; padding: 9px 12px; border: 1px solid #C9D1DC; border-radius: 8px; min-height: 36px; box-sizing: border-box">
+      <label for="f-type" style="font-size: 12px; color: #5B6878">Typ</label>
+      <select id="f-type" class="sel"><option>wszystkie</option><option>zakres MVP</option><option>bramka</option><option>pytanie</option><option>etap flagi</option><option>produkt</option></select>
+      <label for="f-who" style="font-size: 12px; color: #5B6878">Szkic</label>
+      <select id="f-who" class="sel"><option>wszystkie</option><option>AI bez zmian</option><option>AI zmieniony</option><option>człowiek</option></select>
+      <label for="f-status" style="font-size: 12px; color: #5B6878">Stan</label>
+      <select id="f-status" class="sel"><option>obowiązujące</option><option>zastąpione</option><option>cofnięte</option><option>wszystkie</option></select>
+    </form>
+  </section>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 16px; padding: 8px 24px 28px; align-items: flex-start">
+
+    <main style="flex: 999 1 640px; min-width: 0; background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 12px; padding: 6px 4px">
+      <div style="overflow-x: auto">
+        <table style="border-collapse: collapse; width: 100%; min-width: 760px; font-size: 13px">
+          <thead>
+            <tr>
+              <th class="th">ID</th>
+              <th class="th">Decyzja</th>
+              <th class="th">Typ</th>
+              <th class="th">Zmiana</th>
+              <th class="th">Kto, kiedy</th>
+              <th class="th">Szkic</th>
+              <th class="th">Stan</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="10">
+              <tr class="{{r.rowCls}}">
+                <td class="td" style="font-family: 'IBM Plex Mono', monospace; font-size: 12px"><a href="#">{{r.id}}</a></td>
+                <td class="td" style="line-height: 1.4">{{r.text}}</td>
+                <td class="td" style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: #39465A; white-space: nowrap">{{r.type}}</td>
+                <td class="td" style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap">{{r.chg}}</td>
+                <td class="td" style="font-size: 12px; color: #39465A; white-space: nowrap">{{r.when}}</td>
+                <td class="td"><span class="who {{r.whoCls}}">{{r.who}}</span></td>
+                <td class="td"><span class="chip {{r.stCls}}"><span class="dot"></span>{{r.st}}</span></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </main>
+
+    <aside aria-label="Szczegóły decyzji" style="flex: 1 1 380px; max-width: 460px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+
+      <section style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #445163">DEC-35</span>
+          <span class="chip st-live"><span class="dot"></span>obowiązuje</span>
+          <span class="who who-ai">szkic AI · zmieniony</span>
+        </div>
+        <h2 style="margin: 0; font-size: 17px; font-weight: 600; line-height: 1.3">Zakres R1 dla CHG-7: TSK-21 i TSK-22</h2>
+        <p style="margin: 0; font-size: 13px; color: #39465A; line-height: 1.5"><strong style="color: #15202B">Dlaczego:</strong> szkielet (utworzenie pokoju i link) daje wynik MVP od początku do końca. Limity tworzenia pokoi nie są potrzebne, dopóki link nie jest publiczny.</p>
+
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <h3 style="margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #445163">Rozważane opcje</h3>
+          <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: #39465A; display: flex; flex-direction: column; gap: 3px; line-height: 1.4">
+            <li><strong style="color: #15202B">Wybrana:</strong> R1 = TSK-21, TSK-22; TSK-23 w R2</li>
+            <li>Wszystkie trzy w R1 (szkic AI; zmieniony przez człowieka)</li>
+          </ul>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <h3 style="margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #445163">Dowody</h3>
+          <ul style="margin: 0; padding: 0; list-style: none; font-size: 13px; color: #39465A; display: flex; flex-direction: column; gap: 6px; line-height: 1.4">
+            <li style="display: flex; gap: 8px; align-items: baseline"><span class="who who-app">obserwacja</span><span>Plan sprintdecka §3.5: limity są wymagane przed publicznym linkiem.</span></li>
+            <li style="display: flex; gap: 8px; align-items: baseline"><span class="who who-human">hipoteza</span><span>Pilotaż z 2–3 zespołami nie wymaga limitów.</span></li>
+          </ul>
+        </div>
+
+        <div style="border: 1px solid #F0C9C4; background: #FDF3F2; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 6px">
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+            <span class="chip st-block"><span class="dot"></span>założenie podważone</span>
+            <span style="font-size: 11px; color: #5B6878">poziom uwagi 2 · 25.10</span>
+          </div>
+          <p style="margin: 0; font-size: 13px; color: #15202B; line-height: 1.45"><strong>Założenie nośne:</strong> link do pokoju pozostaje niepubliczny w R1.</p>
+          <p style="margin: 0; font-size: 12.5px; color: #39465A; line-height: 1.45"><strong>Unieważnia, gdy:</strong> link trafia do publicznego kanału.<br><strong>Sygnał:</strong> ShipScope: flaga room-create na 10% użytkowników spoza pilotażu.</p>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px">
+            <button class="btn btn-primary" type="button">Przenieś TSK-23 do R1</button>
+            <button class="btn" type="button">Założenie nadal aktualne</button>
+          </div>
+        </div>
+
+        <dl style="margin: 0; display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 6px 10px; font-size: 12.5px">
+          <dt style="color: #5B6878">Zdecydował</dt><dd style="margin: 0">PO Sprintdeck · 15.10 17:20</dd>
+          <dt style="color: #5B6878">Źródło</dt><dd style="margin: 0"><a href="#">konsola · rozmowa o CHG-7</a></dd>
+          <dt style="color: #5B6878">Zmiana</dt><dd style="margin: 0"><a href="Slad.dc.html">CHG-7 Tworzenie pokoju</a></dd>
+          <dt style="color: #5B6878">Przegląd do</dt><dd style="margin: 0">przed etapem 100% flagi room-create</dd>
+          <dt style="color: #5B6878">Typ</dt><dd style="margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 12px">scope.r1 · poziom 3 (zawsze człowiek)</dd>
+        </dl>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 6px">
+          <button class="btn" type="button">Zastąp nową wersją</button>
+          <button class="btn" type="button">Cofnij z powodem</button>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const W = { aiOk: ['who-ai', 'AI bez zmian'], aiEd: ['who-ai', 'AI zmieniony'], human: ['who-human', 'człowiek'] };
+    const ST = { ok: ['st-live', 'obowiązuje'], warn: ['st-block', 'założenie podważone'], sup: ['st-hidden', 'zastąpiona'], review: ['st-wait', 'przegląd 28.10'] };
+    const row = (id, text, type, chg, when, w, s, selected) => ({
+      id, text, type, chg, when, whoCls: W[w][0], who: W[w][1], stCls: ST[s][0], st: ST[s][1], rowCls: selected ? 'row-sel' : ''
+    });
+    return {
+      rows: [
+        row('DEC-41', 'Plan udostępniania flagi room-join', 'flag.plan', 'CHG-8', '25.10 14:05', 'aiOk', 'ok'),
+        row('DEC-40', 'Talia „Risk” jako opcja przy tworzeniu pokoju', 'product', 'CHG-14', '24.10 11:30', 'aiEd', 'ok'),
+        row('DEC-39', 'Flaga room-create: wewnętrzni → 10%', 'flag.stage_advance', 'CHG-7', '21.10 09:00', 'aiOk', 'ok'),
+        row('DEC-38', 'Consensus Engine: metryka sukcesu osiągnięta', 'outcome.assessment', 'CHG-4', '20.10 16:10', 'human', 'ok'),
+        row('DEC-37', 'Wydać CHG-7 na PROD za flagą', 'release.go', 'CHG-7', '17.10 10:10', 'aiOk', 'ok'),
+        row('DEC-35', 'Zakres R1 dla CHG-7: TSK-21 i TSK-22', 'scope.r1', 'CHG-7', '15.10 17:20', 'aiEd', 'warn', true),
+        row('DEC-34', 'Plan cięć CHG-7: szkielet pierwszy', 'gate.B3', 'CHG-7', '15.10 17:15', 'aiOk', 'ok'),
+        row('DEC-33', 'Co widzi prowadzący po utworzeniu pokoju', 'finding.answer', 'CHG-7', '15.10 11:10', 'human', 'ok'),
+        row('DEC-31', 'Zakres i metryka MVP dla CHG-7', 'gate.B1', 'CHG-7', '14.10 16:30', 'aiEd', 'review'),
+        row('DEC-29', 'Głosy po odkryciu są imienne', 'product', '—', '12.10 10:00', 'human', 'review'),
+        row('DEC-24', 'Mediana: najbliższa karta, remis w dół', 'product', '—', '08.10 15:20', 'human', 'sup')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
