@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Ślad zmiany CHG-7</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0;background:#F4F6F9}
+a{color:#2846B5}a:hover{color:#1B3285}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.st-run{background:#E6ECFB;color:#22409F}
+.st-wait{background:#FFF0D2;color:#7A4700}
+.st-block{background:#FCE6E3;color:#A1271D}
+.st-live{background:#DDF2E5;color:#17663A}
+.st-hidden{background:#ECEFF3;color:#3F4B5B}
+.st-measure{background:#EFE9F8;color:#5A3A8C}
+.who{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10.5px;font-weight:500;padding:1px 7px;border-radius:4px;white-space:nowrap}
+.who-human{background:#FFF0D2;color:#7A4700}
+.who-ai{background:#E6ECFB;color:#22409F}
+.who-app{background:#ECEFF3;color:#3F4B5B}
+.node{display:flex;flex-direction:column;gap:4px;align-items:flex-start;min-width:0}
+.ring{width:14px;height:14px;border-radius:50%;box-sizing:border-box}
+.ring-done{background:#17663A;border:2px solid #17663A}
+.ring-now{background:#FFFFFF;border:3px solid #2846B5}
+.ring-next{background:#FFFFFF;border:2px solid #9AA7B8}
+.btn{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:13px;font-weight:500;border-radius:8px;padding:8px 12px;min-height:36px;cursor:pointer;border:1px solid #C9D1DC;background:#FFFFFF;color:#15202B}
+.btn-primary{background:#2846B5;border-color:#2846B5;color:#FFFFFF}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1400px; box-sizing: border-box; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #15202B; background: #F4F6F9; display: flex; flex-direction: column">
+
+  <!-- pasek górny -->
+  <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 14px 24px; background: #FFFFFF; border-bottom: 1px solid #DDE3EA">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 15px; color: #2846B5">pdi</span>
+      <span style="font-weight: 600; font-size: 16px">Konsola</span>
+    </div>
+    <span style="font-size: 13px; color: #445163">Sprintdeck</span>
+    <nav aria-label="Widoki" style="display: flex; gap: 4px">
+      <a href="Main.dc.html" style="font-size: 13px; color: #445163; text-decoration: none; padding: 8px 10px">Tablica</a>
+      <a href="#" style="font-size: 13px; font-weight: 600; color: #15202B; text-decoration: none; padding: 8px 10px; border-radius: 8px; background: #EEF1F5">Ślad zmiany</a>
+      <a href="Decyzje.dc.html" style="font-size: 13px; color: #445163; text-decoration: none; padding: 8px 10px">Decyzje</a>
+      <a href="Autonomia.dc.html" style="font-size: 13px; color: #445163; text-decoration: none; padding: 8px 10px">Autonomia</a>
+    </nav>
+    <div style="flex: 1 1 200px"></div>
+    <span style="font-size: 12px; color: #5B6878">Dane przykładowe</span>
+  </header>
+
+  <!-- nagłówek zmiany -->
+  <section aria-label="Zmiana" style="padding: 18px 24px 8px; display: flex; flex-direction: column; gap: 10px">
+    <nav aria-label="Okruszki" style="font-size: 12px; color: #5B6878"><a href="Main.dc.html">Tablica</a> / U użytkowników / CHG-7</nav>
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: #445163">CHG-7</span>
+      <h1 style="margin: 0; font-size: 24px; font-weight: 600">Tworzenie pokoju</h1>
+      <span class="chip st-live"><span class="dot"></span>u użytkowników · 10%</span>
+      <span class="chip st-hidden"><span class="dot"></span>linia R1 (MVP)</span>
+    </div>
+    <p style="margin: 0; font-size: 14px; color: #39465A; max-width: 820px; line-height: 1.5">Z <a href="#">PRB-21</a>: „Prowadzący nie może szybko zebrać zespołu do estymacji”. Wynik MVP: prowadzący tworzy pokój i dzieli link bez zakładania konta.</p>
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px">
+      <div style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 11px; color: #5B6878">Od zgłoszenia</span>
+        <span style="font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums">12 dni</span>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 11px; color: #5B6878">Od commitu do PROD</span>
+        <span style="font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums">1 dzień</span>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 11px; color: #5B6878">Koszt agentów</span>
+        <span style="font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums">4,30 USD</span>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 11px; color: #5B6878">Decyzje człowieka</span>
+        <span style="font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums">8</span>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 11px; color: #5B6878">Czas oczekiwania na decyzje</span>
+        <span style="font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums">31 h</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ślad: etapy -->
+  <section aria-label="Etapy śladu" style="margin: 8px 24px 0; background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 12px; padding: 16px">
+    <div style="overflow-x: auto">
+      <ol style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(8, minmax(120px, 1fr)); gap: 0; min-width: 980px">
+        <sc-for list="{{steps}}" as="s" hint-placeholder-count="8">
+          <li class="node" style="padding-right: 8px">
+            <div style="display: flex; align-items: center; width: 100%">
+              <span class="ring {{s.ring}}"></span>
+              <span style="flex: 1 1 auto; height: 2px; background: {{s.line}}; margin-left: 6px"></span>
+            </div>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #445163; margin-top: 6px">{{s.key}}</span>
+            <span style="font-size: 13px; font-weight: 600">{{s.name}}</span>
+            <span style="font-size: 12px; color: #39465A; line-height: 1.35">{{s.detail}}</span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5B6878">{{s.date}}</span>
+          </li>
+        </sc-for>
+      </ol>
+    </div>
+  </section>
+
+  <!-- treść -->
+  <div style="display: flex; flex-wrap: wrap; gap: 16px; padding: 16px 24px 28px; align-items: flex-start">
+
+    <main style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+      <section aria-label="Przebieg" style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 12px; padding: 14px">
+        <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin-bottom: 6px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Przebieg</h2>
+          <span style="font-size: 12px; color: #5B6878">kto co zrobił, od zgłoszenia do dziś</span>
+          <div style="flex: 1 1 auto"></div>
+          <span class="who who-human">człowiek</span>
+          <span class="who who-ai">AI</span>
+          <span class="who who-app">aplikacja</span>
+        </div>
+        <ol style="list-style: none; margin: 0; padding: 0">
+          <sc-for list="{{log}}" as="l" hint-placeholder-count="14">
+            <li style="display: grid; grid-template-columns: 92px 84px minmax(0, 1fr); gap: 12px; align-items: baseline; padding: 9px 0; border-top: 1px solid #EEF1F5">
+              <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: #5B6878">{{l.date}}</span>
+              <span><span class="who {{l.whoCls}}">{{l.who}}</span></span>
+              <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+                <span style="font-size: 13px; color: #15202B; line-height: 1.4">{{l.text}}</span>
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5B6878; overflow-wrap: anywhere">{{l.ref}}</span>
+              </span>
+            </li>
+          </sc-for>
+        </ol>
+      </section>
+
+      <section aria-label="Cięcia i flaga" style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 12px; padding: 14px">
+        <h2 style="margin: 0 0 8px; font-size: 15px; font-weight: 600">Cięcia, PR-y i co widzą użytkownicy</h2>
+        <div style="overflow-x: auto">
+          <table style="border-collapse: collapse; width: 100%; min-width: 640px; font-size: 13px">
+            <thead>
+              <tr>
+                <th style="text-align: left; padding: 8px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #5B6878; border-bottom: 1px solid #DDE3EA">Cięcie</th>
+                <th style="text-align: left; padding: 8px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #5B6878; border-bottom: 1px solid #DDE3EA">Wartość</th>
+                <th style="text-align: left; padding: 8px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #5B6878; border-bottom: 1px solid #DDE3EA">Linia</th>
+                <th style="text-align: left; padding: 8px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #5B6878; border-bottom: 1px solid #DDE3EA">PR</th>
+                <th style="text-align: left; padding: 8px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #5B6878; border-bottom: 1px solid #DDE3EA">Na PROD</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{tasks}}" as="t" hint-placeholder-count="3">
+                <tr>
+                  <td style="padding: 9px 10px; border-bottom: 1px solid #EEF1F5; font-family: 'IBM Plex Mono', monospace; font-size: 12px">{{t.id}}</td>
+                  <td style="padding: 9px 10px; border-bottom: 1px solid #EEF1F5">{{t.value}}</td>
+                  <td style="padding: 9px 10px; border-bottom: 1px solid #EEF1F5; font-family: 'IBM Plex Mono', monospace; font-size: 12px">{{t.line}}</td>
+                  <td style="padding: 9px 10px; border-bottom: 1px solid #EEF1F5; font-family: 'IBM Plex Mono', monospace; font-size: 12px">{{t.pr}}</td>
+                  <td style="padding: 9px 10px; border-bottom: 1px solid #EEF1F5"><span class="chip {{t.cls}}"><span class="dot"></span>{{t.status}}</span></td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <aside aria-label="Szczegóły" style="flex: 1 1 360px; max-width: 440px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+
+      <section aria-label="Flaga" style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Udostępnianie</h2>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #445163">room-create</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+          <div style="background: #DDF2E5; color: #17663A; border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: 12px; font-weight: 600">wewnętrzni</span>
+            <span style="font-size: 11px">3 dni · zakończony</span>
+          </div>
+          <div style="background: #E6ECFB; color: #22409F; border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 2px; outline: 2px solid #2846B5; outline-offset: -2px">
+            <span style="font-size: 12px; font-weight: 600">10%</span>
+            <span style="font-size: 11px">dzień 5 z min. 7</span>
+          </div>
+          <div style="background: #F4F6F9; color: #445163; border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: 12px; font-weight: 600">100%</span>
+            <span style="font-size: 11px">następny</span>
+          </div>
+        </div>
+        <ul style="margin: 0; padding-left: 18px; font-size: 12.5px; color: #39465A; display: flex; flex-direction: column; gap: 4px; line-height: 1.4">
+          <li>Kryterium wyjścia: 0 błędów krytycznych (spełnione)</li>
+          <li>Metryka ochronna: [PRÓG BŁĘDÓW DOŁĄCZANIA] (brak źródła danych, luka G5)</li>
+          <li>Usunięcie flagi do 2026-12-15 · właściciel: PO Sprintdeck</li>
+        </ul>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px">
+          <button class="btn" type="button">Zaplanuj 100% na dzień 7</button>
+          <button class="btn" type="button">Cofnij do wewnętrznych</button>
+        </div>
+      </section>
+
+      <section aria-label="Decyzje" style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 4px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Decyzje w tej zmianie</h2>
+          <span style="font-size: 12px; color: #5B6878">5 z 8 szkiców AI bez zmian</span>
+        </div>
+        <ol style="list-style: none; margin: 0; padding: 0">
+          <sc-for list="{{decisions}}" as="d" hint-placeholder-count="8">
+            <li style="display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-top: 1px solid #EEF1F5">
+              <a href="#" style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">{{d.id}}</a>
+              <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+                <span style="font-size: 13px; line-height: 1.35">{{d.text}}</span>
+                <span style="font-size: 11px; color: #5B6878">{{d.meta}}</span>
+              </span>
+            </li>
+          </sc-for>
+        </ol>
+      </section>
+
+      <section aria-label="Skutek" style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; justify-content: space-between; align-items: center">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Skutek</h2>
+          <span class="chip st-measure"><span class="dot"></span>po 100% + 30 dni</span>
+        </div>
+        <p style="margin: 0; font-size: 13px; color: #39465A; line-height: 1.45">Metryka z intent.md: odsetek pokoi z co najmniej 3 uczestnikami i 1 zatwierdzonym zadaniem. Cel: [PRÓG AKTYWACJI].</p>
+        <p style="margin: 0; font-size: 12px; color: #5B6878; line-height: 1.45">Ocenę uruchomi zdarzenie feature.released dla R1. Wynik potwierdza człowiek i trafia do rejestru jako wniosek.</p>
+      </section>
+
+      <section aria-label="Zapytaj" style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px">
+        <h2 style="margin: 0; font-size: 15px; font-weight: 600">Zapytaj o tę zmianę</h2>
+        <form style="display: flex; gap: 8px; align-items: center">
+          <label for="ask7" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Pytanie o CHG-7</label>
+          <input id="ask7" type="text" placeholder="Np. dlaczego TSK-23 jest w R2?" style="flex: 1 1 auto; min-width: 0; font-family: inherit; font-size: 13px; padding: 10px 12px; border: 1px solid #C9D1DC; border-radius: 8px; min-height: 40px; box-sizing: border-box">
+          <button class="btn btn-primary" type="button" aria-label="Wyślij" style="min-width: 44px; min-height: 40px; display: inline-flex; align-items: center; justify-content: center">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </button>
+        </form>
+      </section>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1400}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const done = '#17663A', next = '#C9D1DC';
+    const step = (key, name, detail, date, state) => ({
+      key, name, detail, date,
+      ring: state === 'done' ? 'ring-done' : state === 'now' ? 'ring-now' : 'ring-next',
+      line: state === 'done' ? done : next
+    });
+    const W = { human: ['who-human', 'człowiek'], ai: ['who-ai', 'AI'], app: ['who-app', 'aplikacja'] };
+    const entry = (date, w, text, ref) => ({ date, whoCls: W[w][0], who: W[w][1], text, ref });
+    return {
+      steps: [
+        step('PRB-21', 'Zgłoszenie', 'Wywiad ze Scrum Masterem', '13.10', 'done'),
+        step('CHG-7', 'Intencja i MVP', 'Wynik, metryka, budżet', '14.10', 'done'),
+        step('US-11, US-12', 'Historyjki', '5 scenariuszy GWT', '15.10', 'done'),
+        step('R1, R2', 'Plan wydania', '3 cięcia, 1 flaga', '15.10', 'done'),
+        step('PR #18, #19', 'Budowa i review', 'Talos, 6 kawałków', '16–17.10', 'done'),
+        step('PROD', 'Wdrożenie', 'Ukryte za flagą', '17.10', 'done'),
+        step('room-create', 'Udostępnianie', '10%, dzień 5 z 7', 'teraz', 'now'),
+        step('metryka', 'Skutek', 'Ocena po 30 dniach', 'później', 'next')
+      ],
+      log: [
+        entry('13.10 09:40', 'human', 'Scrum Master w wywiadzie: zebranie zespołu do estymacji trwa za długo.', 'PRB-21'),
+        entry('13.10 10:05', 'ai', 'Triaż: brak duplikatów, rekomendacja „przyjąć”.', 'proc-issue-triage'),
+        entry('13.10 11:20', 'human', 'Przyjęto do budowy jako CHG-7.', 'DEC-30'),
+        entry('14.10 10:00', 'ai', 'Rozmowa o MVP: wynik, budżet 1 tydzień, metryka aktywacji.', 'changes/CHG-7/intent.md'),
+        entry('14.10 16:30', 'human', 'Bramka B1: zakres zatwierdzony.', 'DEC-31'),
+        entry('15.10 09:15', 'ai', 'Historyjki US-11 i US-12, 5 scenariuszy GWT; lint kształtu: 0 problemów.', 'requirements.md'),
+        entry('15.10 09:40', 'app', 'ci_for_sdlc: AC-002 w US-11 („pokój działa poprawnie”), pytanie do PO.', 'ci_for_sdlc · AC-002'),
+        entry('15.10 11:10', 'human', 'Odpowiedź: „prowadzący widzi link do skopiowania i licznik uczestników”.', 'DEC-33'),
+        entry('15.10 14:00', 'ai', 'Plan cięć i release.yaml: TSK-21 szkielet, TSK-22 sekretny link (R1), TSK-23 limity (R2).', 'plan.md · release.yaml'),
+        entry('15.10 17:20', 'human', 'Bramka B3 i zakres R1 zatwierdzone; gotowość zielona, „Approve for implementation”.', 'DEC-34 · DEC-35'),
+        entry('16.10 08:30', 'ai', 'Talos: TSK-21 w 4 kawałkach, PR #18 (2,10 USD).', 'Change: TSK-21 · Flag: room-create'),
+        entry('16.10 15:45', 'ai', 'Talos: TSK-22 w 2 kawałkach, PR #19 (0,90 USD).', 'Change: TSK-22'),
+        entry('17.10 10:10', 'human', 'Review i merge PR #18 i #19; decyzja o wydaniu (B4–B5).', 'DEC-36 · DEC-37'),
+        entry('17.10 11:02', 'app', 'ShipScope: na PROD, ukryte za flagą room-create.', 'deployed (hidden)'),
+        entry('21.10 09:00', 'human', 'Etap flagi: wewnętrzni → 10% (kryteria spełnione po 3 dniach).', 'DEC-39')
+      ],
+      tasks: [
+        { id: 'TSK-21', value: 'Prowadzący tworzy pokój i dostaje link', line: 'R1', pr: '#18', cls: 'st-live', status: '10% użytkowników' },
+        { id: 'TSK-22', value: 'Sekretny link odzyskuje rolę prowadzącego', line: 'R1', pr: '#19', cls: 'st-live', status: '10% użytkowników' },
+        { id: 'TSK-23', value: 'Limity tworzenia pokoi', line: 'R2', pr: '—', cls: 'st-hidden', status: 'nie zaczęte' }
+      ],
+      decisions: [
+        { id: 'DEC-30', text: 'Przyjąć PRB-21 do budowy', meta: 'triaż · szkic AI bez zmian' },
+        { id: 'DEC-31', text: 'Zakres i metryka MVP', meta: 'B1 · szkic AI zmieniony (budżet)' },
+        { id: 'DEC-33', text: 'Co widzi prowadzący po utworzeniu pokoju', meta: 'odpowiedź na AC-002 · człowiek' },
+        { id: 'DEC-34', text: 'Plan cięć: 3 cięcia, szkielet pierwszy', meta: 'B3 · szkic AI bez zmian' },
+        { id: 'DEC-35', text: 'Zakres R1: TSK-21 i TSK-22', meta: 'zakres MVP · szkic AI zmieniony' },
+        { id: 'DEC-36', text: 'Scalić PR #18 i #19', meta: 'review · szkic AI bez zmian' },
+        { id: 'DEC-37', text: 'Wydać na PROD za flagą', meta: 'B4–B5 · szkic AI bez zmian' },
+        { id: 'DEC-39', text: 'Flaga: wewnętrzni → 10%', meta: 'etap flagi · szkic AI bez zmian' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

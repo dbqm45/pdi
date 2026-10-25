@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Autonomia</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0;background:#F4F6F9}
+a{color:#2846B5}a:hover{color:#1B3285}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.st-run{background:#E6ECFB;color:#22409F}
+.st-wait{background:#FFF0D2;color:#7A4700}
+.st-block{background:#FCE6E3;color:#A1271D}
+.st-live{background:#DDF2E5;color:#17663A}
+.st-hidden{background:#ECEFF3;color:#3F4B5B}
+.lvl{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:13px;font-weight:500}
+.lvl-3{background:#FFF0D2;color:#7A4700}
+.lvl-2{background:#E6ECFB;color:#22409F}
+.lvl-1{background:#DDF2E5;color:#17663A}
+.lvl-0{background:#ECEFF3;color:#3F4B5B}
+.btn{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:13px;font-weight:500;border-radius:8px;padding:8px 12px;min-height:36px;cursor:pointer;border:1px solid #C9D1DC;background:#FFFFFF;color:#15202B}
+.btn-primary{background:#2846B5;border-color:#2846B5;color:#FFFFFF}
+.th{text-align:left;padding:8px 10px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;font-weight:500;color:#5B6878;border-bottom:1px solid #DDE3EA;white-space:nowrap}
+.td{padding:10px;border-bottom:1px solid #EEF1F5;vertical-align:middle}
+.bar{position:relative;height:8px;border-radius:4px;background:#ECEFF3;width:120px;overflow:hidden}
+.bar-fill{position:absolute;left:0;top:0;bottom:0;border-radius:4px}
+.bar-ok{background:#17663A}
+.bar-low{background:#9AA7B8}
+.bar-thr{position:absolute;top:-2px;bottom:-2px;width:2px;background:#15202B;left:114px}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1180px; box-sizing: border-box; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #15202B; background: #F4F6F9; display: flex; flex-direction: column">
+
+  <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 14px 24px; background: #FFFFFF; border-bottom: 1px solid #DDE3EA">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 15px; color: #2846B5">pdi</span>
+      <span style="font-weight: 600; font-size: 16px">Konsola</span>
+    </div>
+    <span style="font-size: 13px; color: #445163">Sprintdeck</span>
+    <nav aria-label="Widoki" style="display: flex; gap: 4px">
+      <a href="Main.dc.html" style="font-size: 13px; color: #445163; text-decoration: none; padding: 8px 10px">Tablica</a>
+      <a href="Slad.dc.html" style="font-size: 13px; color: #445163; text-decoration: none; padding: 8px 10px">Ślad zmiany</a>
+      <a href="Decyzje.dc.html" style="font-size: 13px; color: #445163; text-decoration: none; padding: 8px 10px">Decyzje</a>
+      <a href="#" style="font-size: 13px; font-weight: 600; color: #15202B; text-decoration: none; padding: 8px 10px; border-radius: 8px; background: #EEF1F5">Autonomia</a>
+    </nav>
+    <div style="flex: 1 1 200px"></div>
+    <span style="font-size: 12px; color: #5B6878">Dane przykładowe</span>
+  </header>
+
+  <section aria-label="Zasady" style="padding: 18px 24px 8px; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px">
+      <h1 style="margin: 0; font-size: 22px; font-weight: 600">Autonomia</h1>
+      <span style="font-size: 13px; color: #445163; max-width: 760px">Każdy typ decyzji startuje na poziomie 3. Niżej schodzi dopiero wtedy, gdy co najmniej 95% z ostatnich 30 szkiców AI zatwierdzono bez zmian, i tylko decyzją człowieka.</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(180px, 1fr)); gap: 10px; overflow-x: auto">
+      <div style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px; padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start">
+        <span class="lvl lvl-3">3</span>
+        <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; font-weight: 600">Decyduje człowiek</span><span style="font-size: 12px; color: #39465A">Bez kliknięcia nic się nie dzieje.</span></span>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px; padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start">
+        <span class="lvl lvl-2">2</span>
+        <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; font-weight: 600">Automat z wetem</span><span style="font-size: 12px; color: #39465A">Wykonuje po oknie weta, np. 4 h.</span></span>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px; padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start">
+        <span class="lvl lvl-1">1</span>
+        <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; font-weight: 600">Automat z logiem</span><span style="font-size: 12px; color: #39465A">Wykonuje od razu, wpis w rejestrze.</span></span>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px; padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start">
+        <span class="lvl lvl-0">0</span>
+        <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; font-weight: 600">Automat po cichu</span><span style="font-size: 12px; color: #39465A">Tylko czynności bez skutków dla produktu.</span></span>
+      </div>
+    </div>
+  </section>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 16px; padding: 8px 24px 28px; align-items: flex-start">
+
+    <main style="flex: 999 1 680px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+      <section aria-label="Typy decyzji" style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 12px; padding: 14px">
+        <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin-bottom: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Typy decyzji, które mogą zejść niżej</h2>
+          <span style="font-size: 12px; color: #5B6878">pasek: odsetek szkiców AI bez zmian · kreska: próg 95%</span>
+        </div>
+        <div style="overflow-x: auto">
+          <table style="border-collapse: collapse; width: 100%; min-width: 820px; font-size: 13px">
+            <thead>
+              <tr>
+                <th class="th">Typ</th>
+                <th class="th">Poziom</th>
+                <th class="th">Decyzje (30)</th>
+                <th class="th">Bez zmian</th>
+                <th class="th">Reguła</th>
+                <th class="th">Ocena</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{types}}" as="t" hint-placeholder-count="7">
+                <tr>
+                  <td class="td">
+                    <span style="display: flex; flex-direction: column; gap: 2px">
+                      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">{{t.key}}</span>
+                      <span style="font-size: 12px; color: #39465A">{{t.desc}}</span>
+                    </span>
+                  </td>
+                  <td class="td"><span class="lvl {{t.lvlCls}}">{{t.level}}</span></td>
+                  <td class="td" style="font-variant-numeric: tabular-nums">{{t.count}}</td>
+                  <td class="td">
+                    <span style="display: flex; align-items: center; gap: 8px">
+                      <span class="bar"><span class="bar-fill {{t.barCls}}" style="width: {{t.width}}"></span><span class="bar-thr"></span></span>
+                      <span style="font-variant-numeric: tabular-nums; font-size: 12.5px">{{t.rate}}</span>
+                    </span>
+                  </td>
+                  <td class="td" style="font-size: 12px; color: #39465A; max-width: 240px; line-height: 1.4">{{t.rule}}</td>
+                  <td class="td"><span class="chip {{t.evalCls}}"><span class="dot"></span>{{t.eval}}</span></td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section aria-label="Zawsze człowiek" style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Zawsze człowiek</h2>
+          <span style="font-size: 12px; color: #5B6878">decyzje o wartości i nieodwracalne; nie schodzą poniżej poziomu 3 niezależnie od danych</span>
+        </div>
+        <ul style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(200px, 1fr)); gap: 8px">
+          <sc-for list="{{locked}}" as="k" hint-placeholder-count="6">
+            <li style="display: flex; gap: 10px; align-items: flex-start; border: 1px solid #EEF1F5; border-radius: 8px; padding: 8px 10px">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="flex: none; margin-top: 2px"><rect x="3" y="7" width="10" height="7" rx="1.5" stroke="#445163" stroke-width="1.4"></rect><path d="M5.5 7V5a2.5 2.5 0 015 0v2" stroke="#445163" stroke-width="1.4"></path></svg>
+              <span style="display: flex; flex-direction: column; gap: 2px">
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">{{k.key}}</span>
+                <span style="font-size: 12px; color: #39465A">{{k.desc}}</span>
+              </span>
+            </li>
+          </sc-for>
+        </ul>
+      </section>
+    </main>
+
+    <aside aria-label="Propozycje i działania" style="flex: 1 1 360px; max-width: 440px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+
+      <section aria-label="Propozycje zmiany poziomu" style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+        <h2 style="margin: 0; font-size: 15px; font-weight: 600">Propozycje zmiany poziomu</h2>
+
+        <article style="border: 1px solid #DDE3EA; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">finding.auto_close</span>
+            <span class="lvl lvl-3">3</span><span style="color: #5B6878">→</span><span class="lvl lvl-2">2</span>
+          </div>
+          <p style="margin: 0; font-size: 13px; color: #39465A; line-height: 1.45">33 z ostatnich 34 odpowiedzi znalezionych w źródłach zatwierdzono bez zmian (97%). Jedna zmieniona: cytat z nieaktualnej strony Confluence.</p>
+          <p style="margin: 0; font-size: 12px; color: #5B6878">Na poziomie 2: zamknięcie po 4 h, jeśli nikt nie zatrzyma.</p>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px">
+            <button class="btn btn-primary" type="button">Obniż do 2</button>
+            <button class="btn" type="button">Zostaw na 3</button>
+            <button class="btn" type="button">Zobacz 34 decyzje</button>
+          </div>
+        </article>
+
+        <article style="border: 1px solid #DDE3EA; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">ac.format_rewrite</span>
+            <span class="lvl lvl-3">3</span><span style="color: #5B6878">→</span><span class="lvl lvl-2">2</span>
+          </div>
+          <p style="margin: 0; font-size: 13px; color: #39465A; line-height: 1.45">40 z 41 przepisań AC na GWT zatwierdzono bez zmian (98%). Reguła dotyczy tylko zmiany formatu, nie treści.</p>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px">
+            <button class="btn btn-primary" type="button">Obniż do 2</button>
+            <button class="btn" type="button">Zostaw na 3</button>
+          </div>
+        </article>
+
+        <article style="border: 1px solid #F0C9C4; background: #FDF3F2; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">review.light</span>
+            <span class="lvl lvl-2">2</span><span style="color: #5B6878">→</span><span class="lvl lvl-3">3</span>
+          </div>
+          <p style="margin: 0; font-size: 13px; color: #39465A; line-height: 1.45">Odsetek zmian po szkicu AI wzrósł do 13% (próg powrotu: 10%). Automat wraca do człowieka do czasu przeglądu reguły.</p>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px">
+            <button class="btn btn-primary" type="button">Podnieś do 3</button>
+            <button class="btn" type="button">Pokaż zmienione szkice</button>
+          </div>
+        </article>
+      </section>
+
+      <section aria-label="Działania automatu" style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Działania automatu</h2>
+          <span style="font-size: 12px; color: #5B6878">ostatnie 7 dni</span>
+        </div>
+        <ol style="list-style: none; margin: 0; padding: 0">
+          <sc-for list="{{auto}}" as="a" hint-placeholder-count="4">
+            <li style="display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-top: 1px solid #EEF1F5">
+              <span class="lvl {{a.lvlCls}}" style="width: 24px; height: 24px; font-size: 12px">{{a.level}}</span>
+              <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+                <span style="font-size: 13px; line-height: 1.4">{{a.text}}</span>
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5B6878">{{a.meta}}</span>
+              </span>
+            </li>
+          </sc-for>
+        </ol>
+      </section>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const E = {
+      ready: ['st-live', 'gotowy do poziomu 2'],
+      active: ['st-run', 'na poziomie 2 od 12.10'],
+      few: ['st-hidden', 'za mało danych'],
+      stay: ['st-wait', 'zostaje: poniżej progu'],
+      back: ['st-block', 'wraca do poziomu 3']
+    };
+    const t = (key, desc, level, count, rate, rule, e) => ({
+      key, desc, level, lvlCls: 'lvl-' + level, count, rate: rate + '%',
+      width: Math.round(rate * 1.2) + 'px', barCls: rate >= 95 ? 'bar-ok' : 'bar-low',
+      rule, evalCls: E[e][0], eval: E[e][1]
+    });
+    return {
+      types: [
+        t('finding.auto_close', 'Zamknięcie pytania odpowiedzią ze źródła, z cytatem', 3, 34, 97, 'Cytat ze źródła aktualnego w chwili analizy', 'ready'),
+        t('ac.format_rewrite', 'Przepisanie AC na GWT bez zmiany treści', 3, 41, 98, 'Tylko format; zmiana sensu → człowiek', 'ready'),
+        t('dependency.update', 'Aktualizacja zależności patch/minor', 2, 52, 100, 'Zielone CI; wersje major → człowiek', 'active'),
+        t('review.light', 'Review małej zmiany (testy, dokumentacja)', 2, 38, 87, 'Zielone CI i AI review, poza wrażliwymi ścieżkami', 'back'),
+        t('flag.stage_advance', 'Kolejny etap flagi według release.yaml', 3, 6, 100, 'Kryteria wyjścia i min. czas spełnione, metryki ochronne w normie', 'few'),
+        t('flag.removal_pr', 'PR usuwający flagę po pełnym wdrożeniu', 3, 2, 100, 'Flaga na 100% dłużej niż 14 dni', 'few'),
+        t('gate.B2', 'Bramka B2: historyjki i AC', 3, 24, 71, 'Lint kształtu bez problemów', 'stay')
+      ],
+      locked: [
+        { key: 'triage', desc: 'Czy w ogóle to robimy' },
+        { key: 'scope.r1', desc: 'Zakres MVP' },
+        { key: 'release.go', desc: 'Wydanie zmiany na PROD' },
+        { key: 'outcome.assessment', desc: 'Ocena, czy zmiana przyniosła efekt' },
+        { key: 'review.sensitive', desc: 'Review: auth, płatności, IaC' },
+        { key: 'migration', desc: 'Migracje danych' }
+      ],
+      auto: [
+        { level: 2, lvlCls: 'lvl-2', text: 'Aktualizacja vitest 3.2.3 → 3.2.4 scalona po oknie weta.', meta: 'dependency.update · DEC-44 · 25.10 12:00' },
+        { level: 2, lvlCls: 'lvl-2', text: 'Aktualizacja next 15.5.3 → 15.5.4 zatrzymana przez człowieka w oknie weta.', meta: 'dependency.update · weto · 24.10 18:40' },
+        { level: 2, lvlCls: 'lvl-2', text: 'PR #23 (tylko testy) scalony w trybie uproszczonym.', meta: 'review.light · DEC-42 · 23.10 09:15' },
+        { level: 0, lvlCls: 'lvl-0', text: 'Ponowiona synchronizacja Jiry po błędzie 429.', meta: 'sync.retry · 22.10 03:10' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
