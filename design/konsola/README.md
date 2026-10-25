@@ -15,6 +15,20 @@ przykładowe: sprintdeck budowany przez cały ekosystem (dogfooding). Pola w naw
 | [`Autonomia.dc.html`](Autonomia.dc.html) | Autonomia | poziomy 0–3, typy decyzji z odsetkiem szkiców AI zatwierdzonych bez zmian i progiem 95%, propozycje obniżenia i powrotu poziomu, typy zawsze u człowieka, działania automatu |
 | [`canvas.json`](canvas.json) | — | układ ekranów na kanwie |
 
+## PDF do podglądu
+
+Ekrany wyrenderowane do PDF (szerokość 1440 px, jedna strona na ekran), do otwarcia bez edytora:
+
+| Plik | Ekran |
+|---|---|
+| [`pdf/konsola-pdi.pdf`](pdf/konsola-pdi.pdf) | wszystkie cztery ekrany w jednym pliku |
+| [`pdf/1-tablica.pdf`](pdf/1-tablica.pdf) | Tablica |
+| [`pdf/2-slad-zmiany.pdf`](pdf/2-slad-zmiany.pdf) | Ślad zmiany (CHG-7) |
+| [`pdf/3-decyzje.pdf`](pdf/3-decyzje.pdf) | Rejestr decyzji |
+| [`pdf/4-autonomia.pdf`](pdf/4-autonomia.pdf) | Autonomia |
+
+PDF-y powstały ze stanu plików `.dc.html` z 2026-10-25. Po zmianie makiety trzeba je wygenerować ponownie.
+
 Pliki `.dc.html` to format edytora Design w Claude: wymagają jego środowiska (`support.js`) i nie otwierają się
 poprawnie jako zwykłe strony. Źródłem prawdy jest podgląd pod linkiem wyżej; ten katalog to kopia do historii
 i przeglądu w PR-ach.
