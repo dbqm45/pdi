@@ -1,6 +1,6 @@
 # Plan wydania i kształt historyjek — plan domknięcia luk G1 i G2
 
-Data: 2026-10-25 · Status: **w realizacji**: tryb Jira zrobiony poza G2.3 (stan w §10; [plan K0](plan-k0-kontrakt-040.md)); decyzje DG1–DG7 zastosowane, niewpisane do `decyzje.md` · Wersja HTML: https://claude.ai/artifact/G9Z2ubF7EtoWxMST1M7Gy1
+Data: 2026-10-25 · Status: **w realizacji**: tryb Jira i tryb repo w ShipScope zrobione, G2.3 wstrzymane (stan w §10; [plan K0](plan-k0-kontrakt-040.md)); decyzje DG1–DG7 przyjęte w [`decyzje.md`](decyzje.md) · Wersja HTML: https://claude.ai/artifact/G9Z2ubF7EtoWxMST1M7Gy1
 
 Szczegółowy plan dla dwóch luk z mapy ekosystemu (https://claude.ai/artifact/9gz1UhJZRNXHq5VgUciava): **G2** —
 kształt historyjki i kryteriów akceptacji, **G1** — plan wydania i MVP. Dla każdej: reguły, zmiany w konkretnych
@@ -381,8 +381,9 @@ dopisek `Flag:`, który dodaje Talos z tf. Zdarzenia do pdi wymagają wychodząc
 
 ## 10. Stan realizacji
 
-Stan na 2026-10-25, sprawdzony na gałęziach `main` wszystkich repozytoriów. Tryb Jira dla G1 i G2 jest zrobiony
-poza propozycjami AI (G2.3); reszta czeka na fazy planu jednego flow albo na tryb SaaS.
+Stan na 2026-10-25 (aktualizacja po ShipScope #107–#108 i ci_for_sdlc #62), sprawdzony na gałęziach `main`
+wszystkich repozytoriów. Tryb Jira dla G1 i G2 jest zrobiony, ShipScope czyta też zmiany i plany wydania z repo;
+G2.3 jest wstrzymane decyzją [D-G23](decyzje.md). Reszta czeka na fazy planu jednego flow albo na tryb SaaS.
 
 | Krok | Repo | Stan | Gdzie | Uwagi |
 |---|---|---|---|---|
@@ -393,27 +394,29 @@ poza propozycjami AI (G2.3); reszta czeka na fazy planu jednego flow albo na try
 | G2.4 autor historyjek | tf | zrobione | #77 | słownictwo w `story_shape_vocabulary.json`, lint pojedynczej historyjki (`--story`) używany przez Talosa |
 | G1.1 plan wydania | tf | zrobione | #78 | |
 | G1.2 reguły REL w Jirze | ci_for_sdlc | zrobione | #61 | REL-001…006, wymiar `delivery`, panel planu na stronie epiku |
-| G1.3 zakładka „Plan wydania” | ShipScope | zrobione (tryb Jira) | #106 | migracja 036 zamiast 032 z planu (numeracja ShipScope poszła dalej); plan kroku w `design-docs/G1.3-PLAN.pl.md`; tryb repo (`release.yaml`) czeka na F1 |
-| G2.3 propozycje AI | ci_for_sdlc | do zrobienia | | jedyny krok bez zależności zewnętrznych |
+| G1.3 zakładka „Plan wydania” | ShipScope | zrobione (tryb Jira i repo) | #106, #108 | migracje 036 i 038 zamiast 032–033 z planu (numeracja ShipScope poszła dalej); plan kroku w `design-docs/G1.3-PLAN.pl.md`; tryb repo waliduje `release.yaml` przypiętą kopią schematu z kontraktu i pokazuje błędy spójności |
+| F1 (część ShipScope) | ShipScope | zrobione | #107 | zmiany i cięcia z `docs/project/changes/` (migracja 037); commit z `TSK-n` liczy się dla `CHG-n`; ingest flag przyjmuje `itemKeys` |
+| F1 (część tf) | tf | częściowo | | Talos dopisuje `Change: TSK-n` tylko opcjonalnie; brakuje hooka `commit-msg` i reguły w `core-conventional-commits`, czytania cięć z `changes/CHG-n/plan.md` przez Talosa i raportu przebiegu w repo |
+| G2.3 propozycje AI | ci_for_sdlc | wstrzymane | #62 | decyzja [D-G23](decyzje.md): rozstrzygnięcie po pilocie |
 | G1.4 reguły REL w repo | ci_for_sdlc | czeka | | F2 (konektor repo) |
 | G1.5 bramki i zdarzenia | pdi + ShipScope | czeka | | F4–F5 (skrzynka bramek, wychodzące webhooki) |
 | G2.5 panel w Jirze | nowe repo + ci_for_sdlc | czeka | | tryb SaaS ci_for_sdlc i ShipScope |
 | G2.6 sygnał z estymacji | sprintdeck + ci_for_sdlc | czeka | | MVP sprintdecka z importem z Jiry; rola sprintdecka zmieniona decyzją [D-E1](decyzje.md) |
 | G1.6 edytor mapy historyjek | pdi | warunkowo | | po pilocie |
 
-Decyzje DG1–DG7 z §2 zostały zastosowane w kontrakcie 0.4.0 i w krokach powyżej (GWT z EARS jako opcją, słowa
-kluczowe EN/PL, etykieta `release:R1`, wymiar `delivery`, `release.yaml`), ale nie są jeszcze wpisane do
-[`decyzje.md`](decyzje.md).
+Decyzje DG1–DG7 z §2 są wpisane do [`decyzje.md`](decyzje.md) jako przyjęte 2026-10-25. DG1, DG2, DG4, DG5 i DG6
+są zastosowane w kodzie; DG3 i DG7 dotyczą kroków jeszcze niezrealizowanych (G2.3, G2.5).
 
 **Uwaga o jakości:** PR-y od #58 w ci_for_sdlc, #77 w tf i #106 w ShipScope scalono bez CI na GitHubie, bo GitHub
 Actions nie uruchamia zadań (płatności na koncie). Lokalnie sprawdzone: ci_for_sdlc `packages/core` 437/437 testów
 i typecheck na kodzie G1.2; tf `tools/workspace.py check --packs pack-it` na kodzie G2.4.
 
 **Następne kroki:**
-1. G2.3 w ci_for_sdlc.
-2. Pilot na prawdziwym backlogu według kryteriów z §4.8 i §5.9, zanim powstaną kolejne reguły.
-3. F1 i F2 z [planu jednego flow](plan-jeden-flow-sdlc.md): odblokowują G1.4 i tryb repo w G1.3.
-4. Wpisać DG1–DG7 do `decyzje.md`.
+1. Domknąć F1 w tf (hook `commit-msg` z `Change: TSK-n`, Talos na cięciach z `changes/CHG-n/plan.md`, raport
+   przebiegu w repo): dopiero wtedy commity są przypięte do zmian, które ShipScope już czyta.
+2. F2 w ci_for_sdlc (konektor repo): odblokowuje G1.4.
+3. Pilot na prawdziwym backlogu według kryteriów z §4.8 i §5.9; jego wynik rozstrzyga D-G23 (G2.3).
+4. Równolegle: A0 i K-1 z [planu automatyzacji i konsoli](plan-automatyzacja-i-konsola.md).
 
 ---
 
