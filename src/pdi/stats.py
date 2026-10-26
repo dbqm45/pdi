@@ -6,6 +6,7 @@ from collections import Counter
 from datetime import datetime
 from typing import Any
 
+from pdi import autonomy
 from pdi.registry import GENERAL_PROJECT_DIR, Registry
 
 
@@ -29,7 +30,8 @@ def summarize(registry: Registry) -> dict[str, Any]:
 
 
 def main() -> None:
-    s = summarize(Registry.from_env())
+    registry = Registry.from_env()
+    s = summarize(registry)
     print(f"Razem: {s['total']} (zastąpione: {s['superseded']})")
     print("Zapisy w tygodniu (W1: cel ≥ 5):")
     for week, n in s["per_week"].items():
@@ -38,6 +40,13 @@ def main() -> None:
     print(f"Rodzaje: {s['kinds']}")
     print(f"Projekty: {s['projects']}")
     print(f"Z założeniem nośnym: {s['with_load_bearing_assumptions']}")
+    print("Autonomia (szkice AI bez poprawek w oknie):")
+    for row in autonomy.report(registry):
+        rec = row["recommendation"]
+        print(
+            f"  {row['decision_type']}: poziom {row['level']}, {row['unedited']}/{row['measured']} "
+            f"(okno {row['window']}) — {rec['action']}: {rec['reason']}"
+        )
 
 
 if __name__ == "__main__":

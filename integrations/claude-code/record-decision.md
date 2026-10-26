@@ -29,4 +29,7 @@ Zapisz w rejestrze pdi decyzję z tej rozmowy. $ARGUMENTS
 5. **Pokaż szkic zwięźle** (jedna linia na pole, bez pustych pól) i zapytaj: „Zapisać? (tak / popraw: …)”.
 6. **Zapisz dopiero po wyraźnym „tak”** przez `record_decision` (albo `supersede_decision`). Poprawki nanieś
    i zapisz w jednym kroku, bez ponownego pytania, chyba że poprawka zmienia treść decyzji.
+   Podaj `draft_edited`: `false`, gdy człowiek zatwierdził szkic bez zmian, `true`, gdy cokolwiek poprawił — z tego
+   pdi liczy, które typy decyzji są gotowe do automatyzacji (`autonomy_report`). Jeśli decyzja ma znany typ
+   (katalog w `autonomy_report`, np. `review.light`), podaj też `decision_type`.
 7. Odpowiedz jedną linią: `Zapisano DEC-nnnn: <statement>` (przy duplikacie: „już zapisane jako DEC-nnnn”).

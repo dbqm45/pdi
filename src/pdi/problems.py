@@ -216,7 +216,15 @@ class ProblemStore:
         if change:
             links["chg"] = change
         tags = [*(draft.get("tags") or []), f"problem:{outcome}"]
-        decision = self.registry.record({**draft, "kind": "triage", "links": links, "tags": list(dict.fromkeys(tags))})
+        decision = self.registry.record(
+            {
+                **draft,
+                "kind": "triage",
+                "decision_type": draft.get("decision_type") or "triage",
+                "links": links,
+                "tags": list(dict.fromkeys(tags)),
+            }
+        )
         updated["triage_decision"] = decision["id"]
         paths = [self._write(updated, overwrite=True)]
         result: dict[str, Any] = {}

@@ -11,6 +11,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp_types import ToolAnnotations
 from typing_extensions import TypedDict  # pydantic na 3.11 wymaga TypedDict z typing_extensions
 
+from pdi import autonomy
 from pdi.changes import ChangeNotFound
 from pdi.dispatch import DispatchConfig
 from pdi.impact import ShipScopeConfig
@@ -109,9 +110,11 @@ DRAFT_FIELDS = (
     "statement",
     "why",
     "kind",
+    "decision_type",
     "project",
     "source",
     "drafted_by",
+    "draft_edited",
     "decided_by",
     "decided_at",
     "options",
@@ -159,6 +162,8 @@ def build_server(
         kind: Kind,
         source: Source,
         drafted_by: Literal["ai", "human"],
+        decision_type: str | None = None,
+        draft_edited: bool | None = None,
         project: str | None = None,
         decided_by: str | None = None,
         decided_at: str | None = None,
@@ -176,7 +181,10 @@ def build_server(
         Wywołuj dopiero po tym, jak człowiek zatwierdził szkic. statement: co zdecydowano, jedno zdanie.
         why: uzasadnienie, 1–5 zdań, tylko z rozmowy. source: skąd decyzja (kind, url wątku/strony, krótki cytat).
         project: projekt, którego dotyczy decyzja — zwykle nazwa bieżącego repo; pomiń dla decyzji ogólnych.
-        drafted_by: "ai", gdy szkic przygotował model. decided_at: RRRR-MM-DD (domyślnie dziś); decided_by:
+        drafted_by: "ai", gdy szkic przygotował model; draft_edited: czy człowiek zmienił szkic AI przed zatwierdzeniem
+        (true / false — z tego pdi liczy odsetek akceptacji szkiców, A3). decision_type: stały klucz typu decyzji
+        (np. flag.stage_advance; katalog: autonomy_report), gdy decyzja ma znany typ.
+        decided_at: RRRR-MM-DD (domyślnie dziś); decided_by:
         domyślnie PDI_DECIDED_BY. evidence.epistemic_status odróżnia obserwację od interpretacji, hipotezy
         i wniosku AI. assumptions: założenia; load_bearing=true, gdy ich upadek zmienia decyzję; invalidated_if:
         sygnał, po którym założenie przestaje być prawdziwe. Ponowienie identycznego zapisu zwraca istniejący wpis.
@@ -227,6 +235,8 @@ def build_server(
         kind: Kind,
         source: Source,
         drafted_by: Literal["ai", "human"],
+        decision_type: str | None = None,
+        draft_edited: bool | None = None,
         project: str | None = None,
         decided_by: str | None = None,
         decided_at: str | None = None,
@@ -271,6 +281,8 @@ def build_server(
         source: Source,
         drafted_by: Literal["ai", "human"],
         outcome: GateOutcome | ImpactOutcome | ProblemOutcome | None = None,
+        decision_type: str | None = None,
+        draft_edited: bool | None = None,
         project: str | None = None,
         decided_by: str | None = None,
         decided_at: str | None = None,
@@ -291,8 +303,10 @@ def build_server(
         człowieka, może różnić się od szkicu pdi (pole draft pozycji); decyzja dostaje kind product, zależność od
         decyzji o intencji i odczyt z ShipScope jako dowód. Problem z pasm kontrolnych tf (kind problem,
         metric.breached) wymaga outcome accepted albo rejected; decyzja dostaje kind triage i odczyt pasma jako dowód
-        (links.prb podaj, gdy powstało zgłoszenie).
-        links.chg nadaje skrzynka ze zdarzenia. Pozostałe pola jak w record_decision.
+        (links.prb podaj, gdy powstało zgłoszenie). Propozycja zmiany poziomu autonomii (kind autonomy) wymaga outcome
+        approved albo rejected; approved zmienia politykę autonomy.yaml (typu chronionego nie da się obniżyć).
+        links.chg nadaje skrzynka ze zdarzenia; decision_type, gdy go nie podasz, też (np. flag.stage_advance,
+        gate.b1, triage, outcome.assessment). Pozostałe pola jak w record_decision.
         """
         draft = _draft({**locals(), "kind": "other"})
         try:
@@ -480,6 +494,30 @@ def build_server(
         try:
             return open_inbox().retry_dispatch(change)
         except (ChangeNotFound, InvalidDecision) as e:
+            raise ToolError(str(e)) from e
+
+    @server.tool(annotations=_READ)
+    def autonomy_report() -> dict[str, list[dict[str, Any]]]:
+        """Licznik akceptacji szkiców (A3): dla każdego typu decyzji poziom autonomii (3 = człowiek, 2 = automat
+        z wetem, 1 = automat z logiem), ile szkiców AI człowiek zatwierdził bez zmian w ostatnich N decyzjach
+        i rekomendacja: lower (obniżyć o jeden poziom), raise (wrócić do człowieka) albo keep — z powodem.
+
+        Typy chronione (triage, scope.r1, release.go, outcome.assessment, review.sensitive, migration) zostają na 3.
+        Tylko odczyt; propozycje do skrzynki tworzy propose_autonomy_changes.
+        """
+        try:
+            return {"types": autonomy.report(open_registry())}
+        except autonomy.InvalidPolicy as e:
+            raise ToolError(str(e)) from e
+
+    @server.tool(annotations=_WRITE)
+    def propose_autonomy_changes() -> dict[str, list[dict[str, Any]]]:
+        """Otwiera w skrzynce pozycje kind autonomy dla rekomendacji lower / raise z autonomy_report (najwyżej jedna
+        otwarta na typ). Sama zmiana poziomu to decyzja człowieka: decide_inbox_item z outcome approved albo rejected.
+        """
+        try:
+            return {"items": open_inbox().propose_autonomy_changes()}
+        except InvalidDecision as e:
             raise ToolError(str(e)) from e
 
     return server

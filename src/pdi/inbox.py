@@ -5,7 +5,9 @@ Co trafia do skrzynki: `gate.requested` z tf i ci_for_sdlc, `readiness.changed: 
 `release: R1`, który planuje ocenę skutku MVP; `open_due_reviews()` otwiera ją po terminie z danymi z ShipScope
 (`pdi.impact`). Każde zdarzenie aktualizuje też stan zmiany (`pdi.changes`, reguły w `pdi.flow`). Decyzja na bramce
 zapisuje się w rejestrze, przesuwa stan, zostawia `gate.decided` w `outbox/` i uruchamia następną fazę tf
-(`pdi.dispatch`). Plany: docs/plan-g15-pdi.md, docs/plan-f4-pdi.md, docs/plan-f5-ocena-skutku.md.
+(`pdi.dispatch`). Propozycje zmiany poziomu autonomii (A3, `pdi.autonomy`) też są pozycjami skrzynki; zatwierdzenie
+zmienia politykę `autonomy.yaml`. Plany: docs/plan-g15-pdi.md, docs/plan-f4-pdi.md, docs/plan-f5-ocena-skutku.md,
+docs/plan-a3-licznik-akceptacji.md.
 """
 
 from __future__ import annotations
@@ -20,7 +22,7 @@ from typing import Any, TypeAlias
 
 import yaml
 
-from pdi import contract, flow, impact
+from pdi import autonomy, contract, flow, impact
 from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig, Post, dispatch_phase
 from pdi.notify import NotifyConfig, ReporterNotifyConfig, notify_ci_for_sdlc
@@ -38,12 +40,15 @@ ACCEPTED = {
 GATE_OUTCOMES = flow.OUTCOMES
 IMPACT_OUTCOMES = impact.OUTCOMES
 PROBLEM_OUTCOMES = ("accepted", "rejected")
+AUTONOMY_OUTCOMES = ("approved", "rejected")
 SIGNATURE_TOLERANCE_SECONDS = 300
 MVP_RELEASE = "R1"
 SEEN_EVENTS_KEPT = 200
 # ID zdarzenia staje się nazwą pliku, więc tylko bezpieczne znaki i bez „..”.
 _EVENT_ID = re.compile(r"^(?!.*\.\.)[A-Za-z0-9._-]{1,128}$")
-_DECISION_KIND = {"gate": "gate", "impact_review": "product", "problem": "triage"}
+_DECISION_KIND = {"gate": "gate", "impact_review": "product", "problem": "triage", "autonomy": "process"}
+# Typ decyzji (kontrakt 0.5.0) nadawany przez skrzynkę, gdy szkic go nie podaje; bramki: zob. _decision_type.
+_DECISION_TYPE = {"impact_review": "outcome.assessment", "problem": "triage", "autonomy": autonomy.LEVEL_CHANGE_TYPE}
 
 
 class BadSignature(ValueError):
@@ -283,6 +288,43 @@ class Inbox:
                 touched.append(self._path(old["id"]))
         return touched
 
+    # --- autonomia (A3) ---
+
+    def propose_autonomy_changes(self) -> list[Item]:
+        """Pozycje „zmienić poziom autonomii typu X?” dla rekomendacji z licznika akceptacji szkiców.
+
+        Najwyżej jedna otwarta propozycja na typ decyzji; o zmianie decyduje człowiek (`decide`).
+        """
+        try:
+            found = autonomy.proposals(self.registry)
+        except autonomy.InvalidPolicy as e:
+            raise InvalidDecision(str(e)) from e
+        open_types = {i.get("decision_type") for i in self.items() if i["kind"] == "autonomy"}
+        at = _iso(self.registry.now())
+        day = at[:10].replace("-", "")
+        created: list[Item] = []
+        for proposal in found:
+            if proposal["decision_type"] in open_types:
+                continue
+            item: Item = {
+                "id": f"autonomy-{proposal['decision_type']}-to{proposal['to_level']}-{day}",
+                "kind": "autonomy",
+                "status": "open",
+                "change": None,
+                "source": "pdi",
+                "release": None,
+                "received_at": at,
+                **proposal,
+            }
+            self._dir.mkdir(parents=True, exist_ok=True)
+            try:
+                self._write(item, overwrite=False)
+            except FileExistsError:
+                continue
+            warning = self.registry.commit([self._path(item["id"])], f"inbox {item['id']}: {item['summary']}")
+            created.append({**item, **({"warning": warning} if warning else {})})
+        return created
+
     # --- odczyt ---
 
     def get(self, item_id: str) -> Item:
@@ -324,12 +366,20 @@ class Inbox:
             raise InvalidDecision(f"Ocena skutku wymaga outcome: jednego z {', '.join(IMPACT_OUTCOMES)}.")
         if item["kind"] == "problem" and outcome not in PROBLEM_OUTCOMES:
             raise InvalidDecision(f"Triaż problemu wymaga outcome: jednego z {', '.join(PROBLEM_OUTCOMES)}.")
+        if item["kind"] == "autonomy" and outcome not in AUTONOMY_OUTCOMES:
+            raise InvalidDecision(f"Propozycja autonomii wymaga outcome: {' albo '.join(AUTONOMY_OUTCOMES)}.")
+        new_policy = None
+        if item["kind"] == "autonomy" and outcome == "approved":
+            try:  # najpierw sprawdzenie polityki, żeby nie zapisać decyzji, której kontrakt nie przyjmie
+                new_policy = autonomy.policy_after(self.registry, item)
+            except autonomy.InvalidPolicy as e:
+                raise InvalidDecision(str(e)) from e
         links = dict(draft.get("links") or {})
         if item["change"] and links.get("chg", item["change"]) != item["change"]:
             raise InvalidDecision(f"Pozycja dotyczy {item['change']} — links.chg nie może wskazywać innej zmiany.")
         if item["change"]:
             links["chg"] = item["change"]
-        state = self.changes.load(item["change"]) if item["kind"] != "problem" else None
+        state = self.changes.load(item["change"]) if item["kind"] in ("gate", "impact_review") else None
         at = _iso(self.registry.now())
         # Pozycje z G1.5 sprzed F4 nie mają pola gate — bramkę odtwarza się ze zdarzenia.
         gate: str = (item.get("gate") or _gate_of(item["event"]) or "") if item["kind"] == "gate" else ""
@@ -345,7 +395,19 @@ class Inbox:
             extra = _impact_fields(item, draft)
         if item["kind"] == "problem":
             extra = _problem_fields(item, draft)
-        record = {**draft, **extra, "kind": _DECISION_KIND[item["kind"]], "links": links, "tags": tags}
+        if item["kind"] == "autonomy":
+            extra = {"evidence": [*(draft.get("evidence") or []), autonomy.evidence(item)]}
+        decision_type = draft.get("decision_type") or _decision_type(item, gate)
+        if item["kind"] == "autonomy":
+            decision_type = autonomy.LEVEL_CHANGE_TYPE
+        record = {
+            **draft,
+            **extra,
+            "kind": _DECISION_KIND[item["kind"]],
+            "decision_type": decision_type,
+            "links": links,
+            "tags": tags,
+        }
         decision = self.registry.record(record)
 
         result: dict[str, Any] = {}
@@ -364,6 +426,9 @@ class Inbox:
         elif state is not None:
             state = flow.impact_reviewed(state, decision["id"], at=at, outcome=outcome)
             result["notifications"] = self.problems.impact_reviewed(item["change"], outcome or "", decision["id"])
+        if new_policy is not None:
+            touched.append(autonomy.write_policy(self.registry, new_policy, decision=decision["id"], at=at))
+            result["policy"] = new_policy
         if state is not None:
             touched.append(self.changes.save(state))
 
@@ -506,7 +571,19 @@ def _problem_fields(item: Item, draft: Decision) -> dict[str, Any]:
     return {"evidence": [*(draft.get("evidence") or []), {"text": text, "epistemic_status": "observation"}]}
 
 
+def _decision_type(item: Item, gate: str) -> str:
+    """Typ decyzji z pozycji skrzynki: bramka etapu flagi → flag.stage_advance, inna bramka → gate.<bramka>."""
+    if item["kind"] != "gate":
+        return _DECISION_TYPE[item["kind"]]
+    if item["event"]["type"] == "release.stage_changed":
+        return "flag.stage_advance"
+    slug = re.sub(r"[^a-z0-9]+", "_", gate.lower()).strip("_")
+    return f"gate.{slug}" if slug[:1].isalpha() else f"gate.g{slug}"
+
+
 def _tags(item: Item, gate: str, outcome: str | None) -> list[str]:
+    if item["kind"] == "autonomy":
+        return ["autonomy", f"autonomy:{outcome}", f"typ:{item['decision_type']}"]
     if item["kind"] == "problem":
         return ["metric-breached", f"problem:{outcome}", f"metric:{item['metric']['metric']}"]
     if item["kind"] != "gate":
