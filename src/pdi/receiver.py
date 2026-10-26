@@ -18,6 +18,7 @@ from typing import Any
 
 from pdi.dispatch import DispatchConfig
 from pdi.inbox import BadSignature, Inbox, InvalidEvent, verify_signature
+from pdi.notify import NotifyConfig
 from pdi.registry import Registry
 
 PATH = "/events/shipscope"
@@ -119,7 +120,7 @@ def main() -> None:
         raise SystemExit(str(e)) from e
     host = os.environ.get("PDI_RECEIVER_HOST", DEFAULT_HOST)
     port = int(os.environ.get("PDI_RECEIVER_PORT", str(DEFAULT_PORT)))
-    inbox = Inbox(registry, dispatch=DispatchConfig.from_env())
+    inbox = Inbox(registry, dispatch=DispatchConfig.from_env(), notify=NotifyConfig.from_env())
     server = make_server(inbox, secrets, host=host, port=port)
     paths = ", ".join(PREFIX + s for s in secrets)
     sys.stderr.write(f"pdi-receiver: nasłuchuje na http://{host}:{port} ({paths})\n")

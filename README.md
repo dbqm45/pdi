@@ -41,6 +41,11 @@ w nagłówkach `X-PDI-Timestamp`, `X-PDI-Event`, `X-PDI-Signature`. Szablon fazy
 `decision`, `rework` i `budget_usd` (`PDI_PHASE_BUDGET_USD`). Bez `PDI_DISPATCH_REPO` decyzje się zapisują, a faza
 jest oznaczona `skipped`. Ten sam `PDI_DISPATCH_*` musi być ustawiony dla serwera MCP, który zapisuje decyzje.
 
+Decyzja na bramce `approve-for-implementation` trafia też do ci_for_sdlc: podpisane `gate.decided` na
+`PDI_CI_FOR_SDLC_URL/api/webhooks/pdi` (sekret `PDI_CI_FOR_SDLC_SIGNING_SECRET`, ten sam, którym ci_for_sdlc podpisuje
+`readiness.changed`; tam `PDI_SIGNING_SECRET`). ci_for_sdlc zatwierdza wtedy historyjki zmiany (etykieta `change:CHG-n`)
+z numerem decyzji. Nieudana wysyłka zostaje w stanie zmiany (`ci_for_sdlc.status: failed`); `retry_dispatch` ją ponawia.
+
 ShipScope wysyła tylko na publiczny adres `https://`, więc przed odbiornikiem stoi proxy TLS albo tunel (np.
 Cloudflare Tunnel); ten adres z `/events/shipscope` dodaje admin w ShipScope: Settings → General → Outgoing events.
 Odbiornik obsługuje jedno żądanie naraz i przyjmuje najwyżej 64 KB; 2xx kończy ponowienia ShipScope.

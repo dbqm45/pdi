@@ -13,6 +13,7 @@ from typing_extensions import TypedDict  # pydantic na 3.11 wymaga TypedDict z t
 from pdi.changes import ChangeNotFound
 from pdi.dispatch import DispatchConfig
 from pdi.inbox import Inbox, ItemClosed, ItemNotFound
+from pdi.notify import NotifyConfig
 from pdi.registry import CannotSupersede, Decision, DecisionNotFound, InvalidDecision, Registry
 
 INSTRUCTIONS = """\
@@ -105,7 +106,7 @@ def build_server(
             raise ToolError(str(e)) from e
 
     def open_inbox() -> Inbox:
-        return Inbox(open_registry(), dispatch=dispatch())
+        return Inbox(open_registry(), dispatch=dispatch(), notify=NotifyConfig.from_env())
 
     @server.tool(annotations=_WRITE)
     def record_decision(
@@ -266,7 +267,7 @@ def build_server(
 
     @server.tool(annotations=_WRITE)
     def retry_dispatch(change: str) -> dict[str, Any]:
-        """Ponawia ostatnie nieudane albo pominięte uruchomienie fazy tf dla zmiany (np. po ustawieniu tokenu)."""
+        """Ponawia nieudane uruchomienie fazy tf i wysyłkę decyzji do ci_for_sdlc (po poprawce ustawień)."""
         try:
             return open_inbox().retry_dispatch(change)
         except (ChangeNotFound, InvalidDecision) as e:
