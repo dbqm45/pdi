@@ -210,7 +210,7 @@ Każda faza kończy się czymś, co działa samo, nawet jeśli następna się op
 
 ### F4 — Orkiestracja
 - **tf:** uruchamianie person bez interakcji, szablon workflow fazy z budżetem.
-- **pdi:** maszyna stanów per CHG, skrzynka bramek.
+- **pdi:** maszyna stanów per CHG, skrzynka bramek — **zrobione 2026-10-26** (pdi #16, [plan](plan-f4-pdi.md); w Pythonie, na skrzynce z G1.5).
 - **ci_for_sdlc:** pytania i zatwierdzenia przez pdi, decyzje z ID z pdi.
 - **Działa po fazie:** człowiek klika tylko na bramkach; kolejne fazy startują same.
 

@@ -13,7 +13,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from pdi.inbox import Inbox
 from pdi.mcp_server import build_server
 from pdi.registry import Registry
-from tests.test_inbox import stage_event
+from tests.test_inbox import gate_event, stage_event
 
 Draft = Callable[..., dict[str, Any]]
 pytestmark = pytest.mark.anyio
@@ -45,7 +45,12 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
         "supersede_decision",
         "list_inbox",
         "decide_inbox_item",
+        "list_changes",
+        "get_change",
+        "retry_dispatch",
     }
+    assert tools["list_changes"].annotations.read_only_hint is True
+    assert tools["retry_dispatch"].annotations.read_only_hint is False
     assert tools["list_inbox"].annotations.read_only_hint is True
     assert tools["decide_inbox_item"].annotations.read_only_hint is False
     assert tools["find_decisions"].annotations.read_only_hint is True
@@ -107,7 +112,7 @@ async def test_stdio_end_to_end(tmp_path: Path, make_draft: Draft) -> None:
         listed = await session.list_tools()
         result = await session.call_tool("record_decision", make_draft())
 
-    assert len(listed.tools) == 6
+    assert len(listed.tools) == 9
     assert json.loads(result.content[0].text)["id"] == "DEC-0001"
     assert (tmp_path / "rejestr" / "decisions" / "_ogolne" / "DEC-0001.md").is_file()
 
@@ -131,3 +136,27 @@ async def test_decide_inbox_item_errors_return_hints(server: Any, registry: Regi
         await server.call_tool("decide_inbox_item", {"item_id": "evt-nie-ma", **make_draft()})
     with pytest.raises(ToolError, match="outcome"):
         await server.call_tool("decide_inbox_item", {"item_id": "evt-stage-1", **make_draft()})
+
+
+async def test_changes_through_tools(
+    server: Any, registry: Registry, make_draft: Draft, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("PDI_DISPATCH_REPO", raising=False)
+    Inbox(registry).receive(gate_event())
+    await call(server, "decide_inbox_item", {"item_id": "evt-gate-1", "outcome": "approved", **make_draft()})
+
+    listed = await call(server, "list_changes", {})
+    got = await call(server, "get_change", {"change": "CHG-12"})
+
+    assert [c["change"] for c in listed["changes"]] == ["CHG-12"]
+    assert got["approved"] == {"B1": "DEC-0001"}
+    assert got["dispatch"]["status"] == "skipped"
+    retried = await call(server, "retry_dispatch", {"change": "CHG-12"})
+    assert retried["dispatch"]["status"] == "skipped"
+
+
+async def test_change_tools_return_hints(server: Any) -> None:
+    with pytest.raises(ToolError, match="list_changes"):
+        await server.call_tool("get_change", {"change": "CHG-404"})
+    with pytest.raises(ToolError, match="list_changes"):
+        await server.call_tool("retry_dispatch", {"change": "CHG-404"})

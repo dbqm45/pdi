@@ -10,6 +10,8 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp_types import ToolAnnotations
 from typing_extensions import TypedDict  # pydantic na 3.11 wymaga TypedDict z typing_extensions
 
+from pdi.changes import ChangeNotFound
+from pdi.dispatch import DispatchConfig
 from pdi.inbox import Inbox, ItemClosed, ItemNotFound
 from pdi.registry import CannotSupersede, Decision, DecisionNotFound, InvalidDecision, Registry
 
@@ -19,11 +21,13 @@ jak zatwierdzi pokazany mu szkic — nie decyduj sam, co jest decyzją. Nie dopi
 których nie było w rozmowie; czego brakuje, o to zapytaj. Zanim zaproponujesz rozwiązanie w obszarze, który mógł
 być już rozstrzygnięty, sprawdź find_decisions; gdy propozycja przeczy wcześniejszej decyzji, powiedz to wprost
 i zaproponuj supersede_decision zamiast cichej zmiany kursu. Skrzynka (list_inbox) zbiera bramki i oceny skutku
-ze zdarzeń ShipScope; decide_inbox_item zapisuje decyzję jak record_decision — też tylko po zatwierdzeniu szkicu."""
+z tf, ci_for_sdlc i ShipScope; decide_inbox_item zapisuje decyzję jak record_decision — też tylko po zatwierdzeniu
+szkicu — i uruchamia następną fazę. Stan przebiegu zmiany: list_changes, get_change."""
 
 Kind = Literal["product", "technical", "process", "triage", "intent", "gate", "other"]
 Status = Literal["recorded", "superseded", "reverted"]
-InboxStatus = Literal["open", "decided", "all"]
+InboxStatus = Literal["open", "decided", "superseded", "all"]
+ChangeStatus = Literal["open", "rejected", "done", "all"]
 GateOutcome = Literal["approved", "changes_requested", "rejected"]
 
 
@@ -88,7 +92,10 @@ _WRITE = ToolAnnotations(read_only_hint=False, destructive_hint=False, idempoten
 _READ = ToolAnnotations(read_only_hint=True)
 
 
-def build_server(registry: Callable[[], Registry] = Registry.from_env) -> MCPServer:
+def build_server(
+    registry: Callable[[], Registry] = Registry.from_env,
+    dispatch: Callable[[], DispatchConfig] = DispatchConfig.from_env,
+) -> MCPServer:
     server = MCPServer("pdi", instructions=INSTRUCTIONS)
 
     def open_registry() -> Registry:
@@ -96,6 +103,9 @@ def build_server(registry: Callable[[], Registry] = Registry.from_env) -> MCPSer
             return registry()
         except RuntimeError as e:
             raise ToolError(str(e)) from e
+
+    def open_inbox() -> Inbox:
+        return Inbox(open_registry(), dispatch=dispatch())
 
     @server.tool(annotations=_WRITE)
     def record_decision(
@@ -203,8 +213,7 @@ def build_server(registry: Callable[[], Registry] = Registry.from_env) -> MCPSer
         status: open (domyślnie, czeka na decyzję), decided albo all. Każda pozycja: id, kind (gate /
         impact_review), change, release, summary, received_at, event (pełne zdarzenie z kontraktu).
         """
-        inbox = Inbox(open_registry())
-        return {"items": inbox.items(status=None if status == "all" else status)}
+        return {"items": open_inbox().items(status=None if status == "all" else status)}
 
     @server.tool(annotations=_WRITE)
     def decide_inbox_item(
@@ -228,15 +237,39 @@ def build_server(registry: Callable[[], Registry] = Registry.from_env) -> MCPSer
     ) -> dict[str, Any]:
         """Zamyka pozycję skrzynki decyzją w rejestrze; wywołuj po zatwierdzeniu szkicu przez człowieka.
 
-        Bramka (kind gate) wymaga outcome: approved, changes_requested albo rejected; decyzja dostaje kind gate.
+        Bramka (kind gate) wymaga outcome: approved, changes_requested albo rejected; decyzja dostaje kind gate,
+        stan zmiany się przesuwa, a następna faza tf (albo poprawki tej samej) zostaje uruchomiona.
         Ocena skutku MVP nie przyjmuje outcome; decyzja dostaje kind product (zwykle z success_metric i review_by).
         links.chg nadaje skrzynka ze zdarzenia. Pozostałe pola jak w record_decision.
         """
         draft = _draft({**locals(), "kind": "other"})
-        inbox = Inbox(open_registry())
         try:
-            return inbox.decide(item_id, draft, outcome=outcome)
+            return open_inbox().decide(item_id, draft, outcome=outcome)
         except (InvalidDecision, ItemNotFound, ItemClosed) as e:
+            raise ToolError(str(e)) from e
+
+    @server.tool(annotations=_READ)
+    def list_changes(status: ChangeStatus = "open") -> dict[str, list[dict[str, Any]]]:
+        """Zmiany (CHG), które zna orkiestrator: zatwierdzone bramki, na co czekają, ostatnie uruchomienie fazy.
+
+        status: open (domyślnie), rejected, done albo all.
+        """
+        return {"changes": open_inbox().changes.all(status=None if status == "all" else status)}
+
+    @server.tool(annotations=_READ)
+    def get_change(change: str) -> dict[str, Any]:
+        """Pełny stan przebiegu zmiany (np. CHG-12), z historią zdarzeń i decyzji."""
+        try:
+            return open_inbox().changes.get(change)
+        except ChangeNotFound as e:
+            raise ToolError(str(e)) from e
+
+    @server.tool(annotations=_WRITE)
+    def retry_dispatch(change: str) -> dict[str, Any]:
+        """Ponawia ostatnie nieudane albo pominięte uruchomienie fazy tf dla zmiany (np. po ustawieniu tokenu)."""
+        try:
+            return open_inbox().retry_dispatch(change)
+        except (ChangeNotFound, InvalidDecision) as e:
             raise ToolError(str(e)) from e
 
     return server

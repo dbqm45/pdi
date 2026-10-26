@@ -9,6 +9,9 @@ from typing import Any
 import pytest
 import yaml
 
+from pdi.changes import ChangeNotFound
+from pdi.contract import errors as contract_errors
+from pdi.dispatch import DispatchConfig
 from pdi.inbox import BadSignature, Inbox, InvalidEvent, ItemClosed, ItemNotFound, verify_signature
 from pdi.registry import InvalidDecision, Registry
 
@@ -38,6 +41,36 @@ def stage_event(**payload: Any) -> dict[str, Any]:
             "rollout": 10,
             **payload,
         },
+    }
+
+
+def gate_event(event_id: str = "evt-gate-1", source: str = "tf", **payload: Any) -> dict[str, Any]:
+    """`gate.requested` z tf albo ci_for_sdlc (kontrakt 0.4.0)."""
+    return {
+        "id": event_id,
+        "type": "gate.requested",
+        "occurred_at": "2026-10-23T09:10:00Z",
+        "source": source,
+        "contract_version": "0.4.0",
+        "payload": {
+            "change": "CHG-12",
+            "gate": "B1",
+            "summary": "Intencja CHG-12 gotowa do akceptacji.",
+            "artifact": "intent",
+            "url": "https://github.com/dbqm45/sklep/pull/7",
+            **payload,
+        },
+    }
+
+
+def readiness_event(readiness: str, event_id: str = "evt-ready-1", **payload: Any) -> dict[str, Any]:
+    return {
+        "id": event_id,
+        "type": "readiness.changed",
+        "occurred_at": "2026-10-23T09:20:00Z",
+        "source": "ci_for_sdlc",
+        "contract_version": "0.4.0",
+        "payload": {"change": "CHG-12", "readiness": readiness, **payload},
     }
 
 
@@ -132,15 +165,16 @@ def test_mvp_release_becomes_impact_review_item(inbox: Inbox) -> None:
 
 
 @pytest.mark.parametrize("payload", [{"release": "R2"}, {"release": None}], ids=["R2", "bez-linii"])
-def test_release_other_than_mvp_is_accepted_but_ignored(inbox: Inbox, payload: dict[str, Any]) -> None:
+def test_release_other_than_mvp_only_updates_the_change(inbox: Inbox, payload: dict[str, Any]) -> None:
     event = released_event(**payload)
     if payload["release"] is None:
         del event["payload"]["release"]
 
     result = inbox.receive(event)
 
-    assert result == {"status": "ignored", "item": None}
+    assert result == {"status": "recorded", "item": None}
     assert inbox.items() == []
+    assert inbox.changes.get("CHG-12")["releases"] == {payload["release"] or "all": "2026-10-23T09:04:00Z"}
 
 
 def test_same_event_twice_keeps_one_item(inbox: Inbox) -> None:
@@ -284,3 +318,219 @@ def test_receive_and_decide_commit_in_git_registry(
         ["git", "-C", str(root), "status", "--porcelain"], check=True, capture_output=True, text=True
     )
     assert status.stdout == ""
+
+
+# --- F4: bramki z tf i ci_for_sdlc, stan zmiany, uruchomienie fazy ---
+
+
+class FakeGitHub:
+    def __init__(self, status: int = 204) -> None:
+        self.status = status
+        self.calls: list[dict[str, Any]] = []
+
+    def __call__(self, url: str, headers: dict[str, str], body: bytes) -> int:
+        import json
+
+        self.calls.append({"url": url, **json.loads(body)})
+        return self.status
+
+
+def dispatching(registry: Registry, github: FakeGitHub) -> Inbox:
+    cfg = DispatchConfig(repo="dbqm45/sklep", token="ghs_t")  # noqa: S106 — token testowy
+    return Inbox(registry, dispatch=cfg, post=github)
+
+
+def test_gate_request_from_tf_becomes_gate_item_and_waits_on_change(inbox: Inbox) -> None:
+    result = inbox.receive(gate_event())
+
+    item = result["item"]
+    assert (item["kind"], item["gate"], item["source"]) == ("gate", "B1", "tf")
+    assert item["summary"] == "Intencja CHG-12 gotowa do akceptacji."
+    assert (item["artifact"], item["url"]) == ("intent", "https://github.com/dbqm45/sklep/pull/7")
+    assert item["missing_before"] == []
+    state = inbox.changes.get("CHG-12")
+    assert state["waiting"] == ["B1"]
+
+
+def test_out_of_order_request_is_shown_not_refused(inbox: Inbox) -> None:
+    item = inbox.receive(gate_event(gate="B3", summary="Plan cięć."))["item"]
+
+    assert item["missing_before"] == ["B1", "B2"]
+    assert "poza kolejnością: brak B1, B2" in item["summary"]
+
+
+def test_newer_request_for_same_gate_supersedes_open_item(inbox: Inbox) -> None:
+    inbox.receive(gate_event("evt-gate-1"))
+
+    inbox.receive(gate_event("evt-gate-2", summary="Intencja po poprawkach."))
+
+    assert [i["id"] for i in inbox.items()] == ["evt-gate-2"]
+    old = inbox.get("evt-gate-1")
+    assert (old["status"], old["superseded_by"]) == ("superseded", "evt-gate-2")
+
+
+def test_superseded_item_cannot_be_decided(inbox: Inbox, make_draft: Draft) -> None:
+    inbox.receive(gate_event("evt-gate-1"))
+    inbox.receive(gate_event("evt-gate-2"))
+
+    with pytest.raises(ItemClosed, match="evt-gate-2"):
+        inbox.decide("evt-gate-1", make_draft(), outcome="approved")
+
+
+def test_approving_gate_moves_change_writes_gate_decided_and_dispatches(registry: Registry, make_draft: Draft) -> None:
+    github = FakeGitHub()
+    inbox = dispatching(registry, github)
+    inbox.receive(gate_event())
+
+    result = inbox.decide("evt-gate-1", make_draft(), outcome="approved")
+
+    assert result["decision"]["kind"] == "gate"
+    assert {"gate:approved", "bramka:B1"} <= set(result["decision"]["tags"])
+    state = result["change"]
+    assert (state["approved"], state["waiting"]) == ({"B1": "DEC-0001"}, [])
+    assert state["dispatch"]["status"] == "sent"
+    assert (state["dispatch"]["phase"], state["dispatch"]["gate"]) == ("requirements", "B1")
+    assert github.calls[0]["inputs"]["phase"] == "requirements"
+    assert github.calls[0]["inputs"]["decision"] == "DEC-0001"
+    event = result["event"]
+    assert contract_errors("event", event) == []
+    assert (event["type"], event["source"]) == ("gate.decided", "pdi")
+    assert event["payload"] == {"change": "CHG-12", "gate": "B1", "outcome": "approved", "decision": "DEC-0001"}
+    assert (registry.root / "outbox" / f"{event['id']}.json").is_file()
+
+
+def test_changes_requested_dispatches_rework_of_same_phase(registry: Registry, make_draft: Draft) -> None:
+    github = FakeGitHub()
+    inbox = dispatching(registry, github)
+    inbox.receive(gate_event(gate="B2", summary="Wymagania."))
+
+    inbox.decide("evt-gate-1", make_draft(), outcome="changes_requested")
+
+    assert (github.calls[0]["inputs"]["phase"], github.calls[0]["inputs"]["rework"]) == ("requirements", "true")
+
+
+def test_gate_without_next_phase_dispatches_nothing(registry: Registry, make_draft: Draft) -> None:
+    github = FakeGitHub()
+    inbox = dispatching(registry, github)
+    inbox.receive(gate_event(gate="B4", summary="Gotowość do wydania."))
+
+    result = inbox.decide("evt-gate-1", make_draft(), outcome="approved")
+
+    assert github.calls == []
+    assert "dispatch" not in result["change"]
+
+
+def test_failed_dispatch_keeps_decision_and_can_be_retried(registry: Registry, make_draft: Draft) -> None:
+    github = FakeGitHub(status=500)
+    inbox = dispatching(registry, github)
+    inbox.receive(gate_event())
+
+    result = inbox.decide("evt-gate-1", make_draft(), outcome="approved")
+
+    assert registry.get("DEC-0001")["kind"] == "gate"
+    assert result["change"]["dispatch"]["status"] == "failed"
+    assert "500" in result["change"]["dispatch"]["error"]
+
+    github.status = 204
+    retried = inbox.retry_dispatch("CHG-12")
+
+    assert retried["dispatch"]["status"] == "sent"
+    assert github.calls[-1]["inputs"]["phase"] == "requirements"
+    assert inbox.changes.get("CHG-12")["dispatch"]["status"] == "sent"
+
+
+def test_retry_without_failed_dispatch_is_refused(inbox: Inbox, make_draft: Draft) -> None:
+    inbox.receive(gate_event())
+
+    with pytest.raises(InvalidDecision, match="nie ma"):
+        inbox.retry_dispatch("CHG-12")
+    with pytest.raises(ChangeNotFound):
+        inbox.retry_dispatch("CHG-99")
+
+
+def test_without_dispatch_config_phase_is_skipped(inbox: Inbox, make_draft: Draft) -> None:
+    inbox.receive(gate_event())
+
+    result = inbox.decide("evt-gate-1", make_draft(), outcome="approved")
+
+    assert result["change"]["dispatch"]["status"] == "skipped"
+
+
+def test_rejected_change_refuses_next_gate_before_recording(
+    inbox: Inbox, registry: Registry, make_draft: Draft
+) -> None:
+    inbox.receive(gate_event())
+    inbox.decide("evt-gate-1", make_draft(), outcome="rejected")
+    inbox.receive(gate_event("evt-gate-2", gate="B2", summary="Wymagania."))
+
+    with pytest.raises(InvalidDecision, match="rejected"):
+        inbox.decide("evt-gate-2", make_draft(statement="Inna."), outcome="approved")
+
+    assert len(registry.decisions()) == 1
+    assert inbox.changes.get("CHG-12")["status"] == "rejected"
+
+
+def test_readiness_ready_asks_for_approve_for_implementation(inbox: Inbox) -> None:
+    result = inbox.receive(readiness_event("ready", open_questions=0))
+
+    item = result["item"]
+    assert (item["gate"], item["source"]) == ("approve-for-implementation", "ci_for_sdlc")
+    assert "Approve for implementation" in item["summary"]
+    assert inbox.changes.get("CHG-12")["readiness"] == "ready"
+
+
+@pytest.mark.parametrize("readiness", ["not_ready", "drift"])
+def test_readiness_other_than_ready_only_updates_the_change(inbox: Inbox, readiness: str) -> None:
+    result = inbox.receive(readiness_event(readiness))
+
+    assert result == {"status": "recorded", "item": None}
+    assert inbox.changes.get("CHG-12")["readiness"] == readiness
+
+
+def test_ci_for_sdlc_may_ask_for_a_gate_too(inbox: Inbox) -> None:
+    item = inbox.receive(gate_event(source="ci_for_sdlc", gate="approve-for-implementation", summary="Gotowe."))["item"]
+
+    assert item["source"] == "ci_for_sdlc"
+
+
+@pytest.mark.parametrize(
+    ("event", "match"),
+    [
+        (lambda: {**gate_event(), "source": "shipscope"}, "source"),
+        (lambda: {**readiness_event("ready"), "source": "tf"}, "source"),
+        (lambda: {**gate_event(), "source": "pdi"}, "source"),
+    ],
+    ids=["shipscope-bramka", "tf-gotowosc", "od-siebie"],
+)
+def test_types_are_accepted_only_from_their_senders(
+    inbox: Inbox, event: Callable[[], dict[str, Any]], match: str
+) -> None:
+    with pytest.raises(InvalidEvent, match=match):
+        inbox.receive(event())
+
+
+def test_impact_review_finishes_the_change(inbox: Inbox, make_draft: Draft) -> None:
+    inbox.receive(released_event())
+
+    result = inbox.decide("evt-rel-1", make_draft())
+
+    assert result["change"]["status"] == "done"
+    assert result["change"]["releases"] == {"R1": "2026-10-23T09:04:00Z"}
+
+
+def test_stage_gate_is_logged_on_the_change_without_moving_the_chain(inbox: Inbox, make_draft: Draft) -> None:
+    inbox.receive(stage_event())
+
+    result = inbox.decide("evt-stage-1", make_draft(), outcome="approved")
+
+    assert result["change"]["approved"] == {"stage:payment-retry:10%": "DEC-0001"}
+    assert result["event"]["payload"]["gate"] == "stage:payment-retry:10%"
+
+
+def test_repeated_recorded_event_is_a_duplicate(inbox: Inbox) -> None:
+    inbox.receive(readiness_event("drift"))
+
+    again = inbox.receive(readiness_event("drift"))
+
+    assert again == {"status": "duplicate", "item": None}
+    assert len(inbox.changes.get("CHG-12")["history"]) == 1

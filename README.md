@@ -5,13 +5,13 @@ orkiestracja etapów, graf śladu od zgłoszenia do wydania na PROD i ocena skut
 (fabryka agentów), ci_for_sdlc (kontrola spójności definicji) i ShipScope (status wydań).
 
 Stan: **krok 1 trybu standalone zbudowany** — rejestr decyzji, serwer MCP i komenda `/record-decision`
-([instalacja w Claude Code](integrations/claude-code/README.md)) — oraz skrzynka bramek dla zdarzeń ShipScope
-(G1.5, niżej). Reszta flow SDLC na etapie planu.
+([instalacja w Claude Code](integrations/claude-code/README.md)) — oraz skrzynka bramek z orkiestracją zmian
+(G1.5 i strona pdi F4, niżej). Reszta flow SDLC na etapie planu.
 
 Praca z kodem: `uv sync`, potem `uv run pytest`, `uv run ruff check src tests`, `uv run ruff format --check src tests`,
 `uv run mypy src` (te same kroki w CI: `.github/workflows/ci.yml`). Walidacja na sobie: [`eval/dogfood/`](eval/dogfood/README.md). Kod: `src/pdi/`, kontrakt 0.3.0 (decyzja, zgłoszenie, zmiana, cięcie, zdarzenia): [`contract/`](contract/README.md), plan kroku: [`docs/plan-krok-1.md`](docs/plan-krok-1.md).
 
-## Zdarzenia ShipScope → skrzynka (G1.5)
+## Skrzynka bramek i orkiestracja (G1.5, F4)
 
 ShipScope wysyła podpisane zdarzenia kontraktu: `release.stage_changed` (flaga z planu wydania przeszła na PROD do
 innego etapu) i `feature.released` (linia wydania u ludzi; `release: R1` = MVP). `pdi-receiver` je odbiera,
@@ -20,11 +20,26 @@ repo git): bramkę dla zmiany etapu i ocenę skutku dla wydania MVP. W Claude `l
 a `decide_inbox_item` zapisuje decyzję (`kind: gate` z wynikiem albo `kind: product`, zawsze z `links.chg`) i zamyka
 pozycję. Plan i zakres: [`docs/plan-g15-pdi.md`](docs/plan-g15-pdi.md).
 
+Od F4 ([plan](docs/plan-f4-pdi.md)) skrzynka przyjmuje też `gate.requested` z tf i ci_for_sdlc (B1, B2, B3,
+`design-review`, `approve-for-implementation`, B4, B5) oraz `readiness.changed` z ci_for_sdlc (`ready` = prośba o
+„Approve for implementation”). Stan każdej zmiany jest w `changes/<CHG>.yaml`: zatwierdzone bramki, na co czeka,
+gotowość, wydane linie, historia. Decyzja na bramce zostawia `gate.decided` w `outbox/` i uruchamia następną fazę
+tf przez `workflow_dispatch` (po `changes_requested` — poprawki tej samej fazy). `list_changes`, `get_change` i
+`retry_dispatch` w Claude pokazują i ponawiają.
+
 ```bash
 PDI_REGISTRY_PATH=~/pdi-decisions \
 PDI_SHIPSCOPE_SIGNING_SECRET=<sekret podpisu z ShipScope: Settings → Sources> \
-uv run pdi-receiver        # http://127.0.0.1:8787/events/shipscope (PDI_RECEIVER_HOST, PDI_RECEIVER_PORT)
+PDI_TF_SIGNING_SECRET=<sekret wspólny z tf> PDI_CI_FOR_SDLC_SIGNING_SECRET=<sekret wspólny z ci_for_sdlc> \
+PDI_DISPATCH_REPO=<właściciel/repo produktu> PDI_GITHUB_TOKEN=<token z prawem actions:write> \
+uv run pdi-receiver        # http://127.0.0.1:8787/events/<shipscope|tf|ci_for_sdlc>
 ```
+
+Wystarczy jeden sekret; ścieżka nadawcy bez sekretu odpowiada 404. tf i ci_for_sdlc podpisują tak samo jak ShipScope,
+w nagłówkach `X-PDI-Timestamp`, `X-PDI-Event`, `X-PDI-Signature`. Szablon fazy (`PDI_DISPATCH_WORKFLOW`, domyślnie
+`sdlc-phase.yml` na `PDI_DISPATCH_REF`, domyślnie `main`) dostaje wejścia `change`, `phase`, `gate`, `outcome`,
+`decision`, `rework` i `budget_usd` (`PDI_PHASE_BUDGET_USD`). Bez `PDI_DISPATCH_REPO` decyzje się zapisują, a faza
+jest oznaczona `skipped`. Ten sam `PDI_DISPATCH_*` musi być ustawiony dla serwera MCP, który zapisuje decyzje.
 
 ShipScope wysyła tylko na publiczny adres `https://`, więc przed odbiornikiem stoi proxy TLS albo tunel (np.
 Cloudflare Tunnel); ten adres z `/events/shipscope` dodaje admin w ShipScope: Settings → General → Outgoing events.
