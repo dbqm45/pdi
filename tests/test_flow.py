@@ -173,6 +173,13 @@ def test_feature_released_records_each_line() -> None:
     assert state["status"] == "open"
 
 
+def test_released_tasks_are_kept_per_line() -> None:
+    state = feature_released(new_state("CHG-12"), "R1", "2026-11-05T12:00:00Z", at=AT, tasks=["TSK-57"])
+
+    assert state["release_tasks"] == {"R1": ["TSK-57"]}
+    assert "release_tasks" not in feature_released(new_state("CHG-12"), "R2", "2026-11-05T12:00:00Z", at=AT)
+
+
 def test_impact_review_finishes_the_change() -> None:
     state = feature_released(new_state("CHG-12"), "R1", "2026-11-05T12:00:00Z", at=AT)
 

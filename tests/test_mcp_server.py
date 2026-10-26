@@ -49,7 +49,9 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
         "get_change",
         "retry_dispatch",
         "open_due_impact_reviews",
+        "get_trace",
     }
+    assert tools["get_trace"].annotations.read_only_hint is True
     assert tools["open_due_impact_reviews"].annotations.read_only_hint is False
     assert tools["list_changes"].annotations.read_only_hint is True
     assert tools["retry_dispatch"].annotations.read_only_hint is False
@@ -114,7 +116,7 @@ async def test_stdio_end_to_end(tmp_path: Path, make_draft: Draft) -> None:
         listed = await session.list_tools()
         result = await session.call_tool("record_decision", make_draft())
 
-    assert len(listed.tools) == 10
+    assert len(listed.tools) == 11
     assert json.loads(result.content[0].text)["id"] == "DEC-0001"
     assert (tmp_path / "rejestr" / "decisions" / "_ogolne" / "DEC-0001.md").is_file()
 
@@ -174,6 +176,17 @@ async def test_impact_review_through_tools(
     assert "impact:not_met" in decided["decision"]["tags"]
     with pytest.raises(ToolError, match="RRRR-MM-DD"):
         await server.call_tool("open_due_impact_reviews", {"today": "jutro"})
+
+
+async def test_trace_through_tool(server: Any, registry: Registry, make_draft: Draft) -> None:
+    registry.record(make_draft(kind="intent", links={"chg": "CHG-12", "prb": "PRB-3"}))
+
+    graph = await call(server, "get_trace", {"change": "CHG-12", "live": False})
+
+    assert {n["id"] for n in graph["nodes"]} == {"CHG-12", "PRB-3", "DEC-0001"}
+    assert graph["mermaid"].startswith("flowchart LR")
+    with pytest.raises(ToolError, match="list_changes"):
+        await server.call_tool("get_trace", {"change": "CHG-404", "live": False})
 
 
 async def test_change_tools_return_hints(server: Any) -> None:

@@ -107,10 +107,14 @@ def readiness_changed(state: State, readiness: str, *, at: str) -> State:
     return new
 
 
-def feature_released(state: State, release: str | None, released_at: str, *, at: str) -> State:
-    """Wydanie linii (`R1`…) albo całej zmiany (`release` brak → klucz `all`)."""
+def feature_released(
+    state: State, release: str | None, released_at: str, *, at: str, tasks: list[str] | None = None
+) -> State:
+    """Wydanie linii (`R1`…) albo całej zmiany (`release` brak → klucz `all`); `tasks` trafiają do grafu śladu."""
     new = _copy(state)
     new["releases"][release or "all"] = released_at
+    if tasks:
+        new.setdefault("release_tasks", {})[release or "all"] = list(tasks)
     new["history"].append({"at": at, "what": "feature.released", "release": release or "all"})
     return new
 

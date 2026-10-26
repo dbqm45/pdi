@@ -71,6 +71,15 @@ uv run pdi-impact-review   # {"opened": [{"id": "impact-CHG-12-R1", "change": "C
 Bez `PDI_SHIPSCOPE_URL` pozycja otwiera się z `unknown` i błędem w `data.errors`. Te same `PDI_SHIPSCOPE_*` ustawia się
 dla serwera MCP.
 
+### Graf śladu (F5)
+
+`get_trace(change)` w Claude składa graf jednej zmiany: PRB → CHG → bramki i decyzje → TSK → PR → wdrożenia
+(TEST/QA/PROD, status z API usług ShipScope) → wydania → ocena skutku. Źródła to rejestr decyzji (`links.prb`,
+`links.tsk`, `links.pr`), stan zmiany, skrzynka i zadania z `feature.released`. Wynik: `nodes`, `edges`, `gaps` (luki,
+np. brak PRB, PR albo zamkniętej oceny skutku — do pokazania, nie do naprawiania) i `mermaid` (flowchart do
+wklejenia). `live=false` nie pyta ShipScope; przy `live` najwyżej 20 odczytów na graf. Plan:
+[`docs/plan-f5-graf-sladu.md`](docs/plan-f5-graf-sladu.md).
+
 ## Kierunek (od 2026-10-23)
 
 - [`docs/14-pdi-standalone.md`](docs/14-pdi-standalone.md) — **pierwszy krok: pdi jako niezależny rejestr decyzji** z zapisem jednym kliknięciem tam, gdzie decyzje zapadają (najpierw Claude CLI przez MCP i `/record-decision`, potem Slack, Confluence, Jira); flow SDLC korzysta z tego samego rejestru. Specyfikacja MVP i kryteria walidacji na sobie.

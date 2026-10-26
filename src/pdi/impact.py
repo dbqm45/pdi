@@ -177,7 +177,7 @@ def collect(
         return out
     assert config.url is not None and config.token is not None  # noqa: S101 — sprawdzone wyżej
     base = config.url.rstrip("/") + "/api/service/v1"
-    headers = {"authorization": f"Bearer {config.token}", "accept": "application/json"}
+    headers = _headers(config.token)
     query = urllib.parse.urlencode({"from": start.isoformat(), "to": today.isoformat(), "format": "json"})
     reads = (
         ("item", f"{base}/items/{urllib.parse.quote(change, safe='')}", "status zmiany"),
@@ -196,6 +196,21 @@ def collect(
         else:
             out["item"] = value
     return out
+
+
+def read_item(config: ShipScopeConfig, key: str, *, get: Get | None = None) -> tuple[dict[str, Any] | None, str | None]:
+    """Status elementu (CHG, TSK, klucz Jiry) z ShipScope: `(element, None)` albo `(None, błąd bez tokenu)`."""
+    problem = _config_problem(config)
+    if problem:
+        return None, problem
+    assert config.url is not None and config.token is not None  # noqa: S101 — sprawdzone wyżej
+    url = f"{config.url.rstrip('/')}/api/service/v1/items/{urllib.parse.quote(key, safe='')}"
+    value, error = _read_json(get or _get, url, _headers(config.token), f"status {key}")
+    return (None, error) if error else (value, None)
+
+
+def _headers(token: str) -> dict[str, str]:
+    return {"authorization": f"Bearer {token}", "accept": "application/json"}
 
 
 def _config_problem(config: ShipScopeConfig) -> str | None:
