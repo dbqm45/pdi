@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/dbqm45/pdi/contract/task.schema.json",
-  "title": "Cięcie TSK (pdi, kontrakt 0.5.0)",
+  "title": "Cięcie TSK (pdi, kontrakt 0.6.0)",
   "description": "Cięcie pionowe zmiany, osobny klucz z rodzicem CHG (jak sub-task w Jirze). Opisane w plan.md zmiany; ten schemat służy do wymiany między pdi, tf i ShipScope.",
   "type": "object",
   "additionalProperties": false,

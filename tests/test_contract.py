@@ -44,7 +44,7 @@ def test_schema_is_valid_json_schema_2020_12(name: str) -> None:
 def test_settings_define_version_key_pattern_and_default_prefixes() -> None:
     settings = contract.settings()
 
-    assert settings["version"] == contract.CONTRACT_VERSION == "0.5.0"
+    assert settings["version"] == contract.CONTRACT_VERSION == "0.6.0"
     assert settings["prefixes"] == {"problem": "PRB", "change": "CHG", "task": "TSK", "decision": "DEC"}
     assert settings["key_pattern"] == "^[A-Z][A-Z0-9]+-[0-9]+$"
 
@@ -54,7 +54,7 @@ def test_every_schema_and_event_type_has_an_example() -> None:
     stems = {p.stem for p in EXAMPLES}
 
     assert set(contract.SCHEMA_NAMES) - {"event"} == names
-    assert {"story", "release_plan", "autonomy"} <= set(contract.SCHEMA_NAMES)
+    assert {"story", "release_plan", "autonomy", "triage_recommendation"} <= set(contract.SCHEMA_NAMES)
     assert {f"event-{t}" for t in EVENT_TYPES} <= stems
 
 
@@ -448,3 +448,114 @@ def test_run_progress_status_and_cost() -> None:
 def test_events_from_contract_0_4_0_are_still_valid() -> None:
     for t in EVENT_TYPES[:8]:  # typy istniejące w 0.4.0
         assert contract.errors("event", {**example(f"event-{t}"), "contract_version": "0.4.0"}) == []
+
+
+def test_events_from_contract_0_5_0_are_still_valid() -> None:
+    for t in EVENT_TYPES:
+        assert contract.errors("event", {**example(f"event-{t}"), "contract_version": "0.5.0"}) == []
+
+
+def test_schema_titles_carry_current_contract_version() -> None:
+    for name in contract.SCHEMA_NAMES:
+        assert contract.load(name)["title"].endswith(f"kontrakt {contract.CONTRACT_VERSION})")
+
+
+# --- kontrakt 0.6.0: rekomendacja triażu (F3; schemat przeniesiony z tf) ---
+
+# Tabela „Stany zgłoszenia i mapowanie na tf” z contract/README.md.
+TF_STATE = {
+    "clarifying": {"needs-info"},
+    "accepted": {"ready-for-agent", "ready-for-human"},
+    "rejected": {"wontfix"},
+    "parked": {"needs-triage"},
+    "duplicate": {"wontfix"},
+}
+REC_BASE = {"problem": "PRB-34", "contract_version": "0.6.0", "rationale": "uzasadnienie", "drafted_by": "ai"}
+REC_VALID = {
+    "clarifying": {"tf_state": "needs-info", "questions": ["Ile ładowarek naraz?"]},
+    "accepted": {"tf_state": "ready-for-agent", "brief": "operacja zbiorcza", "executor": "agent"},
+    "rejected": {"tf_state": "wontfix", "rejection_reason": "works_as_designed"},
+    "parked": {"tf_state": "needs-triage", "tf_labels": ["deferred"], "return_when": "3 nowe zgłoszenia"},
+    "duplicate": {"tf_state": "wontfix", "duplicate_of": "PRB-7"},
+}
+
+
+def recommendation(status: str, **patch: Any) -> dict[str, Any]:
+    return {**REC_BASE, "recommended_status": status, **REC_VALID[status], **patch}
+
+
+def enum(name: str, *path: str) -> list[str]:
+    node: Any = contract.load(name)["properties"]
+    for key in path:
+        node = node[key]
+    values: list[str] = node["enum"]
+    return values
+
+
+@pytest.mark.parametrize("status", list(REC_VALID))
+def test_recommendation_for_each_status_is_valid(status: str) -> None:
+    assert contract.errors("triage_recommendation", recommendation(status)) == []
+
+
+@pytest.mark.parametrize(
+    ("status", "patch", "drop"),
+    [
+        pytest.param("clarifying", {}, "questions", id="doprecyzowanie-bez-pytan"),
+        pytest.param("clarifying", {"tf_state": "needs-triage"}, None, id="doprecyzowanie-zly-stan-tf"),
+        pytest.param("accepted", {}, "brief", id="przyjete-bez-briefu"),
+        pytest.param("accepted", {}, "executor", id="przyjete-bez-wykonawcy"),
+        pytest.param("accepted", {"executor": "robot"}, None, id="wykonawca-spoza-listy"),
+        pytest.param("accepted", {"executor": "human"}, None, id="czlowiek-a-stan-tf-dla-agenta"),
+        pytest.param("rejected", {}, "rejection_reason", id="odrzucone-bez-powodu"),
+        pytest.param("rejected", {"rejection_reason": "bo-tak"}, None, id="powod-spoza-listy"),
+        pytest.param("rejected", {"rejection_reason": "out_of_scope_recorded"}, None, id="poza-zakresem-bez-pliku"),
+        pytest.param("rejected", {"tf_state": "needs-info"}, None, id="odrzucone-zly-stan-tf"),
+        pytest.param("parked", {}, "return_when", id="odlozone-bez-progu"),
+        pytest.param("duplicate", {}, "duplicate_of", id="duplikat-bez-oryginalu"),
+        pytest.param("duplicate", {"duplicate_of": "prb-7"}, None, id="duplikat-zly-klucz"),
+        pytest.param("accepted", {"recommended_status": "new"}, None, id="stan-wejscia"),
+        pytest.param("accepted", {"tf_state": "approved"}, None, id="stan-tf-spoza-listy"),
+        pytest.param("accepted", {"change": "CHG-12"}, None, id="zmiane-tworzy-pdi"),
+        pytest.param(
+            "accepted", {"evidence": [{"text": "x", "epistemic_status": "guess"}]}, None, id="zly-status-dowodu"
+        ),
+    ],
+)
+def test_invalid_recommendations_are_rejected(status: str, patch: dict[str, Any], drop: str | None) -> None:
+    rec = {k: v for k, v in recommendation(status, **patch).items() if k != drop}
+
+    assert contract.errors("triage_recommendation", rec) != []
+
+
+def test_human_executor_maps_to_ready_for_human() -> None:
+    rec = recommendation("accepted", executor="human", tf_state="ready-for-human")
+
+    assert contract.errors("triage_recommendation", rec) == []
+
+
+def test_out_of_scope_rejection_names_the_recorded_file() -> None:
+    rec = recommendation(
+        "rejected", rejection_reason="out_of_scope_recorded", out_of_scope_file=".out-of-scope/bulk.md"
+    )
+
+    assert contract.errors("triage_recommendation", rec) == []
+
+
+def test_recommendation_uses_problem_states_and_lists() -> None:
+    rec_states = set(enum("triage_recommendation", "recommended_status"))
+
+    assert rec_states == set(enum("problem", "status")) - {"new", "ready_for_triage"} == set(TF_STATE)
+    assert enum("triage_recommendation", "rejection_reason") == enum("problem", "rejection_reason")
+    assert enum("triage_recommendation", "category") == enum("problem", "category")
+    assert enum("triage_recommendation", "evidence", "items", "properties", "epistemic_status") == enum(
+        "problem", "evidence", "items", "properties", "epistemic_status"
+    )
+    assert set(enum("triage_recommendation", "tf_state")) == set().union(*TF_STATE.values())
+
+
+@pytest.mark.parametrize("status", list(TF_STATE))
+def test_tf_state_follows_mapping_table(status: str) -> None:
+    for tf_state in enum("triage_recommendation", "tf_state"):
+        patch = {"executor": "human"} if tf_state == "ready-for-human" else {}
+        ok = contract.errors("triage_recommendation", recommendation(status, tf_state=tf_state, **patch)) == []
+        assert ok == (tf_state in TF_STATE[status]), (status, tf_state)

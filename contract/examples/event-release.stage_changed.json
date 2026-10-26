@@ -3,7 +3,7 @@
   "type": "release.stage_changed",
   "occurred_at": "2026-11-10T09:00:00Z",
   "source": "shipscope",
-  "contract_version": "0.5.0",
+  "contract_version": "0.6.0",
   "payload": {
     "change": "CHG-12",
     "release": "R1",
