@@ -116,6 +116,10 @@ def test_problem_states_with_required_details_are_valid(patch: dict[str, Any]) -
 # --- artefakt zmiany (CHG) ---
 
 
+def test_change_header_may_carry_the_report_date_of_its_source() -> None:
+    assert contract.errors("change", {**example("change"), "source_reported_at": "2026-10-20"}) == []
+
+
 def test_change_header_is_flat_yaml_compatible_with_tf() -> None:
     header = example("change")
 
@@ -133,6 +137,7 @@ def test_change_header_is_flat_yaml_compatible_with_tf() -> None:
         pytest.param({"status": "approved"}, id="status-spoza-tf"),
         pytest.param({"version": 0}, id="wersja-od-1"),
         pytest.param({"tasks": [{"id": "TSK-1"}]}, id="zagniezdzone-obiekty"),
+        pytest.param({"source_reported_at": "wczoraj"}, id="data-zgloszenia-nie-data"),
     ],
 )
 def test_invalid_change_headers_are_rejected(patch: dict[str, Any]) -> None:

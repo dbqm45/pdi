@@ -416,6 +416,9 @@ def test_accepting_without_change_assigns_next_chg_and_starts_intent_phase(regis
     assert (
         sent_problem["who"] == "operator Control Tower" and sent_problem["proposed_solution"] == "przycisk bulk update"
     )
+    assert sent_problem["reported_at"] == "2026-10-23", (
+        "data zgłoszenia trafia do nagłówka intent.md (lead time od PRB)"
+    )
     event = json.loads((registry.root / "outbox" / "problem.accepted-PRB-1.json").read_text(encoding="utf-8"))
     assert contract_errors("event", event) == []
     assert event["payload"] == {"problem": "PRB-1", "change": "CHG-13", "decision": result["decision"]["id"]}

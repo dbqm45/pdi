@@ -5,7 +5,7 @@ Wersjonowany wg SemVer 2.0.0 w [`contract.json`](contract.json); zmiana niezgodn
 (w 0.x — drugą liczbę). Odbiorca zdarzeń przypina wersję przez pole `contract_version`.
 
 Wersja: `0.5.0`. Historia: 0.5.0 — poziomy autonomii (polityka, pola decyzji, zdarzenia skrzynki i postępu pracy
-agenta; DA1, DA2); 0.4.0 — historyjka z kryteriami (G2), plan wydania (G1), nowe pola cięcia,
+agenta; DA1, DA2), `source_reported_at` w nagłówku zmiany (lead time od zgłoszenia w ShipScope); 0.4.0 — historyjka z kryteriami (G2), plan wydania (G1), nowe pola cięcia,
 `release` w `feature.released`, zdarzenie `release.stage_changed`, zestaw wzorcowy kształtu historyjki, konwencje;
 0.3.0 — zgłoszenie, artefakt zmiany, cięcie, zdarzenia, wspólny wzorzec klucza;
 0.2.0 — pole `project` w decyzji; 0.1.0 — schemat decyzji.
@@ -14,7 +14,7 @@ agenta; DA1, DA2); 0.4.0 — historyjka z kryteriami (G2), plan wydania (G1), no
 |---|---|---|---|
 | [`decision.schema.json`](decision.schema.json) | decyzja `DEC` (pola: [dokument 14 §4.1](../docs/14-pdi-standalone.md#41-schemat-decyzji-contractdecisionschemajson)) | rejestr pdi; nagłówki wpisów w `changes/CHG-n/decisions.md` | [`examples/decision.json`](examples/decision.json) |
 | [`problem.schema.json`](problem.schema.json) | zgłoszenie `PRB`: kto nie może czego → skutek, stan triażu | baza pdi | [`examples/problem.json`](examples/problem.json) |
-| [`change.schema.json`](change.schema.json) | nagłówek YAML artefaktu w `docs/project/changes/CHG-n/` (nagłówek tf + `change`, `source`, `tasks`) | repo zmiany | [`examples/change.json`](examples/change.json) |
+| [`change.schema.json`](change.schema.json) | nagłówek YAML artefaktu w `docs/project/changes/CHG-n/` (nagłówek tf + `change`, `source`, od 0.5.0 opcjonalnie `source_reported_at`, `tasks`) | repo zmiany | [`examples/change.json`](examples/change.json) |
 | [`task.schema.json`](task.schema.json) | cięcie `TSK` z rodzicem `CHG` | `plan.md` zmiany | [`examples/task.json`](examples/task.json) |
 | [`event.schema.json`](event.schema.json) | koperta zdarzenia i treść dla każdego typu | wymiana między projektami | `examples/event-*.json` |
 | [`story.schema.json`](story.schema.json) | historyjka `US-n` (albo klucz z Jiry) ze scenariuszami `AC-n` w formacie `gwt`, `ears` albo `free` | eksport z tf, konektor repo ci_for_sdlc | [`examples/story.json`](examples/story.json) |

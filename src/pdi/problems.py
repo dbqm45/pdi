@@ -306,7 +306,17 @@ class ProblemStore:
         outbox.mkdir(parents=True, exist_ok=True)
         event_path = outbox / f"{event['id']}.json"
         event_path.write_text(json.dumps(event, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        fields = ("title", "kind", "who", "cannot", "impact", "workaround", "frequency", "proposed_solution")
+        fields = (
+            "title",
+            "kind",
+            "who",
+            "cannot",
+            "impact",
+            "workaround",
+            "frequency",
+            "proposed_solution",
+            "reported_at",
+        )
         problem = json.dumps({k: item[k] for k in fields if item.get(k)}, ensure_ascii=False)
         sent = dispatch_phase(
             self._dispatch,
