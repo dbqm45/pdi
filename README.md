@@ -120,6 +120,7 @@ intake zgłoszeń to F3. Plan: [`docs/plan-f5-powiadomienia.md`](docs/plan-f5-po
 - [`docs/plan-g1-g2.md`](docs/plan-g1-g2.md) — plan domknięcia luk G1 (plan wydania i MVP) i G2 (kształt historyjki
   i kryteriów akceptacji): reguły, zmiany plik po pliku w pdi, tf, ci_for_sdlc i ShipScope, kroki, decyzje DG1–DG7.
 - [`docs/plan-automatyzacja-i-konsola.md`](docs/plan-automatyzacja-i-konsola.md) — gdzie jeszcze automatyzować
+- [`docs/przebieg-na-sobie-s5.md`](docs/przebieg-na-sobie-s5.md) — przebieg jednej zmiany (sprintdeck S5) przez cały ekosystem, z poleceniami i dziennikiem
   (poziomy autonomii 0–3 zdobywane na danych, kroki A0–A8) i konsola pdi: oś zdarzeń, skrzynka decyzji, rozmowa z Claude.
 - [`docs/kontekst-rozmowy.md`](docs/kontekst-rozmowy.md) — kontekst i przekazanie dla kolejnej sesji.
 - [`docs/13-rola-pdi-w-sdlc.md`](docs/13-rola-pdi-w-sdlc.md) — **rola pdi w procesie**: co posiada, co wywołuje, na których etapach pojawia się człowiek w pdi; rozbieżności między wersjami mapy i planem (R1: gdzie żyje rejestr decyzji). Źródło: [mapa procesu, wersje 1 i 2](docs/zrodla/2026-10-23-mapa-sdlc.md).
