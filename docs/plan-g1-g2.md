@@ -1,6 +1,6 @@
 # Plan wydania i kształt historyjek — plan domknięcia luk G1 i G2
 
-Data: 2026-10-25 · Status: **w realizacji**: tryb Jira i tryb repo w ShipScope zrobione, G2.3 wstrzymane (stan w §10; [plan K0](plan-k0-kontrakt-040.md)); decyzje DG1–DG7 przyjęte w [`decyzje.md`](decyzje.md) · Wersja HTML: https://claude.ai/artifact/G9Z2ubF7EtoWxMST1M7Gy1
+Data: 2026-10-25 · Status: **w realizacji**: 9 z 14 kroków zrobione; czekają G1.4 (konektor repo z F2), G2.5 (SaaS), G2.6, G1.6, G2.3 wstrzymane (stan w §10; [plan K0](plan-k0-kontrakt-040.md)); decyzje DG1–DG7 przyjęte w [`decyzje.md`](decyzje.md) · Wersja HTML: https://claude.ai/artifact/G9Z2ubF7EtoWxMST1M7Gy1
 
 Szczegółowy plan dla dwóch luk z mapy ekosystemu (https://claude.ai/artifact/9gz1UhJZRNXHq5VgUciava): **G2** —
 kształt historyjki i kryteriów akceptacji, **G1** — plan wydania i MVP. Dla każdej: reguły, zmiany w konkretnych
@@ -381,9 +381,9 @@ dopisek `Flag:`, który dodaje Talos z tf. Zdarzenia do pdi wymagają wychodząc
 
 ## 10. Stan realizacji
 
-Stan na 2026-10-25 (aktualizacja po ShipScope #107–#108 i ci_for_sdlc #62), sprawdzony na gałęziach `main`
-wszystkich repozytoriów. Tryb Jira dla G1 i G2 jest zrobiony, ShipScope czyta też zmiany i plany wydania z repo;
-G2.3 jest wstrzymane decyzją [D-G23](decyzje.md). Reszta czeka na fazy planu jednego flow albo na tryb SaaS.
+Stan na 2026-10-26, sprawdzony na gałęziach `main` wszystkich repozytoriów. G1 i G2 są zrobione poza G1.4, który
+czeka na konektor repo w ci_for_sdlc (F2), krokami zależnymi od trybu SaaS i sprintdecka oraz G2.3, wstrzymanym
+decyzją [D-G23](decyzje.md). Fazy F1, F3, F4 i F5 planu jednego flow są zrobione; F2 i F6 częściowo.
 
 | Krok | Repo | Stan | Gdzie | Uwagi |
 |---|---|---|---|---|
@@ -391,33 +391,46 @@ G2.3 jest wstrzymane decyzją [D-G23](decyzje.md). Reszta czeka na fazy planu je
 | G2.1 parser AC | ci_for_sdlc | zrobione | #58 | |
 | G2.2a reguły STORY i AC | ci_for_sdlc | zrobione | #59 | G2.2 podzielony na dwa PR-y. Odłożone do `docs/BACKLOG-DEFERRED.md` (G2-L1): AC zapisane jako lista, `COV-001` liczone po scenariuszach, sposób liczenia w STORY-002. |
 | G2.2b ustawienia kształtu w UI | ci_for_sdlc | zrobione | #60 | `storyShape` w `DEFAULT_POLICY`, `PUT /api/settings`, Settings → Policy |
-| G2.4 autor historyjek | tf | zrobione | #77 | słownictwo w `story_shape_vocabulary.json`, lint pojedynczej historyjki (`--story`) używany przez Talosa |
+| G2.4 autor historyjek | tf | zrobione | #77 | słownictwo w `story_shape_vocabulary.json`, lint pojedynczej historyjki (`--story`) używany przez Talosa; zgodność z ci_for_sdlc sprawdza test w ci_for_sdlc #70 |
 | G1.1 plan wydania | tf | zrobione | #78 | |
 | G1.2 reguły REL w Jirze | ci_for_sdlc | zrobione | #61 | REL-001…006, wymiar `delivery`, panel planu na stronie epiku |
 | G1.3 zakładka „Plan wydania” | ShipScope | zrobione (tryb Jira i repo) | #106, #108 | migracje 036 i 038 zamiast 032–033 z planu (numeracja ShipScope poszła dalej); plan kroku w `design-docs/G1.3-PLAN.pl.md`; tryb repo waliduje `release.yaml` przypiętą kopią schematu z kontraktu i pokazuje błędy spójności |
-| F1 (część ShipScope) | ShipScope | zrobione | #107 | zmiany i cięcia z `docs/project/changes/` (migracja 037); commit z `TSK-n` liczy się dla `CHG-n`; ingest flag przyjmuje `itemKeys` |
-| F1 (część tf) | tf | częściowo | | Talos dopisuje `Change: TSK-n` tylko opcjonalnie; brakuje hooka `commit-msg` i reguły w `core-conventional-commits`, czytania cięć z `changes/CHG-n/plan.md` przez Talosa i raportu przebiegu w repo |
+| G1.5 bramki i zdarzenia | pdi + ShipScope | zrobione | ShipScope #109, pdi #15–#17 | [plan kroku](plan-g15-pdi.md): skrzynka dla `release.stage_changed` i `feature.released` (#15); maszyna stanów per CHG i bramki z tf i ci_for_sdlc w F4 (#16, #17) |
 | G2.3 propozycje AI | ci_for_sdlc | wstrzymane | #62 | decyzja [D-G23](decyzje.md): rozstrzygnięcie po pilocie |
-| G1.4 reguły REL w repo | ci_for_sdlc | czeka | | F2 (konektor repo) |
-| G1.5 bramki i zdarzenia | pdi + ShipScope | zrobione (cienka skrzynka) | ShipScope #109, pdi #15 | [plan kroku](plan-g15-pdi.md): ShipScope wysyła podpisane `release.stage_changed` i `feature.released`; pdi odbiera je (`pdi-receiver`), robi z nich bramki i oceny skutku MVP w skrzynce (`list_inbox`, `decide_inbox_item` → decyzja `kind: gate` / `product` z `links.chg`). Maszyna stanów per CHG i bramki z tf i ci_for_sdlc zostają w F4 |
+| G1.4 reguły REL w repo | ci_for_sdlc | czeka | | F2: konektor `docs/project/changes/` i status check na PR |
 | G2.5 panel w Jirze | nowe repo + ci_for_sdlc | czeka | | tryb SaaS ci_for_sdlc i ShipScope |
-| G2.6 sygnał z estymacji | sprintdeck + ci_for_sdlc | czeka | | MVP sprintdecka z importem z Jiry; rola sprintdecka zmieniona decyzją [D-E1](decyzje.md) |
+| G2.6 sygnał z estymacji | sprintdeck + ci_for_sdlc | czeka | | pokoje, talia „Risk” (S6) i limity (S3) są w sprintdecku (#4–#11); brakuje importu z Jiry; rola sprintdecka zmieniona decyzją [D-E1](decyzje.md) |
 | G1.6 edytor mapy historyjek | pdi | warunkowo | | po pilocie |
+
+Fazy [planu jednego flow](plan-jeden-flow-sdlc.md), od których zależą kroki powyżej:
+
+| Faza | Stan | Gdzie |
+|---|---|---|
+| F1 ślad w commitach | zrobione | tf #80 (dopisek `Change:`, hook `commit-msg`, Talos na cięciach zmiany); ShipScope #107 |
+| F2 spójność na repo | częściowo | zrobione: eksport rekonstrukcji w JSON (tf #83), rekonstrukcja jako źródło w ci_for_sdlc (#69); brakuje: konektora `changes/` i status checka na PR (blokuje G1.4) |
+| F3 pdi MVP | zrobione | pdi #23 (zgłoszenia, duplikaty, przyjęcie przez fazę intent); tf #82 (triaż PRB w stanach pdi), #84 (faza intent z przyjętego PRB); ci_for_sdlc #66 (gotowość do pdi) |
+| F4 orkiestracja | zrobione | pdi #16, #17; tf #79 (fazy bez interakcji); ci_for_sdlc #66 (zatwierdzenie z bramek pdi) |
+| F5 zamknięcie pętli | zrobione | ShipScope #109–#113 (zdarzenia, API usług, release notes z intencji, lead time od intencji i od zgłoszenia); pdi #18–#21, #26 (ocena skutku, graf śladu, `metric.breached`, powiadomienia, data zgłoszenia w nagłówku zmiany); tf #81 (pasma kontrolne) |
+| F6 rozszerzenia | częściowo | zrobione: AI review w CI z `REVIEW.md` (tf #86); brakuje: designu przez Figma MCP, evali przepływu, OpenAPI jako źródła, porównania ekranów z Figmą, Slacka/Teams i lustra w Jirze |
 
 Decyzje DG1–DG7 z §2 są wpisane do [`decyzje.md`](decyzje.md) jako przyjęte 2026-10-25. DG1, DG2, DG4, DG5 i DG6
 są zastosowane w kodzie; DG3 i DG7 dotyczą kroków jeszcze niezrealizowanych (G2.3, G2.5).
 
-**Uwaga o jakości:** PR-y od #58 w ci_for_sdlc, #77 w tf, #106 w ShipScope oraz #15–#23 w pdi scalono bez CI na GitHubie, bo GitHub
-Actions nie uruchamia zadań (płatności na koncie). Lokalnie sprawdzone: ci_for_sdlc `packages/core` 437/437 testów
-i typecheck na kodzie G1.2; tf `tools/workspace.py check --packs pack-it` na kodzie G2.4; pdi #15–#23 (#22 to sama dokumentacja): pytest
-(338, 408, 420, 460, 471, 479, 500 i 523), ruff, format i mypy, czyli kroki `ci.yml`.
+**Uwaga o jakości:** GitHub Actions nadal nie uruchamia zadań (płatności na koncie; zadania kończą się bez żadnego
+kroku, sprawdzone 2026-10-26 na pdi `db1c7ef`). Bez CI na GitHubie scalono PR-y od #58 w ci_for_sdlc, od #77 w tf,
+od #106 w ShipScope i od #15 w pdi. Lokalnie sprawdzone: ci_for_sdlc `packages/core` 437/437 testów i typecheck na kodzie
+G1.2; tf `tools/workspace.py check --packs pack-it` na kodzie G2.4; pdi na `main` z 2026-10-26 (`cc5784b`): pytest
+587 testów, ruff, format i mypy, czyli kroki `ci.yml`. Kod tf, ci_for_sdlc, ShipScope i sprintdecka scalony 2026-10-26
+nie był sprawdzany lokalnie w tej aktualizacji.
 
 **Następne kroki:**
-1. Domknąć F1 w tf (hook `commit-msg` z `Change: TSK-n`, Talos na cięciach z `changes/CHG-n/plan.md`, raport
-   przebiegu w repo): dopiero wtedy commity są przypięte do zmian, które ShipScope już czyta.
-2. F2 w ci_for_sdlc (konektor repo): odblokowuje G1.4.
+1. Przebieg na sobie: jedna zmiana sprintdecka od PRB w pdi do oceny skutku przez wszystkie aplikacje, żeby
+   sprawdzić połączenia na prawdziwej zmianie, a nie tylko w testach.
+2. F2 w ci_for_sdlc (konektor `changes/`, status check na PR): odblokowuje G1.4.
 3. Pilot na prawdziwym backlogu według kryteriów z §4.8 i §5.9; jego wynik rozstrzyga D-G23 (G2.3).
-4. Równolegle: A0 i K-1 z [planu automatyzacji i konsoli](plan-automatyzacja-i-konsola.md).
+4. K-1 z [planu automatyzacji i konsoli](plan-automatyzacja-i-konsola.md): serwery MCP dla ci_for_sdlc
+   i ShipScope (ShipScope ma już API usług, #110).
+5. Naprawić płatności GitHub Actions.
 
 ---
 
