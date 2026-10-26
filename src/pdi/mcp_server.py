@@ -15,7 +15,8 @@ from pdi.changes import ChangeNotFound
 from pdi.dispatch import DispatchConfig
 from pdi.impact import ShipScopeConfig
 from pdi.inbox import Inbox, ItemClosed, ItemNotFound
-from pdi.notify import NotifyConfig
+from pdi.notify import NotifyConfig, ReporterNotifyConfig
+from pdi.problems import InvalidProblem, ProblemNotFound, ProblemStore
 from pdi.registry import CannotSupersede, Decision, DecisionNotFound, InvalidDecision, Registry
 from pdi.trace import trace
 
@@ -26,7 +27,9 @@ których nie było w rozmowie; czego brakuje, o to zapytaj. Zanim zaproponujesz 
 być już rozstrzygnięty, sprawdź find_decisions; gdy propozycja przeczy wcześniejszej decyzji, powiedz to wprost
 i zaproponuj supersede_decision zamiast cichej zmiany kursu. Skrzynka (list_inbox) zbiera bramki i oceny skutku
 z tf, ci_for_sdlc i ShipScope; decide_inbox_item zapisuje decyzję jak record_decision — też tylko po zatwierdzeniu
-szkicu — i uruchamia następną fazę. Stan przebiegu zmiany: list_changes, get_change."""
+szkicu — i uruchamia następną fazę. Stan przebiegu zmiany: list_changes, get_change. Zgłoszenia (PRB): zapisuj
+(record_problem) tylko to, co zgłaszający powiedział, w formacie kto nie może czego i z jakim skutkiem; triage_problem
+jak każda decyzja — po zatwierdzeniu szkicu. Zgłaszający dostaje powiadomienia sam."""
 
 Kind = Literal["product", "technical", "process", "triage", "intent", "gate", "other"]
 Status = Literal["recorded", "superseded", "reverted"]
@@ -35,6 +38,31 @@ ChangeStatus = Literal["open", "rejected", "done", "all"]
 GateOutcome = Literal["approved", "changes_requested", "rejected"]
 ImpactOutcome = Literal["met", "not_met", "unknown"]
 ProblemOutcome = Literal["accepted", "rejected"]
+TriageOutcome = Literal["accepted", "rejected", "parked", "duplicate"]
+Channel = Literal["form", "slack", "teams", "support", "postmortem", "operate", "manual"]
+RejectionReason = Literal[
+    "out_of_strategy", "works_as_designed", "cost_disproportionate", "already_exists", "out_of_scope_recorded", "other"
+]
+ProblemStatus = Literal["new", "clarifying", "ready_for_triage", "accepted", "rejected", "parked", "duplicate", "all"]
+PROBLEM_FIELDS = (
+    "kind",
+    "title",
+    "who",
+    "cannot",
+    "impact",
+    "reporter",
+    "channel",
+    "category",
+    "workaround",
+    "frequency",
+    "cost",
+    "proposed_solution",
+    "source_url",
+    "project",
+    "evidence",
+    "reports_count",
+    "related",
+)
 
 
 class Source(TypedDict):
@@ -116,7 +144,11 @@ def build_server(
             dispatch=dispatch(),
             notify=NotifyConfig.from_env(),
             shipscope=ShipScopeConfig.from_env(),
+            reporters=ReporterNotifyConfig.from_env(),
         )
+
+    def open_problems() -> ProblemStore:
+        return ProblemStore(open_registry(), notify=ReporterNotifyConfig.from_env())
 
     @server.tool(annotations=_WRITE)
     def record_decision(
@@ -306,6 +338,96 @@ def build_server(
         try:
             return trace(open_registry(), change, shipscope=ShipScopeConfig.from_env(), live=live)
         except ChangeNotFound as e:
+            raise ToolError(str(e)) from e
+
+    @server.tool(annotations=_WRITE)
+    def record_problem(
+        kind: Literal["problem", "idea"],
+        title: str,
+        who: str,
+        cannot: str,
+        impact: str,
+        reporter: str,
+        channel: Channel,
+        category: Literal["bug", "enhancement"] | None = None,
+        workaround: str | None = None,
+        frequency: str | None = None,
+        cost: str | None = None,
+        proposed_solution: str | None = None,
+        source_url: str | None = None,
+        project: str | None = None,
+        evidence: list[Evidence] | None = None,
+        reports_count: int | None = None,
+        related: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Zapisuje zgłoszenie (PRB): kto (who) nie może czego (cannot) i z jakim skutkiem (impact), od kogo (reporter,
+        np. login albo adres, na który odbiorca powiadomień ją dostarczy) i którędy (channel). pdi nadaje id (PRB-n),
+        datę i status new. Zapisuj tylko to, co zgłaszający powiedział; rozwiązanie z jego słów idzie do
+        proposed_solution, nie do opisu problemu.
+        """
+        draft = {k: v for k, v in locals().items() if k in PROBLEM_FIELDS and v is not None}
+        try:
+            return open_problems().record(draft)
+        except InvalidProblem as e:
+            raise ToolError(str(e)) from e
+
+    @server.tool(annotations=_READ)
+    def list_problems(status: ProblemStatus = "all") -> dict[str, list[dict[str, Any]]]:
+        """Zgłoszenia (PRB) w rejestrze pdi, od najstarszego; status filtruje (domyślnie wszystkie)."""
+        return {"problems": open_problems().all(status=None if status == "all" else status)}
+
+    @server.tool(annotations=_READ)
+    def get_problem(problem_id: str) -> dict[str, Any]:
+        """Pełne zgłoszenie (np. PRB-3) w kształcie kontraktu."""
+        try:
+            return open_problems().get(problem_id)
+        except ProblemNotFound as e:
+            raise ToolError(str(e)) from e
+
+    @server.tool(annotations=_WRITE)
+    def triage_problem(
+        problem_id: str,
+        outcome: TriageOutcome,
+        statement: str,
+        why: str,
+        source: Source,
+        drafted_by: Literal["ai", "human"],
+        change: str | None = None,
+        rejection_reason: RejectionReason | None = None,
+        rejection_note: str | None = None,
+        return_when: str | None = None,
+        duplicate_of: str | None = None,
+        decided_by: str | None = None,
+        decided_at: str | None = None,
+        evidence: list[Evidence] | None = None,
+        tags: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Triaż zgłoszenia — wywołuj po zatwierdzeniu szkicu przez człowieka. outcome: accepted (wymaga change, CHG,
+        z którą idzie dalej), rejected (rejection_reason, rejection_note), parked (return_when), duplicate
+        (duplicate_of). Zapisuje decyzję kind triage z links.prb i wynik w zgłoszeniu, potem wysyła zgłaszającemu
+        powiadomienie (PDI_NOTIFY_URL). Wydanie zmiany i ocena jej skutku powiadamiają go potem same.
+        """
+        draft = _draft({**locals(), "kind": "triage"})
+        try:
+            return open_problems().triage(
+                problem_id,
+                outcome,
+                draft,
+                change=change,
+                rejection_reason=rejection_reason,
+                rejection_note=rejection_note,
+                return_when=return_when,
+                duplicate_of=duplicate_of,
+            )
+        except (ProblemNotFound, InvalidDecision) as e:
+            raise ToolError(str(e)) from e
+
+    @server.tool(annotations=_WRITE)
+    def retry_problem_notifications(problem_id: str) -> dict[str, Any]:
+        """Ponawia nieudane i pominięte powiadomienia zgłaszającego (np. po ustawieniu PDI_NOTIFY_URL)."""
+        try:
+            return open_problems().retry(problem_id)
+        except ProblemNotFound as e:
             raise ToolError(str(e)) from e
 
     @server.tool(annotations=_WRITE)
