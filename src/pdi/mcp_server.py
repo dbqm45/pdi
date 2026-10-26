@@ -28,7 +28,9 @@ być już rozstrzygnięty, sprawdź find_decisions; gdy propozycja przeczy wcze�
 i zaproponuj supersede_decision zamiast cichej zmiany kursu. Skrzynka (list_inbox) zbiera bramki i oceny skutku
 z tf, ci_for_sdlc i ShipScope; decide_inbox_item zapisuje decyzję jak record_decision — też tylko po zatwierdzeniu
 szkicu — i uruchamia następną fazę. Stan przebiegu zmiany: list_changes, get_change. Zgłoszenia (PRB): zapisuj
-(record_problem) tylko to, co zgłaszający powiedział, w formacie kto nie może czego i z jakim skutkiem; triage_problem
+(record_problem) tylko to, co zgłaszający powiedział, w formacie kto nie może czego i z jakim skutkiem; gdy
+zgłaszający podaje rozwiązanie, przeformułuj je na problem, a jego słowa zostaw w proposed_solution. Czego brakuje,
+o to zapytaj (clarify_problem, 3–5 pytań). Przed triażem sprawdź podobne (find_similar_problems); triage_problem
 jak każda decyzja — po zatwierdzeniu szkicu. Zgłaszający dostaje powiadomienia sam."""
 
 Kind = Literal["product", "technical", "process", "triage", "intent", "gate", "other"]
@@ -148,7 +150,7 @@ def build_server(
         )
 
     def open_problems() -> ProblemStore:
-        return ProblemStore(open_registry(), notify=ReporterNotifyConfig.from_env())
+        return ProblemStore(open_registry(), notify=ReporterNotifyConfig.from_env(), dispatch=dispatch())
 
     @server.tool(annotations=_WRITE)
     def record_decision(
@@ -371,6 +373,47 @@ def build_server(
         except InvalidProblem as e:
             raise ToolError(str(e)) from e
 
+    @server.tool(annotations=_WRITE)
+    def clarify_problem(problem_id: str, questions: list[str]) -> dict[str, Any]:
+        """Wysyła zgłaszającemu 1–5 pytań (najlepiej 3–5) i ustawia status clarifying. Pytaj o to, czego brakuje do
+        opisu problemu (kto, czego nie może, skutek, jak często), nie o rozwiązanie."""
+        try:
+            return open_problems().clarify(problem_id, questions)
+        except (ProblemNotFound, InvalidProblem) as e:
+            raise ToolError(str(e)) from e
+
+    @server.tool(annotations=_WRITE)
+    def update_problem(
+        problem_id: str,
+        ready: bool = False,
+        title: str | None = None,
+        who: str | None = None,
+        cannot: str | None = None,
+        impact: str | None = None,
+        workaround: str | None = None,
+        frequency: str | None = None,
+        cost: str | None = None,
+        proposed_solution: str | None = None,
+        category: Literal["bug", "enhancement"] | None = None,
+        evidence: list[Evidence] | None = None,
+    ) -> dict[str, Any]:
+        """Poprawia opis zgłoszenia (np. po odpowiedziach zgłaszającego albo gdy rozwiązanie trzeba przeformułować na
+        problem); ready=true ustawia ready_for_triage. Status i wynik nadaje triaż."""
+        fields = {k: v for k, v in locals().items() if k in PROBLEM_FIELDS and v is not None}
+        try:
+            return open_problems().update(problem_id, fields, ready=ready)
+        except (ProblemNotFound, InvalidProblem) as e:
+            raise ToolError(str(e)) from e
+
+    @server.tool(annotations=_READ)
+    def find_similar_problems(problem_id: str) -> dict[str, list[dict[str, Any]]]:
+        """Zgłoszenia podobne do problem_id (bez odrzuconych i duplikatów), z miarą podobieństwa 0–1 — kandydaci na
+        duplikat przy triażu."""
+        try:
+            return {"similar": open_problems().similar(problem_id)}
+        except ProblemNotFound as e:
+            raise ToolError(str(e)) from e
+
     @server.tool(annotations=_READ)
     def list_problems(status: ProblemStatus = "all") -> dict[str, list[dict[str, Any]]]:
         """Zgłoszenia (PRB) w rejestrze pdi, od najstarszego; status filtruje (domyślnie wszystkie)."""
@@ -402,10 +445,11 @@ def build_server(
         evidence: list[Evidence] | None = None,
         tags: list[str] | None = None,
     ) -> dict[str, Any]:
-        """Triaż zgłoszenia — wywołuj po zatwierdzeniu szkicu przez człowieka. outcome: accepted (wymaga change, CHG,
-        z którą idzie dalej), rejected (rejection_reason, rejection_note), parked (return_when), duplicate
-        (duplicate_of). Zapisuje decyzję kind triage z links.prb i wynik w zgłoszeniu, potem wysyła zgłaszającemu
-        powiadomienie (PDI_NOTIFY_URL). Wydanie zmiany i ocena jej skutku powiadamiają go potem same.
+        """Triaż zgłoszenia — wywołuj po zatwierdzeniu szkicu przez człowieka. outcome: accepted (change opcjonalnie;
+        bez niej pdi nadaje kolejny CHG-n, zakłada stan zmiany i uruchamia fazę intent w tf, która otworzy PR z
+        intent.md i poprosi o B1), rejected (rejection_reason, rejection_note), parked (return_when, np. „3 nowe
+        zgłoszenia” — po tylu duplikatach wróci do triażu), duplicate (duplicate_of; oryginał dostaje liczbę zgłoszeń i
+        dowód). Zapisuje decyzję kind triage z links.prb i wynik w zgłoszeniu, potem powiadamia zgłaszającego.
         """
         draft = _draft({**locals(), "kind": "triage"})
         try:

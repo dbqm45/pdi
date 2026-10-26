@@ -153,3 +153,14 @@ def test_config_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     cfg = DispatchConfig.from_env()
 
     assert (cfg.repo, cfg.workflow, cfg.ref, cfg.token) == (None, "sdlc-phase.yml", "main", None)
+
+
+def test_source_and_problem_are_sent_only_when_given() -> None:
+    github = FakeGitHub()
+
+    run(config(), github, phase="intent", source="PRB-3", problem='{"title": "T"}')
+    run(config(), github)
+
+    with_problem, plain = (c[2]["inputs"] for c in github.calls)
+    assert (with_problem["source"], with_problem["problem"]) == ("PRB-3", '{"title": "T"}')
+    assert "source" not in plain and "problem" not in plain

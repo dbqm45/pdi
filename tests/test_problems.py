@@ -65,7 +65,7 @@ def test_record_assigns_id_date_and_status_and_keeps_contract_shape(registry: Re
     assert (first["id"], second["id"]) == ("PRB-1", "PRB-2")
     assert (first["reported_at"], first["status"]) == ("2026-10-23", "new")
     stored = yaml.safe_load((registry.root / "problems" / "PRB-1.yaml").read_text(encoding="utf-8"))
-    assert stored == first
+    assert stored == {k: v for k, v in first.items() if k != "similar"}
     assert problems.get("PRB-2")["title"] == "Drugie"
     assert [p["id"] for p in problems.all()] == ["PRB-1", "PRB-2"]
 
@@ -159,7 +159,6 @@ def test_other_outcomes_set_their_fields_and_say_so(
     ("outcome", "extra", "match"),
     [
         ("approved", {}, "accepted"),
-        ("accepted", {}, "change"),
         ("duplicate", {}, "duplicate_of"),
         ("rejected", {"rejection_reason": "bo tak"}, "rejection_reason"),
     ],
@@ -259,3 +258,195 @@ def test_changes_without_a_problem_notify_nobody(registry: Registry) -> None:
     Inbox(registry, reporters=NOTIFY, reporter_post=hook).receive(released_event())
 
     assert hook.calls == []
+
+
+# --- F3: podobne zgłoszenia, doprecyzowanie, scalenie, próg powrotu, przyjęcie do budowy ---
+
+
+def test_record_returns_similar_problems_best_first(registry: Registry) -> None:
+    problems = store(registry)
+    problems.record(problem())
+    problems.record(
+        problem(title="Eksport faktur do CSV", who="księgowa", cannot="pobrać faktur", impact="ręczna praca")
+    )
+
+    third = problems.record(problem(title="Operacje masowe na ładowarkach", impact="zmiana konfiguracji trwa dzień"))
+
+    assert [s["id"] for s in third["similar"]] == ["PRB-1"]
+    assert 0.3 <= third["similar"][0]["score"] <= 1
+    assert "similar" not in problems.get("PRB-3")
+    assert [s["id"] for s in problems.similar("PRB-1")] == ["PRB-3"]
+
+
+def test_rejected_and_duplicates_are_not_offered_as_similar(registry: Registry, make_draft: Any) -> None:
+    problems = store(registry, FakeHook())
+    problems.record(problem())
+    problems.triage("PRB-1", "rejected", make_draft(), rejection_reason="other")
+
+    assert problems.record(problem())["similar"] == []
+
+
+def test_clarify_asks_questions_and_update_makes_it_ready(registry: Registry) -> None:
+    hook = FakeHook()
+    problems = store(registry, hook)
+    problems.record(problem(cannot="kliknąć przycisku bulk update"))
+
+    asked = problems.clarify("PRB-1", ["Ile ładowarek zmieniacie naraz?", "Jak często?", "Co robicie dziś?"])
+    updated = problems.update(
+        "PRB-1",
+        {"cannot": "zmienić konfiguracji wielu ładowarek jedną operacją", "proposed_solution": "przycisk bulk update"},
+        ready=True,
+    )
+
+    assert asked["problem"]["status"] == "clarifying"
+    sent = hook.bodies()[-1]
+    assert sent["what"] == "questions" and sent["questions"][0] == "Ile ładowarek zmieniacie naraz?"
+    assert "pytania" in sent["message"]
+    assert updated["status"] == "ready_for_triage"
+    assert updated["proposed_solution"] == "przycisk bulk update"
+    notes = yaml.safe_load((registry.root / "problem-notes" / "PRB-1.yaml").read_text(encoding="utf-8"))
+    assert notes["questions"][0]["questions"][1] == "Jak często?"
+
+
+@pytest.mark.parametrize(
+    ("call", "match"),
+    [
+        (lambda p: p.clarify("PRB-1", []), "1–5"),
+        (lambda p: p.clarify("PRB-1", ["?"] * 6), "1–5"),
+        (lambda p: p.update("PRB-1", {"status": "accepted"}), "status"),
+        (lambda p: p.update("PRB-1", {"channel": "gołębie"}), "channel"),
+    ],
+    ids=["bez-pytan", "za-duzo-pytan", "wlasny-status", "zly-kanal"],
+)
+def test_bad_clarify_or_update_is_refused(registry: Registry, call: Any, match: str) -> None:
+    problems = store(registry, FakeHook())
+    problems.record(problem())
+
+    with pytest.raises(InvalidProblem, match=match):
+        call(problems)
+    assert problems.get("PRB-1")["status"] == "new"
+
+
+def test_duplicate_is_merged_into_the_original(registry: Registry, make_draft: Any) -> None:
+    problems = store(registry, FakeHook())
+    problems.record(problem())
+    problems.record(problem(reporter="operator-2"))
+
+    problems.triage("PRB-2", "duplicate", make_draft(), duplicate_of="PRB-1")
+
+    original = problems.get("PRB-1")
+    assert original["reports_count"] == 2
+    assert original["related"] == ["PRB-2"]
+    assert original["evidence"][-1]["epistemic_status"] == "observation"
+    assert "PRB-2" in original["evidence"][-1]["text"] and "operator-2" in original["evidence"][-1]["text"]
+
+
+def test_parked_problem_returns_after_its_report_threshold(registry: Registry, make_draft: Any) -> None:
+    hook = FakeHook()
+    problems = store(registry, hook)
+    problems.record(problem())
+    problems.triage("PRB-1", "parked", make_draft(), return_when="2 nowe zgłoszenia")
+    for n in (2, 3):
+        problems.record(problem(reporter=f"operator-{n}"))
+
+    problems.triage("PRB-2", "duplicate", make_draft(), duplicate_of="PRB-1")
+    assert problems.get("PRB-1")["status"] == "parked"
+    problems.triage("PRB-3", "duplicate", make_draft(), duplicate_of="PRB-1")
+
+    assert problems.get("PRB-1")["status"] == "ready_for_triage"
+    returned = [b for b in hook.bodies() if b["what"] == "returned"]
+    assert [b["problem"] for b in returned] == ["PRB-1"]
+    assert problems.triage("PRB-1", "accepted", make_draft(), change="CHG-30")["problem"]["status"] == "accepted"
+
+
+def test_threshold_without_a_number_is_only_shown(registry: Registry, make_draft: Any) -> None:
+    problems = store(registry, FakeHook())
+    problems.record(problem())
+    problems.triage("PRB-1", "parked", make_draft(), return_when="po incydencie na produkcji")
+    problems.record(problem())
+
+    problems.triage("PRB-2", "duplicate", make_draft(), duplicate_of="PRB-1")
+
+    assert problems.get("PRB-1")["status"] == "parked"
+
+
+def accepting(registry: Registry, github: Any | None = None) -> ProblemStore:
+    from pdi.dispatch import DispatchConfig
+
+    dispatch = DispatchConfig(repo="dbqm45/sklep", token="ghs_t")  # noqa: S106 — token testowy
+    return ProblemStore(registry, notify=NOTIFY, post=FakeHook(), dispatch=dispatch, dispatch_post=github)
+
+
+def test_accepting_without_change_assigns_next_chg_and_starts_intent_phase(registry: Registry, make_draft: Any) -> None:
+    from pdi.changes import ChangeStore
+    from pdi.contract import errors as contract_errors
+    from tests.test_dispatch import FakeGitHub
+
+    github = FakeGitHub()
+    ChangeStore(registry).save(
+        {
+            "change": "CHG-12",
+            "status": "open",
+            "approved": {},
+            "waiting": [],
+            "readiness": None,
+            "baseline_drift": False,
+            "releases": {},
+            "history": [],
+        }
+    )
+    problems = accepting(registry, github)
+    problems.record(problem(workaround="po kolei", proposed_solution="przycisk bulk update"))
+
+    result = problems.triage("PRB-1", "accepted", make_draft())
+
+    assert result["problem"]["change"] == "CHG-13"
+    state = ChangeStore(registry).get("CHG-13")
+    assert state["source"] == "PRB-1"
+    assert state["dispatch"]["status"] == "sent" and state["dispatch"]["phase"] == "intent"
+    inputs = github.calls[0][2]["inputs"]
+    assert (inputs["change"], inputs["phase"], inputs["gate"], inputs["source"]) == (
+        "CHG-13",
+        "intent",
+        "triage",
+        "PRB-1",
+    )
+    assert inputs["decision"] == result["decision"]["id"]
+    sent_problem = json.loads(inputs["problem"])
+    assert (
+        sent_problem["who"] == "operator Control Tower" and sent_problem["proposed_solution"] == "przycisk bulk update"
+    )
+    event = json.loads((registry.root / "outbox" / "problem.accepted-PRB-1.json").read_text(encoding="utf-8"))
+    assert contract_errors("event", event) == []
+    assert event["payload"] == {"problem": "PRB-1", "change": "CHG-13", "decision": result["decision"]["id"]}
+    assert result["dispatch"]["status"] == "sent"
+
+
+def test_accepting_with_a_known_change_uses_it_and_retry_redispatches(registry: Registry, make_draft: Any) -> None:
+    from pdi.inbox import Inbox
+    from tests.test_dispatch import FakeGitHub
+
+    problems = accepting(registry, FakeGitHub(status=500))
+    problems.record(problem())
+
+    result = problems.triage("PRB-1", "accepted", make_draft(), change="CHG-40")
+
+    assert result["problem"]["change"] == "CHG-40"
+    assert result["dispatch"]["status"] == "failed"
+    from pdi.dispatch import DispatchConfig
+
+    fixed = FakeGitHub()
+    cfg = DispatchConfig(repo="dbqm45/sklep", token="ghs_t")  # noqa: S106 — token testowy
+    retried = Inbox(registry, dispatch=cfg, post=fixed).retry_dispatch("CHG-40")
+    assert retried["dispatch"]["status"] == "sent"
+    assert fixed.calls[0][2]["inputs"]["phase"] == "intent"
+
+
+def test_accepting_without_dispatch_config_is_skipped_not_failed(registry: Registry, make_draft: Any) -> None:
+    problems = store(registry, FakeHook())
+    problems.record(problem())
+
+    result = problems.triage("PRB-1", "accepted", make_draft())
+
+    assert result["problem"]["change"] == "CHG-1"
+    assert result["dispatch"]["status"] == "skipped"

@@ -111,7 +111,9 @@ class Inbox:
         self._shipscope = shipscope or impact.ShipScopeConfig(url=None)
         self._shipscope_get = shipscope_get
         # Zgłaszający zmiany dostaje powiadomienie o jej wydaniu i ocenie skutku (F5).
-        self.problems = ProblemStore(registry, notify=reporters, post=reporter_post)
+        self.problems = ProblemStore(
+            registry, notify=reporters, post=reporter_post, dispatch=self._dispatch, dispatch_post=post
+        )
 
     # --- przyjęcie ---
 
@@ -390,7 +392,12 @@ class Inbox:
         at = _iso(self.registry.now())
         out: dict[str, Any] = {"change": change}
         if redo_run:
-            run = {"phase": last["phase"], "rework": last["rework"]}
+            run = {
+                "phase": last["phase"],
+                "rework": last["rework"],
+                "source": last.get("source"),
+                "problem": last.get("problem"),
+            }
             state["dispatch"] = self._run(change, run, last["gate"], last["outcome"], last["decision"], at)
             state["history"].append({"at": at, "what": "dispatch.retried", "status": state["dispatch"]["status"]})
             out["dispatch"] = state["dispatch"]
@@ -414,8 +421,11 @@ class Inbox:
             rework=run["rework"],
             at=at,
             post=self._post,
+            source=run.get("source"),
+            problem=run.get("problem"),
         )
-        return {**result, "gate": gate, "outcome": outcome, "decision": decision}
+        extra = {k: run[k] for k in ("source", "problem") if run.get(k)}
+        return {**result, "gate": gate, "outcome": outcome, "decision": decision, **extra}
 
     # --- pliki ---
 

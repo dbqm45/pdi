@@ -53,8 +53,14 @@ def dispatch_phase(
     rework: bool,
     at: str,
     post: Post | None = None,
+    source: str | None = None,
+    problem: str | None = None,
 ) -> dict[str, Any]:
-    """Uruchamia fazę `phase` dla `change`; wynik `{"status": sent | skipped | failed, …}` do zapisu w stanie."""
+    """Uruchamia fazę `phase` dla `change`; wynik `{"status": sent | skipped | failed, …}` do zapisu w stanie.
+
+    `source` (PRB) i `problem` (JSON zgłoszenia) idą tylko przy przyjęciu do budowy (F3, faza `intent`); szablon fazy
+    bez tych wejść ich nie dostaje.
+    """
     result: dict[str, Any] = {"status": "failed", "phase": phase, "rework": rework, "at": at}
     if not config.repo:
         return {**result, "status": "skipped", "error": "Brak PDI_DISPATCH_REPO — faza nie została uruchomiona."}
@@ -78,6 +84,10 @@ def dispatch_phase(
     }
     if config.budget_usd:
         inputs["budget_usd"] = config.budget_usd
+    if source:
+        inputs["source"] = source
+    if problem:
+        inputs["problem"] = problem
     url = f"{API}/repos/{config.repo}/actions/workflows/{config.workflow}/dispatches"
     headers = {
         "authorization": f"Bearer {config.token}",
