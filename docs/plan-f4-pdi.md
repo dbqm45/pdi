@@ -75,3 +75,11 @@ gotowość, wydanie, ocena skutku), `tests/test_changes.py` i rozszerzone `tests
 ci_for_sdlc, `superseded`, `gate.decided` w `outbox/` zgodne z kontraktem, stan po decyzji, commit),
 `tests/test_dispatch.py` (żądanie do GitHuba z podstawionym klientem, `skipped`, `failed`, ponowienie, brak tokenu
 w stanie), `tests/test_receiver.py` (nowe ścieżki, zły nagłówek źródła, ścieżka bez sekretu), `tests/test_mcp_server.py`.
+
+## Dopisek 2026-10-26: wysyłka do ci_for_sdlc
+Decyzja właściciela: decyzja z bramki dociera do ci_for_sdlc webhookiem z pdi. `src/pdi/notify.py`
+(`notify_ci_for_sdlc()`, `PDI_CI_FOR_SDLC_URL`, `PDI_CI_FOR_SDLC_SIGNING_SECRET`): po decyzji na bramce
+`approve-for-implementation` zdarzenie `gate.decided` z `outbox/` idzie na `/api/webhooks/pdi` ci_for_sdlc
+(dbqm45/ci_for_sdlc#66); wynik w stanie zmiany (`ci_for_sdlc`), ponowienie przez `retry_dispatch`. Sprawdzone razem
+z ci_for_sdlc na dwóch lokalnych serwerach: `readiness.changed: ready` → bramka w skrzynce → decyzja DEC-0001 →
+historyjki zmiany zatwierdzone w ci_for_sdlc z numerem DEC-0001.

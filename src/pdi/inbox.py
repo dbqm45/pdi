@@ -22,6 +22,7 @@ import yaml
 from pdi import contract, flow
 from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig, Post, dispatch_phase
+from pdi.notify import NotifyConfig, notify_ci_for_sdlc
 from pdi.registry import Decision, InvalidDecision, Registry
 
 Item: TypeAlias = dict[str, Any]
@@ -82,13 +83,23 @@ def verify_signature(
 
 
 class Inbox:
-    def __init__(self, registry: Registry, *, dispatch: DispatchConfig | None = None, post: Post | None = None) -> None:
+    def __init__(
+        self,
+        registry: Registry,
+        *,
+        dispatch: DispatchConfig | None = None,
+        post: Post | None = None,
+        notify: NotifyConfig | None = None,
+        notify_post: Post | None = None,
+    ) -> None:
         self.registry = registry
         self.changes = ChangeStore(registry)
         self._dir = registry.root / "inbox"
         self._outbox = registry.root / "outbox"
         self._dispatch = dispatch or DispatchConfig(repo=None)
         self._post = post
+        self._notify = notify or NotifyConfig(url=None)
+        self._notify_post = notify_post
 
     # --- przyjęcie ---
 
@@ -224,6 +235,9 @@ class Inbox:
             result["event"] = event
             if run:
                 state["dispatch"] = self._run(state["change"], run, gate, outcome, decision["id"], at)
+            if gate == flow.BASELINE_GATE:
+                # „Approve for implementation” ustawia baseline historyjek w ci_for_sdlc (F4).
+                state["ci_for_sdlc"] = notify_ci_for_sdlc(self._notify, event, at=at, post=self._notify_post)
         else:
             state = flow.impact_reviewed(state, decision["id"], at=at)
         touched.append(self.changes.save(state))
@@ -242,18 +256,29 @@ class Inbox:
         }
 
     def retry_dispatch(self, change: str) -> dict[str, Any]:
-        """Ponawia ostatnie nieudane albo pominięte uruchomienie fazy zmiany."""
+        """Ponawia nieudane albo pominięte uruchomienie fazy i nieudaną wysyłkę decyzji do ci_for_sdlc."""
         state = self.changes.get(change)
-        last = state.get("dispatch")
-        if not last or last["status"] == "sent":
-            raise InvalidDecision(f"{change}: nie ma uruchomienia fazy do ponowienia.")
-        run = {"phase": last["phase"], "rework": last["rework"]}
+        last: dict[str, Any] = state.get("dispatch") or {}
+        sent_ci: dict[str, Any] = state.get("ci_for_sdlc") or {}
+        redo_run = bool(last) and last["status"] != "sent"
+        redo_ci = bool(sent_ci) and sent_ci["status"] != "sent"
+        if not redo_run and not redo_ci:
+            raise InvalidDecision(f"{change}: nie ma uruchomienia fazy ani wysyłki do ci_for_sdlc do ponowienia.")
         at = _iso(self.registry.now())
-        state["dispatch"] = self._run(change, run, last["gate"], last["outcome"], last["decision"], at)
-        state["history"].append({"at": at, "what": "dispatch.retried", "status": state["dispatch"]["status"]})
+        out: dict[str, Any] = {"change": change}
+        if redo_run:
+            run = {"phase": last["phase"], "rework": last["rework"]}
+            state["dispatch"] = self._run(change, run, last["gate"], last["outcome"], last["decision"], at)
+            state["history"].append({"at": at, "what": "dispatch.retried", "status": state["dispatch"]["status"]})
+            out["dispatch"] = state["dispatch"]
+        if redo_ci:
+            event = json.loads((self._outbox / f"{sent_ci['event']}.json").read_text(encoding="utf-8"))
+            state["ci_for_sdlc"] = notify_ci_for_sdlc(self._notify, event, at=at, post=self._notify_post)
+            state["history"].append({"at": at, "what": "ci_for_sdlc.retried", "status": state["ci_for_sdlc"]["status"]})
+            out["ci_for_sdlc"] = state["ci_for_sdlc"]
         path = self.changes.save(state)
-        warning = self.registry.commit([path], f"{change}: ponowione uruchomienie fazy {run['phase']}")
-        return {"change": change, "dispatch": state["dispatch"], **({"warning": warning} if warning else {})}
+        warning = self.registry.commit([path], f"{change}: ponowione uruchomienie fazy lub wysyłka do ci_for_sdlc")
+        return {**out, **({"warning": warning} if warning else {})}
 
     def _run(self, change: str, run: dict[str, Any], gate: str, outcome: str, decision: str, at: str) -> dict[str, Any]:
         result = dispatch_phase(

@@ -534,3 +534,64 @@ def test_repeated_recorded_event_is_a_duplicate(inbox: Inbox) -> None:
 
     assert again == {"status": "duplicate", "item": None}
     assert len(inbox.changes.get("CHG-12")["history"]) == 1
+
+
+# --- F4: gate.decided do ci_for_sdlc po „Approve for implementation” ---
+
+
+class FakeCi:
+    def __init__(self, status: int = 200) -> None:
+        self.status = status
+        self.calls: list[dict[str, Any]] = []
+
+    def __call__(self, url: str, headers: dict[str, str], body: bytes) -> int:
+        import json
+
+        self.calls.append({"url": url, **json.loads(body)})
+        return self.status
+
+
+def notifying(registry: Registry, ci: FakeCi) -> Inbox:
+    from pdi.notify import NotifyConfig
+
+    cfg = NotifyConfig(url="https://ci.example.com", secret="s")  # noqa: S106 — sekret testowy
+    return Inbox(registry, notify=cfg, notify_post=ci)
+
+
+def test_approve_for_implementation_is_sent_to_ci_for_sdlc(registry: Registry, make_draft: Draft) -> None:
+    ci = FakeCi()
+    inbox = notifying(registry, ci)
+    inbox.receive(readiness_event("ready"))
+
+    result = inbox.decide("evt-ready-1", make_draft(), outcome="approved")
+
+    assert [c["type"] for c in ci.calls] == ["gate.decided"]
+    assert ci.calls[0]["payload"]["gate"] == "approve-for-implementation"
+    assert ci.calls[0]["url"] == "https://ci.example.com/api/webhooks/pdi"
+    assert result["change"]["ci_for_sdlc"]["status"] == "sent"
+
+
+def test_other_gates_are_not_sent_to_ci_for_sdlc(registry: Registry, make_draft: Draft) -> None:
+    ci = FakeCi()
+    inbox = notifying(registry, ci)
+    inbox.receive(gate_event())
+
+    result = inbox.decide("evt-gate-1", make_draft(), outcome="approved")
+
+    assert ci.calls == []
+    assert "ci_for_sdlc" not in result["change"]
+
+
+def test_failed_notification_is_kept_and_retried(registry: Registry, make_draft: Draft) -> None:
+    ci = FakeCi(status=503)
+    inbox = notifying(registry, ci)
+    inbox.receive(readiness_event("ready"))
+    result = inbox.decide("evt-ready-1", make_draft(), outcome="approved")
+    assert result["change"]["ci_for_sdlc"]["status"] == "failed"
+
+    ci.status = 200
+    retried = inbox.retry_dispatch("CHG-12")
+
+    assert retried["ci_for_sdlc"]["status"] == "sent"
+    assert len(ci.calls) == 2 and ci.calls[0] == ci.calls[1]
+    assert inbox.changes.get("CHG-12")["ci_for_sdlc"]["status"] == "sent"
