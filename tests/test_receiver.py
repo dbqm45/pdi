@@ -11,7 +11,7 @@ import pytest
 from pdi.inbox import Inbox
 from pdi.receiver import MAX_BODY, PATH, main, make_server
 from pdi.registry import Registry
-from tests.test_inbox import SECRET, gate_event, readiness_event, released_event, sign, stage_event
+from tests.test_inbox import SECRET, gate_event, metric_event, readiness_event, released_event, sign, stage_event
 
 TF_SECRET = "sekret-tf"  # noqa: S105 — sekret testowy
 
@@ -150,6 +150,14 @@ def test_tf_gate_request_uses_pdi_headers_and_its_own_secret(server: HTTPServer,
 
     assert (status, answer["item"]) == (202, "evt-gate-1")
     assert Inbox(registry).get("evt-gate-1")["gate"] == "B1"
+
+
+def test_tf_breached_metric_becomes_problem_item(server: HTTPServer, registry: Registry) -> None:
+    body = encode(metric_event())
+    status, answer = post(server, body, path="/events/tf", event="metric.breached", prefix="x-pdi", secret=TF_SECRET)
+
+    assert (status, answer["status"]) == (202, "created")
+    assert Inbox(registry).get("tf-metric-rollbacks-2026-10-10")["kind"] == "problem"
 
 
 def test_tf_path_refuses_the_shipscope_secret(server: HTTPServer) -> None:

@@ -570,8 +570,9 @@ def test_ci_for_sdlc_may_ask_for_a_gate_too(inbox: Inbox) -> None:
         (lambda: {**gate_event(), "source": "shipscope"}, "source"),
         (lambda: {**readiness_event("ready"), "source": "tf"}, "source"),
         (lambda: {**gate_event(), "source": "pdi"}, "source"),
+        (lambda: {**metric_event(), "source": "shipscope"}, "source"),
     ],
-    ids=["shipscope-bramka", "tf-gotowosc", "od-siebie"],
+    ids=["shipscope-bramka", "tf-gotowosc", "od-siebie", "shipscope-metryka"],
 )
 def test_types_are_accepted_only_from_their_senders(
     inbox: Inbox, event: Callable[[], dict[str, Any]], match: str
@@ -666,3 +667,83 @@ def test_failed_notification_is_kept_and_retried(registry: Registry, make_draft:
     assert retried["ci_for_sdlc"]["status"] == "sent"
     assert len(ci.calls) == 2 and ci.calls[0] == ci.calls[1]
     assert inbox.changes.get("CHG-12")["ci_for_sdlc"]["status"] == "sent"
+
+
+# --- F5: metric.breached z pasm kontrolnych tf → nowy problem do triażu ---
+
+
+def metric_event(event_id: str = "tf-metric-rollbacks-2026-10-10", **payload: Any) -> dict[str, Any]:
+    """`metric.breached` w kształcie, jaki wysyła tf `metric_watch.py` (dbqm45/tf#81)."""
+    return {
+        "id": event_id,
+        "type": "metric.breached",
+        "occurred_at": "2026-10-23T09:15:00Z",
+        "source": "tf",
+        "contract_version": "0.4.0",
+        "payload": {
+            "metric": "rollbacks",
+            "value": 9,
+            "threshold": 2.0,
+            "window": "2026-10-10 (linia bazowa 2026-09-01–2026-09-30)",
+            "diagnosis": "reguła 1 (punkt poza 3σ): 9 wobec średniej 0.5 i σ 0.5 linii bazowej; poziom act.",
+            **payload,
+        },
+    }
+
+
+def test_breached_metric_becomes_problem_item(inbox: Inbox) -> None:
+    result = inbox.receive(metric_event())
+
+    item = result["item"]
+    assert result["status"] == "created"
+    assert (item["kind"], item["change"], item["source"]) == ("problem", None, "tf")
+    assert "rollbacks" in item["summary"] and "9" in item["summary"] and "triaż" in item["summary"]
+    assert item["metric"] == metric_event()["payload"]
+    assert inbox.receive(metric_event())["status"] == "duplicate"
+    assert inbox.changes.all(status=None) == []
+
+
+def test_breach_naming_a_change_is_linked_to_it(inbox: Inbox) -> None:
+    item = inbox.receive(metric_event(change="CHG-12", service="sklep"))["item"]
+
+    assert item["change"] == "CHG-12"
+    assert "sklep" in item["summary"]
+
+
+def test_problem_triage_records_triage_decision_with_reading(inbox: Inbox, make_draft: Draft) -> None:
+    inbox.receive(metric_event())
+
+    result = inbox.decide(
+        "tf-metric-rollbacks-2026-10-10",
+        make_draft(statement="Rollbacki po wdrożeniu 1.4 — nowe zgłoszenie.", links={"prb": "PRB-7"}),
+        outcome="accepted",
+    )
+
+    decision = result["decision"]
+    assert decision["kind"] == "triage"
+    assert decision["links"] == {"prb": "PRB-7"}
+    assert {"metric-breached", "problem:accepted", "metric:rollbacks"} <= set(decision["tags"])
+    reading = decision["evidence"][-1]
+    assert reading["epistemic_status"] == "observation"
+    assert "rollbacks" in reading["text"] and "9" in reading["text"] and "2.0" in reading["text"]
+    assert result["item"]["outcome"] == "accepted"
+    assert result["change"] is None
+
+
+def test_problem_triage_needs_a_triage_outcome(inbox: Inbox, make_draft: Draft) -> None:
+    inbox.receive(metric_event())
+
+    for outcome in (None, "approved", "met"):
+        with pytest.raises(InvalidDecision, match="accepted"):
+            inbox.decide("tf-metric-rollbacks-2026-10-10", make_draft(), outcome=outcome)
+
+
+def test_problem_about_a_change_links_the_decision(inbox: Inbox, make_draft: Draft) -> None:
+    inbox.receive(metric_event(change="CHG-12"))
+
+    result = inbox.decide("tf-metric-rollbacks-2026-10-10", make_draft(), outcome="rejected")
+
+    assert result["decision"]["links"] == {"chg": "CHG-12"}
+    inbox.receive(metric_event("tf-metric-x", change="CHG-12"))
+    with pytest.raises(InvalidDecision, match="CHG-12"):
+        inbox.decide("tf-metric-x", make_draft(links={"chg": "CHG-99"}), outcome="accepted")

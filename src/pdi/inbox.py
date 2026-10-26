@@ -31,17 +31,18 @@ Item: TypeAlias = dict[str, Any]
 # Kto może przysłać który typ zdarzenia.
 ACCEPTED = {
     "shipscope": ("release.stage_changed", "feature.released"),
-    "tf": ("gate.requested",),
+    "tf": ("gate.requested", "metric.breached"),
     "ci_for_sdlc": ("gate.requested", "readiness.changed"),
 }
 GATE_OUTCOMES = flow.OUTCOMES
 IMPACT_OUTCOMES = impact.OUTCOMES
+PROBLEM_OUTCOMES = ("accepted", "rejected")
 SIGNATURE_TOLERANCE_SECONDS = 300
 MVP_RELEASE = "R1"
 SEEN_EVENTS_KEPT = 200
 # ID zdarzenia staje się nazwą pliku, więc tylko bezpieczne znaki i bez „..”.
 _EVENT_ID = re.compile(r"^(?!.*\.\.)[A-Za-z0-9._-]{1,128}$")
-_DECISION_KIND = {"gate": "gate", "impact_review": "product"}
+_DECISION_KIND = {"gate": "gate", "impact_review": "product", "problem": "triage"}
 
 
 class BadSignature(ValueError):
@@ -114,9 +115,11 @@ class Inbox:
         albo `recorded` (tylko stan zmiany)."""
         _check_event(event)
         payload = event["payload"]
-        change = payload["change"]
         if self._known(event["id"]):
             return {"status": "duplicate", "item": self.get(event["id"])}
+        if event["type"] == "metric.breached":
+            return self._receive_problem(event)
+        change = payload["change"]
         at = _iso(self.registry.now())
         state = self.changes.load(change)
         gate = _gate_of(event)
@@ -229,6 +232,34 @@ class Inbox:
         except DecisionNotFound:
             return None
 
+    def _receive_problem(self, event: dict[str, Any]) -> dict[str, Any]:
+        """Pasmo kontrolne tf przekroczone (F5): pozycja „nowy problem do triażu”, bez zmiany stanu żadnej zmiany."""
+        p = event["payload"]
+        where = f" ({p['service']})" if p.get("service") else ""
+        window = f", {p['window']}" if p.get("window") else ""
+        item: Item = {
+            "id": event["id"],
+            "kind": "problem",
+            "status": "open",
+            "change": p.get("change"),
+            "source": event["source"],
+            "release": None,
+            "summary": (
+                f"Metryka {p['metric']}{where}: {p['value']} wobec progu {p['threshold']}{window} — nowy problem "
+                f"do triażu (przyjąć jako zgłoszenie?)."
+            ),
+            "received_at": _iso(self.registry.now()),
+            "metric": p,
+            "event": event,
+        }
+        self._dir.mkdir(parents=True, exist_ok=True)
+        try:
+            self._write(item, overwrite=False)
+        except FileExistsError:
+            return {"status": "duplicate", "item": self.get(item["id"])}
+        warning = self.registry.commit([self._path(item["id"])], f"inbox {item['id']}: {item['summary']}")
+        return {"status": "created", "item": item, **({"warning": warning} if warning else {})}
+
     def _known(self, item_id: str) -> bool:
         return self._path(item_id).is_file()
 
@@ -278,17 +309,20 @@ class Inbox:
             raise ItemClosed(f"Pozycja {item_id} jest już zamknięta decyzją {item.get('decision')}.")
         if item["kind"] == "gate" and outcome not in GATE_OUTCOMES:
             raise InvalidDecision(f"Bramka wymaga outcome: jednego z {', '.join(GATE_OUTCOMES)}.")
-        if item["kind"] != "gate" and outcome not in IMPACT_OUTCOMES:
+        if item["kind"] == "impact_review" and outcome not in IMPACT_OUTCOMES:
             raise InvalidDecision(f"Ocena skutku wymaga outcome: jednego z {', '.join(IMPACT_OUTCOMES)}.")
+        if item["kind"] == "problem" and outcome not in PROBLEM_OUTCOMES:
+            raise InvalidDecision(f"Triaż problemu wymaga outcome: jednego z {', '.join(PROBLEM_OUTCOMES)}.")
         links = dict(draft.get("links") or {})
-        if links.get("chg", item["change"]) != item["change"]:
+        if item["change"] and links.get("chg", item["change"]) != item["change"]:
             raise InvalidDecision(f"Pozycja dotyczy {item['change']} — links.chg nie może wskazywać innej zmiany.")
-        links["chg"] = item["change"]
-        state = self.changes.load(item["change"])
+        if item["change"]:
+            links["chg"] = item["change"]
+        state = self.changes.load(item["change"]) if item["kind"] != "problem" else None
         at = _iso(self.registry.now())
         # Pozycje z G1.5 sprzed F4 nie mają pola gate — bramkę odtwarza się ze zdarzenia.
         gate: str = (item.get("gate") or _gate_of(item["event"]) or "") if item["kind"] == "gate" else ""
-        if item["kind"] == "gate":
+        if item["kind"] == "gate" and state is not None:
             try:  # najpierw sprawdzenie przejścia, żeby nie zapisać decyzji, której stan nie przyjmie
                 flow.gate_decided(state, gate, outcome or "", "DEC-0", at=at)
             except flow.InvalidTransition as e:
@@ -296,15 +330,17 @@ class Inbox:
         tags = list(draft.get("tags") or [])
         tags += [t for t in _tags(item, gate, outcome) if t not in tags]
         extra: dict[str, Any] = {}
-        if item["kind"] != "gate":
+        if item["kind"] == "impact_review":
             extra = _impact_fields(item, draft)
+        if item["kind"] == "problem":
+            extra = _problem_fields(item, draft)
         record = {**draft, **extra, "kind": _DECISION_KIND[item["kind"]], "links": links, "tags": tags}
         decision = self.registry.record(record)
 
         result: dict[str, Any] = {}
         touched = [self._path(item_id)]
         if item["kind"] == "gate":
-            assert outcome is not None  # noqa: S101 — zawężenie typu, sprawdzone wyżej
+            assert outcome is not None and state is not None  # noqa: S101 — zawężenie typu, sprawdzone wyżej
             state, run = flow.gate_decided(state, gate, outcome, decision["id"], at=at)
             event = _gate_decided_event(item_id, item["change"], gate, outcome, decision["id"], at)
             touched.append(self._write_outbox(event))
@@ -314,9 +350,10 @@ class Inbox:
             if gate == flow.BASELINE_GATE:
                 # „Approve for implementation” ustawia baseline historyjek w ci_for_sdlc (F4).
                 state["ci_for_sdlc"] = notify_ci_for_sdlc(self._notify, event, at=at, post=self._notify_post)
-        else:
+        elif state is not None:
             state = flow.impact_reviewed(state, decision["id"], at=at, outcome=outcome)
-        touched.append(self.changes.save(state))
+        if state is not None:
+            touched.append(self.changes.save(state))
 
         item = {**item, "status": "decided", "decision": decision["id"], "decided_at": at}
         if outcome is not None:
@@ -440,7 +477,18 @@ def _impact_fields(item: Item, draft: Decision) -> dict[str, Any]:
     return out
 
 
+def _problem_fields(item: Item, draft: Decision) -> dict[str, Any]:
+    """Odczyt pasma kontrolnego tf jako dowód decyzji z triażu."""
+    p = item["metric"]
+    text = f"tf, pasma kontrolne: {p['metric']} = {p['value']} wobec progu {p['threshold']}"
+    text += f" ({p['window']})" if p.get("window") else ""
+    text += f". {p['diagnosis']}" if p.get("diagnosis") else "."
+    return {"evidence": [*(draft.get("evidence") or []), {"text": text, "epistemic_status": "observation"}]}
+
+
 def _tags(item: Item, gate: str, outcome: str | None) -> list[str]:
+    if item["kind"] == "problem":
+        return ["metric-breached", f"problem:{outcome}", f"metric:{item['metric']['metric']}"]
     if item["kind"] != "gate":
         return ["mvp-impact", f"impact:{outcome}"]
     tags = [f"gate:{outcome}", f"bramka:{gate}"]

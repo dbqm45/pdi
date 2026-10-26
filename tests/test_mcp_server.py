@@ -13,7 +13,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from pdi.inbox import Inbox
 from pdi.mcp_server import build_server
 from pdi.registry import Registry
-from tests.test_inbox import gate_event, released_event, stage_event
+from tests.test_inbox import gate_event, metric_event, released_event, stage_event
 
 Draft = Callable[..., dict[str, Any]]
 pytestmark = pytest.mark.anyio
@@ -187,6 +187,15 @@ async def test_trace_through_tool(server: Any, registry: Registry, make_draft: D
     assert graph["mermaid"].startswith("flowchart LR")
     with pytest.raises(ToolError, match="list_changes"):
         await server.call_tool("get_trace", {"change": "CHG-404", "live": False})
+
+
+async def test_problem_triage_through_tool(server: Any, registry: Registry, make_draft: Draft) -> None:
+    Inbox(registry).receive(metric_event())
+
+    args = {"item_id": "tf-metric-rollbacks-2026-10-10", "outcome": "accepted", **make_draft()}
+    decided = await call(server, "decide_inbox_item", args)
+
+    assert decided["decision"]["kind"] == "triage"
 
 
 async def test_change_tools_return_hints(server: Any) -> None:

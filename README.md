@@ -80,6 +80,13 @@ np. brak PRB, PR albo zamkniętej oceny skutku — do pokazania, nie do naprawia
 wklejenia). `live=false` nie pyta ShipScope; przy `live` najwyżej 20 odczytów na graf. Plan:
 [`docs/plan-f5-graf-sladu.md`](docs/plan-f5-graf-sladu.md).
 
+### Problemy z pasm kontrolnych tf (F5)
+
+tf (`metric_watch.py check --send`, tryb `mode-pdi`) wysyła na `/events/tf` podpisane `metric.breached`, gdy metryka
+PROD z ShipScope wyjdzie poza 3σ. Skrzynka otwiera wtedy pozycję `kind: problem` („nowy problem do triażu”), którą
+`decide_inbox_item` zamyka z `outcome` `accepted` albo `rejected` jako decyzję `kind: triage` z odczytem pasma jako
+dowodem. Plan: [`docs/plan-f5-metric-breached.md`](docs/plan-f5-metric-breached.md).
+
 ## Kierunek (od 2026-10-23)
 
 - [`docs/14-pdi-standalone.md`](docs/14-pdi-standalone.md) — **pierwszy krok: pdi jako niezależny rejestr decyzji** z zapisem jednym kliknięciem tam, gdzie decyzje zapadają (najpierw Claude CLI przez MCP i `/record-decision`, potem Slack, Confluence, Jira); flow SDLC korzysta z tego samego rejestru. Specyfikacja MVP i kryteria walidacji na sobie.
