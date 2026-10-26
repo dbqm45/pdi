@@ -1,7 +1,9 @@
-"""Odbiornik zdarzeń ShipScope (G1.5): `POST /events/shipscope` → skrzynka pdi (`pdi.inbox`).
+"""Odbiornik zdarzeń (G1.5, F4): `POST /events/<nadawca>` → skrzynka pdi (`pdi.inbox`).
 
-Biblioteka standardowa, jeden wątek. ShipScope wysyła tylko na publiczne `https://`, więc przed odbiornikiem stoi
-proxy TLS albo tunel. Kod 2xx kończy ponowienia ShipScope; na 4xx i 5xx ShipScope ponawia (do 10 razy).
+Nadawcy: `shipscope` (nagłówki `X-ShipScope-*`, jak wysyła ShipScope), `tf` i `ci_for_sdlc` (`X-PDI-*`). Podpis
+wszędzie ten sam: `v1=<hex HMAC-SHA256(sekret nadawcy, "<timestamp>.<body>")>`. Ścieżka nadawcy bez ustawionego
+sekretu odpowiada 404. Biblioteka standardowa, jeden wątek. ShipScope wysyła tylko na publiczne `https://`, więc
+przed odbiornikiem stoi proxy TLS albo tunel. Kod 2xx kończy ponowienia nadawcy.
 """
 
 from __future__ import annotations
@@ -14,10 +16,18 @@ from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any
 
+from pdi.dispatch import DispatchConfig
 from pdi.inbox import BadSignature, Inbox, InvalidEvent, verify_signature
 from pdi.registry import Registry
 
 PATH = "/events/shipscope"
+PREFIX = "/events/"
+# Nadawca → (zmienna z sekretem, prefiks nagłówków).
+SENDERS = {
+    "shipscope": ("PDI_SHIPSCOPE_SIGNING_SECRET", "x-shipscope"),
+    "tf": ("PDI_TF_SIGNING_SECRET", "x-pdi"),
+    "ci_for_sdlc": ("PDI_CI_FOR_SDLC_SIGNING_SECRET", "x-pdi"),
+}
 MAX_BODY = 64 * 1024
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8787
@@ -29,18 +39,21 @@ def _utc_now() -> datetime:
 
 def make_server(
     inbox: Inbox,
-    secret: str,
+    secrets: dict[str, str],
     *,
     host: str = DEFAULT_HOST,
     port: int = DEFAULT_PORT,
     clock: Callable[[], datetime] = _utc_now,
 ) -> HTTPServer:
-    """Serwer HTTP odbiornika; `port=0` wybiera wolny port (testy)."""
+    """Serwer HTTP odbiornika; `secrets`: nadawca → sekret podpisu; `port=0` wybiera wolny port (testy)."""
 
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self) -> None:  # noqa: N802 — nazwa wymagana przez http.server
-            if self.path != PATH:
-                return self._answer(404, {"error": f"Zdarzenia ShipScope przyjmuje tylko {PATH}."})
+            sender = self.path.removeprefix(PREFIX) if self.path.startswith(PREFIX) else ""
+            if sender not in SENDERS or sender not in secrets:
+                known = ", ".join(PREFIX + s for s in SENDERS if s in secrets)
+                return self._answer(404, {"error": f"Zdarzenia przyjmuje: {known}."})
+            header = SENDERS[sender][1]
             length = self.headers.get("content-length", "")
             if not length.isdigit():
                 return self._answer(411, {"error": "Brak Content-Length."})
@@ -49,10 +62,10 @@ def make_server(
             body = self.rfile.read(int(length))
             try:
                 verify_signature(
-                    secret,
-                    self.headers.get("x-shipscope-timestamp"),
+                    secrets[sender],
+                    self.headers.get(f"{header}-timestamp"),
                     body,
-                    self.headers.get("x-shipscope-signature"),
+                    self.headers.get(f"{header}-signature"),
                     now=clock(),
                 )
             except BadSignature as e:
@@ -63,8 +76,10 @@ def make_server(
                 return self._answer(400, {"error": "Treść nie jest poprawnym JSON."})
             if not isinstance(event, dict):
                 return self._answer(400, {"error": "Zdarzenie musi być obiektem JSON."})
-            if self.headers.get("x-shipscope-event") != event.get("type"):
-                return self._answer(400, {"error": "Nagłówek X-ShipScope-Event nie zgadza się z polem type."})
+            if self.headers.get(f"{header}-event") != event.get("type"):
+                return self._answer(400, {"error": f"Nagłówek {header}-event nie zgadza się z polem type."})
+            if event.get("source") != sender:
+                return self._answer(400, {"error": f"source zdarzenia nie zgadza się ze ścieżką {self.path}."})
             try:
                 result = inbox.receive(event)
             except InvalidEvent as e:
@@ -94,20 +109,20 @@ def make_server(
 
 
 def main() -> None:
-    secret = os.environ.get("PDI_SHIPSCOPE_SIGNING_SECRET")
-    if not secret:
-        raise SystemExit(
-            "Brak zmiennej PDI_SHIPSCOPE_SIGNING_SECRET — ustaw ją na sekret podpisu workspace'u ShipScope "
-            "(Settings → Sources)."
-        )
+    secrets = {sender: os.environ[var] for sender, (var, _) in SENDERS.items() if os.environ.get(var)}
+    if not secrets:
+        names = ", ".join(var for var, _ in SENDERS.values())
+        raise SystemExit(f"Brak sekretu podpisu — ustaw co najmniej jedną zmienną: {names}.")
     try:
         registry = Registry.from_env()
     except RuntimeError as e:
         raise SystemExit(str(e)) from e
     host = os.environ.get("PDI_RECEIVER_HOST", DEFAULT_HOST)
     port = int(os.environ.get("PDI_RECEIVER_PORT", str(DEFAULT_PORT)))
-    server = make_server(Inbox(registry), secret, host=host, port=port)
-    sys.stderr.write(f"pdi-receiver: nasłuchuje na http://{host}:{port}{PATH}\n")
+    inbox = Inbox(registry, dispatch=DispatchConfig.from_env())
+    server = make_server(inbox, secrets, host=host, port=port)
+    paths = ", ".join(PREFIX + s for s in secrets)
+    sys.stderr.write(f"pdi-receiver: nasłuchuje na http://{host}:{port} ({paths})\n")
     server.serve_forever()
 
 

@@ -11,7 +11,9 @@ import pytest
 from pdi.inbox import Inbox
 from pdi.receiver import MAX_BODY, PATH, main, make_server
 from pdi.registry import Registry
-from tests.test_inbox import SECRET, released_event, sign, stage_event
+from tests.test_inbox import SECRET, gate_event, readiness_event, released_event, sign, stage_event
+
+TF_SECRET = "sekret-tf"  # noqa: S105 — sekret testowy
 
 NOW = datetime(2026, 10, 23, 9, 30, tzinfo=UTC)
 TS = str(int(NOW.timestamp()))
@@ -19,7 +21,7 @@ TS = str(int(NOW.timestamp()))
 
 @pytest.fixture
 def server(registry: Registry) -> Iterator[HTTPServer]:
-    srv = make_server(Inbox(registry), SECRET, port=0, clock=lambda: NOW)
+    srv = make_server(Inbox(registry), {"shipscope": SECRET, "tf": TF_SECRET}, port=0, clock=lambda: NOW)
     thread = threading.Thread(target=srv.serve_forever, daemon=True)
     thread.start()
     yield srv
@@ -35,12 +37,14 @@ def post(
     signature: str | None = None,
     timestamp: str = TS,
     event: str | None = "release.stage_changed",
+    prefix: str = "x-shipscope",
+    secret: str = SECRET,
 ) -> tuple[int, dict[str, Any]]:
     conn = http.client.HTTPConnection("127.0.0.1", server.server_address[1], timeout=5)
-    headers = {"content-type": "application/json", "x-shipscope-timestamp": timestamp}
-    headers["x-shipscope-signature"] = signature if signature is not None else sign(timestamp, body)
+    headers = {"content-type": "application/json", f"{prefix}-timestamp": timestamp}
+    headers[f"{prefix}-signature"] = signature if signature is not None else sign(timestamp, body, secret)
     if event:
-        headers["x-shipscope-event"] = event
+        headers[f"{prefix}-event"] = event
     conn.request("POST", path, body=body, headers=headers)
     response = conn.getresponse()
     data = response.read()
@@ -59,14 +63,14 @@ def test_new_event_is_202_and_lands_in_inbox(server: HTTPServer, registry: Regis
     assert Inbox(registry).get("evt-stage-1")["kind"] == "gate"
 
 
-def test_duplicate_and_ignored_events_are_200(server: HTTPServer) -> None:
+def test_duplicate_and_recorded_events_are_200(server: HTTPServer) -> None:
     post(server, encode(stage_event()))
 
     dup, dup_body = post(server, encode(stage_event()))
-    ignored, ignored_body = post(server, encode(released_event(release="R2")), event="feature.released")
+    recorded, recorded_body = post(server, encode(released_event(release="R2")), event="feature.released")
 
     assert (dup, dup_body["status"]) == (200, "duplicate")
-    assert (ignored, ignored_body["status"]) == (200, "ignored")
+    assert (recorded, recorded_body["status"]) == (200, "recorded")
 
 
 def test_bad_signature_is_401_and_stores_nothing(server: HTTPServer, registry: Registry) -> None:
@@ -126,5 +130,69 @@ def test_main_requires_secret(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) ->
     monkeypatch.setenv("PDI_REGISTRY_PATH", str(tmp_path))
     monkeypatch.delenv("PDI_SHIPSCOPE_SIGNING_SECRET", raising=False)
 
-    with pytest.raises(SystemExit, match="PDI_SHIPSCOPE_SIGNING_SECRET"):
+    monkeypatch.delenv("PDI_TF_SIGNING_SECRET", raising=False)
+    monkeypatch.delenv("PDI_CI_FOR_SDLC_SIGNING_SECRET", raising=False)
+
+    with pytest.raises(SystemExit, match="PDI_SHIPSCOPE_SIGNING_SECRET.*PDI_TF_SIGNING_SECRET"):
         main()
+
+
+def test_tf_gate_request_uses_pdi_headers_and_its_own_secret(server: HTTPServer, registry: Registry) -> None:
+    body = encode(gate_event())
+
+    status, answer = post(server, body, path="/events/tf", event="gate.requested", prefix="x-pdi", secret=TF_SECRET)
+
+    assert (status, answer["item"]) == (202, "evt-gate-1")
+    assert Inbox(registry).get("evt-gate-1")["gate"] == "B1"
+
+
+def test_tf_path_refuses_the_shipscope_secret(server: HTTPServer) -> None:
+    status, _ = post(server, encode(gate_event()), path="/events/tf", event="gate.requested", prefix="x-pdi")
+
+    assert status == 401
+
+
+def test_event_source_must_match_the_path(server: HTTPServer) -> None:
+    body = encode(stage_event())
+
+    status, answer = post(server, body, path="/events/tf", prefix="x-pdi", secret=TF_SECRET)
+
+    assert status == 400
+    assert "source" in answer["error"]
+
+
+def test_path_without_configured_secret_is_404(server: HTTPServer) -> None:
+    body = encode(readiness_event("ready"))
+
+    status, _ = post(server, body, path="/events/ci_for_sdlc", event="readiness.changed", prefix="x-pdi")
+
+    assert status == 404
+
+
+def test_main_reads_secrets_per_sender(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> None:
+    started: dict[str, Any] = {}
+
+    def fake_make_server(inbox: Inbox, secrets: dict[str, str], **kwargs: Any) -> Any:
+        started.update(secrets=secrets, **kwargs)
+
+        class Stop(Exception):
+            pass
+
+        class Server:
+            def serve_forever(self) -> None:
+                raise Stop
+
+        started["stop"] = Stop
+        return Server()
+
+    monkeypatch.setenv("PDI_REGISTRY_PATH", str(tmp_path))
+    monkeypatch.delenv("PDI_SHIPSCOPE_SIGNING_SECRET", raising=False)
+    monkeypatch.setenv("PDI_TF_SIGNING_SECRET", TF_SECRET)
+    monkeypatch.setenv("PDI_CI_FOR_SDLC_SIGNING_SECRET", "s-ci")
+    monkeypatch.setattr("pdi.receiver.make_server", fake_make_server)
+
+    with pytest.raises(Exception) as stopped:  # noqa: PT011 — Stop powstaje w podstawionym serwerze
+        main()
+
+    assert stopped.type is started["stop"]
+    assert started["secrets"] == {"tf": TF_SECRET, "ci_for_sdlc": "s-ci"}
