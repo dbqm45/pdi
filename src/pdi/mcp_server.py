@@ -34,6 +34,7 @@ InboxStatus = Literal["open", "decided", "superseded", "all"]
 ChangeStatus = Literal["open", "rejected", "done", "all"]
 GateOutcome = Literal["approved", "changes_requested", "rejected"]
 ImpactOutcome = Literal["met", "not_met", "unknown"]
+ProblemOutcome = Literal["accepted", "rejected"]
 
 
 class Source(TypedDict):
@@ -218,11 +219,13 @@ def build_server(
 
     @server.tool(annotations=_READ)
     def list_inbox(status: InboxStatus = "open") -> dict[str, list[dict[str, Any]]]:
-        """Skrzynka pdi: bramki („flaga przeszła na etap 10%, przejść dalej?”) i oceny skutku MVP ze zdarzeń ShipScope.
+        """Skrzynka pdi: bramki („flaga przeszła na etap 10%, przejść dalej?”), oceny skutku MVP i problemy z pasm
+        kontrolnych tf („rollbacki poza 3σ — nowe zgłoszenie?”).
 
         status: open (domyślnie, czeka na decyzję), decided albo all. Każda pozycja: id, kind (gate /
-        impact_review), change, release, summary, received_at; bramka ma event (pełne zdarzenie z kontraktu), ocena
-        skutku — intent, metric, draft (szkic wniosku) i data (odczyty z ShipScope).
+        impact_review / problem), change (problem może go nie mieć), release, summary, received_at; bramka i problem
+        mają event (pełne zdarzenie z kontraktu), problem też metric (odczyt pasma), ocena skutku — intent, metric,
+        draft (szkic wniosku) i data (odczyty z ShipScope).
         """
         return {"items": open_inbox().items(status=None if status == "all" else status)}
 
@@ -233,7 +236,7 @@ def build_server(
         why: str,
         source: Source,
         drafted_by: Literal["ai", "human"],
-        outcome: GateOutcome | ImpactOutcome | None = None,
+        outcome: GateOutcome | ImpactOutcome | ProblemOutcome | None = None,
         project: str | None = None,
         decided_by: str | None = None,
         decided_at: str | None = None,
@@ -252,7 +255,9 @@ def build_server(
         stan zmiany się przesuwa, a następna faza tf (albo poprawki tej samej) zostaje uruchomiona.
         Ocena skutku MVP (kind impact_review) wymaga outcome: met, not_met albo unknown — wynik potwierdzony przez
         człowieka, może różnić się od szkicu pdi (pole draft pozycji); decyzja dostaje kind product, zależność od
-        decyzji o intencji i odczyt z ShipScope jako dowód.
+        decyzji o intencji i odczyt z ShipScope jako dowód. Problem z pasm kontrolnych tf (kind problem,
+        metric.breached) wymaga outcome accepted albo rejected; decyzja dostaje kind triage i odczyt pasma jako dowód
+        (links.prb podaj, gdy powstało zgłoszenie).
         links.chg nadaje skrzynka ze zdarzenia. Pozostałe pola jak w record_decision.
         """
         draft = _draft({**locals(), "kind": "other"})
