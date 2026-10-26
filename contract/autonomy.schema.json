@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dbqm45/pdi/contract/autonomy.schema.json",
+  "title": "Polityka autonomii organizacji (pdi, kontrakt 0.5.0)",
+  "description": "Poziom autonomii dla typów decyzji (DA1). Typy spoza polityki mają poziom domyślny 3. Typy chronione (DA2) nie schodzą poniżej 3.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "policy"
+  ],
+  "properties": {
+    "organization": {
+      "type": "string"
+    },
+    "updated_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "decision": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]+-[0-9]+$",
+      "description": "Decyzja człowieka, która ustaliła tę wersję polityki (DEC-n)."
+    },
+    "policy": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/entry"
+      }
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_type",
+        "level"
+      ],
+      "properties": {
+        "decision_type": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$"
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "veto_window": {
+          "type": "string",
+          "pattern": "^P(?!$)([0-9]+D)?(T(?=[0-9])([0-9]+H)?([0-9]+M)?([0-9]+S)?)?$",
+          "description": "Czas trwania ISO 8601, np. PT4H, P1D."
+        },
+        "rule": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Warunek wykonania przez automat."
+        },
+        "lower_when": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "last_decisions",
+            "min_unedited_share"
+          ],
+          "properties": {
+            "last_decisions": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "min_unedited_share": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "raise_when": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_edited_share"
+          ],
+          "properties": {
+            "max_edited_share": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "decision_type": {
+                "enum": [
+                  "triage",
+                  "scope.r1",
+                  "release.go",
+                  "outcome.assessment",
+                  "review.sensitive",
+                  "migration"
+                ]
+              }
+            },
+            "required": [
+              "decision_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "level": {
+                "const": 3
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "level": {
+                "const": 2
+              }
+            },
+            "required": [
+              "level"
+            ]
+          },
+          "then": {
+            "required": [
+              "veto_window"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

@@ -4,7 +4,8 @@ Schematy i zasady wspólne dla pdi, tf, ci_for_sdlc i ShipScope ([decyzja D1](..
 Wersjonowany wg SemVer 2.0.0 w [`contract.json`](contract.json); zmiana niezgodna wstecz podnosi wersję główną
 (w 0.x — drugą liczbę). Odbiorca zdarzeń przypina wersję przez pole `contract_version`.
 
-Wersja: `0.4.0`. Historia: 0.4.0 — historyjka z kryteriami (G2), plan wydania (G1), nowe pola cięcia,
+Wersja: `0.5.0`. Historia: 0.5.0 — poziomy autonomii (polityka, pola decyzji, zdarzenia skrzynki i postępu pracy
+agenta; DA1, DA2); 0.4.0 — historyjka z kryteriami (G2), plan wydania (G1), nowe pola cięcia,
 `release` w `feature.released`, zdarzenie `release.stage_changed`, zestaw wzorcowy kształtu historyjki, konwencje;
 0.3.0 — zgłoszenie, artefakt zmiany, cięcie, zdarzenia, wspólny wzorzec klucza;
 0.2.0 — pole `project` w decyzji; 0.1.0 — schemat decyzji.
@@ -18,10 +19,33 @@ Wersja: `0.4.0`. Historia: 0.4.0 — historyjka z kryteriami (G2), plan wydania 
 | [`event.schema.json`](event.schema.json) | koperta zdarzenia i treść dla każdego typu | wymiana między projektami | `examples/event-*.json` |
 | [`story.schema.json`](story.schema.json) | historyjka `US-n` (albo klucz z Jiry) ze scenariuszami `AC-n` w formacie `gwt`, `ears` albo `free` | eksport z tf, konektor repo ci_for_sdlc | [`examples/story.json`](examples/story.json) |
 | [`release-plan.schema.json`](release-plan.schema.json) | plan wydania zmiany: MVP z miarą, linie `R1…Rn` z cięciami, flagi z etapami udostępniania | `changes/CHG-n/release.yaml` | [`examples/release-plan.json`](examples/release-plan.json) |
+| [`autonomy.schema.json`](autonomy.schema.json) | polityka autonomii organizacji: typ decyzji → poziom 0–3, okno weta, warunek, progi obniżenia i podniesienia | konfiguracja organizacji (zmiana polityki to decyzja człowieka) | [`examples/autonomy.json`](examples/autonomy.json) |
 | [`fixtures/story-shape/`](fixtures/story-shape/README.md) | zestaw wzorcowy reguł STORY i AC: historyjki, oczekiwane wyniki, wspólne słownictwo | testy tf i ci_for_sdlc | — |
 
 Walidacja w Pythonie: `from pdi import contract; contract.errors("problem", obj)` (pusta lista = poprawny);
-nazwy: `decision`, `problem`, `change`, `task`, `event`, `story`, `release_plan`.
+nazwy: `decision`, `problem`, `change`, `task`, `event`, `story`, `release_plan`, `autonomy`.
+
+Zgodność wstecz: wszystkie pola dodane w 0.5.0 są opcjonalne, a zdarzenia z `contract_version` 0.4.0 dalej
+przechodzą walidację. Zestaw wzorcowy `fixtures/story-shape/` ma wersję 0.4.0 — tę, w której zmienił się ostatnio.
+
+## Poziomy autonomii (0.5.0, decyzje [DA1 i DA2](../docs/decyzje.md))
+
+| Poziom | Nazwa | Co się dzieje |
+|---|---|---|
+| 3 | człowiek | decyzja czeka w skrzynce; bez kliknięcia nic się nie dzieje |
+| 2 | automat z wetem | automat przygotowuje decyzję i wykona ją po oknie weta; człowiek może zatrzymać |
+| 1 | automat z logiem | automat wykonuje od razu; wpis w rejestrze i w osi zdarzeń |
+| 0 | automat po cichu | tylko czynności bez skutków dla produktu |
+
+- **Każdy typ startuje na poziomie 3.** Obniżenie: co najmniej 95% szkiców zatwierdzonych bez zmian w ostatnich
+  30 decyzjach typu (`contract.json` → `autonomy.lower_when`), zawsze jako decyzja człowieka. Powrót wyżej, gdy odsetek
+  poprawek przekroczy 10% (`raise_when`). Polityka organizacji może nadpisać progi per typ.
+- **Typy chronione** (`triage`, `scope.r1`, `release.go`, `outcome.assessment`, `review.sensitive`, `migration`)
+  mają w `autonomy.schema.json` wymuszony poziom 3.
+- **Decyzja** dostaje: `decision_type` (klucz z kropkami; katalog znanych typów w `contract.json` → `autonomy.decision_types`,
+  organizacja może dodać własne), `automation` (tylko decyzje automatu: poziom 0–2, `rule`, `veto_until` — wymagane
+  na poziomie 2, `vetoed_by`), `draft_edited` (czy człowiek zmienił szkic AI; wymaga `drafted_by: ai`) i źródło
+  `console`. Odsetek akceptacji liczy się z `drafted_by: ai` i `draft_edited`.
 
 ## Konwencje (0.4.0) — wartości domyślne do czasu decyzji DG1–DG7
 
@@ -77,6 +101,10 @@ Powody odrzucenia: `out_of_strategy`, `works_as_designed`, `cost_disproportionat
 | `feature.released` | ShipScope | `change`, `released_at` (od 0.4.0 opcjonalnie `release`: R1 wydane = MVP u ludzi) |
 | `metric.breached` | tf (pasma kontrolne) | `metric`, `value`, `threshold` |
 | `release.stage_changed` | ShipScope | `change`, `flag`, `to_stage` (opcjonalnie `release`, `from_stage`, `rollout` 0–100) — od 0.4.0 |
+| `decision.proposed` | pdi, ci_for_sdlc, tf | `decision_type`, `level` (0–3), `summary`; na poziomie 2 także `veto_until` — od 0.5.0 |
+| `decision.auto_applied` | pdi | `decision`, `decision_type`, `level` (0–2) — od 0.5.0 |
+| `decision.vetoed` | pdi | `decision_type`, `vetoed_by` — od 0.5.0 |
+| `run.progress` | tf | `phase`, `status` (`started` / `in_progress` / `waiting_gate` / `done` / `failed`); opcjonalnie `cost_usd`, `budget_usd` — od 0.5.0 |
 | `decision.basis_invalidated` | pdi | `decision`, `assumption`, `signal`, `attention_level` (0–3) — przyjęte 2026-10-23 ([dokument 12 §4.2](../docs/12-zmiana-kierunku-sdlc.md#42-nowe-zdarzenie-w-kontrakcie)), używane od F5 |
 
 Każde zdarzenie: `id` (do deduplikacji), `type`, `occurred_at` (UTC, `RRRR-MM-DDTGG:MM:SSZ`), `source`,

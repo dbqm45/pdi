@@ -1,0 +1,14 @@
+{
+  "id": "evt-decision.auto_applied",
+  "type": "decision.auto_applied",
+  "occurred_at": "2026-10-26T12:00:00Z",
+  "source": "pdi",
+  "contract_version": "0.5.0",
+  "payload": {
+    "decision": "DEC-91",
+    "decision_type": "finding.auto_close",
+    "level": 2,
+    "rule": "odpowiedź znaleziona w źródle z cytatem; okno weta minęło",
+    "change": "CHG-12"
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "version": "0.4.0",
+  "version": "0.5.0",
   "key_pattern": "^[A-Z][A-Z0-9]+-[0-9]+$",
   "prefixes": {
     "problem": "PRB",
@@ -30,5 +30,104 @@
       "release_plan_file": "release.yaml",
       "note": "DG6 (rekomendacja): plan wydania w changes/CHG-n/release.yaml."
     }
+  },
+  "autonomy": {
+    "note": "DA1 i DA2 (docs/decyzje.md). Każdy typ startuje na poziomie 3; obniżenie poziomu jest zawsze decyzją człowieka.",
+    "levels": {
+      "3": "człowiek: decyzja czeka w skrzynce",
+      "2": "automat z wetem: wykonanie po oknie weta",
+      "1": "automat z logiem: wykonanie od razu, wpis w rejestrze i osi zdarzeń",
+      "0": "automat po cichu: tylko czynności bez skutków dla produktu"
+    },
+    "default_level": 3,
+    "lower_when": {
+      "last_decisions": 30,
+      "min_unedited_share": 0.95
+    },
+    "raise_when": {
+      "max_edited_share": 0.1
+    },
+    "protected_types": [
+      "triage",
+      "scope.r1",
+      "release.go",
+      "outcome.assessment",
+      "review.sensitive",
+      "migration"
+    ],
+    "decision_types": [
+      {
+        "decision_type": "finding.auto_close",
+        "description": "Zamknięcie pytania ci_for_sdlc odpowiedzią znalezioną w źródle",
+        "default_level": 3,
+        "lower_candidate_when": "odpowiedź znaleziona w źródle, z cytatem"
+      },
+      {
+        "decision_type": "ac.format_rewrite",
+        "description": "Przepisanie kryteriów akceptacji na GWT",
+        "default_level": 3,
+        "lower_candidate_when": "propozycja zmienia tylko format AC (GWT), nie treść"
+      },
+      {
+        "decision_type": "flag.stage_advance",
+        "description": "Przejście flagi do następnego etapu udostępnienia",
+        "default_level": 3,
+        "lower_candidate_when": "kryteria wyjścia z release.yaml spełnione, min_days minęło, metryki ochronne w normie"
+      },
+      {
+        "decision_type": "flag.removal_pr",
+        "description": "PR usuwający flagę",
+        "default_level": 3,
+        "lower_candidate_when": "flaga na 100% dłużej niż X dni"
+      },
+      {
+        "decision_type": "dependency.update",
+        "description": "Aktualizacja zależności",
+        "default_level": 3,
+        "lower_candidate_when": "patch/minor z zielonym CI"
+      },
+      {
+        "decision_type": "review.light",
+        "description": "Przegląd małej zmiany",
+        "default_level": 3,
+        "lower_candidate_when": "testy, dokumentacja, drobne poprawki; zielone CI i AI review; poza listą wrażliwych obszarów"
+      },
+      {
+        "decision_type": "triage",
+        "description": "Triaż zgłoszenia (czy to robimy)",
+        "default_level": 3,
+        "protected": true
+      },
+      {
+        "decision_type": "scope.r1",
+        "description": "Zakres MVP (R1)",
+        "default_level": 3,
+        "protected": true
+      },
+      {
+        "decision_type": "release.go",
+        "description": "Decyzja o wydaniu zmiany wysokiego ryzyka",
+        "default_level": 3,
+        "protected": true
+      },
+      {
+        "decision_type": "outcome.assessment",
+        "description": "Ocena skutku decyzji",
+        "default_level": 3,
+        "protected": true
+      },
+      {
+        "decision_type": "review.sensitive",
+        "description": "Przegląd kodu z auth, płatnościami, IaC",
+        "default_level": 3,
+        "protected": true
+      },
+      {
+        "decision_type": "migration",
+        "description": "Migracja danych",
+        "default_level": 3,
+        "protected": true
+      }
+    ]
   }
 }

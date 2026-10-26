@@ -14,5 +14,7 @@
   "links": {
     "prb": "PRB-34",
     "chg": "CHG-12"
-  }
+  },
+  "decision_type": "triage",
+  "draft_edited": false
 }

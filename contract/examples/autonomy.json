@@ -1,0 +1,28 @@
+{
+  "organization": "przyklad",
+  "updated_at": "2026-10-26T12:00:00Z",
+  "decision": "DEC-90",
+  "policy": [
+    {
+      "decision_type": "finding.auto_close",
+      "level": 2,
+      "veto_window": "PT4H",
+      "rule": "odpowiedź znaleziona w źródle z cytatem",
+      "lower_when": {
+        "last_decisions": 30,
+        "min_unedited_share": 0.95
+      },
+      "raise_when": {
+        "max_edited_share": 0.1
+      }
+    },
+    {
+      "decision_type": "flag.stage_advance",
+      "level": 3
+    },
+    {
+      "decision_type": "triage",
+      "level": 3
+    }
+  ]
+}

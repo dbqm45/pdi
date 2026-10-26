@@ -3,7 +3,7 @@
   "type": "decision.basis_invalidated",
   "occurred_at": "2026-10-23T10:00:00Z",
   "source": "pdi",
-  "contract_version": "0.4.0",
+  "contract_version": "0.5.0",
   "payload": {
     "decision": "DEC-41",
     "assumption": "zmiana taryfy to najczęstsza operacja bulk",
