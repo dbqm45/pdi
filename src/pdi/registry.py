@@ -252,16 +252,26 @@ class Registry:
 
     def _commit(self, decision: Decision, paths: list[Path], message: str) -> Decision:
         """Commit w repo rejestru (jeśli to repo git). Porażka gita nie cofa zapisu — wraca jako ostrzeżenie."""
-        if not (self.root / ".git").exists():
+        failure = self.commit(paths, message)
+        if failure is None:
             return decision
+        return {**decision, "warning": f"Decyzja zapisana, ale commit git się nie udał: {failure}"}
+
+    def commit(self, paths: list[Path], message: str) -> str | None:
+        """Commituje pliki z katalogu rejestru, gdy to repo git; zwraca opis błędu gita albo None."""
+        if not (self.root / ".git").exists():
+            return None
         git = ["git", "-C", str(self.root)]
         try:
             subprocess.run([*git, "add", "--", *map(str, paths)], check=True, capture_output=True)  # noqa: S603
             subprocess.run([*git, "commit", "-q", "-m", message], check=True, capture_output=True)  # noqa: S603
         except subprocess.CalledProcessError as e:
-            detail = (e.stderr or b"").decode("utf-8", "replace").strip()
-            return {**decision, "warning": f"Decyzja zapisana, ale commit git się nie udał: {detail}"}
-        return decision
+            return (e.stderr or b"").decode("utf-8", "replace").strip()
+        return None
+
+    def now(self) -> datetime:
+        """Bieżący moment według zegara rejestru (w testach — stały)."""
+        return self._clock()
 
 
 def project_slug(name: str) -> str:

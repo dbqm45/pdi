@@ -5,10 +5,30 @@ orkiestracja etapów, graf śladu od zgłoszenia do wydania na PROD i ocena skut
 (fabryka agentów), ci_for_sdlc (kontrola spójności definicji) i ShipScope (status wydań).
 
 Stan: **krok 1 trybu standalone zbudowany** — rejestr decyzji, serwer MCP i komenda `/record-decision`
-([instalacja w Claude Code](integrations/claude-code/README.md)). Reszta flow SDLC na etapie planu.
+([instalacja w Claude Code](integrations/claude-code/README.md)) — oraz skrzynka bramek dla zdarzeń ShipScope
+(G1.5, niżej). Reszta flow SDLC na etapie planu.
 
 Praca z kodem: `uv sync`, potem `uv run pytest`, `uv run ruff check src tests`, `uv run ruff format --check src tests`,
 `uv run mypy src` (te same kroki w CI: `.github/workflows/ci.yml`). Walidacja na sobie: [`eval/dogfood/`](eval/dogfood/README.md). Kod: `src/pdi/`, kontrakt 0.3.0 (decyzja, zgłoszenie, zmiana, cięcie, zdarzenia): [`contract/`](contract/README.md), plan kroku: [`docs/plan-krok-1.md`](docs/plan-krok-1.md).
+
+## Zdarzenia ShipScope → skrzynka (G1.5)
+
+ShipScope wysyła podpisane zdarzenia kontraktu: `release.stage_changed` (flaga z planu wydania przeszła na PROD do
+innego etapu) i `feature.released` (linia wydania u ludzi; `release: R1` = MVP). `pdi-receiver` je odbiera,
+sprawdza podpis i schemat, a w katalogu rejestru zapisuje pozycje `inbox/<ID zdarzenia>.yaml` (z commitem, gdy to
+repo git): bramkę dla zmiany etapu i ocenę skutku dla wydania MVP. W Claude `list_inbox` pokazuje, co czeka,
+a `decide_inbox_item` zapisuje decyzję (`kind: gate` z wynikiem albo `kind: product`, zawsze z `links.chg`) i zamyka
+pozycję. Plan i zakres: [`docs/plan-g15-pdi.md`](docs/plan-g15-pdi.md).
+
+```bash
+PDI_REGISTRY_PATH=~/pdi-decisions \
+PDI_SHIPSCOPE_SIGNING_SECRET=<sekret podpisu z ShipScope: Settings → Sources> \
+uv run pdi-receiver        # http://127.0.0.1:8787/events/shipscope (PDI_RECEIVER_HOST, PDI_RECEIVER_PORT)
+```
+
+ShipScope wysyła tylko na publiczny adres `https://`, więc przed odbiornikiem stoi proxy TLS albo tunel (np.
+Cloudflare Tunnel); ten adres z `/events/shipscope` dodaje admin w ShipScope: Settings → General → Outgoing events.
+Odbiornik obsługuje jedno żądanie naraz i przyjmuje najwyżej 64 KB; 2xx kończy ponowienia ShipScope.
 
 ## Kierunek (od 2026-10-23)
 

@@ -399,7 +399,7 @@ G2.3 jest wstrzymane decyzją [D-G23](decyzje.md). Reszta czeka na fazy planu je
 | F1 (część tf) | tf | częściowo | | Talos dopisuje `Change: TSK-n` tylko opcjonalnie; brakuje hooka `commit-msg` i reguły w `core-conventional-commits`, czytania cięć z `changes/CHG-n/plan.md` przez Talosa i raportu przebiegu w repo |
 | G2.3 propozycje AI | ci_for_sdlc | wstrzymane | #62 | decyzja [D-G23](decyzje.md): rozstrzygnięcie po pilocie |
 | G1.4 reguły REL w repo | ci_for_sdlc | czeka | | F2 (konektor repo) |
-| G1.5 bramki i zdarzenia | pdi + ShipScope | czeka | | F4–F5 (skrzynka bramek, wychodzące webhooki) |
+| G1.5 bramki i zdarzenia | pdi + ShipScope | zrobione (cienka skrzynka) | ShipScope #109, pdi #PR | [plan kroku](plan-g15-pdi.md): ShipScope wysyła podpisane `release.stage_changed` i `feature.released`; pdi odbiera je (`pdi-receiver`), robi z nich bramki i oceny skutku MVP w skrzynce (`list_inbox`, `decide_inbox_item` → decyzja `kind: gate` / `product` z `links.chg`). Maszyna stanów per CHG i bramki z tf i ci_for_sdlc zostają w F4 |
 | G2.5 panel w Jirze | nowe repo + ci_for_sdlc | czeka | | tryb SaaS ci_for_sdlc i ShipScope |
 | G2.6 sygnał z estymacji | sprintdeck + ci_for_sdlc | czeka | | MVP sprintdecka z importem z Jiry; rola sprintdecka zmieniona decyzją [D-E1](decyzje.md) |
 | G1.6 edytor mapy historyjek | pdi | warunkowo | | po pilocie |
