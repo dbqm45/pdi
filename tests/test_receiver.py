@@ -73,6 +73,12 @@ def test_duplicate_and_recorded_events_are_200(server: HTTPServer) -> None:
     assert (recorded, recorded_body["status"]) == (200, "recorded")
 
 
+def test_mvp_release_is_scheduled_with_200(server: HTTPServer) -> None:
+    status, body = post(server, encode(released_event()), event="feature.released")
+
+    assert (status, body) == (200, {"status": "scheduled", "item": None})
+
+
 def test_bad_signature_is_401_and_stores_nothing(server: HTTPServer, registry: Registry) -> None:
     status, body = post(server, encode(stage_event()), signature="v1=" + "0" * 64)
 

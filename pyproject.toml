@@ -15,6 +15,7 @@ dependencies = [
 pdi-mcp = "pdi.mcp_server:main"
 pdi-stats = "pdi.stats:main"
 pdi-receiver = "pdi.receiver:main"
+pdi-impact-review = "pdi.impact:main"
 
 [build-system]
 requires = ["hatchling"]

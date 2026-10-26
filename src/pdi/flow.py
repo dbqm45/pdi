@@ -115,11 +115,32 @@ def feature_released(state: State, release: str | None, released_at: str, *, at:
     return new
 
 
-def impact_reviewed(state: State, decision: str, *, at: str) -> State:
+def impact_scheduled(state: State, plan: dict[str, Any], *, at: str) -> State:
+    """Ocena skutku MVP zaplanowana na `plan["due"]` (F5, `pdi.impact.due_date`)."""
+    new = _copy(state)
+    new["impact_review"] = {"status": "scheduled", **plan}
+    new["history"].append({"at": at, "what": "impact.scheduled", "due": plan["due"]})
+    return new
+
+
+def impact_opened(state: State, item: str, *, at: str) -> State:
+    new = _copy(state)
+    new["impact_review"] = {**new.get("impact_review", {}), "status": "open", "item": item}
+    new["history"].append({"at": at, "what": "impact.opened", "item": item})
+    return new
+
+
+def impact_reviewed(state: State, decision: str, *, at: str, outcome: str | None = None) -> State:
+    """Człowiek potwierdził wynik oceny skutku (`met` / `not_met` / `unknown`); zmiana jest skończona."""
     new = _copy(state)
     new["status"] = "done"
     new["waiting"] = []
-    new["history"].append({"at": at, "what": "impact.reviewed", "decision": decision})
+    entry: dict[str, Any] = {"at": at, "what": "impact.reviewed", "decision": decision}
+    if outcome is not None:
+        entry["outcome"] = outcome
+        review = new.get("impact_review", {})
+        new["impact_review"] = {**review, "status": "decided", "outcome": outcome, "decision": decision}
+    new["history"].append(entry)
     return new
 
 

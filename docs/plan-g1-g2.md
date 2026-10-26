@@ -407,10 +407,10 @@ G2.3 jest wstrzymane decyzją [D-G23](decyzje.md). Reszta czeka na fazy planu je
 Decyzje DG1–DG7 z §2 są wpisane do [`decyzje.md`](decyzje.md) jako przyjęte 2026-10-25. DG1, DG2, DG4, DG5 i DG6
 są zastosowane w kodzie; DG3 i DG7 dotyczą kroków jeszcze niezrealizowanych (G2.3, G2.5).
 
-**Uwaga o jakości:** PR-y od #58 w ci_for_sdlc, #77 w tf, #106 w ShipScope oraz #15, #16 i #17 w pdi scalono bez CI na GitHubie, bo GitHub
+**Uwaga o jakości:** PR-y od #58 w ci_for_sdlc, #77 w tf, #106 w ShipScope oraz #15, #16, #17 i #18 w pdi scalono bez CI na GitHubie, bo GitHub
 Actions nie uruchamia zadań (płatności na koncie). Lokalnie sprawdzone: ci_for_sdlc `packages/core` 437/437 testów
-i typecheck na kodzie G1.2; tf `tools/workspace.py check --packs pack-it` na kodzie G2.4; pdi #15, #16 i #17: pytest
-(338, 408 i 420), ruff, format i mypy, czyli kroki `ci.yml`.
+i typecheck na kodzie G1.2; tf `tools/workspace.py check --packs pack-it` na kodzie G2.4; pdi #15, #16, #17 i #18: pytest
+(338, 408, 420 i 460), ruff, format i mypy, czyli kroki `ci.yml`.
 
 **Następne kroki:**
 1. Domknąć F1 w tf (hook `commit-msg` z `Change: TSK-n`, Talos na cięciach z `changes/CHG-n/plan.md`, raport

@@ -215,8 +215,8 @@ Każda faza kończy się czymś, co działa samo, nawet jeśli następna się op
 - **Działa po fazie:** człowiek klika tylko na bramkach; kolejne fazy startują same.
 
 ### F5 — Zamknięcie pętli
-- **ShipScope:** `feature.released`, API usług, release notes z intencji, lead time od zgłoszenia.
-- **pdi:** powiadomienia, ocena skutku decyzji, graf śladu.
+- **ShipScope:** `feature.released`, API usług (**zrobione 2026-10-26**, dbqm45/evdt-service-shipscope#110), release notes z intencji, lead time od zgłoszenia.
+- **pdi:** powiadomienia, ocena skutku decyzji (**zrobione 2026-10-26**, [plan](plan-f5-ocena-skutku.md): termin z intencji po wydaniu R1, dane z API usług ShipScope, szkic wniosku, wynik potwierdza człowiek), graf śladu.
 - **tf:** pasma kontrolne na metrykach z ShipScope → nowy PRB.
 - **Działa po fazie:** pełna pętla zgłoszenie → wydanie → skutek → nowe zgłoszenie.
 

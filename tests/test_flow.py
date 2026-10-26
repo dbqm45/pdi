@@ -8,7 +8,9 @@ from pdi.flow import (
     feature_released,
     gate_decided,
     gate_requested,
+    impact_opened,
     impact_reviewed,
+    impact_scheduled,
     missing_before,
     new_state,
     readiness_changed,
@@ -178,6 +180,21 @@ def test_impact_review_finishes_the_change() -> None:
 
     assert state["status"] == "done"
     assert state["history"][-1] == {"at": AT, "what": "impact.reviewed", "decision": "DEC-10"}
+
+
+def test_impact_review_is_scheduled_opened_and_decided() -> None:
+    plan = {"due": "2026-12-05", "basis": "default", "intent": None, "released_at": "2026-11-05T12:00:00Z"}
+
+    state = impact_scheduled(new_state("CHG-12"), plan, at=AT)
+    assert state["impact_review"] == {"status": "scheduled", **plan}
+    state = impact_opened(state, "impact-CHG-12-R1", at=AT)
+    assert (state["impact_review"]["status"], state["impact_review"]["item"]) == ("open", "impact-CHG-12-R1")
+    state = impact_reviewed(state, "DEC-10", at=AT, outcome="not_met")
+
+    assert state["impact_review"]["status"] == "decided"
+    assert (state["impact_review"]["outcome"], state["impact_review"]["decision"]) == ("not_met", "DEC-10")
+    assert state["history"][-1] == {"at": AT, "what": "impact.reviewed", "decision": "DEC-10", "outcome": "not_met"}
+    assert [h["what"] for h in state["history"]] == ["impact.scheduled", "impact.opened", "impact.reviewed"]
 
 
 def test_transitions_do_not_mutate_their_input() -> None:

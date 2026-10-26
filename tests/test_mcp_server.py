@@ -13,7 +13,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from pdi.inbox import Inbox
 from pdi.mcp_server import build_server
 from pdi.registry import Registry
-from tests.test_inbox import gate_event, stage_event
+from tests.test_inbox import gate_event, released_event, stage_event
 
 Draft = Callable[..., dict[str, Any]]
 pytestmark = pytest.mark.anyio
@@ -48,7 +48,9 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
         "list_changes",
         "get_change",
         "retry_dispatch",
+        "open_due_impact_reviews",
     }
+    assert tools["open_due_impact_reviews"].annotations.read_only_hint is False
     assert tools["list_changes"].annotations.read_only_hint is True
     assert tools["retry_dispatch"].annotations.read_only_hint is False
     assert tools["list_inbox"].annotations.read_only_hint is True
@@ -112,7 +114,7 @@ async def test_stdio_end_to_end(tmp_path: Path, make_draft: Draft) -> None:
         listed = await session.list_tools()
         result = await session.call_tool("record_decision", make_draft())
 
-    assert len(listed.tools) == 9
+    assert len(listed.tools) == 10
     assert json.loads(result.content[0].text)["id"] == "DEC-0001"
     assert (tmp_path / "rejestr" / "decisions" / "_ogolne" / "DEC-0001.md").is_file()
 
@@ -153,6 +155,25 @@ async def test_changes_through_tools(
     assert got["dispatch"]["status"] == "skipped"
     retried = await call(server, "retry_dispatch", {"change": "CHG-12"})
     assert retried["dispatch"]["status"] == "skipped"
+
+
+async def test_impact_review_through_tools(
+    server: Any, registry: Registry, make_draft: Draft, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("PDI_SHIPSCOPE_URL", raising=False)
+    Inbox(registry).receive(released_event())
+
+    early = await call(server, "open_due_impact_reviews", {"today": "2026-11-21"})
+    opened = await call(server, "open_due_impact_reviews", {"today": "2026-11-22"})
+    decided = await call(
+        server, "decide_inbox_item", {"item_id": "impact-CHG-12-R1", "outcome": "not_met", **make_draft()}
+    )
+
+    assert early == {"opened": []}
+    assert [i["id"] for i in opened["opened"]] == ["impact-CHG-12-R1"]
+    assert "impact:not_met" in decided["decision"]["tags"]
+    with pytest.raises(ToolError, match="RRRR-MM-DD"):
+        await server.call_tool("open_due_impact_reviews", {"today": "jutro"})
 
 
 async def test_change_tools_return_hints(server: Any) -> None:
