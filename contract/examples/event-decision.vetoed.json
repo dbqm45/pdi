@@ -1,0 +1,14 @@
+{
+  "id": "evt-decision.vetoed",
+  "type": "decision.vetoed",
+  "occurred_at": "2026-10-26T12:00:00Z",
+  "source": "pdi",
+  "contract_version": "0.5.0",
+  "payload": {
+    "item": "INB-8",
+    "decision_type": "finding.auto_close",
+    "vetoed_by": "dbqm45",
+    "reason": "cytat dotyczy starej wersji strony",
+    "change": "CHG-12"
+  }
+}

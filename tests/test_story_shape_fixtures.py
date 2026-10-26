@@ -33,7 +33,12 @@ def test_files_are_valid_against_fixture_schemas() -> None:
 
 
 def test_expected_matches_current_contract_version_and_default_policy() -> None:
-    assert EXPECTED["contract_version"] == contract.CONTRACT_VERSION
+    # Zestaw ma wersję kontraktu, w której ostatnio się zmienił (0.4.0); nie może być nowszy niż bieżący kontrakt.
+    def ver(v: str) -> tuple[int, ...]:
+        return tuple(int(x) for x in v.split("."))
+
+    assert EXPECTED["contract_version"] == "0.4.0"
+    assert ver(EXPECTED["contract_version"]) <= ver(contract.CONTRACT_VERSION)
     assert EXPECTED["policy"] == {"acFormat": "gwt", "maxScenarios": 6, "maxActions": 3, "maxStoryPoints": 13}
     assert set(EXPECTED["rules"]) == RULES
 

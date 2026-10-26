@@ -1,0 +1,16 @@
+{
+  "id": "evt-decision.proposed",
+  "type": "decision.proposed",
+  "occurred_at": "2026-10-26T12:00:00Z",
+  "source": "ci_for_sdlc",
+  "contract_version": "0.5.0",
+  "payload": {
+    "item": "INB-7",
+    "decision_type": "finding.auto_close",
+    "level": 2,
+    "summary": "Pytanie o format daty ma odpowiedź w Confluence (cytat w pozycji)",
+    "recommendation": "zamknąć z cytatem",
+    "veto_until": "2026-10-26T16:00:00Z",
+    "change": "CHG-12"
+  }
+}

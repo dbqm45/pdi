@@ -17,6 +17,10 @@ EVENT_TYPES = [
     "metric.breached",
     "decision.basis_invalidated",
     "release.stage_changed",
+    "decision.proposed",
+    "decision.auto_applied",
+    "decision.vetoed",
+    "run.progress",
 ]
 
 
@@ -40,7 +44,7 @@ def test_schema_is_valid_json_schema_2020_12(name: str) -> None:
 def test_settings_define_version_key_pattern_and_default_prefixes() -> None:
     settings = contract.settings()
 
-    assert settings["version"] == contract.CONTRACT_VERSION == "0.4.0"
+    assert settings["version"] == contract.CONTRACT_VERSION == "0.5.0"
     assert settings["prefixes"] == {"problem": "PRB", "change": "CHG", "task": "TSK", "decision": "DEC"}
     assert settings["key_pattern"] == "^[A-Z][A-Z0-9]+-[0-9]+$"
 
@@ -50,7 +54,7 @@ def test_every_schema_and_event_type_has_an_example() -> None:
     stems = {p.stem for p in EXAMPLES}
 
     assert set(contract.SCHEMA_NAMES) - {"event"} == names
-    assert {"story", "release_plan"} <= set(contract.SCHEMA_NAMES)
+    assert {"story", "release_plan", "autonomy"} <= set(contract.SCHEMA_NAMES)
     assert {f"event-{t}" for t in EVENT_TYPES} <= stems
 
 
@@ -303,3 +307,139 @@ def test_conventions_hold_defaults_for_undecided_choices() -> None:
     assert conventions["acceptance_criteria"]["default_format"] == "gwt"
     assert conventions["jira"]["release_line"] == {"mode": "label", "prefix": "release:"}
     assert conventions["repo"]["release_plan_file"] == "release.yaml"
+
+
+# --- kontrakt 0.5.0: poziomy autonomii (A0, decyzje DA1 i DA2) ---
+
+PROTECTED = ["triage", "scope.r1", "release.go", "outcome.assessment", "review.sensitive", "migration"]
+CANDIDATES = [
+    "finding.auto_close",
+    "ac.format_rewrite",
+    "flag.stage_advance",
+    "flag.removal_pr",
+    "dependency.update",
+    "review.light",
+]
+
+
+def test_autonomy_defaults_follow_da2() -> None:
+    autonomy = contract.settings()["autonomy"]
+
+    assert autonomy["default_level"] == 3
+    assert autonomy["lower_when"] == {"last_decisions": 30, "min_unedited_share": 0.95}
+    assert autonomy["raise_when"] == {"max_edited_share": 0.10}
+    assert autonomy["protected_types"] == PROTECTED
+    assert [t["decision_type"] for t in autonomy["decision_types"]] == CANDIDATES + PROTECTED
+    assert all(t["default_level"] == 3 for t in autonomy["decision_types"])
+
+
+def test_catalog_types_match_decision_type_pattern() -> None:
+    pattern = contract.load("decision")["properties"]["decision_type"]["pattern"]
+    for t in contract.settings()["autonomy"]["decision_types"]:
+        assert contract.errors("decision", {**example("decision"), "decision_type": t["decision_type"]}) == [], pattern
+
+
+def test_protected_types_in_policy_schema_match_catalog() -> None:
+    schema = contract.load("autonomy")
+    rule = schema["$defs"]["entry"]["allOf"][0]
+
+    assert rule["if"]["properties"]["decision_type"]["enum"] == contract.settings()["autonomy"]["protected_types"]
+
+
+def policy_with(entry: dict[str, Any]) -> dict[str, Any]:
+    return {**example("autonomy"), "policy": [entry]}
+
+
+@pytest.mark.parametrize("decision_type", PROTECTED)
+def test_protected_type_cannot_be_lowered(decision_type: str) -> None:
+    assert (
+        contract.errors("autonomy", policy_with({"decision_type": decision_type, "level": 2, "veto_window": "PT4H"}))
+        != []
+    )
+    assert contract.errors("autonomy", policy_with({"decision_type": decision_type, "level": 3})) == []
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        pytest.param({"decision_type": "flag.stage_advance", "level": 2}, id="poziom-2-bez-okna-weta"),
+        pytest.param({"decision_type": "flag.stage_advance", "level": 4}, id="poziom-spoza-0-3"),
+        pytest.param({"decision_type": "Flag Stage", "level": 3}, id="typ-nie-klucz"),
+        pytest.param({"decision_type": "flag.stage_advance", "level": 2, "veto_window": "4h"}, id="okno-nie-iso-8601"),
+        pytest.param(
+            {
+                "decision_type": "review.light",
+                "level": 3,
+                "lower_when": {"last_decisions": 30, "min_unedited_share": 1.5},
+            },
+            id="udzial-ponad-1",
+        ),
+    ],
+)
+def test_invalid_policy_entries_are_rejected(entry: dict[str, Any]) -> None:
+    assert contract.errors("autonomy", policy_with(entry)) != []
+
+
+@pytest.mark.parametrize(
+    "patch",
+    [
+        pytest.param({"automation": {"level": 3}}, id="poziom-3-to-czlowiek-nie-automat"),
+        pytest.param({"automation": {"level": 2, "rule": "x"}}, id="poziom-2-bez-veto-until"),
+        pytest.param({"drafted_by": "human", "draft_edited": True}, id="draft-edited-bez-szkicu-ai"),
+        pytest.param({"decision_type": "Flag.Stage"}, id="typ-z-wielkimi-literami"),
+        pytest.param({"source": {"kind": "teams"}}, id="zrodlo-spoza-listy"),
+    ],
+)
+def test_invalid_decision_autonomy_fields_are_rejected(patch: dict[str, Any]) -> None:
+    assert contract.errors("decision", {**example("decision"), **patch}) != []
+
+
+@pytest.mark.parametrize(
+    "patch",
+    [
+        pytest.param(
+            {"decision_type": "flag.stage_advance", "automation": {"level": 1, "rule": "kryteria wyjścia spełnione"}},
+            id="automat-z-logiem",
+        ),
+        pytest.param(
+            {"automation": {"level": 2, "rule": "x", "veto_until": "2026-10-27T10:00:00Z", "vetoed_by": "dbqm45"}},
+            id="zawetowane",
+        ),
+        pytest.param({"drafted_by": "ai", "draft_edited": False}, id="szkic-ai-bez-zmian"),
+        pytest.param({"source": {"kind": "console"}}, id="zrodlo-konsola"),
+    ],
+)
+def test_valid_decision_autonomy_fields(patch: dict[str, Any]) -> None:
+    assert contract.errors("decision", {**example("decision"), **patch}) == []
+
+
+def test_decision_without_autonomy_fields_stays_valid() -> None:
+    plain = {k: v for k, v in example("decision").items() if k not in {"decision_type", "automation", "draft_edited"}}
+
+    assert contract.errors("decision", plain) == []
+
+
+def test_proposed_level_2_requires_veto_until() -> None:
+    event = example("event-decision.proposed")
+    payload = {k: v for k, v in event["payload"].items() if k != "veto_until"}
+
+    assert contract.errors("event", {**event, "payload": {**payload, "level": 2}}) != []
+    assert contract.errors("event", {**event, "payload": {**payload, "level": 3}}) == []
+
+
+def test_auto_applied_cannot_be_level_3() -> None:
+    event = example("event-decision.auto_applied")
+
+    assert contract.errors("event", {**event, "payload": {**event["payload"], "level": 3}}) != []
+
+
+def test_run_progress_status_and_cost() -> None:
+    event = example("event-run.progress")
+
+    assert contract.errors("event", {**event, "payload": {**event["payload"], "status": "paused"}}) != []
+    assert contract.errors("event", {**event, "payload": {**event["payload"], "cost_usd": -1}}) != []
+
+
+def test_events_from_contract_0_4_0_are_still_valid() -> None:
+    for t in EVENT_TYPES[:8]:  # typy istniejące w 0.4.0
+        assert contract.errors("event", {**example(f"event-{t}"), "contract_version": "0.4.0"}) == []
