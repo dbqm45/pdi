@@ -1,6 +1,6 @@
 # Automatyzacja i konsola — plan
 
-Data: 2026-10-25 · Status: **w realizacji** — A0 zrobione (kontrakt 0.5.0, [plan A0](plan-a0-kontrakt-050.md)); DA1 i DA2 przyjęte, DA3–DA6 otwarte
+Data: 2026-10-25 · Status: **w realizacji** — A0 zrobione (kontrakt 0.5.0, [plan A0](plan-a0-kontrakt-050.md)), A3 zrobione ([plan A3](plan-a3-licznik-akceptacji.md)); DA1 i DA2 przyjęte, DA3–DA6 otwarte
 
 Gdzie jeszcze zautomatyzować workflow od pomysłu do wdrożenia i jak dać człowiekowi jedno miejsce, w którym widzi,
 co się dzieje, i podejmuje decyzje tak jak w rozmowie z Claude. Uzupełnia [plan jednego flow](plan-jeden-flow-sdlc.md)

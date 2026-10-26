@@ -343,3 +343,23 @@ def test_moved_file_return_is_committed_in_git_registry(
     assert "warning" not in saved
     assert status == ""
     assert not (root / "decisions" / "inny" / "DEC-0001.md").exists()
+
+
+def test_every_contract_field_is_written_to_the_file() -> None:
+    from pdi import contract
+    from pdi.registry import FIELD_ORDER
+
+    assert set(contract.load("decision")["properties"]) <= set(FIELD_ORDER)
+
+
+def test_autonomy_fields_survive_record_and_get(registry: Registry, make_draft: Draft) -> None:
+    registry.record(
+        make_draft(
+            decision_type="flag.stage_advance",
+            draft_edited=True,
+            automation={"level": 2, "rule": "kryteria wyjścia", "veto_until": "2026-10-27T10:00:00Z"},
+        )
+    )
+
+    got = registry.get("DEC-0001")
+    assert (got["decision_type"], got["draft_edited"], got["automation"]["level"]) == ("flag.stage_advance", True, 2)

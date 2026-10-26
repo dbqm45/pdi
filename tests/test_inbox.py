@@ -747,3 +747,36 @@ def test_problem_about_a_change_links_the_decision(inbox: Inbox, make_draft: Dra
     inbox.receive(metric_event("tf-metric-x", change="CHG-12"))
     with pytest.raises(InvalidDecision, match="CHG-12"):
         inbox.decide("tf-metric-x", make_draft(links={"chg": "CHG-99"}), outcome="accepted")
+
+
+# --- A3: typ decyzji nadawany przez skrzynkę ---
+
+
+def test_inbox_decisions_get_a_default_decision_type(inbox: Inbox, make_draft: Draft) -> None:
+    inbox.receive(stage_event())
+    inbox.receive(gate_event())
+    inbox.receive(metric_event())
+
+    stage = inbox.decide("evt-stage-1", make_draft(statement="Dalej."), outcome="approved")["decision"]
+    gate = inbox.decide("evt-gate-1", make_draft(statement="B1 tak."), outcome="approved")["decision"]
+    problem = inbox.decide(metric_event()["id"], make_draft(statement="Nowe zgłoszenie."), outcome="accepted")[
+        "decision"
+    ]
+    review = inbox.decide(open_review(inbox), make_draft(statement="Cel osiągnięty."), outcome="met")["decision"]
+
+    assert stage["decision_type"] == "flag.stage_advance"
+    assert gate["decision_type"] == "gate.b1"
+    assert problem["decision_type"] == "triage"
+    assert review["decision_type"] == "outcome.assessment"
+
+
+def test_explicit_decision_type_and_draft_edited_are_kept(inbox: Inbox, make_draft: Draft) -> None:
+    inbox.receive(stage_event())
+
+    decision = inbox.decide(
+        "evt-stage-1",
+        make_draft(statement="Dalej.", decision_type="release.go", draft_edited=True),
+        outcome="approved",
+    )["decision"]
+
+    assert (decision["decision_type"], decision["draft_edited"]) == ("release.go", True)

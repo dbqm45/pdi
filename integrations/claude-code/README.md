@@ -58,6 +58,9 @@ Sprawdzenie: `claude mcp list` pokazuje `pdi` jako połączony; w sesji `/mcp` �
   Komenda ma z góry zezwolenie na narzędzia pdi, więc po „tak” nie ma drugiego pytania o uprawnienia
   (zapis jest w gicie i można go cofnąć).
 - „Co już zdecydowaliśmy o …?” — Claude wywołuje `find_decisions`.
+- „Które decyzje są gotowe do automatyzacji?” — `autonomy_report`: dla każdego typu decyzji odsetek szkiców AI
+  zatwierdzonych bez zmian i rekomendacja poziomu (próg: 95% z ostatnich 30). `propose_autonomy_changes` wkłada
+  propozycje do skrzynki; zmiana poziomu to Twoja decyzja (`decide_inbox_item`), zapisana w `autonomy.yaml` rejestru.
 - Plik decyzji: `$PDI_REGISTRY_PATH/decisions/<projekt>/DEC-nnnn.md` (frontmatter YAML + czytelna treść);
   projekt = nazwa repo, w którym pracujesz; decyzje ogólne w `decisions/_ogolne/`. Numery są wspólne dla wszystkich
   projektów.

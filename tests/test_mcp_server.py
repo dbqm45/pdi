@@ -58,7 +58,11 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
         "clarify_problem",
         "update_problem",
         "find_similar_problems",
+        "autonomy_report",
+        "propose_autonomy_changes",
     }
+    assert tools["autonomy_report"].annotations.read_only_hint is True
+    assert tools["propose_autonomy_changes"].annotations.read_only_hint is False
     assert tools["find_similar_problems"].annotations.read_only_hint is True
     assert tools["list_problems"].annotations.read_only_hint is True
     assert tools["triage_problem"].annotations.read_only_hint is False
@@ -72,6 +76,8 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
     assert tools["record_decision"].annotations.read_only_hint is False
     record_params = tools["record_decision"].input_schema["properties"]
     assert {"statement", "why", "kind", "source", "drafted_by", "assumptions", "project"} <= set(record_params)
+    assert {"decision_type", "draft_edited"} <= set(record_params)
+    assert {"decision_type", "draft_edited"} <= set(tools["decide_inbox_item"].input_schema["properties"])
     assert "project" in tools["find_decisions"].input_schema["properties"]
 
 
@@ -127,7 +133,7 @@ async def test_stdio_end_to_end(tmp_path: Path, make_draft: Draft) -> None:
         listed = await session.list_tools()
         result = await session.call_tool("record_decision", make_draft())
 
-    assert len(listed.tools) == 19
+    assert len(listed.tools) == 21
     assert json.loads(result.content[0].text)["id"] == "DEC-0001"
     assert (tmp_path / "rejestr" / "decisions" / "_ogolne" / "DEC-0001.md").is_file()
 
@@ -243,3 +249,27 @@ async def test_change_tools_return_hints(server: Any) -> None:
         await server.call_tool("get_change", {"change": "CHG-404"})
     with pytest.raises(ToolError, match="list_changes"):
         await server.call_tool("retry_dispatch", {"change": "CHG-404"})
+
+
+async def test_autonomy_through_tools(server: Any, registry: Registry, make_draft: Draft) -> None:
+    for n in range(30):
+        await call(
+            server,
+            "record_decision",
+            make_draft(
+                statement=f"Pytanie {n} zamknięte cytatem.", decision_type="finding.auto_close", draft_edited=False
+            ),
+        )
+
+    report = await call(server, "autonomy_report", {})
+    row = next(r for r in report["types"] if r["decision_type"] == "finding.auto_close")
+    proposed = await call(server, "propose_autonomy_changes", {})
+    decided = await call(
+        server,
+        "decide_inbox_item",
+        {"item_id": proposed["items"][0]["id"], "outcome": "approved", **make_draft(statement="Poziom 2.")},
+    )
+
+    assert row["recommendation"]["action"] == "lower"
+    assert registry.get("DEC-0001")["draft_edited"] is False
+    assert decided["decision"]["decision_type"] == "autonomy.level_change"

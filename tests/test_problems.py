@@ -450,3 +450,12 @@ def test_accepting_without_dispatch_config_is_skipped_not_failed(registry: Regis
 
     assert result["problem"]["change"] == "CHG-1"
     assert result["dispatch"]["status"] == "skipped"
+
+
+def test_triage_decision_gets_decision_type_triage(registry: Registry, make_draft: Any) -> None:
+    problems = store(registry)
+    problems.record(problem())
+
+    decision = problems.triage("PRB-1", "rejected", make_draft(), rejection_reason="out_of_strategy")["decision"]
+
+    assert decision["decision_type"] == "triage"
