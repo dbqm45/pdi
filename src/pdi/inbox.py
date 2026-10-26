@@ -123,7 +123,9 @@ class Inbox:
         if event["type"] == "readiness.changed":
             state = flow.readiness_changed(state, payload["readiness"], at=at)
         if event["type"] == "feature.released":
-            state = flow.feature_released(state, payload.get("release"), payload["released_at"], at=at)
+            state = flow.feature_released(
+                state, payload.get("release"), payload["released_at"], at=at, tasks=payload.get("tasks")
+            )
 
         if gate is None:
             # Bez pozycji w skrzynce duplikat rozpoznaje się po ID zapisanym w stanie zmiany.

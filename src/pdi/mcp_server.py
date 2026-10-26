@@ -17,6 +17,7 @@ from pdi.impact import ShipScopeConfig
 from pdi.inbox import Inbox, ItemClosed, ItemNotFound
 from pdi.notify import NotifyConfig
 from pdi.registry import CannotSupersede, Decision, DecisionNotFound, InvalidDecision, Registry
+from pdi.trace import trace
 
 INSTRUCTIONS = """\
 Rejestr decyzji pdi. Zapisuj decyzję (record_decision) tylko na wyraźną prośbę człowieka i dopiero po tym,
@@ -286,6 +287,19 @@ def build_server(
         """Pełny stan przebiegu zmiany (np. CHG-12), z historią zdarzeń i decyzji."""
         try:
             return open_inbox().changes.get(change)
+        except ChangeNotFound as e:
+            raise ToolError(str(e)) from e
+
+    @server.tool(annotations=_READ)
+    def get_trace(change: str, live: bool = True) -> dict[str, Any]:
+        """Graf śladu zmiany: PRB → CHG → bramki i decyzje → TSK → PR → wdrożenia → wydania → ocena skutku.
+
+        nodes (id, kind, label, status), edges (from, to, kind), gaps (luki do pokazania człowiekowi, nie do
+        naprawiania) i mermaid (flowchart do wklejenia). live=true czyta status wdrożeń z ShipScope
+        (PDI_SHIPSCOPE_URL, PDI_SHIPSCOPE_TOKEN); live=false tylko z tego, co pdi ma.
+        """
+        try:
+            return trace(open_registry(), change, shipscope=ShipScopeConfig.from_env(), live=live)
         except ChangeNotFound as e:
             raise ToolError(str(e)) from e
 
