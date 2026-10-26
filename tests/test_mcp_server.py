@@ -55,7 +55,11 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
         "get_problem",
         "triage_problem",
         "retry_problem_notifications",
+        "clarify_problem",
+        "update_problem",
+        "find_similar_problems",
     }
+    assert tools["find_similar_problems"].annotations.read_only_hint is True
     assert tools["list_problems"].annotations.read_only_hint is True
     assert tools["triage_problem"].annotations.read_only_hint is False
     assert tools["get_trace"].annotations.read_only_hint is True
@@ -123,7 +127,7 @@ async def test_stdio_end_to_end(tmp_path: Path, make_draft: Draft) -> None:
         listed = await session.list_tools()
         result = await session.call_tool("record_decision", make_draft())
 
-    assert len(listed.tools) == 16
+    assert len(listed.tools) == 19
     assert json.loads(result.content[0].text)["id"] == "DEC-0001"
     assert (tmp_path / "rejestr" / "decisions" / "_ogolne" / "DEC-0001.md").is_file()
 
@@ -224,6 +228,12 @@ async def test_problem_record_and_triage_through_tools(
     with pytest.raises(ToolError, match="list_problems"):
         await server.call_tool("get_problem", {"problem_id": "PRB-404"})
     await call(server, "record_problem", problem(title="Drugie"))
+    asked = await call(server, "clarify_problem", {"problem_id": "PRB-2", "questions": ["Jak często?"]})
+    ready = await call(server, "update_problem", {"problem_id": "PRB-2", "frequency": "co tydzień", "ready": True})
+    similar = await call(server, "find_similar_problems", {"problem_id": "PRB-2"})
+    assert asked["problem"]["status"] == "clarifying"
+    assert (ready["status"], ready["frequency"]) == ("ready_for_triage", "co tydzień")
+    assert [s["id"] for s in similar["similar"]] == ["PRB-1"]
     with pytest.raises(ToolError, match="duplicate_of"):
         await server.call_tool("triage_problem", {"problem_id": "PRB-2", "outcome": "duplicate", **make_draft()})
 

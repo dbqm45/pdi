@@ -98,6 +98,19 @@ automatyzacja Jiry) wybiera kanał po `reporter` i `channel`. Dziennik wysyłek:
 `retry_problem_notifications` ponawia. Te same `PDI_NOTIFY_*` ustawia się dla serwera MCP i `pdi-receiver`. Pełny
 intake zgłoszeń to F3. Plan: [`docs/plan-f5-powiadomienia.md`](docs/plan-f5-powiadomienia.md).
 
+### Intake, wzbogacenie i przyjęcie do budowy (F3)
+
+- **Formularz**: z `PDI_FORM_TOKEN` odbiornik podaje `GET /problems/new?t=<token>` (strona bez skryptów) i przyjmuje
+  `POST /problems`; zgłoszenie dostaje `channel: form`, a strona po zapisie pokazuje numer i podobne zgłoszenia. Link z
+  tokenem rozsyła się zgłaszającym (np. w Slacku albo intranecie); bez tokenu ścieżki odpowiadają 404.
+- **Claude**: `clarify_problem` (3–5 pytań, status `clarifying`, pytania idą do zgłaszającego powiadomieniem),
+  `update_problem` (opis, `ready` → `ready_for_triage`), `find_similar_problems`.
+- **Wzbogacenie**: triaż `duplicate` dopisuje oryginałowi liczbę zgłoszeń, dowód i powiązanie; odłożone z progiem „N
+  nowe zgłoszenia” wraca do triażu po tylu duplikatach.
+- **Przyjęcie**: `triage_problem` z `accepted` bez `change` nadaje kolejny `CHG-n`, zakłada stan zmiany, zostawia
+  `problem.accepted` w `outbox/` i uruchamia w tf fazę `intent` (wejścia `source` i `problem`); persona tf pisze
+  `intent.md`, otwiera PR i prosi o B1. Plan: [`docs/plan-f3-pdi.md`](docs/plan-f3-pdi.md).
+
 ## Kierunek (od 2026-10-23)
 
 - [`docs/14-pdi-standalone.md`](docs/14-pdi-standalone.md) — **pierwszy krok: pdi jako niezależny rejestr decyzji** z zapisem jednym kliknięciem tam, gdzie decyzje zapadają (najpierw Claude CLI przez MCP i `/record-decision`, potem Slack, Confluence, Jira); flow SDLC korzysta z tego samego rejestru. Specyfikacja MVP i kryteria walidacji na sobie.

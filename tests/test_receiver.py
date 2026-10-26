@@ -14,6 +14,7 @@ from pdi.registry import Registry
 from tests.test_inbox import SECRET, gate_event, metric_event, readiness_event, released_event, sign, stage_event
 
 TF_SECRET = "sekret-tf"  # noqa: S105 — sekret testowy
+FORM_TOKEN = "tok-formularza"  # noqa: S105 — token testowy
 
 NOW = datetime(2026, 10, 23, 9, 30, tzinfo=UTC)
 TS = str(int(NOW.timestamp()))
@@ -21,7 +22,9 @@ TS = str(int(NOW.timestamp()))
 
 @pytest.fixture
 def server(registry: Registry) -> Iterator[HTTPServer]:
-    srv = make_server(Inbox(registry), {"shipscope": SECRET, "tf": TF_SECRET}, port=0, clock=lambda: NOW)
+    srv = make_server(
+        Inbox(registry), {"shipscope": SECRET, "tf": TF_SECRET}, port=0, clock=lambda: NOW, form_token=FORM_TOKEN
+    )
     thread = threading.Thread(target=srv.serve_forever, daemon=True)
     thread.start()
     yield srv
@@ -210,3 +213,63 @@ def test_main_reads_secrets_per_sender(monkeypatch: pytest.MonkeyPatch, tmp_path
 
     assert stopped.type is started["stop"]
     assert started["secrets"] == {"tf": TF_SECRET, "ci_for_sdlc": "s-ci"}
+
+
+# --- F3: formularz zgłoszeń ---
+
+
+def request(server: HTTPServer, method: str, path: str, body: bytes | None = None) -> tuple[int, str, str]:
+    conn = http.client.HTTPConnection("127.0.0.1", server.server_address[1], timeout=5)
+    headers = {"content-type": "application/x-www-form-urlencoded"} if body is not None else {}
+    conn.request(method, path, body=body, headers=headers)
+    response = conn.getresponse()
+    data = response.read().decode()
+    conn.close()
+    return response.status, response.getheader("content-type") or "", data
+
+
+def test_form_page_needs_the_form_token(server: HTTPServer) -> None:
+    ok, kind, page = request(server, "GET", f"/problems/new?t={FORM_TOKEN}")
+    wrong, _, _ = request(server, "GET", "/problems/new?t=zly")
+    other, _, _ = request(server, "GET", "/events/tf")
+
+    assert (ok, kind.split(";")[0]) == (200, "text/html")
+    assert 'name="who"' in page
+    assert wrong == 404
+    assert other == 405
+
+
+def test_form_post_records_problem_and_thanks(server: HTTPServer, registry: Registry) -> None:
+    from pdi.problems import ProblemStore
+    from tests.test_form import body
+
+    status, kind, page = request(server, "POST", "/problems", body(t=FORM_TOKEN))
+
+    assert (status, kind.split(";")[0]) == (201, "text/html")
+    assert "PRB-1" in page
+    stored = ProblemStore(registry).get("PRB-1")
+    assert (stored["channel"], stored["status"]) == ("form", "new")
+
+
+def test_form_post_with_errors_or_bad_token(server: HTTPServer, registry: Registry) -> None:
+    from tests.test_form import body
+
+    invalid, _, page = request(server, "POST", "/problems", body(t=FORM_TOKEN, who=""))
+    forbidden, _, _ = request(server, "POST", "/problems", body(t="zly"))
+
+    assert invalid == 400 and 'name="who"' in page
+    assert forbidden == 403
+    assert not (registry.root / "problems").exists()
+
+
+def test_form_paths_are_404_without_form_token(registry: Registry) -> None:
+    srv = make_server(Inbox(registry), {"tf": TF_SECRET}, port=0, clock=lambda: NOW)
+    thread = threading.Thread(target=srv.serve_forever, daemon=True)
+    thread.start()
+    try:
+        status, _, _ = request(srv, "GET", "/problems/new?t=x")
+    finally:
+        srv.shutdown()
+        srv.server_close()
+
+    assert status == 404

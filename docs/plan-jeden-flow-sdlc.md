@@ -202,7 +202,7 @@ Każda faza kończy się czymś, co działa samo, nawet jeśli następna się op
 - **Działa po fazie:** PR z wymaganiami dostaje czerwony check, gdy wymaganie przeczy dokumentacji albo stanowi kodu.
 
 ### F3 — pdi MVP
-- **pdi:** intake, wzbogacenie, triaż, rejestr decyzji, przyjęcie do budowy jako PR z `intent.md`.
+- **pdi:** intake, wzbogacenie, triaż, rejestr decyzji, przyjęcie do budowy jako PR z `intent.md` — **zrobione 2026-10-26** ([plan](plan-f3-pdi.md): formularz i narzędzia w Claude, duplikaty i próg powrotu, przyjęcie przez fazę `intent` w tf; kontekst z tf i ci_for_sdlc później).
 - **tf:** `proc-issue-triage` z wejściem i wyjściem w JSON.
 - **ci_for_sdlc:** wychodzące webhooki.
 - **Działa po fazie:** pilot na dwóch problemach EV (operacje masowe w Control Tower, definicja uptime) od
