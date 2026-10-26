@@ -1,6 +1,6 @@
 # Automatyzacja i konsola — plan
 
-Data: 2026-10-25 · Status: **w realizacji** — A0 zrobione (kontrakt 0.5.0, [plan A0](plan-a0-kontrakt-050.md)), A3 zrobione ([plan A3](plan-a3-licznik-akceptacji.md)); DA1 i DA2 przyjęte, DA3–DA6 otwarte
+Data: 2026-10-25 · Status: **w realizacji** — A0, A1, A3 i A6 zrobione, A2, A4, A5, A7, A8 i konsola (K-1–K-4) do zrobienia (stan w §8); DA1 i DA2 przyjęte, DA3–DA6 otwarte
 
 Gdzie jeszcze zautomatyzować workflow od pomysłu do wdrożenia i jak dać człowiekowi jedno miejsce, w którym widzi,
 co się dzieje, i podejmuje decyzje tak jak w rozmowie z Claude. Uzupełnia [plan jednego flow](plan-jeden-flow-sdlc.md)
@@ -132,3 +132,23 @@ uproszczonego review zakłada zielone CI.
 | Konsola jako kolejny interfejs | ludzie nie przenoszą się z Jiry i Slacka | K-1 bez nowego UI; skrzynka widoczna też w Jirze i Slacku (K-4) |
 | Koszt rozmowy i agentów | rosnące rachunki za API | budżet per zmiana (mechanizm `--budget` Talosa), koszt w osi zdarzeń i w grafie śladu |
 | Etap flagi bez wiarygodnych metryk ochronnych | automat przesuwa flagę na podstawie niepełnych danych | A4 dopiero ze źródłem metryk (luka G5); do tego czasu `flag.stage_advance` zostaje na poziomie 3 |
+
+## 8. Stan realizacji
+
+Stan na 2026-10-26, sprawdzony na gałęziach `main` wszystkich repozytoriów.
+
+| Krok | Stan | Gdzie | Uwagi |
+|---|---|---|---|
+| A0 kontrakt 0.5.0 | zrobione | pdi #24 | [plan A0](plan-a0-kontrakt-050.md) |
+| A1 orkiestrator i skrzynka (F4) | zrobione | pdi #15–#17; tf #79; ci_for_sdlc #66 | maszyna stanów per CHG, fazy tf bez interakcji, zatwierdzenie w ci_for_sdlc z bramek pdi |
+| A2 zamykanie pytań z cytatem | do zrobienia | | ci_for_sdlc |
+| A3 licznik akceptacji szkiców | zrobione | pdi #27 | [plan A3](plan-a3-licznik-akceptacji.md) |
+| A4 flagi według reguły | do zrobienia | | potrzebuje źródła metryk ochronnych (luka G5); do tego czasu `flag.stage_advance` zostaje na poziomie 3 |
+| A5 decyzje ze spotkań i Slacka | do zrobienia | | |
+| A6 triaż z grupowaniem (F3) | zrobione | pdi #23; tf #82 | duplikaty i rekomendacja triażu w stanach pdi |
+| A7 review uproszczone | do zrobienia | | AI review w CI jest (tf #86); brakuje trybu `review.light` i listy wrażliwych ścieżek; wymaga działającego CI |
+| A8 lustro Jira ↔ repo | do zrobienia | | |
+| K-1 Claude jako interfejs | do zrobienia | | serwer MCP pdi jest (także skrzynka: `list_inbox`, `decide_inbox_item`); brakuje serwerów MCP dla ci_for_sdlc i ShipScope (ShipScope ma API usług, #110) |
+| K-2 skrzynka i oś zdarzeń w UI | do zrobienia | | skrzynka i graf śladu są w pdi po stronie danych; brakuje interfejsu |
+| K-3 rozmowa w konsoli | do zrobienia | | |
+| K-4 graf śladu i panel w Jirze | do zrobienia | | makieta ekranów: [`design/konsola/`](../design/konsola/README.md) |
