@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import subprocess
 from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -157,11 +157,74 @@ def test_stage_change_becomes_open_gate_item(inbox: Inbox, registry: Registry) -
     assert stored["event"] == stage_event()
 
 
-def test_mvp_release_becomes_impact_review_item(inbox: Inbox) -> None:
-    item = inbox.receive(released_event())["item"]
+REVIEW = "impact-CHG-12-R1"
+DUE = date(2026, 11, 22)  # wydanie 2026-10-23 + domyślne 30 dni
 
+
+def open_review(inbox: Inbox) -> str:
+    """Wydanie R1, a po terminie otwarcie oceny skutku (F5)."""
+    inbox.receive(released_event())
+    inbox.open_due_reviews(today=DUE)
+    return REVIEW
+
+
+def test_mvp_release_schedules_impact_review(inbox: Inbox) -> None:
+    result = inbox.receive(released_event())
+
+    assert result["status"] == "scheduled"
+    assert result["impact_review"] == {
+        "status": "scheduled",
+        "due": "2026-11-22",
+        "basis": "default",
+        "intent": None,
+        "released_at": "2026-10-23T09:04:00Z",
+    }
+    assert inbox.items() == []
+    assert inbox.receive(released_event())["status"] == "duplicate"
+
+
+def test_due_review_opens_once_with_drafted_verdict(inbox: Inbox) -> None:
+    inbox.receive(released_event())
+
+    assert inbox.open_due_reviews(today=date(2026, 11, 21)) == []
+    opened = inbox.open_due_reviews(today=DUE)
+
+    assert [i["id"] for i in opened] == [REVIEW]
+    item = inbox.get(REVIEW)
     assert (item["kind"], item["change"], item["release"]) == ("impact_review", "CHG-12", "R1")
     assert "MVP" in item["summary"]
+    assert item["draft"]["verdict"] == "unknown"
+    assert "PDI_SHIPSCOPE_URL" in item["data"]["errors"][0]
+    assert inbox.changes.get("CHG-12")["impact_review"]["status"] == "open"
+    assert inbox.open_due_reviews(today=DUE) == []
+
+
+def test_review_uses_intent_metric_and_shipscope_data(registry: Registry, make_draft: Draft) -> None:
+    from pdi.impact import ShipScopeConfig
+    from tests.test_impact import TOKEN, FakeShipScope
+
+    metric = {"metric": "rollbacks", "target": "<= 1", "horizon": "14 dni"}
+    intent = registry.record(make_draft(kind="intent", links={"chg": "CHG-12"}, success_metric=metric))
+    shipscope = ShipScopeConfig(url="https://shipscope.example.com", token=TOKEN)
+    inbox = Inbox(registry, shipscope=shipscope, shipscope_get=FakeShipScope())
+
+    scheduled = inbox.receive(released_event())["impact_review"]
+    inbox.open_due_reviews(today=date(2026, 11, 6))
+
+    assert (scheduled["due"], scheduled["basis"], scheduled["intent"]) == ("2026-11-06", "horizon", intent["id"])
+    item = inbox.get(REVIEW)
+    assert item["metric"] == metric and item["intent"] == intent["id"]
+    assert (item["draft"]["verdict"], item["draft"]["observed"]) == ("met", 0)
+    assert TOKEN not in yaml.safe_dump(item)
+
+    result = inbox.decide(REVIEW, make_draft(statement="MVP spełnił cel."), outcome="met")
+
+    decision = result["decision"]
+    assert decision["dependencies"] == [intent["id"]]
+    assert "impact:met" in decision["tags"]
+    assert decision["evidence"][-1]["epistemic_status"] == "observation"
+    assert "rollbacks" in decision["evidence"][-1]["text"]
+    assert result["change"]["impact_review"]["outcome"] == "met"
 
 
 @pytest.mark.parametrize("payload", [{"release": "R2"}, {"release": None}], ids=["R2", "bez-linii"])
@@ -206,12 +269,11 @@ def test_bad_events_are_refused(inbox: Inbox, registry: Registry, change: dict[s
 
 def test_items_lists_open_first_by_default_and_all_on_request(inbox: Inbox, make_draft: Draft) -> None:
     inbox.receive(stage_event())
-    inbox.receive(released_event())
-    inbox.decide("evt-rel-1", make_draft(kind="other"))
+    inbox.decide(open_review(inbox), make_draft(kind="other"), outcome="met")
 
     assert [i["id"] for i in inbox.items()] == ["evt-stage-1"]
-    assert {i["id"] for i in inbox.items(status=None)} == {"evt-stage-1", "evt-rel-1"}
-    assert [i["id"] for i in inbox.items(status="decided")] == ["evt-rel-1"]
+    assert {i["id"] for i in inbox.items(status=None)} == {"evt-stage-1", REVIEW}
+    assert [i["id"] for i in inbox.items(status="decided")] == [REVIEW]
 
 
 # --- decyzja ---
@@ -249,32 +311,41 @@ def test_gate_needs_an_outcome(inbox: Inbox, make_draft: Draft) -> None:
 
 
 def test_impact_review_records_product_decision(inbox: Inbox, make_draft: Draft) -> None:
-    inbox.receive(released_event())
+    item_id = open_review(inbox)
 
     result = inbox.decide(
-        "evt-rel-1",
+        item_id,
         make_draft(statement="MVP CHG-12 zostaje; wracamy po 30 dniach.", kind="gate", links={"tsk": "TSK-57"}),
+        outcome="unknown",
     )
 
     decision = result["decision"]
     assert decision["kind"] == "product"
     assert decision["links"] == {"tsk": "TSK-57", "chg": "CHG-12"}
-    assert "outcome" not in result["item"]
+    assert result["item"]["outcome"] == "unknown"
+
+
+def test_impact_review_needs_an_impact_outcome(inbox: Inbox, make_draft: Draft) -> None:
+    item_id = open_review(inbox)
+
+    for outcome in (None, "approved"):
+        with pytest.raises(InvalidDecision, match="met"):
+            inbox.decide(item_id, make_draft(), outcome=outcome)
 
 
 def test_link_to_another_change_is_refused(inbox: Inbox, make_draft: Draft) -> None:
-    inbox.receive(released_event())
+    item_id = open_review(inbox)
 
     with pytest.raises(InvalidDecision, match="CHG-12"):
-        inbox.decide("evt-rel-1", make_draft(links={"chg": "CHG-99"}))
+        inbox.decide(item_id, make_draft(links={"chg": "CHG-99"}), outcome="met")
 
 
 def test_decided_item_cannot_be_decided_again(inbox: Inbox, make_draft: Draft) -> None:
-    inbox.receive(released_event())
-    inbox.decide("evt-rel-1", make_draft())
+    item_id = open_review(inbox)
+    inbox.decide(item_id, make_draft(), outcome="met")
 
     with pytest.raises(ItemClosed, match="DEC-0001"):
-        inbox.decide("evt-rel-1", make_draft(statement="Inna."))
+        inbox.decide(item_id, make_draft(statement="Inna."), outcome="met")
 
 
 def test_unknown_item_raises(inbox: Inbox, make_draft: Draft) -> None:
@@ -285,12 +356,12 @@ def test_unknown_item_raises(inbox: Inbox, make_draft: Draft) -> None:
 
 
 def test_invalid_decision_leaves_item_open(inbox: Inbox, make_draft: Draft) -> None:
-    inbox.receive(released_event())
+    item_id = open_review(inbox)
 
     with pytest.raises(InvalidDecision):
-        inbox.decide("evt-rel-1", make_draft(success_metric={"metric": "marża"}))
+        inbox.decide(item_id, make_draft(success_metric={"metric": "marża"}), outcome="met")
 
-    assert inbox.get("evt-rel-1")["status"] == "open"
+    assert inbox.get(item_id)["status"] == "open"
 
 
 def test_receive_and_decide_commit_in_git_registry(
@@ -510,9 +581,9 @@ def test_types_are_accepted_only_from_their_senders(
 
 
 def test_impact_review_finishes_the_change(inbox: Inbox, make_draft: Draft) -> None:
-    inbox.receive(released_event())
+    item_id = open_review(inbox)
 
-    result = inbox.decide("evt-rel-1", make_draft())
+    result = inbox.decide(item_id, make_draft(), outcome="not_met")
 
     assert result["change"]["status"] == "done"
     assert result["change"]["releases"] == {"R1": "2026-10-23T09:04:00Z"}

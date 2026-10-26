@@ -16,9 +16,9 @@ Praca z kodem: `uv sync`, potem `uv run pytest`, `uv run ruff check src tests`, 
 ShipScope wysyła podpisane zdarzenia kontraktu: `release.stage_changed` (flaga z planu wydania przeszła na PROD do
 innego etapu) i `feature.released` (linia wydania u ludzi; `release: R1` = MVP). `pdi-receiver` je odbiera,
 sprawdza podpis i schemat, a w katalogu rejestru zapisuje pozycje `inbox/<ID zdarzenia>.yaml` (z commitem, gdy to
-repo git): bramkę dla zmiany etapu i ocenę skutku dla wydania MVP. W Claude `list_inbox` pokazuje, co czeka,
+repo git): bramkę dla zmiany etapu. W Claude `list_inbox` pokazuje, co czeka,
 a `decide_inbox_item` zapisuje decyzję (`kind: gate` z wynikiem albo `kind: product`, zawsze z `links.chg`) i zamyka
-pozycję. Plan i zakres: [`docs/plan-g15-pdi.md`](docs/plan-g15-pdi.md).
+pozycję. Wydanie MVP planuje ocenę skutku (niżej). Plan i zakres: [`docs/plan-g15-pdi.md`](docs/plan-g15-pdi.md).
 
 Od F4 ([plan](docs/plan-f4-pdi.md)) skrzynka przyjmuje też `gate.requested` z tf i ci_for_sdlc (B1, B2, B3,
 `design-review`, `approve-for-implementation`, B4, B5) oraz `readiness.changed` z ci_for_sdlc (`ready` = prośba o
@@ -49,6 +49,27 @@ z numerem decyzji. Nieudana wysyłka zostaje w stanie zmiany (`ci_for_sdlc.statu
 ShipScope wysyła tylko na publiczny adres `https://`, więc przed odbiornikiem stoi proxy TLS albo tunel (np.
 Cloudflare Tunnel); ten adres z `/events/shipscope` dodaje admin w ShipScope: Settings → General → Outgoing events.
 Odbiornik obsługuje jedno żądanie naraz i przyjmuje najwyżej 64 KB; 2xx kończy ponowienia ShipScope.
+
+### Ocena skutku (F5)
+
+`feature.released` z `release: R1` planuje ocenę skutku MVP w stanie zmiany (`impact_review.due`): `review_by` decyzji
+o intencji (najnowszej obowiązującej z `links.chg` i `success_metric`), albo dzień wydania + `success_metric.horizon`
+(„30 dni”, „4 tygodnie”, `P30D`), albo + 30 dni. Raz dziennie `pdi-impact-review` (cron; w Claude
+`open_due_impact_reviews`) otwiera pozycje `impact-<CHG>-R1`, których termin minął: czyta z API usług ShipScope status
+zmiany i dzienny szereg PROD od wydania i szkicuje wniosek (`draft.verdict`). `met`/`not_met` tylko dla metryki z
+ShipScope (`deployments`, `failed_deployments`, `rollbacks` — suma; `lead_time_days_median` — mediana) z celem typu
+`<= 1`; inaczej `unknown` z powodem. Człowiek potwierdza wynik: `decide_inbox_item` z `outcome` `met`, `not_met` albo
+`unknown`; decyzja zależy od decyzji o intencji i dostaje odczyt jako dowód. Plan:
+[`docs/plan-f5-ocena-skutku.md`](docs/plan-f5-ocena-skutku.md).
+
+```bash
+PDI_REGISTRY_PATH=~/pdi-decisions PDI_SHIPSCOPE_URL=https://<ShipScope> \
+PDI_SHIPSCOPE_TOKEN=<token usługi shps_… z ShipScope: Settings → General → Service tokens> \
+uv run pdi-impact-review   # {"opened": [{"id": "impact-CHG-12-R1", "change": "CHG-12", "verdict": "met"}]}
+```
+
+Bez `PDI_SHIPSCOPE_URL` pozycja otwiera się z `unknown` i błędem w `data.errors`. Te same `PDI_SHIPSCOPE_*` ustawia się
+dla serwera MCP.
 
 ## Kierunek (od 2026-10-23)
 

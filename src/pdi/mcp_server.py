@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import date
 from typing import Any, Literal, NotRequired
 
 from mcp.server.mcpserver import MCPServer
@@ -12,6 +13,7 @@ from typing_extensions import TypedDict  # pydantic na 3.11 wymaga TypedDict z t
 
 from pdi.changes import ChangeNotFound
 from pdi.dispatch import DispatchConfig
+from pdi.impact import ShipScopeConfig
 from pdi.inbox import Inbox, ItemClosed, ItemNotFound
 from pdi.notify import NotifyConfig
 from pdi.registry import CannotSupersede, Decision, DecisionNotFound, InvalidDecision, Registry
@@ -30,6 +32,7 @@ Status = Literal["recorded", "superseded", "reverted"]
 InboxStatus = Literal["open", "decided", "superseded", "all"]
 ChangeStatus = Literal["open", "rejected", "done", "all"]
 GateOutcome = Literal["approved", "changes_requested", "rejected"]
+ImpactOutcome = Literal["met", "not_met", "unknown"]
 
 
 class Source(TypedDict):
@@ -106,7 +109,12 @@ def build_server(
             raise ToolError(str(e)) from e
 
     def open_inbox() -> Inbox:
-        return Inbox(open_registry(), dispatch=dispatch(), notify=NotifyConfig.from_env())
+        return Inbox(
+            open_registry(),
+            dispatch=dispatch(),
+            notify=NotifyConfig.from_env(),
+            shipscope=ShipScopeConfig.from_env(),
+        )
 
     @server.tool(annotations=_WRITE)
     def record_decision(
@@ -212,7 +220,8 @@ def build_server(
         """Skrzynka pdi: bramki („flaga przeszła na etap 10%, przejść dalej?”) i oceny skutku MVP ze zdarzeń ShipScope.
 
         status: open (domyślnie, czeka na decyzję), decided albo all. Każda pozycja: id, kind (gate /
-        impact_review), change, release, summary, received_at, event (pełne zdarzenie z kontraktu).
+        impact_review), change, release, summary, received_at; bramka ma event (pełne zdarzenie z kontraktu), ocena
+        skutku — intent, metric, draft (szkic wniosku) i data (odczyty z ShipScope).
         """
         return {"items": open_inbox().items(status=None if status == "all" else status)}
 
@@ -223,7 +232,7 @@ def build_server(
         why: str,
         source: Source,
         drafted_by: Literal["ai", "human"],
-        outcome: GateOutcome | None = None,
+        outcome: GateOutcome | ImpactOutcome | None = None,
         project: str | None = None,
         decided_by: str | None = None,
         decided_at: str | None = None,
@@ -240,7 +249,9 @@ def build_server(
 
         Bramka (kind gate) wymaga outcome: approved, changes_requested albo rejected; decyzja dostaje kind gate,
         stan zmiany się przesuwa, a następna faza tf (albo poprawki tej samej) zostaje uruchomiona.
-        Ocena skutku MVP nie przyjmuje outcome; decyzja dostaje kind product (zwykle z success_metric i review_by).
+        Ocena skutku MVP (kind impact_review) wymaga outcome: met, not_met albo unknown — wynik potwierdzony przez
+        człowieka, może różnić się od szkicu pdi (pole draft pozycji); decyzja dostaje kind product, zależność od
+        decyzji o intencji i odczyt z ShipScope jako dowód.
         links.chg nadaje skrzynka ze zdarzenia. Pozostałe pola jak w record_decision.
         """
         draft = _draft({**locals(), "kind": "other"})
@@ -248,6 +259,19 @@ def build_server(
             return open_inbox().decide(item_id, draft, outcome=outcome)
         except (InvalidDecision, ItemNotFound, ItemClosed) as e:
             raise ToolError(str(e)) from e
+
+    @server.tool(annotations=_WRITE)
+    def open_due_impact_reviews(today: str | None = None) -> dict[str, list[dict[str, Any]]]:
+        """Otwiera oceny skutku MVP, których termin minął (po feature.released R1 i N dniach z success_metric).
+
+        Dla każdej czyta z ShipScope status zmiany i metryki PROD od wydania i szkicuje wniosek (draft: verdict met /
+        not_met / unknown, reason). Zwykle robi to cron (`pdi-impact-review`); today (RRRR-MM-DD) tylko do sprawdzeń.
+        """
+        try:
+            day = date.fromisoformat(today) if today else None
+        except ValueError as e:
+            raise ToolError("today: data w formacie RRRR-MM-DD.") from e
+        return {"opened": open_inbox().open_due_reviews(today=day)}
 
     @server.tool(annotations=_READ)
     def list_changes(status: ChangeStatus = "open") -> dict[str, list[dict[str, Any]]]:

@@ -2,9 +2,10 @@
 
 Co trafia do skrzynki: `gate.requested` z tf i ci_for_sdlc, `readiness.changed: ready` z ci_for_sdlc (bramka
 „Approve for implementation”), `release.stage_changed` z ShipScope (bramka etapu flagi) i `feature.released` z
-`release: R1` (ocena skutku MVP). Każde zdarzenie aktualizuje też stan zmiany (`pdi.changes`, reguły w `pdi.flow`).
-Decyzja na bramce zapisuje się w rejestrze, przesuwa stan, zostawia `gate.decided` w `outbox/` i uruchamia
-następną fazę tf (`pdi.dispatch`). Plany: docs/plan-g15-pdi.md, docs/plan-f4-pdi.md.
+`release: R1`, który planuje ocenę skutku MVP; `open_due_reviews()` otwiera ją po terminie z danymi z ShipScope
+(`pdi.impact`). Każde zdarzenie aktualizuje też stan zmiany (`pdi.changes`, reguły w `pdi.flow`). Decyzja na bramce
+zapisuje się w rejestrze, przesuwa stan, zostawia `gate.decided` w `outbox/` i uruchamia następną fazę tf
+(`pdi.dispatch`). Plany: docs/plan-g15-pdi.md, docs/plan-f4-pdi.md, docs/plan-f5-ocena-skutku.md.
 """
 
 from __future__ import annotations
@@ -13,17 +14,17 @@ import hashlib
 import hmac
 import json
 import re
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any, TypeAlias
 
 import yaml
 
-from pdi import contract, flow
+from pdi import contract, flow, impact
 from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig, Post, dispatch_phase
 from pdi.notify import NotifyConfig, notify_ci_for_sdlc
-from pdi.registry import Decision, InvalidDecision, Registry
+from pdi.registry import Decision, DecisionNotFound, InvalidDecision, Registry
 
 Item: TypeAlias = dict[str, Any]
 
@@ -34,6 +35,7 @@ ACCEPTED = {
     "ci_for_sdlc": ("gate.requested", "readiness.changed"),
 }
 GATE_OUTCOMES = flow.OUTCOMES
+IMPACT_OUTCOMES = impact.OUTCOMES
 SIGNATURE_TOLERANCE_SECONDS = 300
 MVP_RELEASE = "R1"
 SEEN_EVENTS_KEPT = 200
@@ -91,6 +93,8 @@ class Inbox:
         post: Post | None = None,
         notify: NotifyConfig | None = None,
         notify_post: Post | None = None,
+        shipscope: impact.ShipScopeConfig | None = None,
+        shipscope_get: impact.Get | None = None,
     ) -> None:
         self.registry = registry
         self.changes = ChangeStore(registry)
@@ -100,11 +104,14 @@ class Inbox:
         self._post = post
         self._notify = notify or NotifyConfig(url=None)
         self._notify_post = notify_post
+        self._shipscope = shipscope or impact.ShipScopeConfig(url=None)
+        self._shipscope_get = shipscope_get
 
     # --- przyjęcie ---
 
     def receive(self, event: dict[str, Any]) -> dict[str, Any]:
-        """Przyjmuje zdarzenie: `created` (nowa pozycja), `duplicate`, albo `recorded` (tylko stan zmiany)."""
+        """Przyjmuje zdarzenie: `created` (nowa pozycja), `duplicate`, `scheduled` (zaplanowana ocena skutku MVP)
+        albo `recorded` (tylko stan zmiany)."""
         _check_event(event)
         payload = event["payload"]
         change = payload["change"]
@@ -118,19 +125,24 @@ class Inbox:
         if event["type"] == "feature.released":
             state = flow.feature_released(state, payload.get("release"), payload["released_at"], at=at)
 
-        if gate is None and not (event["type"] == "feature.released" and payload.get("release") == MVP_RELEASE):
+        if gate is None:
             # Bez pozycji w skrzynce duplikat rozpoznaje się po ID zapisanym w stanie zmiany.
             seen = state.setdefault("seen_events", [])
             if event["id"] in seen:
                 return {"status": "duplicate", "item": None}
             state["seen_events"] = [*seen, event["id"]][-SEEN_EVENTS_KEPT:]
+            status, extra = "recorded", {}
+            mvp = event["type"] == "feature.released" and payload.get("release") == MVP_RELEASE
+            if mvp and "impact_review" not in state:
+                state = flow.impact_scheduled(state, self._plan_review(change, payload["released_at"]), at=at)
+                status, extra = "scheduled", {"impact_review": state["impact_review"]}
             path = self.changes.save(state)
             warning = self.registry.commit([path], f"{change}: {event['type']} ({event['source']})")
-            return {"status": "recorded", "item": None, **({"warning": warning} if warning else {})}
+            return {"status": status, "item": None, **extra, **({"warning": warning} if warning else {})}
 
         item: Item = {
             "id": event["id"],
-            "kind": "gate" if gate else "impact_review",
+            "kind": "gate",
             "status": "open",
             "change": change,
             "source": event["source"],
@@ -139,17 +151,15 @@ class Inbox:
             "received_at": at,
             "event": event,
         }
-        touched: list[Path] = []
-        if gate:
-            missing = flow.missing_before(state, gate)
-            item.update(gate=gate, missing_before=missing)
-            for key in ("artifact", "url", "questions"):
-                if key in payload:
-                    item[key] = payload[key]
-            if missing:
-                item["summary"] += f" (poza kolejnością: brak {', '.join(missing)})"
-            state = flow.gate_requested(state, gate, at=at)
-            touched += self._supersede(change, gate, by=item["id"])
+        missing = flow.missing_before(state, gate)
+        item.update(gate=gate, missing_before=missing)
+        for key in ("artifact", "url", "questions"):
+            if key in payload:
+                item[key] = payload[key]
+        if missing:
+            item["summary"] += f" (poza kolejnością: brak {', '.join(missing)})"
+        state = flow.gate_requested(state, gate, at=at)
+        touched = self._supersede(change, gate, by=item["id"])
         self._dir.mkdir(parents=True, exist_ok=True)
         try:
             self._write(item, overwrite=False)
@@ -158,6 +168,64 @@ class Inbox:
         touched += [self._path(item["id"]), self.changes.save(state)]
         warning = self.registry.commit(touched, f"inbox {item['id']}: {item['summary']}")
         return {"status": "created", "item": item, **({"warning": warning} if warning else {})}
+
+    def _plan_review(self, change: str, released_at: str) -> dict[str, Any]:
+        intent = impact.intent_decision(self.registry, change)
+        due, basis = impact.due_date(released_at, intent)
+        return {"due": due, "basis": basis, "intent": intent["id"] if intent else None, "released_at": released_at}
+
+    # --- ocena skutku (F5) ---
+
+    def open_due_reviews(self, *, today: date | None = None) -> list[Item]:
+        """Otwiera oceny skutku, których termin minął: dane z ShipScope i szkic wniosku (`pdi.impact`)."""
+        day = today or self.registry.now().astimezone(UTC).date()
+        opened: list[Item] = []
+        for state in self.changes.all(status=None):
+            plan = state.get("impact_review") or {}
+            if plan.get("status") != "scheduled" or plan["due"] > day.isoformat():
+                continue
+            change = state["change"]
+            intent = self._decision_or_none(plan.get("intent"))
+            metric = intent.get("success_metric") if intent else None
+            data = impact.collect(self._shipscope, change, plan["released_at"], day, get=self._shipscope_get)
+            draft = impact.draft_verdict(metric, data)
+            at = _iso(self.registry.now())
+            what = f"{metric['metric']}, cel {metric['target']}" if metric else "brak metryki sukcesu"
+            item: Item = {
+                "id": f"impact-{change}-{MVP_RELEASE}",
+                "kind": "impact_review",
+                "status": "open",
+                "change": change,
+                "source": "pdi",
+                "release": MVP_RELEASE,
+                "summary": (
+                    f"{change}: ocena skutku MVP ({MVP_RELEASE}, u ludzi od {plan['released_at']}) — {what}; "
+                    f"szkic: {draft['verdict']}."
+                ),
+                "received_at": at,
+                "intent": intent["id"] if intent else None,
+                "metric": metric,
+                "draft": draft,
+                "data": data,
+            }
+            self._dir.mkdir(parents=True, exist_ok=True)
+            try:
+                self._write(item, overwrite=False)
+            except FileExistsError:
+                continue
+            state = flow.impact_opened(state, item["id"], at=at)
+            paths = [self._path(item["id"]), self.changes.save(state)]
+            warning = self.registry.commit(paths, f"inbox {item['id']}: {item['summary']}")
+            opened.append({**item, **({"warning": warning} if warning else {})})
+        return opened
+
+    def _decision_or_none(self, decision_id: str | None) -> Decision | None:
+        if not decision_id:
+            return None
+        try:
+            return self.registry.get(decision_id)
+        except DecisionNotFound:
+            return None
 
     def _known(self, item_id: str) -> bool:
         return self._path(item_id).is_file()
@@ -196,8 +264,10 @@ class Inbox:
     def decide(self, item_id: str, draft: Decision, *, outcome: str | None = None) -> dict[str, Any]:
         """Zamyka pozycję decyzją zapisaną w rejestrze; rodzaj i `links.chg` nadaje skrzynka.
 
-        Bramka wymaga `outcome` (approved / changes_requested / rejected); ocena skutku go nie przyjmuje. Po decyzji
-        na bramce stan zmiany się przesuwa, `gate.decided` trafia do `outbox/`, a następna faza tf jest uruchamiana.
+        Bramka wymaga `outcome` (approved / changes_requested / rejected), ocena skutku — wyniku potwierdzonego przez
+        człowieka (met / not_met / unknown). Po decyzji na bramce stan zmiany się przesuwa, `gate.decided` trafia do
+        `outbox/`, a następna faza tf jest uruchamiana. Decyzja z oceny skutku zależy od decyzji o intencji i dostaje
+        odczyty z ShipScope jako dowody.
         """
         item = self.get(item_id)
         if item["status"] == "superseded":
@@ -206,8 +276,8 @@ class Inbox:
             raise ItemClosed(f"Pozycja {item_id} jest już zamknięta decyzją {item.get('decision')}.")
         if item["kind"] == "gate" and outcome not in GATE_OUTCOMES:
             raise InvalidDecision(f"Bramka wymaga outcome: jednego z {', '.join(GATE_OUTCOMES)}.")
-        if item["kind"] != "gate" and outcome is not None:
-            raise InvalidDecision("outcome dotyczy tylko bramek; ocenę skutku zamyka sama decyzja.")
+        if item["kind"] != "gate" and outcome not in IMPACT_OUTCOMES:
+            raise InvalidDecision(f"Ocena skutku wymaga outcome: jednego z {', '.join(IMPACT_OUTCOMES)}.")
         links = dict(draft.get("links") or {})
         if links.get("chg", item["change"]) != item["change"]:
             raise InvalidDecision(f"Pozycja dotyczy {item['change']} — links.chg nie może wskazywać innej zmiany.")
@@ -215,7 +285,7 @@ class Inbox:
         state = self.changes.load(item["change"])
         at = _iso(self.registry.now())
         # Pozycje z G1.5 sprzed F4 nie mają pola gate — bramkę odtwarza się ze zdarzenia.
-        gate: str = item.get("gate") or _gate_of(item["event"]) or ""
+        gate: str = (item.get("gate") or _gate_of(item["event"]) or "") if item["kind"] == "gate" else ""
         if item["kind"] == "gate":
             try:  # najpierw sprawdzenie przejścia, żeby nie zapisać decyzji, której stan nie przyjmie
                 flow.gate_decided(state, gate, outcome or "", "DEC-0", at=at)
@@ -223,7 +293,11 @@ class Inbox:
                 raise InvalidDecision(str(e)) from e
         tags = list(draft.get("tags") or [])
         tags += [t for t in _tags(item, gate, outcome) if t not in tags]
-        decision = self.registry.record({**draft, "kind": _DECISION_KIND[item["kind"]], "links": links, "tags": tags})
+        extra: dict[str, Any] = {}
+        if item["kind"] != "gate":
+            extra = _impact_fields(item, draft)
+        record = {**draft, **extra, "kind": _DECISION_KIND[item["kind"]], "links": links, "tags": tags}
+        decision = self.registry.record(record)
 
         result: dict[str, Any] = {}
         touched = [self._path(item_id)]
@@ -239,7 +313,7 @@ class Inbox:
                 # „Approve for implementation” ustawia baseline historyjek w ci_for_sdlc (F4).
                 state["ci_for_sdlc"] = notify_ci_for_sdlc(self._notify, event, at=at, post=self._notify_post)
         else:
-            state = flow.impact_reviewed(state, decision["id"], at=at)
+            state = flow.impact_reviewed(state, decision["id"], at=at, outcome=outcome)
         touched.append(self.changes.save(state))
 
         item = {**item, "status": "decided", "decision": decision["id"], "decided_at": at}
@@ -344,17 +418,29 @@ def _summary(event: dict[str, Any]) -> str:
         questions = p.get("open_questions")
         left = f", otwarte pytania: {questions}" if questions is not None else ""
         return f"{p['change']}: ci_for_sdlc — gotowe do implementacji{left}. Approve for implementation?"
-    if event["type"] == "feature.released":
-        return f"{p['change']}: MVP ({MVP_RELEASE}) u ludzi od {p['released_at']} — ocena skutku."
     where = f"{p['change']} {p['release']}" if p.get("release") else p["change"]
     step = f"z etapu {p['from_stage']} na {p['to_stage']}" if p.get("from_stage") else f"na etap {p['to_stage']}"
     rollout = f" (udostępnienie {p['rollout']}%)" if p.get("rollout") is not None else ""
     return f"{where}: flaga {p['flag']} przeszła {step}{rollout}. Przejść dalej?"
 
 
+def _impact_fields(item: Item, draft: Decision) -> dict[str, Any]:
+    """Zależność od decyzji o intencji i odczyt z ShipScope jako dowód (tylko gdy pdi coś zmierzył)."""
+    out: dict[str, Any] = {}
+    intent = item.get("intent")
+    deps = list(draft.get("dependencies") or [])
+    if intent and intent not in deps:
+        out["dependencies"] = [*deps, intent]
+    observed = (item.get("draft") or {}).get("observed")
+    if observed is not None:
+        reading = {"text": f"ShipScope: {item['draft']['reason']}", "epistemic_status": "observation"}
+        out["evidence"] = [*(draft.get("evidence") or []), reading]
+    return out
+
+
 def _tags(item: Item, gate: str, outcome: str | None) -> list[str]:
     if item["kind"] != "gate":
-        return ["mvp-impact"]
+        return ["mvp-impact", f"impact:{outcome}"]
     tags = [f"gate:{outcome}", f"bramka:{gate}"]
     if item["event"]["type"] == "release.stage_changed":
         tags.insert(0, "release-stage")
