@@ -23,7 +23,8 @@ import yaml
 from pdi import contract, flow, impact
 from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig, Post, dispatch_phase
-from pdi.notify import NotifyConfig, notify_ci_for_sdlc
+from pdi.notify import NotifyConfig, ReporterNotifyConfig, notify_ci_for_sdlc
+from pdi.problems import ProblemStore
 from pdi.registry import Decision, DecisionNotFound, InvalidDecision, Registry
 
 Item: TypeAlias = dict[str, Any]
@@ -96,6 +97,8 @@ class Inbox:
         notify_post: Post | None = None,
         shipscope: impact.ShipScopeConfig | None = None,
         shipscope_get: impact.Get | None = None,
+        reporters: ReporterNotifyConfig | None = None,
+        reporter_post: Post | None = None,
     ) -> None:
         self.registry = registry
         self.changes = ChangeStore(registry)
@@ -107,6 +110,8 @@ class Inbox:
         self._notify_post = notify_post
         self._shipscope = shipscope or impact.ShipScopeConfig(url=None)
         self._shipscope_get = shipscope_get
+        # Zgłaszający zmiany dostaje powiadomienie o jej wydaniu i ocenie skutku (F5).
+        self.problems = ProblemStore(registry, notify=reporters, post=reporter_post)
 
     # --- przyjęcie ---
 
@@ -143,6 +148,10 @@ class Inbox:
                 status, extra = "scheduled", {"impact_review": state["impact_review"]}
             path = self.changes.save(state)
             warning = self.registry.commit([path], f"{change}: {event['type']} ({event['source']})")
+            if event["type"] == "feature.released":
+                sent = self.problems.change_released(change, payload.get("release"), payload["released_at"])
+                if sent:
+                    extra["notifications"] = sent
             return {"status": status, "item": None, **extra, **({"warning": warning} if warning else {})}
 
         item: Item = {
@@ -352,6 +361,7 @@ class Inbox:
                 state["ci_for_sdlc"] = notify_ci_for_sdlc(self._notify, event, at=at, post=self._notify_post)
         elif state is not None:
             state = flow.impact_reviewed(state, decision["id"], at=at, outcome=outcome)
+            result["notifications"] = self.problems.impact_reviewed(item["change"], outcome or "", decision["id"])
         if state is not None:
             touched.append(self.changes.save(state))
 

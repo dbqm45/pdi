@@ -87,6 +87,17 @@ PROD z ShipScope wyjdzie poza 3σ. Skrzynka otwiera wtedy pozycję `kind: proble
 `decide_inbox_item` zamyka z `outcome` `accepted` albo `rejected` jako decyzję `kind: triage` z odczytem pasma jako
 dowodem. Plan: [`docs/plan-f5-metric-breached.md`](docs/plan-f5-metric-breached.md).
 
+### Zgłoszenia i powiadomienia zgłaszającego (F5)
+
+`record_problem` zapisuje zgłoszenie `problems/PRB-n.yaml` w kształcie `contract/problem.schema.json` (kto nie może
+czego, z jakim skutkiem, od kogo i którędy); `triage_problem` (`accepted` ze zmianą, `rejected`, `parked`,
+`duplicate`) zapisuje decyzję `kind: triage` z `links.prb` i wynik w zgłoszeniu. Zgłaszający dostaje podpisane
+`problem.notification` na `PDI_NOTIFY_URL` (sekret `PDI_NOTIFY_SIGNING_SECRET`, nagłówki `X-PDI-*`) po triażu, po
+wydaniu zmiany z tego zgłoszenia (każda linia) i po ocenie jej skutku; odbiorca (workflow Slacka, przekaźnik e-mail,
+automatyzacja Jiry) wybiera kanał po `reporter` i `channel`. Dziennik wysyłek: `notifications/<PRB>.yaml`;
+`retry_problem_notifications` ponawia. Te same `PDI_NOTIFY_*` ustawia się dla serwera MCP i `pdi-receiver`. Pełny
+intake zgłoszeń to F3. Plan: [`docs/plan-f5-powiadomienia.md`](docs/plan-f5-powiadomienia.md).
+
 ## Kierunek (od 2026-10-23)
 
 - [`docs/14-pdi-standalone.md`](docs/14-pdi-standalone.md) — **pierwszy krok: pdi jako niezależny rejestr decyzji** z zapisem jednym kliknięciem tam, gdzie decyzje zapadają (najpierw Claude CLI przez MCP i `/record-decision`, potem Slack, Confluence, Jira); flow SDLC korzysta z tego samego rejestru. Specyfikacja MVP i kryteria walidacji na sobie.

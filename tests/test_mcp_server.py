@@ -50,7 +50,14 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
         "retry_dispatch",
         "open_due_impact_reviews",
         "get_trace",
+        "record_problem",
+        "list_problems",
+        "get_problem",
+        "triage_problem",
+        "retry_problem_notifications",
     }
+    assert tools["list_problems"].annotations.read_only_hint is True
+    assert tools["triage_problem"].annotations.read_only_hint is False
     assert tools["get_trace"].annotations.read_only_hint is True
     assert tools["open_due_impact_reviews"].annotations.read_only_hint is False
     assert tools["list_changes"].annotations.read_only_hint is True
@@ -116,7 +123,7 @@ async def test_stdio_end_to_end(tmp_path: Path, make_draft: Draft) -> None:
         listed = await session.list_tools()
         result = await session.call_tool("record_decision", make_draft())
 
-    assert len(listed.tools) == 11
+    assert len(listed.tools) == 16
     assert json.loads(result.content[0].text)["id"] == "DEC-0001"
     assert (tmp_path / "rejestr" / "decisions" / "_ogolne" / "DEC-0001.md").is_file()
 
@@ -196,6 +203,29 @@ async def test_problem_triage_through_tool(server: Any, registry: Registry, make
     decided = await call(server, "decide_inbox_item", args)
 
     assert decided["decision"]["kind"] == "triage"
+
+
+async def test_problem_record_and_triage_through_tools(
+    server: Any, registry: Registry, make_draft: Draft, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("PDI_NOTIFY_URL", raising=False)
+    from tests.test_problems import problem
+
+    recorded = await call(server, "record_problem", problem())
+    listed = await call(server, "list_problems", {})
+    triaged = await call(
+        server, "triage_problem", {"problem_id": "PRB-1", "outcome": "accepted", "change": "CHG-12", **make_draft()}
+    )
+
+    assert recorded["id"] == "PRB-1"
+    assert [p["id"] for p in listed["problems"]] == ["PRB-1"]
+    assert triaged["decision"]["kind"] == "triage" and triaged["notification"]["status"] == "skipped"
+    assert (await call(server, "get_problem", {"problem_id": "PRB-1"}))["change"] == "CHG-12"
+    with pytest.raises(ToolError, match="list_problems"):
+        await server.call_tool("get_problem", {"problem_id": "PRB-404"})
+    await call(server, "record_problem", problem(title="Drugie"))
+    with pytest.raises(ToolError, match="duplicate_of"):
+        await server.call_tool("triage_problem", {"problem_id": "PRB-2", "outcome": "duplicate", **make_draft()})
 
 
 async def test_change_tools_return_hints(server: Any) -> None:
