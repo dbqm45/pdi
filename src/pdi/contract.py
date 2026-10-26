@@ -51,3 +51,18 @@ def errors(name: str, data: dict[str, Any]) -> list[str]:
     """Błędy walidacji obiektu względem schematu `name`, w formie `ścieżka: problem` (pusta lista = poprawny)."""
     found = sorted(_validator(name).iter_errors(data), key=lambda e: list(e.absolute_path))
     return [f"{'.'.join(str(p) for p in e.absolute_path) or '(obiekt)'}: {e.message}" for e in found]
+
+
+def rules_broken(name: str, data: dict[str, Any]) -> list[str]:
+    """Jak `errors`, ale bez wartości z obiektu: `ścieżka: reguła` (`payload.rollout: maximum`).
+
+    Dla danych z zewnątrz, których treść nie powinna wracać w odpowiedzi ani w logu. Brakujące pole jest nazwane,
+    bo to nazwa ze schematu, nie wartość.
+    """
+    found = sorted(_validator(name).iter_errors(data), key=lambda e: list(e.absolute_path))
+    out = []
+    for e in found:
+        where = ".".join(str(p) for p in e.absolute_path) or "(obiekt)"
+        rule = e.message if e.validator == "required" else str(e.validator)
+        out.append(f"{where}: {rule}")
+    return out

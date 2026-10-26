@@ -1,6 +1,7 @@
 # pdi w Claude Code
 
-Serwer MCP `pdi` (narzędzia `record_decision`, `find_decisions`, `get_decision`, `supersede_decision`)
+Serwer MCP `pdi` (narzędzia `record_decision`, `find_decisions`, `get_decision`, `supersede_decision` oraz skrzynka:
+`list_inbox`, `decide_inbox_item`)
 i komenda `/record-decision`. Specyfikacja: [dokument 14](../../docs/14-pdi-standalone.md).
 
 ## Instalacja krok po kroku (macOS / Linux)
@@ -41,7 +42,7 @@ mkdir -p ~/.claude/commands
 cp ~/pdi/integrations/claude-code/record-decision.md ~/.claude/commands/
 ```
 
-**6. Próba:** uruchom `claude` w dowolnym projekcie, wpisz `/mcp` — `pdi` z 4 narzędziami. Ustal z Claude cokolwiek
+**6. Próba:** uruchom `claude` w dowolnym projekcie, wpisz `/mcp` — `pdi` z 6 narzędziami. Ustal z Claude cokolwiek
 drobnego, wpisz `/record-decision`, zatwierdź szkic. W `~/pdi-decisions/decisions/` pojawi się `DEC-0001.md`
 z commitem (`git -C ~/pdi-decisions log`). Push robisz sam: `git -C ~/pdi-decisions push`.
 
@@ -50,7 +51,7 @@ Aktualizacja pdi później: `cd ~/pdi && git pull && uv sync`.
 Opcjonalnie dopisz [`CLAUDE-fragment.md`](CLAUDE-fragment.md) do `~/.claude/CLAUDE.md` — Claude będzie sprawdzał
 wcześniejsze decyzje, zanim coś zaproponuje.
 
-Sprawdzenie: `claude mcp list` pokazuje `pdi` jako połączony; w sesji `/mcp` → `pdi` → 4 narzędzia.
+Sprawdzenie: `claude mcp list` pokazuje `pdi` jako połączony; w sesji `/mcp` → `pdi` → 6 narzędzi.
 
 ## Użycie
 - `/record-decision` — Claude przygotowuje szkic decyzji z rozmowy, pokazuje go i zapisuje po Twoim „tak”.

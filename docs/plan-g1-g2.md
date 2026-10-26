@@ -399,7 +399,7 @@ G2.3 jest wstrzymane decyzją [D-G23](decyzje.md). Reszta czeka na fazy planu je
 | F1 (część tf) | tf | częściowo | | Talos dopisuje `Change: TSK-n` tylko opcjonalnie; brakuje hooka `commit-msg` i reguły w `core-conventional-commits`, czytania cięć z `changes/CHG-n/plan.md` przez Talosa i raportu przebiegu w repo |
 | G2.3 propozycje AI | ci_for_sdlc | wstrzymane | #62 | decyzja [D-G23](decyzje.md): rozstrzygnięcie po pilocie |
 | G1.4 reguły REL w repo | ci_for_sdlc | czeka | | F2 (konektor repo) |
-| G1.5 bramki i zdarzenia | pdi + ShipScope | czeka | | F4–F5 (skrzynka bramek, wychodzące webhooki) |
+| G1.5 bramki i zdarzenia | pdi + ShipScope | zrobione (cienka skrzynka) | ShipScope #109, pdi #15 | [plan kroku](plan-g15-pdi.md): ShipScope wysyła podpisane `release.stage_changed` i `feature.released`; pdi odbiera je (`pdi-receiver`), robi z nich bramki i oceny skutku MVP w skrzynce (`list_inbox`, `decide_inbox_item` → decyzja `kind: gate` / `product` z `links.chg`). Maszyna stanów per CHG i bramki z tf i ci_for_sdlc zostają w F4 |
 | G2.5 panel w Jirze | nowe repo + ci_for_sdlc | czeka | | tryb SaaS ci_for_sdlc i ShipScope |
 | G2.6 sygnał z estymacji | sprintdeck + ci_for_sdlc | czeka | | MVP sprintdecka z importem z Jiry; rola sprintdecka zmieniona decyzją [D-E1](decyzje.md) |
 | G1.6 edytor mapy historyjek | pdi | warunkowo | | po pilocie |
@@ -407,9 +407,10 @@ G2.3 jest wstrzymane decyzją [D-G23](decyzje.md). Reszta czeka na fazy planu je
 Decyzje DG1–DG7 z §2 są wpisane do [`decyzje.md`](decyzje.md) jako przyjęte 2026-10-25. DG1, DG2, DG4, DG5 i DG6
 są zastosowane w kodzie; DG3 i DG7 dotyczą kroków jeszcze niezrealizowanych (G2.3, G2.5).
 
-**Uwaga o jakości:** PR-y od #58 w ci_for_sdlc, #77 w tf i #106 w ShipScope scalono bez CI na GitHubie, bo GitHub
+**Uwaga o jakości:** PR-y od #58 w ci_for_sdlc, #77 w tf, #106 w ShipScope i #15 w pdi scalono bez CI na GitHubie, bo GitHub
 Actions nie uruchamia zadań (płatności na koncie). Lokalnie sprawdzone: ci_for_sdlc `packages/core` 437/437 testów
-i typecheck na kodzie G1.2; tf `tools/workspace.py check --packs pack-it` na kodzie G2.4.
+i typecheck na kodzie G1.2; tf `tools/workspace.py check --packs pack-it` na kodzie G2.4; pdi #15: pytest
+(338), ruff, format i mypy, czyli kroki `ci.yml`.
 
 **Następne kroki:**
 1. Domknąć F1 w tf (hook `commit-msg` z `Change: TSK-n`, Talos na cięciach z `changes/CHG-n/plan.md`, raport

@@ -10,6 +10,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp_types import ToolAnnotations
 from typing_extensions import TypedDict  # pydantic na 3.11 wymaga TypedDict z typing_extensions
 
+from pdi.inbox import Inbox, ItemClosed, ItemNotFound
 from pdi.registry import CannotSupersede, Decision, DecisionNotFound, InvalidDecision, Registry
 
 INSTRUCTIONS = """\
@@ -17,10 +18,13 @@ Rejestr decyzji pdi. Zapisuj decyzję (record_decision) tylko na wyraźną proś
 jak zatwierdzi pokazany mu szkic — nie decyduj sam, co jest decyzją. Nie dopisuj uzasadnień ani założeń,
 których nie było w rozmowie; czego brakuje, o to zapytaj. Zanim zaproponujesz rozwiązanie w obszarze, który mógł
 być już rozstrzygnięty, sprawdź find_decisions; gdy propozycja przeczy wcześniejszej decyzji, powiedz to wprost
-i zaproponuj supersede_decision zamiast cichej zmiany kursu."""
+i zaproponuj supersede_decision zamiast cichej zmiany kursu. Skrzynka (list_inbox) zbiera bramki i oceny skutku
+ze zdarzeń ShipScope; decide_inbox_item zapisuje decyzję jak record_decision — też tylko po zatwierdzeniu szkicu."""
 
 Kind = Literal["product", "technical", "process", "triage", "intent", "gate", "other"]
 Status = Literal["recorded", "superseded", "reverted"]
+InboxStatus = Literal["open", "decided", "all"]
+GateOutcome = Literal["approved", "changes_requested", "rejected"]
 
 
 class Source(TypedDict):
@@ -190,6 +194,49 @@ def build_server(registry: Callable[[], Registry] = Registry.from_env) -> MCPSer
         try:
             return reg.supersede(old_decision_id, draft)
         except (InvalidDecision, DecisionNotFound, CannotSupersede) as e:
+            raise ToolError(str(e)) from e
+
+    @server.tool(annotations=_READ)
+    def list_inbox(status: InboxStatus = "open") -> dict[str, list[dict[str, Any]]]:
+        """Skrzynka pdi: bramki („flaga przeszła na etap 10%, przejść dalej?”) i oceny skutku MVP ze zdarzeń ShipScope.
+
+        status: open (domyślnie, czeka na decyzję), decided albo all. Każda pozycja: id, kind (gate /
+        impact_review), change, release, summary, received_at, event (pełne zdarzenie z kontraktu).
+        """
+        inbox = Inbox(open_registry())
+        return {"items": inbox.items(status=None if status == "all" else status)}
+
+    @server.tool(annotations=_WRITE)
+    def decide_inbox_item(
+        item_id: str,
+        statement: str,
+        why: str,
+        source: Source,
+        drafted_by: Literal["ai", "human"],
+        outcome: GateOutcome | None = None,
+        project: str | None = None,
+        decided_by: str | None = None,
+        decided_at: str | None = None,
+        options: list[Option] | None = None,
+        evidence: list[Evidence] | None = None,
+        assumptions: list[Assumption] | None = None,
+        dependencies: list[str] | None = None,
+        success_metric: SuccessMetric | None = None,
+        review_by: str | None = None,
+        links: Links | None = None,
+        tags: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Zamyka pozycję skrzynki decyzją w rejestrze; wywołuj po zatwierdzeniu szkicu przez człowieka.
+
+        Bramka (kind gate) wymaga outcome: approved, changes_requested albo rejected; decyzja dostaje kind gate.
+        Ocena skutku MVP nie przyjmuje outcome; decyzja dostaje kind product (zwykle z success_metric i review_by).
+        links.chg nadaje skrzynka ze zdarzenia. Pozostałe pola jak w record_decision.
+        """
+        draft = _draft({**locals(), "kind": "other"})
+        inbox = Inbox(open_registry())
+        try:
+            return inbox.decide(item_id, draft, outcome=outcome)
+        except (InvalidDecision, ItemNotFound, ItemClosed) as e:
             raise ToolError(str(e)) from e
 
     return server
