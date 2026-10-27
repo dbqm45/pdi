@@ -231,6 +231,7 @@ Każda faza kończy się czymś, co działa samo, nawet jeśli następna się op
 - **Działa po fazie:** człowiek klika tylko na bramkach; kolejne fazy startują same.
 
 ### F5 — Zamknięcie pętli
+- **ci_for_sdlc:** wiele przestrzeni roboczych w jednej instalacji — **zrobione 2026-10-27 na plikach** (ci_for_sdlc #86, #88: osobne źródła, analiza i decyzje per przestrzeń, trasy `/api/w/:ws/…`, przełącznik w UI, wspólne pdi — gotowość zmiany `CHG-n` z historyjek wszystkich przestrzeni, `gate.decided` zatwierdza w każdej; zmiana nazwy i usuwanie; `workspace` w narzędziach MCP). Postgres oraz konta i role (kroki 2–3 `docs/SAAS.md` w ci_for_sdlc) w toku.
 - **ShipScope:** `feature.released`, API usług (**zrobione 2026-10-26**, dbqm45/evdt-service-shipscope#109, #110), release notes z intencji (**zrobione**, #111), lead time od intencji i od zgłoszenia (**zrobione**, #112, #113).
 - **pdi:** powiadomienia (**zrobione 2026-10-26**, [plan](plan-f5-powiadomienia.md): mały rejestr PRB, podpisany webhook do zgłaszającego po triażu, wydaniu i ocenie skutku), ocena skutku decyzji (**zrobione 2026-10-26**, [plan](plan-f5-ocena-skutku.md): termin z intencji po wydaniu R1, dane z API usług ShipScope, szkic wniosku, wynik potwierdza człowiek), graf śladu (**zrobione 2026-10-26**, [plan](plan-f5-graf-sladu.md): `get_trace`, luki pokazane, nie naprawiane).
 - **tf:** pasma kontrolne na metrykach z ShipScope → nowy PRB — **zrobione 2026-10-26** (tf #81 `metric_watch.py`
