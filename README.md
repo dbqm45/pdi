@@ -11,7 +11,7 @@ i triaż zgłoszeń, ocena skutku, graf śladu i prognoza zmiany** (niżej). Faz
 G1–G8: tamże, §8.
 
 Praca z kodem: `uv sync`, potem `uv run pytest`, `uv run ruff check src tests`, `uv run ruff format --check src tests`,
-`uv run mypy src` (te same kroki w CI: `.github/workflows/ci.yml`). Walidacja na sobie: [`eval/dogfood/`](eval/dogfood/README.md). Kod: `src/pdi/`, kontrakt 0.7.0 (decyzja, zgłoszenie, zmiana, cięcie, plan wydania, zdarzenia, autonomia): [`contract/`](contract/README.md), plan kroku: [`docs/plan-krok-1.md`](docs/plan-krok-1.md).
+`uv run mypy src` (te same kroki w CI: `.github/workflows/ci.yml`). Walidacja na sobie: [`eval/dogfood/`](eval/dogfood/README.md). Kod: `src/pdi/`, kontrakt 0.9.0 (decyzja, zgłoszenie, zmiana, cięcie, plan wydania, zdarzenia, autonomia, eksport rekonstrukcji, ramki `design.md`): [`contract/`](contract/README.md), plan kroku: [`docs/plan-krok-1.md`](docs/plan-krok-1.md).
 
 ## Skrzynka bramek i orkiestracja (G1.5, F4)
 
