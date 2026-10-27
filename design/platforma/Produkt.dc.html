@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Product — features and switches</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0;background:#F4F6F9}
+a{color:#2846B5}a:hover{color:#1B3285}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.st-run{background:#E6ECFB;color:#22409F}
+.st-wait{background:#FFF0D2;color:#7A4700}
+.st-block{background:#FCE6E3;color:#A1271D}
+.st-live{background:#DDF2E5;color:#17663A}
+.st-hidden{background:#ECEFF3;color:#3F4B5B}
+.btn{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:13px;font-weight:500;border-radius:8px;padding:8px 12px;min-height:36px;cursor:pointer;border:1px solid #C9D1DC;background:#FFFFFF;color:#15202B}
+.btn-primary{background:#2846B5;border-color:#2846B5;color:#FFFFFF}
+.sw{position:relative;width:46px;height:26px;border-radius:999px;border:none;cursor:pointer;padding:0;flex-shrink:0}
+.sw:disabled{cursor:not-allowed}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1180px; box-sizing: border-box; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #15202B; background: #F4F6F9; display: flex; flex-wrap: wrap; align-items: stretch">
+
+  <div style="flex: 1 1 240px; max-width: 248px; min-width: 200px; background: #FFFFFF; border-right: 1px solid #DDE3EA">
+    <dc-import name="Nawigacja" active="product" hint-size="248px,900px"></dc-import>
+  </div>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding: 14px 28px; background: #FFFFFF; border-bottom: 1px solid #DDE3EA">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+        <h1 style="margin: 0; font-size: 20px; font-weight: 600">Product</h1>
+        <span style="font-size: 13px; color: #445163">What users have, in which environment, and whether I can turn it on or off.</span>
+      </div>
+      <label for="dom" style="font-size: 12px; color: #5B6878">Domain</label>
+      <select id="dom" style="font-family: inherit; font-size: 13px; padding: 6px 10px; border: 1px solid #C9D1DC; border-radius: 8px; background: #FFFFFF; min-height: 36px">
+        <option>All domains</option>
+        <option>Rooms</option>
+        <option>Voting</option>
+        <option>Integrations</option>
+      </select>
+    </header>
+
+    <div style="padding: 20px 28px; display: flex; flex-direction: column; gap: 20px">
+
+      <div style="display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 12px; color: #445163; align-items: center">
+        <span style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 24px; height: 14px; border-radius: 999px; background: #17663A; display: inline-block"></span>on in every part</span>
+        <span style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 24px; height: 14px; border-radius: 999px; background: #B26A00; display: inline-block"></span>parts disagree</span>
+        <span style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 24px; height: 14px; border-radius: 999px; background: #9AA7B8; display: inline-block"></span>off</span>
+        <span>A switch is disabled while the code of one of its parts is not yet deployed to that environment.</span>
+      </div>
+
+      <sc-if value="{{showPlan}}" hint-placeholder-val="{{false}}">
+        <section aria-labelledby="h-plan" style="background: #FFFFFF; border: 2px solid #2846B5; border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline">
+            <h2 id="h-plan" style="margin: 0; font-size: 16px; font-weight: 600">Switch plan: {{plan.title}}</h2>
+            <span class="chip st-wait">PROD · decision in pdi</span>
+          </div>
+          <ol style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 14px">
+            <sc-for list="{{plan.steps}}" as="s" hint-placeholder-count="2">
+              <li><strong style="font-weight: 600">{{s.service}}</strong> · <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">{{s.flag}}</span> → {{s.to}} <span style="color: #5B6878">({{s.how}})</span></li>
+            </sc-for>
+          </ol>
+          <p style="margin: 0; font-size: 13px; color: #445163">{{plan.why}}</p>
+          <sc-if value="{{plan.requested}}" hint-placeholder-val="{{false}}">
+            <p style="margin: 0; font-size: 13px; color: #17663A; font-weight: 500">The item is in the pdi inbox. After the decision the executor switches the parts in this order, and ShipScope confirms the state from its reading.</p>
+          </sc-if>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px">
+            <button class="btn btn-primary" type="button" onClick="{{requestDecision}}">Ask for a decision</button>
+            <button class="btn" type="button" onClick="{{cancelPlan}}">Cancel</button>
+          </div>
+        </section>
+      </sc-if>
+
+      <sc-for list="{{domains}}" as="d" hint-placeholder-count="3">
+        <section style="display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline">
+            <h2 style="margin: 0; font-size: 16px; font-weight: 600">{{d.name}}</h2>
+            <span style="font-size: 12px; color: #5B6878">{{d.note}}</span>
+          </div>
+          <div style="overflow-x: auto; background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px">
+            <table style="border-collapse: collapse; width: 100%; min-width: 860px; font-size: 13px">
+              <thead>
+                <tr style="background: #F4F6F9; text-align: left">
+                  <th scope="col" style="padding: 10px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #5B6878; text-transform: uppercase; letter-spacing: .05em; width: 34%">Feature</th>
+                  <th scope="col" style="padding: 10px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #5B6878; text-transform: uppercase; letter-spacing: .05em">Parts</th>
+                  <th scope="col" style="padding: 10px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #5B6878; text-transform: uppercase; letter-spacing: .05em; width: 130px">TEST</th>
+                  <th scope="col" style="padding: 10px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #5B6878; text-transform: uppercase; letter-spacing: .05em; width: 130px">QA</th>
+                  <th scope="col" style="padding: 10px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #5B6878; text-transform: uppercase; letter-spacing: .05em; width: 130px">PROD</th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{d.features}}" as="f" hint-placeholder-count="2">
+                  <tr style="border-top: 1px solid #DDE3EA; vertical-align: top">
+                    <td style="padding: 12px 14px">
+                      <div style="display: flex; flex-direction: column; gap: 4px">
+                        <span style="font-weight: 600; font-size: 14px">{{f.name}}</span>
+                        <span style="color: #445163">{{f.desc}}</span>
+                        <span style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center">
+                          <span class="chip {{f.typeCls}}">{{f.type}}</span>
+                          <a href="Praca.dc.html" style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">{{f.change}}</a>
+                        </span>
+                      </div>
+                    </td>
+                    <td style="padding: 12px 14px">
+                      <div style="display: flex; flex-direction: column; gap: 6px">
+                        <sc-for list="{{f.parts}}" as="p" hint-placeholder-count="2">
+                          <span style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center">
+                            <span class="chip st-hidden">{{p.role}}</span>
+                            <span style="font-weight: 500">{{p.service}}</span>
+                            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5B6878">{{p.flag}}</span>
+                          </span>
+                        </sc-for>
+                      </div>
+                    </td>
+                    <sc-for list="{{f.cells}}" as="c" hint-placeholder-count="3">
+                      <td style="padding: 12px 14px">
+                        <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start">
+                          <button class="sw" type="button" role="switch" aria-checked="{{c.aria}}" aria-label="{{c.label}}" disabled="{{c.disabled}}" onClick="{{c.toggle}}" style="{{c.track}}"><span aria-hidden="true" style="{{c.knob}}"></span></button>
+                          <span style="font-size: 12px; color: {{c.noteColor}}">{{c.note}}</span>
+                        </div>
+                      </td>
+                    </sc-for>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </sc-for>
+
+      <p style="margin: 0; font-size: 12px; color: #5B6878">On TEST and QA a switch acts at once (automation with a log). On PROD it creates a plan and an item in the pdi inbox. Flags in code are switched by a PR to the flags file (the change ships with the next deployment); runtime flags by the flag provider's executor. The state shown here is what ShipScope reads, not what was requested.</p>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      on: {
+        'rooms-create': { TEST: 'on', QA: 'on', PROD: 'on' },
+        'rooms-10': { TEST: 'on', QA: 'on', PROD: 'on' },
+        'rooms-limits': { TEST: 'on', QA: 'partial', PROD: 'off' },
+        'deck-risk': { TEST: 'on', QA: 'on', PROD: 'off' },
+        'deck-fib': { TEST: 'on', QA: 'on', PROD: 'on' },
+        'jira-import': { TEST: 'off', QA: 'off', PROD: 'off' },
+      },
+      plan: null,
+    };
+  }
+  renderVals() {
+    const envs = ['TEST', 'QA', 'PROD'];
+    const catalog = [
+      { name: 'Rooms', note: 'bounded context “Estimation session” from the tf domain model', features: [
+        { id: 'rooms-create', name: 'Create a room', desc: 'The facilitator creates a room and invites the team with a link.', permanent: true, change: 'CHG-2', parts: [{ role: 'FE', service: 'sprintdeck-web', flag: 'rooms.create' }, { role: 'BE', service: 'sprintdeck-api', flag: 'rooms.create' }], deployed: { TEST: true, QA: true, PROD: true } },
+        { id: 'rooms-10', name: 'Room for 10 people', desc: 'Up to ten participants, with recovery from a dropped connection.', permanent: false, change: 'CHG-5', parts: [{ role: 'BE', service: 'sprintdeck-realtime', flag: 'rooms.capacity10' }, { role: 'FE', service: 'sprintdeck-web', flag: 'rooms.capacity10' }], deployed: { TEST: true, QA: true, PROD: true } },
+        { id: 'rooms-limits', name: 'Room limits', desc: 'Participant and session-length limits on the free plan.', permanent: false, change: 'CHG-8', parts: [{ role: 'BE', service: 'sprintdeck-api', flag: 'rooms.limits' }, { role: 'FE', service: 'sprintdeck-web', flag: 'rooms.limits-ui' }], deployed: { TEST: true, QA: true, PROD: false } },
+      ] },
+      { name: 'Voting', note: 'bounded context “Voting and disagreement”', features: [
+        { id: 'deck-risk', name: '“Risk” deck', desc: 'Vote on risk instead of points (decision D-E1).', permanent: false, change: 'CHG-6', parts: [{ role: 'BE', service: 'sprintdeck-api', flag: 'decks.risk' }, { role: 'FE', service: 'sprintdeck-web', flag: 'decks.risk' }], deployed: { TEST: true, QA: true, PROD: true } },
+        { id: 'deck-fib', name: 'Fibonacci deck', desc: 'Classic estimation as an optional mode.', permanent: true, change: 'CHG-1', parts: [{ role: 'FE', service: 'sprintdeck-web', flag: 'decks.fibonacci' }], deployed: { TEST: true, QA: true, PROD: true } },
+      ] },
+      { name: 'Integrations', note: 'bounded context “Tool connections”', features: [
+        { id: 'jira-import', name: 'Jira import', desc: 'Stories from a Jira board become tasks to vote on.', permanent: false, change: 'CHG-9', parts: [{ role: 'BE', service: 'sprintdeck-api', flag: 'integrations.jira' }, { role: 'FE', service: 'sprintdeck-web', flag: 'integrations.jira' }], deployed: { TEST: false, QA: false, PROD: false } },
+      ] },
+    ];
+    const track = (v, disabled) => {
+      const bg = disabled ? '#DDE3EA' : v === 'on' ? '#17663A' : v === 'partial' ? '#B26A00' : '#9AA7B8';
+      return 'background: ' + bg + ';';
+    };
+    const knob = (v) => {
+      const left = v === 'on' ? 23 : v === 'partial' ? 12 : 3;
+      return 'position: absolute; top: 3px; left: ' + left + 'px; width: 20px; height: 20px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(21,32,43,.3);';
+    };
+    const planFor = (f, env, turnOn) => {
+      const first = turnOn ? 'BE' : 'FE';
+      const ordered = f.parts.slice().sort((a, b) => (a.role === first ? -1 : 1) - (b.role === first ? -1 : 1));
+      return {
+        id: f.id, env, turnOn, requested: false,
+        title: (turnOn ? 'turn on ' : 'turn off ') + '“' + f.name + '” on ' + env,
+        why: turnOn ? 'Backend first, then frontend: the interface must not show a feature its API does not handle yet. The code of both parts is on PROD.' : 'Frontend first, then backend: users stop seeing the feature before the API stops serving it.',
+        steps: ordered.map((p) => ({ service: p.service, flag: p.flag, to: turnOn ? 'on' : 'off', how: 'runtime flag at the provider' })),
+      };
+    };
+    const domains = catalog.map((d) => ({
+      name: d.name, note: d.note,
+      features: d.features.map((f) => {
+        const st = this.state.on[f.id];
+        return {
+          name: f.name, desc: f.desc, type: f.permanent ? 'permanent switch' : 'release flag', typeCls: f.permanent ? 'st-run' : 'st-hidden', change: f.change, parts: f.parts,
+          cells: envs.map((env) => {
+            const v = st[env];
+            const disabled = !f.deployed[env];
+            const note = disabled ? 'code not on ' + env + ' yet' : v === 'on' ? 'with users' : v === 'partial' ? 'FE on, BE off' : 'off';
+            const noteColor = disabled ? '#5B6878' : v === 'partial' ? '#7A4700' : v === 'on' ? '#17663A' : '#445163';
+            return {
+              aria: v === 'on' ? 'true' : v === 'partial' ? 'mixed' : 'false',
+              label: f.name + ' on ' + env,
+              disabled, note, noteColor,
+              track: track(v, disabled), knob: knob(disabled ? 'off' : v),
+              toggle: () => {
+                if (disabled) return;
+                const turnOn = v !== 'on';
+                if (env === 'PROD') { this.setState({ plan: planFor(f, env, turnOn) }); return; }
+                const next = Object.assign({}, this.state.on);
+                next[f.id] = Object.assign({}, next[f.id], { [env]: turnOn ? 'on' : 'off' });
+                this.setState({ on: next });
+              },
+            };
+          }),
+        };
+      }),
+    }));
+    return {
+      domains,
+      showPlan: !!this.state.plan,
+      plan: this.state.plan || { title: '', steps: [], why: '', requested: false },
+      requestDecision: () => this.state.plan && this.setState({ plan: Object.assign({}, this.state.plan, { requested: true }) }),
+      cancelPlan: () => this.setState({ plan: null }),
+    };
+  }
+}
+</script>
+</body>
+</html>

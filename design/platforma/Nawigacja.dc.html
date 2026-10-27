@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Product menu</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0}
+a{color:#2846B5}a:hover{color:#1B3285}
+</style>
+</helmet>
+<nav aria-label="Main menu" style="width: 100%; min-height: 900px; box-sizing: border-box; padding: 18px 12px; background: #FFFFFF; border-right: 1px solid #DDE3EA; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #15202B; display: flex; flex-direction: column; gap: 2px">
+  <div style="display: flex; align-items: baseline; gap: 8px; padding: 4px 10px 16px">
+    <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 14px; color: #2846B5">pis</span>
+    <span style="font-weight: 600; font-size: 15px">Product Intelligence</span>
+  </div>
+  <sc-for list="{{items}}" as="it" hint-placeholder-count="9">
+    <sc-if value="{{it.group}}" hint-placeholder-val="{{false}}">
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: #5B6878; padding: 14px 10px 4px">{{it.group}}</div>
+    </sc-if>
+    <a href="{{it.href}}" style="{{it.style}}">
+      <span style="flex-grow: 1">{{it.label}}</span>
+      <sc-if value="{{it.badge}}" hint-placeholder-val="{{false}}">
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; padding: 1px 7px; border-radius: 999px; background: #FFF0D2; color: #7A4700">{{it.badge}}</span>
+      </sc-if>
+    </a>
+    <sc-for list="{{it.subs}}" as="s" hint-placeholder-count="0">
+      <a href="{{s.href}}" style="{{s.style}}">{{s.label}}</a>
+    </sc-for>
+  </sc-for>
+  <div style="flex-grow: 1"></div>
+  <div style="border-top: 1px solid #DDE3EA; margin-top: 16px; padding: 12px 10px 0; font-size: 12px; color: #5B6878; display: flex; flex-direction: column; gap: 4px">
+    <span>Workspace: <strong style="color: #15202B; font-weight: 600">Sprintdeck</strong></span>
+    <span>Connected: pdi · tf · ci_for_sdlc · ShipScope</span>
+  </div>
+</nav>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"active":{"editor":"enum","options":["now","problems","work","product","releases"],"default":"now"},"activeSub":{"editor":"text","default":""},"$preview":{"width":248,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const active = this.props.active ?? 'now';
+    const activeSub = this.props.activeSub ?? '';
+    const base = 'display: flex; align-items: center; gap: 8px; min-height: 36px; box-sizing: border-box; padding: 6px 10px; border-radius: 8px; text-decoration: none; font-size: 14px; ';
+    const on = base + 'background: #E6ECFB; color: #1B3285; font-weight: 600;';
+    const off = base + 'color: #15202B; font-weight: 400;';
+    const subBase = 'display: block; min-height: 30px; box-sizing: border-box; padding: 6px 10px 6px 26px; border-radius: 6px; text-decoration: none; font-size: 13px; ';
+    const mk = (id, label, href, extra) => Object.assign({ id, label, href, style: id === active ? on : off, subs: [], group: '', badge: '' }, extra || {});
+    const sub = (label, href) => ({ label, href, style: subBase + (label === activeSub ? 'color: #1B3285; font-weight: 600;' : 'color: #39465A;') });
+    return {
+      items: [
+        mk('now', 'Now', 'Main.dc.html', { badge: '4' }),
+        mk('problems', 'Problems', 'Problemy.dc.html', { badge: '2' }),
+        mk('work', 'Work', 'Praca.dc.html'),
+        mk('product', 'Product', 'Produkt.dc.html', { group: 'With users' }),
+        mk('releases', 'Releases', 'Wydania.dc.html', { subs: [sub('Environments', 'Wydania.dc.html'), sub('Deployment history', '#history'), sub('Technical flags', '#flags'), sub('Release plan', '#plan')] }),
+        mk('consistency', 'Consistency', '#consistency', { group: 'Quality and knowledge' }),
+        mk('outcomes', 'Outcomes', '#outcomes'),
+        mk('decisions', 'Decisions', '#decisions'),
+        mk('autonomy', 'Autonomy', '#autonomy'),
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

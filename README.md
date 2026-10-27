@@ -145,6 +145,7 @@ intake zgłoszeń to F3. Plan: [`docs/plan-f5-powiadomienia.md`](docs/plan-f5-po
 
 ## Kierunek (od 2026-10-23)
 
+- [`docs/15-jedna-platforma.md`](docs/15-jedna-platforma.md) — **propozycja: jeden produkt dla ludzi** zamiast czterech aplikacji: menu według pytań (Now, Problems, Work, Product, Releases, …), proces zamiast Jiry jako źródło, katalog funkcjonalności z przełącznikami per środowisko; backend łączony stopniowo, tf zawsze osobno. Makieta: [`design/platforma/`](design/platforma/README.md).
 - [`docs/14-pdi-standalone.md`](docs/14-pdi-standalone.md) — **pierwszy krok: pdi jako niezależny rejestr decyzji** z zapisem jednym kliknięciem tam, gdzie decyzje zapadają (najpierw Claude CLI przez MCP i `/record-decision`, potem Slack, Confluence, Jira); flow SDLC korzysta z tego samego rejestru. Specyfikacja MVP i kryteria walidacji na sobie.
 
 - [`docs/decyzje.md`](docs/decyzje.md) — decyzje właściciela (przyjęte: D1 kontrakt w [`contract/`](contract/README.md), D2/R1 podział rejestru decyzji).

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Now — what is waiting for you</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0;background:#F4F6F9}
+a{color:#2846B5}a:hover{color:#1B3285}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.st-run{background:#E6ECFB;color:#22409F}
+.st-wait{background:#FFF0D2;color:#7A4700}
+.st-block{background:#FCE6E3;color:#A1271D}
+.st-live{background:#DDF2E5;color:#17663A}
+.st-hidden{background:#ECEFF3;color:#3F4B5B}
+.btn{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:13px;font-weight:500;border-radius:8px;padding:8px 12px;min-height:36px;cursor:pointer;border:1px solid #C9D1DC;background:#FFFFFF;color:#15202B;text-decoration:none;display:inline-flex;align-items:center;box-sizing:border-box}
+.btn-primary{background:#2846B5;border-color:#2846B5;color:#FFFFFF}
+.btn-primary:hover{color:#FFFFFF;background:#1B3285}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1080px; box-sizing: border-box; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #15202B; background: #F4F6F9; display: flex; flex-wrap: wrap; align-items: stretch">
+
+  <div style="flex: 1 1 240px; max-width: 248px; min-width: 200px; background: #FFFFFF; border-right: 1px solid #DDE3EA">
+    <dc-import name="Nawigacja" active="now" hint-size="248px,900px"></dc-import>
+  </div>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding: 14px 28px; background: #FFFFFF; border-bottom: 1px solid #DDE3EA">
+      <h1 style="margin: 0; font-size: 20px; font-weight: 600; flex-grow: 1">Now</h1>
+      <label for="q" style="font-size: 12px; color: #5B6878">Search</label>
+      <input id="q" type="search" placeholder="CHG-9, feature, decision…" style="font-family: inherit; font-size: 13px; padding: 8px 10px; border: 1px solid #C9D1DC; border-radius: 8px; min-height: 36px; width: 240px; max-width: 100%; box-sizing: border-box">
+      <a class="btn btn-primary" href="Problemy.dc.html">Report a problem</a>
+    </header>
+
+    <div style="padding: 24px 28px; display: flex; flex-direction: column; gap: 24px">
+
+      <section aria-label="Summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px">
+        <sc-for list="{{tiles}}" as="t" hint-placeholder-count="5">
+          <div style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px">
+            <span style="font-size: 12px; color: #5B6878">{{t.label}}</span>
+            <span style="font-size: 26px; font-weight: 600">{{t.value}}</span>
+            <span style="font-size: 12px; color: #445163">{{t.note}}</span>
+          </div>
+        </sc-for>
+      </section>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+
+        <section aria-labelledby="h-wait" style="flex: 3 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+          <h2 id="h-wait" style="margin: 0; font-size: 16px; font-weight: 600">Waiting for you</h2>
+          <sc-for list="{{waiting}}" as="w" hint-placeholder-count="4">
+            <article style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px; padding: 14px 16px; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center">
+              <span class="chip {{w.cls}}">{{w.kind}}</span>
+              <div style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+                <span style="font-weight: 600; font-size: 14px">{{w.title}}</span>
+                <span style="font-size: 13px; color: #445163">{{w.detail}}</span>
+              </div>
+              <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5B6878">{{w.from}}</span>
+              <a class="btn" href="{{w.href}}">{{w.action}}</a>
+            </article>
+          </sc-for>
+
+          <h2 style="margin: 12px 0 0; font-size: 16px; font-weight: 600">Attention</h2>
+          <article style="background: #FFFFFF; border: 1px solid #F0C5BF; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px">
+            <span class="chip st-block" style="align-self: flex-start">FE/BE mismatch</span>
+            <span style="font-weight: 600; font-size: 14px">“Room limits” on QA: frontend on, backend off</span>
+            <span style="font-size: 13px; color: #445163">QA users see the limits screen, but the API rejects it. <a href="Produkt.dc.html">Open the feature</a></span>
+          </article>
+          <article style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px">
+            <span class="chip st-wait" style="align-self: flex-start">Forecast with a doubt</span>
+            <span style="font-weight: 600; font-size: 14px">CHG-9 “Jira import”: ~9 days (6–12), only 3 delivered changes in the history</span>
+            <span style="font-size: 13px; color: #445163">The automation does not trust this number. Suggestion: a short risk vote in a sprintdeck room.</span>
+          </article>
+        </section>
+
+        <aside aria-labelledby="h-now" style="flex: 2 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+          <section style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+            <h2 id="h-now" style="margin: 0; font-size: 16px; font-weight: 600">Timeline</h2>
+            <sc-for list="{{events}}" as="e" hint-placeholder-count="6">
+              <div style="display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; font-size: 13px">
+                <span style="font-family: 'IBM Plex Mono', monospace; color: #5B6878">{{e.time}}</span>
+                <span><strong style="font-weight: 600">{{e.who}}</strong> {{e.what}}</span>
+              </div>
+            </sc-for>
+          </section>
+
+          <section aria-labelledby="h-claude" style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+            <h2 id="h-claude" style="margin: 0; font-size: 16px; font-weight: 600">Ask Claude</h2>
+            <p style="margin: 0; font-size: 13px; color: #445163">Claude sees every app in the workspace. It explains and drafts; you approve a decision with a button.</p>
+            <div style="background: #F4F6F9; border-radius: 8px; padding: 10px 12px; font-size: 13px">
+              <strong style="font-weight: 600">You:</strong> Can I turn on the “Risk deck” on PROD today?
+            </div>
+            <div style="background: #E6ECFB; border-radius: 8px; padding: 10px 12px; font-size: 13px; color: #15202B">
+              <strong style="font-weight: 600">Claude:</strong> Both parts have been on PROD since yesterday (api 1.8.0, web 2.3.1) and the acceptance tests pass. Plan: sprintdeck-api first, then sprintdeck-web. I put a draft decision in your inbox.
+            </div>
+            <label for="ask" style="font-size: 12px; color: #5B6878">Your question</label>
+            <div style="display: flex; gap: 8px">
+              <input id="ask" type="text" placeholder="Ask about a change, feature, decision…" style="flex-grow: 1; min-width: 0; font-family: inherit; font-size: 13px; padding: 8px 10px; border: 1px solid #C9D1DC; border-radius: 8px; min-height: 36px; box-sizing: border-box">
+              <button class="btn btn-primary" type="button">Send</button>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      tiles: [
+        { label: 'Waiting for you', value: '4', note: '2 gates, 1 switch-on, 1 outcome review' },
+        { label: 'Blocked', value: '1', note: 'CHG-8: 2 open questions' },
+        { label: 'Agents working', value: '2', note: 'tf: CHG-9 plan, CHG-7 build' },
+        { label: 'With users', value: '6', note: 'features on in PROD' },
+        { label: 'Cost this week', value: '[COST]', note: 'from Talos reports' },
+      ],
+      waiting: [
+        { kind: 'Gate B3', cls: 'st-wait', title: 'CHG-9 “Jira import”: architecture and slice plan', detail: '5 slices, threat model, ADR on Atlassian tokens', from: 'tf · natalia', action: 'Open', href: 'Praca.dc.html' },
+        { kind: 'Readiness', cls: 'st-block', title: 'CHG-8 “Room limits”: Approve for implementation', detail: 'ci_for_sdlc: 2 unanswered questions (limit for guests, message after the limit)', from: 'ci_for_sdlc', action: 'Answer', href: 'Praca.dc.html' },
+        { kind: 'PROD switch-on', cls: 'st-run', title: 'Turn on the “Risk deck” on PROD', detail: 'Plan: sprintdeck-api, then sprintdeck-web. Code deployed, acceptance tests green.', from: 'Product', action: 'Decide', href: 'Produkt.dc.html' },
+        { kind: 'Outcome review', cls: 'st-live', title: 'CHG-5 “Room for 10 people” — R1 after 30 days', detail: 'Draft: met (0 rollbacks against a target of ≤ 1)', from: 'pdi · ShipScope', action: 'Confirm', href: '#review' },
+      ],
+      events: [
+        { time: '14:02', who: 'ShipScope', what: 'sprintdeck-api 1.8.0 on PROD' },
+        { time: '13:40', who: 'tf · Talos', what: 'TSK-41 done, PR #58 ready for review' },
+        { time: '13:15', who: 'ci_for_sdlc', what: 'CHG-8: new question about the guest limit' },
+        { time: '12:30', who: 'pdi', what: 'PRB-14 accepted as CHG-9' },
+        { time: '11:05', who: 'Anna', what: 'approved B2 for CHG-9' },
+        { time: '09:50', who: 'ShipScope', what: '“Room limits” FE switched on in QA' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

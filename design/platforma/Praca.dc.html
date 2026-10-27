@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Work — changes and their flow</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0;background:#F4F6F9}
+a{color:#2846B5}a:hover{color:#1B3285}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.st-run{background:#E6ECFB;color:#22409F}
+.st-wait{background:#FFF0D2;color:#7A4700}
+.st-block{background:#FCE6E3;color:#A1271D}
+.st-live{background:#DDF2E5;color:#17663A}
+.st-hidden{background:#ECEFF3;color:#3F4B5B}
+.tab{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:13px;font-weight:500;border-radius:8px;padding:6px 12px;min-height:36px;cursor:pointer;border:1px solid #C9D1DC;background:#FFFFFF;color:#15202B}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1000px; box-sizing: border-box; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #15202B; background: #F4F6F9; display: flex; flex-wrap: wrap; align-items: stretch">
+
+  <div style="flex: 1 1 240px; max-width: 248px; min-width: 200px; background: #FFFFFF; border-right: 1px solid #DDE3EA">
+    <dc-import name="Nawigacja" active="work" hint-size="248px,900px"></dc-import>
+  </div>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding: 14px 28px; background: #FFFFFF; border-bottom: 1px solid #DDE3EA">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+        <h1 style="margin: 0; font-size: 20px; font-weight: 600">Work</h1>
+        <span style="font-size: 13px; color: #445163">Each change as a flow, from the problem report to its outcome. No sprints and no columns to drag — decisions at the gates move the phases.</span>
+      </div>
+      <div role="group" aria-label="Show" style="display: flex; gap: 6px">
+        <button class="tab" type="button" aria-pressed="{{pressedOpen}}" onClick="{{showOpen}}" style="{{tabOpen}}">In progress</button>
+        <button class="tab" type="button" aria-pressed="{{pressedDone}}" onClick="{{showDone}}" style="{{tabDone}}">Released</button>
+      </div>
+    </header>
+
+    <div style="padding: 20px 28px; display: flex; flex-direction: column; gap: 14px">
+      <div style="overflow-x: auto; background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px">
+        <table style="border-collapse: collapse; width: 100%; min-width: 1000px; font-size: 13px">
+          <thead>
+            <tr style="background: #F4F6F9; text-align: left">
+              <th scope="col" style="padding: 10px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #5B6878; text-transform: uppercase; letter-spacing: .05em; width: 26%">Change</th>
+              <th scope="col" style="padding: 10px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #5B6878; text-transform: uppercase; letter-spacing: .05em">Flow</th>
+              <th scope="col" style="padding: 10px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #5B6878; text-transform: uppercase; letter-spacing: .05em; width: 180px">Now</th>
+              <th scope="col" style="padding: 10px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #5B6878; text-transform: uppercase; letter-spacing: .05em; width: 160px">Forecast / time</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+              <tr style="border-top: 1px solid #DDE3EA; vertical-align: top">
+                <td style="padding: 12px 14px">
+                  <div style="display: flex; flex-direction: column; gap: 4px">
+                    <span><a href="#trace" style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">{{r.key}}</a> <span style="font-weight: 600; font-size: 14px">{{r.title}}</span></span>
+                    <span style="color: #445163">{{r.problem}}</span>
+                    <span style="font-size: 12px; color: #5B6878">{{r.meta}}</span>
+                  </div>
+                </td>
+                <td style="padding: 12px 14px">
+                  <div style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px">
+                    <sc-for list="{{r.steps}}" as="s" hint-placeholder-count="8">
+                      <div style="display: flex; flex-direction: column; gap: 4px">
+                        <span style="{{s.bar}}"></span>
+                        <span style="font-size: 11px; color: {{s.color}}">{{s.label}}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <span style="display: block; margin-top: 8px; font-size: 12px; color: #445163">{{r.slices}}</span>
+                </td>
+                <td style="padding: 12px 14px">
+                  <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start">
+                    <span class="chip {{r.nowCls}}">{{r.now}}</span>
+                    <span style="font-size: 12px; color: #445163">{{r.who}}</span>
+                  </div>
+                </td>
+                <td style="padding: 12px 14px">
+                  <div style="display: flex; flex-direction: column; gap: 4px">
+                    <span style="font-weight: 600">{{r.forecast}}</span>
+                    <span style="font-size: 12px; color: {{r.forecastNoteColor}}">{{r.forecastNote}}</span>
+                  </div>
+                </td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin: 0; font-size: 12px; color: #5B6878">Phases: Problem (pdi) · Intent B1 · Requirements B2 · Plan B3 · Design · Readiness (ci_for_sdlc) · Build (tf · Talos) · Release and outcome (ShipScope, pdi). Forecast: slices in the plan × median days per slice from ShipScope; “?” means the automation raises a doubt.</p>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { view: 'open' }; }
+  renderVals() {
+    const names = ['Problem', 'Intent', 'Reqs', 'Plan', 'Design', 'Ready', 'Build', 'Release'];
+    const steps = (done, current, state) => names.map((label, i) => {
+      const isDone = i < done;
+      const isNow = i === current;
+      const bg = isDone ? '#2846B5' : isNow ? (state === 'block' ? '#A1271D' : state === 'wait' ? '#B26A00' : '#7C93E0') : '#DDE3EA';
+      return { label, bar: 'display: block; height: 8px; border-radius: 4px; background: ' + bg + ';', color: isNow ? '#15202B' : '#5B6878' };
+    });
+    const open = [
+      { key: 'CHG-9', title: 'Jira import', problem: 'A facilitator cannot start a session without copying stories by hand.', meta: 'from PRB-14 · domain Integrations', steps: steps(3, 3, 'wait'), slices: '5 slices planned · 0 released', now: 'Waiting: B3', nowCls: 'st-wait', who: 'on you · plan by tf (natalia)', forecast: '~9 days (6–12) ?', forecastNote: 'little history: 3 changes', forecastNoteColor: '#7A4700' },
+      { key: 'CHG-8', title: 'Room limits', problem: 'Unlimited free rooms overload the realtime service.', meta: 'from PRB-11 · domain Rooms', steps: steps(5, 5, 'block'), slices: '3 slices · TSK-38 and TSK-39 on QA', now: 'Blocked', nowCls: 'st-block', who: 'ci_for_sdlc: 2 questions', forecast: '~5 days (4–7)', forecastNote: 'in line with history', forecastNoteColor: '#17663A' },
+      { key: 'CHG-7', title: 'Session report', problem: 'The team has no record of why it voted the way it did.', meta: 'from PRB-9 · domain Voting', steps: steps(6, 6, 'run'), slices: '4 slices · TSK-41 in review (PR #58)', now: 'Building', nowCls: 'st-run', who: 'tf · Talos · cost [COST]', forecast: '~7 days (5–9)', forecastNote: 'day 4 of 7', forecastNoteColor: '#445163' },
+      { key: 'CHG-6', title: '“Risk” deck', problem: 'The team votes on points, not on risk.', meta: 'decision D-E1 · domain Voting', steps: steps(7, 7, 'wait'), slices: '2 slices · code on PROD, flag off', now: 'Waiting: switch-on', nowCls: 'st-wait', who: 'on you · Product', forecast: '6 days to PROD', forecastNote: 'forecast was 5 (within range)', forecastNoteColor: '#17663A' },
+    ];
+    const done = [
+      { key: 'CHG-5', title: 'Room for 10 people', problem: 'Larger teams did not fit in one room.', meta: 'from PRB-6 · domain Rooms', steps: steps(8, -1, 'run'), slices: '4 slices · R1 released 30 days ago', now: 'Outcome review', nowCls: 'st-live', who: 'draft: met', forecast: '8 days to PROD', forecastNote: 'forecast was 6 (above the range)', forecastNoteColor: '#7A4700' },
+    ];
+    const isOpen = this.state.view === 'open';
+    const active = 'background: #E6ECFB; border-color: #2846B5; color: #1B3285;';
+    return {
+      rows: isOpen ? open : done,
+      showOpen: () => this.setState({ view: 'open' }),
+      showDone: () => this.setState({ view: 'done' }),
+      pressedOpen: isOpen ? 'true' : 'false',
+      pressedDone: isOpen ? 'false' : 'true',
+      tabOpen: isOpen ? active : '',
+      tabDone: isOpen ? '' : active,
+    };
+  }
+}
+</script>
+</body>
+</html>
