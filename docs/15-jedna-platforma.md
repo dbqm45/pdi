@@ -34,7 +34,7 @@ i Figmę, tf ma kod).
 | **Work** | Co jest w budowie i na jakim etapie? | pdi + tf: zmiany jako przebiegi przez fazy (zamiast tablicy jak w Jirze), prognoza G3 |
 | **Product** | Co mają użytkownicy, gdzie, i czy mogę to wyłączyć? | **nowe:** domena → funkcjonalność → części w serwisach, stan per środowisko, przełączniki |
 | **Releases** | Co jest wdrożone technicznie? | ShipScope: środowiska, historia wdrożeń, flagi techniczne, plan wydania |
-| **Consistency** | Czy wiemy, co budujemy? | ci_for_sdlc: gotowość, pytania, kryteria akceptacji ↔ testy |
+| **Consistency** | Czy wiemy, co budujemy? | ci_for_sdlc: gotowość, pytania z decyzją (rozwiązanie, ryzyko, odrzucenie), pokrycie ścieżek ramkami Figmy, kryteria akceptacji ↔ testy (§5) |
 | **Outcomes** | Czy to dało efekt i ile trwa? | pdi i ShipScope: ocena skutku, trafność prognoz, lead time |
 | **Decisions**, **Autonomy** | Kto, co i dlaczego zdecydował? | pdi (ekrany w [makiecie konsoli](../design/konsola/README.md)) |
 
@@ -68,7 +68,23 @@ Brakuje dwóch rzeczy:
 - ShipScope potwierdza wynik z odczytu: ekran pokazuje to, co odczytano, nie to, co zlecono; rozjazd jest widoczny.
 - To zmienia zasadę „ShipScope tylko obserwuje” (ShipScope ADR-001, DA6) — wymaga nowego ADR w ShipScope.
 
-## 5. Kolejność
+## 5. Spójność (ci_for_sdlc) w jednym produkcie
+
+Sekcja Consistency ma dwa poziomy (makieta: ekrany 6 i 7):
+
+- **Lista:** gotowość zmian i historyjek w ośmiu wymiarach ci_for_sdlc (wymagania, design, dokumentacja,
+  architektura, ścieżki użytkownika, obsługa błędów, zależności, plan wydania), kolejka pytań do decyzji,
+  odpowiedzi znalezione w źródłach (A2a: cytat słowo w słowo, akceptuj / popraw / odrzuć) i zaakceptowane ryzyka
+  z terminem przeglądu.
+- **Zmiana:** każde ustalenie (GAP, CONFLICT, AMBIGUITY, OUTDATED, MISSING_COVERAGE, DRIFT) z dowodami ze źródeł
+  obok siebie — historyjka w Jirze, strona w Confluence, ramka w Figmie, kod z rekonstrukcji tf, wynik testu.
+  Decyzja ma trzy skutki z ci_for_sdlc (`resolve`, `accept_risk`, `dismiss`): wybór jednej z opcji pytania,
+  akceptacja ryzyka z powodem i terminem przeglądu albo odrzucenie z powodem; trafia do rejestru pdi jako DEC-n.
+  Pod spodem macierz ścieżka użytkownika × stan interfejsu z ramkami z tabeli `design.md` (kontrakt 0.9.0)
+  i karta kryteriów akceptacji ↔ testów (G4). Zmiana niegotowa może poprosić pdi o zatwierdzenie mimo to
+  (`gate.requested` z blokadami, ci_for_sdlc #84).
+
+## 6. Kolejność
 
 1. Decyzja G6/P1 na piśmie: menu z §2, wspólna tożsamość i obszar roboczy, konsola pdi jako powłoka, stack usługi
    pdi (DA4).
@@ -78,7 +94,7 @@ Brakuje dwóch rzeczy:
 5. Plan przełączenia na sucho i decyzja w pdi; potem pierwszy wykonawca zapisu.
 6. Łączenie backendu moduł po module, zaczynając od pdi i warstwy pdi w ShipScope.
 
-## 6. Otwarte pytania
+## 7. Otwarte pytania
 
 - Gdzie dziś żyją flagi w serwisach (evdt-shipscope-flags, inny dostawca, pliki w kodzie)? Od tego zależy pierwszy
   wykonawca.

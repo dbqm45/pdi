@@ -10,12 +10,15 @@
     "Praca.dc.html": {"x": 3040, "y": 0, "w": 1440, "h": 1000, "title": "Work: changes and their flow", "expand": "fill", "is_interactive": true},
     "Wydania.dc.html": {"x": 0, "y": 1300, "w": 1440, "h": 1080, "title": "Releases: environments (ShipScope)", "expand": "fill", "is_interactive": true},
     "Problemy.dc.html": {"x": 1520, "y": 1300, "w": 1440, "h": 1000, "title": "Problems: reports and triage", "expand": "fill", "is_interactive": true},
-    "Nawigacja.dc.html": {"x": 3040, "y": 1300, "w": 248, "h": 900, "title": "Menu (shared component)"}
+    "Nawigacja.dc.html": {"x": 3040, "y": 1300, "w": 248, "h": 900, "title": "Menu (shared component)"},
+    "Spojnosc.dc.html": {"x": 0, "y": 2600, "w": 1440, "h": 1100, "title": "Consistency: readiness and questions (ci_for_sdlc)", "expand": "fill", "is_interactive": true},
+    "SpojnoscZmiana.dc.html": {"x": 1520, "y": 2600, "w": 1440, "h": 1500, "title": "Consistency: one change (CHG-8)", "expand": "fill", "is_interactive": true}
   },
-  "order": ["Main.dc.html", "Produkt.dc.html", "Praca.dc.html", "Wydania.dc.html", "Problemy.dc.html", "Nawigacja.dc.html"],
+  "order": ["Main.dc.html", "Produkt.dc.html", "Praca.dc.html", "Wydania.dc.html", "Problemy.dc.html", "Nawigacja.dc.html", "Spojnosc.dc.html", "SpojnoscZmiana.dc.html"],
   "notes": {
     "t1": {"x": 0, "y": -300, "text": "One product: a menu built around questions, not around apps", "kind": "title1", "maxW": 4480},
-    "s1": {"x": 3400, "y": 1300, "w": 420, "text": "Sample data: sprintdeck built through the whole ecosystem. Screens read from the existing APIs (pdi, ci_for_sdlc, ShipScope's service API); tf works in the product repo. Values in brackets, such as [COST], are to be decided.", "fill": "gray"}
+    "s1": {"x": 3400, "y": 1300, "w": 420, "text": "Sample data: sprintdeck built through the whole ecosystem. Screens read from the existing APIs (pdi, ci_for_sdlc, ShipScope's service API); tf works in the product repo. Values in brackets, such as [COST], are to be decided.", "fill": "gray"},
+    "s2": {"x": 3040, "y": 2600, "w": 420, "text": "Consistency = ci_for_sdlc: findings (GAP, CONFLICT, AMBIGUITY, OUTDATED, MISSING_COVERAGE, DRIFT) across eight dimensions, each with evidence from its sources. A decision resolves a finding by choosing an option, accepts the risk with a reason and a review date, or dismisses it; it goes to the pdi register as DEC-n.", "fill": "blue"}
   },
   "designSystems": []
 }

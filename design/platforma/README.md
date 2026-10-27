@@ -14,6 +14,8 @@ ekosystem, jak w [makiecie konsoli](../konsola/README.md). Wartości w nawiasach
 | Work | [`3-work.png`](3-work.png) | [`Praca.dc.html`](Praca.dc.html) | zmiany jako przebiegi przez osiem faz zamiast tablicy, na kogo czekają, prognoza G3 z „?” przy wątpliwości |
 | Releases | [`4-releases.png`](4-releases.png) | [`Wydania.dc.html`](Wydania.dc.html) | część ShipScope: środowiska (wersje, drift, rollback, rozjazd flag) i historia wdrożeń w zakładkach |
 | Problems | [`5-problems.png`](5-problems.png) | [`Problemy.dc.html`](Problemy.dc.html) | zgłoszenie „kto, czego nie może, jaki skutek”, pytania od Claude, podpowiedź duplikatu, lista po triażu |
+| Consistency | [`6-consistency.png`](6-consistency.png) | [`Spojnosc.dc.html`](Spojnosc.dc.html) | ci_for_sdlc: gotowość zmian w ośmiu wymiarach, kolejka pytań do decyzji, odpowiedzi znalezione w źródłach (A2a), zaakceptowane ryzyka z terminem przeglądu |
+| Consistency: zmiana | [`7-consistency-change.png`](7-consistency-change.png) | [`SpojnoscZmiana.dc.html`](SpojnoscZmiana.dc.html) | ustalenia CHG-8 z dowodami ze źródeł obok siebie (Jira, Confluence, Figma, kod z rekonstrukcji tf, JUnit); decyzja: wybór rozwiązania, akceptacja ryzyka z powodem i terminem albo odrzucenie, zapis jako DEC-n w pdi; macierz ścieżka × stan z ramkami z `design.md`; kryteria akceptacji ↔ testy |
 | — | — | [`Nawigacja.dc.html`](Nawigacja.dc.html) | wspólne menu (komponent) |
 | — | — | [`canvas.json`](canvas.json) | układ ekranów na kanwie |
 

@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Consistency — CHG-8 Room limits</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0;background:#F4F6F9}
+a{color:#2846B5}a:hover{color:#1B3285}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.st-run{background:#E6ECFB;color:#22409F}
+.st-wait{background:#FFF0D2;color:#7A4700}
+.st-block{background:#FCE6E3;color:#A1271D}
+.st-live{background:#DDF2E5;color:#17663A}
+.st-hidden{background:#ECEFF3;color:#3F4B5B}
+.btn{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:13px;font-weight:500;border-radius:8px;padding:8px 12px;min-height:36px;cursor:pointer;border:1px solid #C9D1DC;background:#FFFFFF;color:#15202B;text-decoration:none;display:inline-flex;align-items:center;box-sizing:border-box}
+.btn-primary{background:#2846B5;border-color:#2846B5;color:#FFFFFF}
+.card{font-family:inherit;text-align:left;width:100%;cursor:pointer;background:#FFFFFF;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;color:#15202B}
+.opt{font-family:inherit;text-align:left;width:100%;cursor:pointer;border-radius:8px;padding:10px 12px;min-height:44px;font-size:13px;color:#15202B}
+.field{font-family:inherit;font-size:13px;padding:8px 10px;border:1px solid #C9D1DC;border-radius:8px;background:#FFFFFF;color:#15202B;min-height:36px;box-sizing:border-box;width:100%}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1500px; box-sizing: border-box; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #15202B; background: #F4F6F9; display: flex; flex-wrap: wrap; align-items: stretch">
+
+  <div style="flex: 1 1 240px; max-width: 248px; min-width: 200px; background: #FFFFFF; border-right: 1px solid #DDE3EA">
+    <dc-import name="Nawigacja" active="consistency" hint-size="248px,900px"></dc-import>
+  </div>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 14px 28px; background: #FFFFFF; border-bottom: 1px solid #DDE3EA">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 12px; color: #5B6878"><a href="Spojnosc.dc.html">Consistency</a> / CHG-8</span>
+        <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px">
+          <h1 style="margin: 0; font-size: 20px; font-weight: 600">Room limits</h1>
+          <span class="chip {{readyCls}}">{{readyText}}</span>
+          <span style="font-size: 13px; color: #445163">3 stories · intent, requirements and design.md from the repo, stories in Jira</span>
+        </div>
+      </div>
+      <button class="btn" type="button">Ask pdi to approve anyway</button>
+    </header>
+
+    <div style="padding: 20px 28px; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+
+      <section aria-labelledby="h-f" style="flex: 2 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+        <h2 id="h-f" style="margin: 0; font-size: 16px; font-weight: 600">Findings ({{openCount}} open)</h2>
+        <sc-for list="{{findings}}" as="f" hint-placeholder-count="5">
+          <button class="card" type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="{{f.cardStyle}}">
+            <span style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center">
+              <span class="chip {{f.cls}}">{{f.cat}}</span>
+              <span style="font-size: 12px; color: #5B6878">{{f.dim}} · {{f.sev}}</span>
+              <sc-if value="{{f.done}}" hint-placeholder-val="{{false}}"><span class="chip st-live">{{f.doneText}}</span></sc-if>
+            </span>
+            <span style="font-weight: 600; font-size: 14px">{{f.title}}</span>
+            <span style="font-size: 12px; color: #445163">{{f.where}}</span>
+          </button>
+        </sc-for>
+      </section>
+
+      <section aria-labelledby="h-d" style="flex: 3 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center">
+          <span class="chip {{cur.cls}}">{{cur.cat}}</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5B6878">{{cur.rule}}</span>
+        </div>
+        <h2 id="h-d" style="margin: 0; font-size: 17px; font-weight: 600">{{cur.title}}</h2>
+        <p style="margin: 0; font-size: 14px; color: #39465A">{{cur.explanation}}</p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px">
+          <sc-for list="{{cur.evidence}}" as="e" hint-placeholder-count="3">
+            <figure style="margin: 0; border: 1px solid #DDE3EA; border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; background: #F9FAFC">
+              <figcaption style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5B6878">{{e.src}}</figcaption>
+              <blockquote style="margin: 0; font-size: 13px; color: #15202B">{{e.quote}}</blockquote>
+            </figure>
+          </sc-for>
+        </div>
+
+        <sc-if value="{{cur.draft}}" hint-placeholder-val="{{false}}">
+          <p style="margin: 0; font-size: 13px; color: #1B3285; background: #E6ECFB; border-radius: 8px; padding: 8px 12px">Draft from the sources: the quote above answers the question word for word. Accept it, edit it, or reject it.</p>
+        </sc-if>
+
+        <fieldset style="border: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
+          <legend style="font-size: 14px; font-weight: 600; margin-bottom: 8px">{{cur.question}}</legend>
+          <sc-for list="{{cur.options}}" as="o" hint-placeholder-count="3">
+            <button class="opt" type="button" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}" style="{{o.style}}">{{o.label}}</button>
+          </sc-for>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px">
+            <button class="opt" type="button" aria-pressed="{{riskPressed}}" onClick="{{pickRisk}}" style="{{riskStyle}}">Accept the risk</button>
+            <button class="opt" type="button" aria-pressed="{{dismissPressed}}" onClick="{{pickDismiss}}" style="{{dismissStyle}}">Dismiss as not relevant</button>
+          </div>
+        </fieldset>
+
+        <sc-if value="{{needsReason}}" hint-placeholder-val="{{false}}">
+          <div style="display: flex; flex-wrap: wrap; gap: 10px">
+            <div style="flex: 2 1 280px; display: flex; flex-direction: column; gap: 6px">
+              <label for="why" style="font-size: 13px; font-weight: 500">Why (goes into the decision)</label>
+              <textarea id="why" class="field" rows="2" style="resize: vertical">{{reasonDefault}}</textarea>
+            </div>
+            <sc-if value="{{isRisk}}" hint-placeholder-val="{{false}}">
+              <div style="flex: 1 1 160px; display: flex; flex-direction: column; gap: 6px">
+                <label for="review" style="font-size: 13px; font-weight: 500">Review by</label>
+                <input id="review" class="field" type="date" value="2026-11-30">
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+          <button class="btn btn-primary" type="button" onClick="{{record}}">Record decision</button>
+          <span style="font-size: 12px; color: #5B6878">Recorded in the pdi register as DEC-n, linked to CHG-8 and to this finding.</span>
+        </div>
+        <sc-if value="{{cur.recorded}}" hint-placeholder-val="{{false}}">
+          <p role="status" style="margin: 0; font-size: 13px; color: #17663A; font-weight: 500">{{cur.recordedText}}</p>
+        </sc-if>
+      </section>
+    </div>
+
+    <div style="padding: 0 28px 28px; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+      <section aria-labelledby="h-j" style="flex: 1 1 100%; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+        <h2 id="h-j" style="margin: 0; font-size: 16px; font-weight: 600">User journeys × states (design.md and Figma)</h2>
+        <div style="overflow-x: auto; background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px">
+          <table style="border-collapse: collapse; width: 100%; min-width: 820px; font-size: 12px">
+            <thead>
+              <tr style="background: #F4F6F9; text-align: left">
+                <th scope="col" style="padding: 10px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #5B6878; text-transform: uppercase">Journey</th>
+                <sc-for list="{{states}}" as="s" hint-placeholder-count="7">
+                  <th scope="col" style="padding: 10px 8px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500; color: #5B6878">{{s}}</th>
+                </sc-for>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{journeys}}" as="j" hint-placeholder-count="4">
+                <tr style="border-top: 1px solid #DDE3EA">
+                  <th scope="row" style="padding: 10px 12px; text-align: left; font-weight: 500; font-size: 13px">{{j.name}}<div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5B6878; font-weight: 400">{{j.req}}</div></th>
+                  <sc-for list="{{j.cells}}" as="c" hint-placeholder-count="7">
+                    <td style="padding: 8px"><span style="{{c.style}}">{{c.text}}</span></td>
+                  </sc-for>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+        <span style="font-size: 12px; color: #5B6878">frame = linked Figma node (from the design.md table) · missing = required state without a frame · n/a = not applicable, with a reason</span>
+      </section>
+
+      <section aria-labelledby="h-t" style="flex: 1 1 100%; min-width: 0; background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+        <h2 id="h-t" style="margin: 0; font-size: 16px; font-weight: 600">Acceptance criteria ↔ tests · 1/3 passing</h2>
+        <sc-for list="{{acs}}" as="a" hint-placeholder-count="3">
+          <div style="border-top: 1px solid #EEF1F5; padding-top: 8px; display: flex; flex-direction: column; gap: 4px; font-size: 13px">
+            <span style="display: flex; gap: 8px; align-items: center"><span class="chip {{a.cls}}">{{a.state}}</span><strong style="font-weight: 600">{{a.key}}</strong></span>
+            <span style="color: #39465A">{{a.text}}</span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5B6878">{{a.tests}}</span>
+          </div>
+        </sc-for>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { sel: 'f1', choice: {}, recorded: {} }; }
+  renderVals() {
+    const F = [
+      { id: 'f1', cat: 'CONFLICT', cls: 'st-block', dim: 'Documentation', sev: 'critical', rule: 'CLAIM-003 · numeric claim differs between sources', title: 'Free plan participant limit: the sources disagree', where: 'US-3/AC-1 · Confluence “Pricing & plans” · config/limits.ts', explanation: 'The story, the pricing page and the code name three different limits. A conflict is critical: whatever ships, one of the sources will be wrong for users or for sales.', evidence: [
+          { src: 'Jira · US-3/AC-1', quote: 'Given a free plan, when the 11th person joins, then they see “This room is full”.' },
+          { src: 'Confluence · Pricing & plans', quote: 'Free plan: up to 8 participants per room.' },
+          { src: 'Code (tf reconstruction) · config/limits.ts:12', quote: 'FREE_ROOM_LIMIT = 10' } ],
+        question: 'Which limit applies on the free plan?', options: [ { id: 'a', label: '10 — keep the story and the code, update the pricing page' }, { id: 'b', label: '8 — change the story, the code and the tests' }, { id: 'c', label: 'Ask sales first (question to the pricing page owner)' } ] },
+      { id: 'f2', cat: 'MISSING_COVERAGE', cls: 'st-wait', dim: 'User journeys', sev: 'warning', rule: 'STATE-002 · required state without a frame', title: '“Join a full room” has no frame for the limit-reached state', where: 'design.md row 4 · Figma “Rooms v4”', explanation: 'The requirement names what a user sees when the room is full, but design.md marks the frame as missing and the Figma file has frames only for idle, loading and success.', evidence: [
+          { src: 'design.md · row 4', quote: 'US-3/AC-1 | join a full room | permission_denied | missing | waiting for copy' },
+          { src: 'Figma · Rooms v4', quote: 'Join room — idle (12:4), loading (12:9), success (12:15)' } ],
+        question: 'How do we close the gap?', options: [ { id: 'a', label: 'The designer adds the frame (question sent to the Figma file owner)' }, { id: 'b', label: 'Reuse the generic “Room is full” banner (frame 7:22)' } ] },
+      { id: 'f3', cat: 'GAP', cls: 'st-wait', dim: 'Error handling', sev: 'warning', rule: 'ERR-004 · limit without a behaviour at the limit', title: 'Session time limit ends during a vote', where: 'US-4 · no acceptance criterion for the limit', explanation: 'Free sessions last 30 minutes, but nothing says what happens to a vote that is still open when the time runs out.', evidence: [
+          { src: 'Jira · US-4', quote: 'Free sessions last up to 30 minutes.' },
+          { src: 'Code (tf reconstruction) · rooms/session.ts:58', quote: 'closeRoom() on timer, open rounds are discarded' } ],
+        question: 'What happens to an open vote at the limit?', options: [ { id: 'a', label: 'End the vote and save the result so far' }, { id: 'b', label: 'Let the current round finish, then close' }, { id: 'c', label: 'Warn five minutes before and close on time' } ] },
+      { id: 'f4', cat: 'AMBIGUITY', cls: 'st-hidden', dim: 'Requirements', sev: 'info', rule: 'TERM-001 · term not in the glossary', title: '“guest” is used but not defined', where: 'US-3/AC-2 · answer found in Confluence', draft: true, explanation: 'The story limits guests separately, but the requirements never say who a guest is. The glossary page answers it.', evidence: [
+          { src: 'Jira · US-3/AC-2', quote: 'Guests count towards the room limit.' },
+          { src: 'Confluence · Glossary', quote: 'Guest — a participant who joins with a link and has no account.' } ],
+        question: 'Close the question with the quoted answer?', options: [ { id: 'a', label: 'Accept the quoted answer' }, { id: 'b', label: 'Edit the answer before accepting' } ] },
+      { id: 'f5', cat: 'MISSING_COVERAGE', cls: 'st-wait', dim: 'Requirements', sev: 'warning', rule: 'TEST-001 · criterion without a test', title: 'US-3/AC-3 has no test', where: 'JUnit results · CHG-8', explanation: 'Other criteria of the story have tests, so this one is probably missed rather than not started.', evidence: [
+          { src: 'JUnit · web/test/rooms.spec.ts', quote: 'US-3/AC-1 ✓ ✓ · US-3/AC-2 ✗ · US-3/AC-3 —' } ],
+        question: 'What do we do with AC-3?', options: [ { id: 'a', label: 'Add the test in the next slice (TSK-40)' }, { id: 'b', label: 'Cover it by the e2e suite instead' } ] },
+    ];
+    const sel = this.state.sel;
+    const ch = this.state.choice;
+    const rec = this.state.recorded;
+    const pick = (id) => () => this.setState({ sel: id });
+    const choose = (val) => () => this.setState({ choice: Object.assign({}, ch, { [sel]: val }) });
+    const optStyle = (on) => on ? 'border: 2px solid #2846B5; background: #E6ECFB; font-weight: 600;' : 'border: 1px solid #C9D1DC; background: #FFFFFF;';
+    const findings = F.map((f) => ({
+      cat: f.cat, cls: f.cls, dim: f.dim, sev: f.sev, title: f.title, where: f.where,
+      pressed: f.id === sel ? 'true' : 'false', pick: pick(f.id),
+      cardStyle: f.id === sel ? 'border: 2px solid #2846B5;' : 'border: 1px solid #DDE3EA;',
+      done: !!rec[f.id], doneText: rec[f.id] ? rec[f.id].label : '',
+    }));
+    const f = F.find((x) => x.id === sel);
+    const c = ch[sel];
+    const r = rec[sel];
+    const recordedText = r ? (r.kind === 'risk' ? r.dec + ' recorded: risk accepted, review by 2026-11-30. The finding stays visible under Accepted risks.' : r.kind === 'dismiss' ? r.dec + ' recorded: dismissed with a reason.' : r.dec + ' recorded: “' + r.label + '”. The finding is resolved and readiness is recalculated.') : '';
+    const openCount = F.filter((x) => !rec[x.id]).length;
+    const criticalOpen = F.some((x) => x.sev === 'critical' && !rec[x.id]);
+    return {
+      findings, openCount,
+      readyCls: criticalOpen ? 'st-block' : 'st-wait',
+      readyText: criticalOpen ? 'not ready' : 'needs attention',
+      cur: {
+        cat: f.cat, cls: f.cls, rule: f.rule, title: f.title, explanation: f.explanation, evidence: f.evidence, question: f.question, draft: !!f.draft,
+        options: f.options.map((o) => ({ label: o.label, pick: choose(o.id), pressed: c === o.id ? 'true' : 'false', style: optStyle(c === o.id) })),
+        recorded: !!r, recordedText,
+      },
+      riskPressed: c === 'risk' ? 'true' : 'false', riskStyle: 'flex: 1 1 180px; ' + optStyle(c === 'risk'), pickRisk: choose('risk'),
+      dismissPressed: c === 'dismiss' ? 'true' : 'false', dismissStyle: 'flex: 1 1 180px; ' + optStyle(c === 'dismiss'), pickDismiss: choose('dismiss'),
+      needsReason: c === 'risk' || c === 'dismiss', isRisk: c === 'risk',
+      reasonDefault: c === 'risk' ? 'Ship with the limit from the code; sales confirms the pricing page this week.' : 'Not relevant for this change.',
+      record: () => {
+        if (!c) return;
+        const n = 142 + Object.keys(rec).length;
+        const opt = f.options.find((o) => o.id === c);
+        const label = c === 'risk' ? 'risk accepted' : c === 'dismiss' ? 'dismissed' : 'resolved';
+        this.setState({ recorded: Object.assign({}, rec, { [sel]: { kind: c === 'risk' || c === 'dismiss' ? c : 'resolve', dec: 'DEC-0' + n, label: opt ? opt.label : label } }) });
+      },
+      states: ['idle', 'loading', 'success', 'validation_error', 'permission_denied', 'timeout', 'network_failure'],
+      journeys: [
+        { name: 'Create a room (free plan)', req: 'US-3', cells: this.cells(['f', 'f', 'f', 'f', 'n', 'n', 'f']) },
+        { name: 'Join a room', req: 'US-3/AC-2', cells: this.cells(['f', 'f', 'f', 'n', 'n', 'm', 'f']) },
+        { name: 'Join a full room', req: 'US-3/AC-1', cells: this.cells(['f', 'f', 'n', 'n', 'm', 'n', 'n']) },
+        { name: 'Session time runs out', req: 'US-4', cells: this.cells(['f', 'n', 'm', 'n', 'n', 'm', 'n']) },
+      ],
+      acs: [
+        { key: 'US-3/AC-1', state: 'passed', cls: 'st-live', text: 'The 11th person sees “This room is full”.', tests: 'rooms.spec.ts › US-3/AC-1 full room ✓ · api › limits ✓' },
+        { key: 'US-3/AC-2', state: 'failed', cls: 'st-block', text: 'Guests count towards the limit.', tests: 'rooms.spec.ts › US-3/AC-2 guest counted ✗ expected 10, got 9' },
+        { key: 'US-3/AC-3', state: 'untested', cls: 'st-hidden', text: 'The facilitator can raise the limit on a paid plan.', tests: 'no test names this criterion' },
+      ],
+    };
+  }
+  cells(codes) {
+    return codes.map((k, i) => k === 'f'
+      ? { text: 'frame', style: 'display: inline-block; font-family: IBM Plex Mono, monospace; font-size: 11px; padding: 2px 6px; border-radius: 999px; background: #DDF2E5; color: #17663A;' }
+      : k === 'm'
+        ? { text: 'missing', style: 'display: inline-block; font-family: IBM Plex Mono, monospace; font-size: 11px; padding: 2px 6px; border-radius: 999px; background: #FCE6E3; color: #A1271D; font-weight: 600;' }
+        : { text: 'n/a', style: 'display: inline-block; font-family: IBM Plex Mono, monospace; font-size: 11px; color: #5B6878;' });
+  }
+}
+</script>
+</body>
+</html>
