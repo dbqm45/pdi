@@ -397,7 +397,7 @@ flow są zrobione; F6 częściowo.
 | G1.3 zakładka „Plan wydania” | ShipScope | zrobione (tryb Jira i repo) | #106, #108 | migracje 036 i 038 zamiast 032–033 z planu (numeracja ShipScope poszła dalej); plan kroku w `design-docs/G1.3-PLAN.pl.md`; tryb repo waliduje `release.yaml` przypiętą kopią schematu z kontraktu i pokazuje błędy spójności |
 | G1.5 bramki i zdarzenia | pdi + ShipScope | zrobione | ShipScope #109, pdi #15–#17 | [plan kroku](plan-g15-pdi.md): skrzynka dla `release.stage_changed` i `feature.released` (#15); maszyna stanów per CHG i bramki z tf i ci_for_sdlc w F4 (#16, #17) |
 | G2.3 propozycje AI | ci_for_sdlc | wstrzymane | #62 | decyzja [D-G23](decyzje.md): rozstrzygnięcie po pilocie |
-| G1.4 reguły REL w repo | ci_for_sdlc | zrobione | #72 | REL-007 (flaga bez etapów, kryterium wyjścia, właściciela albo `remove_by`) i REL-008 (samokontrola planu cięć tf) tylko na zmianach z repo; adnotacje na `release.yaml` i `plan.md` w bramce PR. Rozjazd z tf: szablon `plan.md` zmiany w tf nie ma kolumn „Rodzaj”, „Odblokowuje” i „Wymagania”, więc każdy fundament zapisany przez tf (wynik „(fundament) …”) dostaje ostrzeżenie REL-008 — do poprawy w tf |
+| G1.4 reguły REL w repo | ci_for_sdlc | zrobione | #72 | REL-007 (flaga bez etapów, kryterium wyjścia, właściciela albo `remove_by`) i REL-008 (samokontrola planu cięć tf) tylko na zmianach z repo; adnotacje na `release.yaml` i `plan.md` w bramce PR. Szablon `plan.md` zmiany w tf ma kolumny „Rodzaj”, „Wymagania” i „Odblokowuje”, a `decision_record.py check` robi tę samą samokontrolę co REL-008 przed PR (tf #89) |
 | G2.5 panel w Jirze | nowe repo + ci_for_sdlc | czeka | | tryb SaaS ci_for_sdlc i ShipScope |
 | G2.6 sygnał z estymacji | sprintdeck + ci_for_sdlc | czeka | | pokoje, talia „Risk” (S6) i limity (S3) są w sprintdecku (#4–#11); brakuje importu z Jiry; rola sprintdecka zmieniona decyzją [D-E1](decyzje.md) |
 | G1.6 edytor mapy historyjek | pdi | warunkowo | | po pilocie |
@@ -426,12 +426,10 @@ nie był sprawdzany lokalnie w tej aktualizacji.
 **Następne kroki:**
 1. Przebieg na sobie: jedna zmiana sprintdecka od PRB w pdi do oceny skutku przez wszystkie aplikacje, żeby
    sprawdzić połączenia na prawdziwej zmianie, a nie tylko w testach.
-2. tf: kolumny „Rodzaj”, „Odblokowuje” i „Wymagania” w szablonie `plan.md` zmiany
-   (`modes/mode-pdi/skills/pdi-decisions/templates/plan.md`), zgodne z `plan-ciec.md` i z tym, co czyta REL-008.
-3. Pilot na prawdziwym backlogu według kryteriów z §4.8 i §5.9; jego wynik rozstrzyga D-G23 (G2.3).
-4. A2 z [planu automatyzacji i konsoli](plan-automatyzacja-i-konsola.md) (zamykanie pytań z cytatem w ci_for_sdlc);
+2. Pilot na prawdziwym backlogu według kryteriów z §4.8 i §5.9; jego wynik rozstrzyga D-G23 (G2.3).
+3. A2 z [planu automatyzacji i konsoli](plan-automatyzacja-i-konsola.md) (zamykanie pytań z cytatem w ci_for_sdlc);
    K-1 jest zrobione (serwery MCP w ci_for_sdlc #74 i ShipScope #114).
-5. Naprawić płatności GitHub Actions.
+4. Naprawić płatności GitHub Actions.
 
 ---
 
