@@ -76,6 +76,8 @@ Narzędzia i ograniczenia: `packages/mcp/README.md` w ci_for_sdlc, `adapters/mcp
 - „Które decyzje są gotowe do automatyzacji?” — `autonomy_report`: dla każdego typu decyzji odsetek szkiców AI
   zatwierdzonych bez zmian i rekomendacja poziomu (próg: 95% z ostatnich 30). `propose_autonomy_changes` wkłada
   propozycje do skrzynki; zmiana poziomu to Twoja decyzja (`decide_inbox_item`), zapisana w `autonomy.yaml` rejestru.
+- „Kiedy będzie CHG-12?” — `forecast_change` (cięcia z ShipScope × tempo dostarczonych zmian, z przedziałem
+  i wątpliwościami); „Jak trafne są prognozy?” — `forecast_report`.
 - Plik decyzji: `$PDI_REGISTRY_PATH/decisions/<projekt>/DEC-nnnn.md` (frontmatter YAML + czytelna treść);
   projekt = nazwa repo, w którym pracujesz; decyzje ogólne w `decisions/_ogolne/`. Numery są wspólne dla wszystkich
   projektów.

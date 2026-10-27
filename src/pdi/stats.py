@@ -6,7 +6,8 @@ from collections import Counter
 from datetime import datetime
 from typing import Any
 
-from pdi import autonomy
+from pdi import autonomy, forecast
+from pdi.changes import ChangeStore
 from pdi.registry import GENERAL_PROJECT_DIR, Registry
 
 
@@ -26,6 +27,7 @@ def summarize(registry: Registry) -> dict[str, Any]:
         "with_load_bearing_assumptions": sum(
             1 for d in decisions if any(a["load_bearing"] for a in d.get("assumptions", ()))
         ),
+        "forecasts": forecast.calibration(ChangeStore(registry).all(status=None)),
     }
 
 
@@ -40,6 +42,11 @@ def main() -> None:
     print(f"Rodzaje: {s['kinds']}")
     print(f"Projekty: {s['projects']}")
     print(f"Z założeniem nośnym: {s['with_load_bearing_assumptions']}")
+    f = s["forecasts"]
+    print(
+        f"Prognozy (G3): {len(f['changes'])}, z wynikiem {f['count']}, mediana rzeczywiste/prognoza "
+        f"{f['ratio_median']}, w przedziale {f['within_range_share']}"
+    )
     print("Autonomia (szkice AI bez poprawek w oknie):")
     for row in autonomy.report(registry):
         rec = row["recommendation"]

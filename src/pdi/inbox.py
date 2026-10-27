@@ -18,13 +18,13 @@ import hashlib
 import hmac
 import json
 import re
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any, TypeAlias
 
 import yaml
 
-from pdi import autonomy, contract, flow, impact
+from pdi import autonomy, contract, flow, forecast, impact
 from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig, Post, dispatch_phase
 from pdi.notify import NotifyConfig, ReporterNotifyConfig, notify_ci_for_sdlc
@@ -147,6 +147,7 @@ class Inbox:
             state = flow.feature_released(
                 state, payload.get("release"), payload["released_at"], at=at, tasks=payload.get("tasks")
             )
+            state = self._settle(state, self.registry.now().date(), at)
 
         if gate is None:
             # Bez pozycji w skrzynce duplikat rozpoznaje się po ID zapisanym w stanie zmiany.
@@ -496,6 +497,9 @@ class Inbox:
             if gate == flow.BASELINE_GATE:
                 # „Approve for implementation” ustawia baseline historyjek w ci_for_sdlc (F4).
                 state["ci_for_sdlc"] = notify_ci_for_sdlc(self._notify, event, at=at, post=self._notify_post)
+                if outcome == "approved" and self._shipscope.url:
+                    # Baseline planu to chwila prognozy (G3): cięcia z planu × czas przepływu z ShipScope.
+                    state = self._forecast(state, self.registry.now().date(), at)
         elif state is not None:
             state = flow.impact_reviewed(state, decision["id"], at=at, outcome=outcome)
             result["notifications"] = self.problems.impact_reviewed(item["change"], outcome or "", decision["id"])
@@ -517,6 +521,72 @@ class Inbox:
             **result,
             **({"warning": warning} if warning else {}),
         }
+
+    # --- prognoza (G3) ---
+
+    def make_forecast(self, change: str, *, today: date | None = None) -> dict[str, Any]:
+        """Liczy prognozę zmiany od nowa (np. po poprawie planu) i zapisuje ją w stanie zmiany."""
+        at = _iso(self.registry.now())
+        state = self._forecast(self.changes.get(change), today or self.registry.now().date(), at)
+        self.registry.commit([self.changes.save(state)], f"{change}: prognoza")
+        return dict(state["forecast"])
+
+    def settle_forecasts(self, *, today: date | None = None) -> list[dict[str, Any]]:
+        """Przebieg dzienny (`pdi-forecast`): wynik dla dostarczonych zmian, nowa próba nieudanych prognoz."""
+        if not self._shipscope.url:
+            return []
+        day, at = today or self.registry.now().date(), _iso(self.registry.now())
+        changed, touched = [], []
+        for state in self.changes.all(status=None):
+            new = self._settle(state, day, at)
+            if new is state:
+                continue
+            touched.append(self.changes.save(new))
+            changed.append(
+                {
+                    "change": new["change"],
+                    "forecast": new["forecast"]["status"],
+                    "actual": new["forecast"].get("actual"),
+                }
+            )
+        if touched:
+            self.registry.commit(touched, f"prognozy: {', '.join(c['change'] for c in changed)}")
+        return changed
+
+    def _forecast(self, state: flow.State, today: date, at: str) -> flow.State:
+        change = state["change"]
+        tasks, error = forecast.read_tasks(self._shipscope, change, get=self._shipscope_get)
+        history = None
+        if tasks is not None:
+            start = today - timedelta(days=forecast.HISTORY_DAYS - 1)
+            history, error = forecast.read_flow(self._shipscope, start, today, get=self._shipscope_get)
+        made: dict[str, Any]
+        if tasks is None or history is None:
+            made = {"status": "failed", "made_at": at, "error": error}
+        else:
+            made = {"status": "ok", "made_at": at, **forecast.estimate(tasks, history)}
+        return flow.forecast_made(state, made, at=at)
+
+    def _settle(self, state: flow.State, today: date, at: str) -> flow.State:
+        """Stan z wynikiem prognozy, z ponowioną nieudaną prognozą albo ten sam obiekt, gdy nic się nie zmieniło."""
+        made = state.get("forecast")
+        if not self._shipscope.url or not isinstance(made, dict) or "actual" in made:
+            return state
+        if made["status"] != "ok":
+            # Po pierwszym wydaniu prognoza byłaby już częściowo wynikiem — zostaje nieudana; zamkniętej zmiany też nie
+            # prognozuje się od nowa.
+            retry = state["status"] == "open" and not state.get("releases")
+            return self._forecast(state, today, at) if retry else state
+        start = max(date.fromisoformat(made["made_at"][:10]), today - timedelta(days=impact.MAX_WINDOW_DAYS - 1))
+        history, _ = forecast.read_flow(self._shipscope, min(start, today), today, get=self._shipscope_get)
+        delivered = next(
+            (c for c in (history or {}).get("changes", []) if isinstance(c, dict) and c.get("key") == state["change"]),
+            None,
+        )
+        days = (delivered or {}).get("flowDays")
+        if not isinstance(days, int | float) or isinstance(days, bool):
+            return state
+        return flow.forecast_settled(state, forecast.compare(made, float(days)), at=at)
 
     def retry_dispatch(self, change: str) -> dict[str, Any]:
         """Ponawia nieudane albo pominięte uruchomienie fazy i nieudaną wysyłkę decyzji do ci_for_sdlc."""
