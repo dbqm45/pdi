@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/dbqm45/pdi/contract/story.schema.json",
-  "title": "Historyjka (pdi, kontrakt 0.8.0)",
+  "title": "Historyjka (pdi, kontrakt 0.9.0)",
   "description": "Historyjka z identyfikowalnymi kryteriami akceptacji (AC-n). Do eksportu z tf i dla konektora repo ci_for_sdlc. Format AC: gwt (Given/When/Then, PL: Zakładając/Gdy/Wtedy), ears albo free (wolny tekst przed przepisaniem).",
   "type": "object",
   "additionalProperties": false,
