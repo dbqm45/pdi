@@ -1,6 +1,6 @@
 # Jeden flow SDLC — plan aktualizacji pdi, tf, ci_for_sdlc i ShipScope
 
-Data: 2026-10-23 · Status: **F0–F5 zrobione, F6 częściowo** (stan na 2026-10-27 wieczorem, §7 i §8) · Wersja HTML: https://claude.ai/artifact/DoRYpdhzHwjTpGEnBx3UvV
+Data: 2026-10-23 · Status: **F0–F5 zrobione, F6 częściowo** (stan na 2026-10-27 wieczorem, §7 i §8; co zostało: §8 na końcu) · Wersja HTML: https://claude.ai/artifact/DoRYpdhzHwjTpGEnBx3UvV
 
 Jak połączyć cztery projekty w jeden proces od zgłoszenia problemu do informacji, że funkcja jest wydana na PROD
 i czy przyniosła oczekiwany efekt. Co zrobić w każdym repo i w jakiej kolejności. Kontekst rozmowy, z której plan
@@ -242,8 +242,9 @@ Każda faza kończy się czymś, co działa samo, nawet jeśli następna się op
 - **Działa po fazie:** pełna pętla zgłoszenie → wydanie → skutek → nowe zgłoszenie.
 
 ### F6 — Rozszerzenia
-- **tf:** faza designu przez Figma MCP (w planie; decyzja D-F1: agent domyślnie linkuje ramki projektanta), AI review
-  w CI (**zrobione**, tf #86, `REVIEW.md`), evale flow.
+- **tf:** faza designu przez Figma MCP — **zrobione 2026-10-27** poza próbą na prawdziwym pliku (tf #94: szablon
+  `design.md`, `design_check.py` przed bramką `design-review`, procedura Figma MCP w `ux-feature-design`, tryb A —
+  agent linkuje ramki projektanta — domyślny, D-F1); AI review w CI (**zrobione**, tf #86, `REVIEW.md`), evale flow.
 - **Kontrakt:** format `design.md` z tabelą ramek Figmy (wymaganie, ścieżka, stan, ramka) — **zrobione 2026-10-27**
   (kontrakt 0.9.0, pdi #41, [plan](plan-f6-design-md.md); ci_for_sdlc czyta ramki z linków, #87).
 - **ci_for_sdlc:** OpenAPI jako źródło, porównanie ekranów z ramkami Figmy.
@@ -263,6 +264,41 @@ Mapa ekosystemu wskazała luki, których fazy F0–F6 nie pokrywały. Stan na 20
 
 Automatyzacja decyzji (poziomy autonomii, licznik akceptacji, zamykanie pytań z cytatem) idzie według
 [planu automatyzacji i konsoli](plan-automatyzacja-i-konsola.md), §8.
+
+### Co zostało (stan 2026-10-27, 19:30 UTC)
+Fazy F0–F5 są zrobione; zostają rozszerzenia, kroki zależne od innych prac i decyzje właściciela.
+
+**Do zbudowania**
+| Co | Repo | Zależy od |
+|---|---|---|
+| Konta i role w przestrzeniach roboczych (krok 3 `docs/SAAS.md`) | ci_for_sdlc | — (w toku) |
+| Próba fazy designu na prawdziwym pliku Figmy (tryb A, potem B) | tf | konto i plik Figmy (D-F3) |
+| Evale flow (PRB → intent, intent → plan) | tf | — |
+| OpenAPI jako źródło, porównanie ekranów z ramkami Figmy | ci_for_sdlc | — |
+| Instalacja tf w pdi, aktualizacja starszej instalacji w `ci_for_sdlc/.claude` | pdi, ci_for_sdlc | — |
+| Kanały Slack/Teams (A5: decyzje ze spotkań i Slacka) | pdi | — |
+| Lustro Jira ↔ repo (A8) | pdi + konektory | zapis do Jiry etapami (DG3) |
+| Review uproszczone `review.light` (A7) | tf + ci_for_sdlc | lista wrażliwych ścieżek |
+| Konsola pdi: skrzynka i oś zdarzeń, rozmowa, graf śladu w UI (K-2–K-4) | pdi | usługa pdi (DA4) |
+| Flagi według reguły (A4) | ShipScope + tf + pdi | G5 (metryki ochronne) |
+| Prognoza w pokoju sprintdecka (G3 krok 3), sygnał z estymacji (G2.6) | sprintdeck + ci_for_sdlc | MVP sprintdecka (konta, import z Jiry) |
+| Panel w Jirze (G2.5, aplikacja Forge) | nowe repo + ci_for_sdlc | tryb SaaS |
+| Edytor mapy historyjek (G1.6), propozycje AI (G2.3, wstrzymane D-G23) | pdi, ci_for_sdlc | wynik pilota |
+
+**Do sprawdzenia na prawdziwej pracy**
+- Przebieg na sobie: jedna zmiana sprintdecka od PRB do oceny skutku ([scenariusz S5](przebieg-na-sobie-s5.md), status
+  „do wykonania”).
+- Pilot na prawdziwym backlogu ([plan G1/G2](plan-g1-g2.md) §4.8, §5.9); rozstrzyga D-G23.
+- Prognozy G3 zbierają historię od ShipScope 0.2.60; pierwsze liczby po kilku dostarczonych zmianach.
+
+**Do decyzji właściciela**
+- G5 (narzędzie analityki produktu) i G8 (narzędzie incydentów).
+- G6 jedno wejście dla ludzi, G7 miary przepływu, P1 wspólna platforma, P2 Jira czy repo.
+- D4–D7 z §9 (D5 jako DA4: stack usługi pdi), DA3–DA6 z planu automatyzacji, D-F3 (plik Figmy do próby).
+
+**Ręcznie**
+- ci_for_sdlc: nowy wzorzec wizualny `settings.png` (`update_snapshots`); nocny test strony Settings jest czerwony
+  od #77.
 
 ## 9. Decyzje do podjęcia
 

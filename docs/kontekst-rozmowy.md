@@ -17,7 +17,8 @@ zostawiony jako uzasadnienie planu.
 - Stan na 23.10: nic nie było jeszcze zaimplementowane (plan, 7 decyzji, fazy F0–F6). Stan dzisiejszy: niżej.
 
 ## Stan na 2026-10-27
-- **Fazy F0–F5 planu jednego flow są zrobione, F6 częściowo** (AI review w CI, serwery MCP). Pętla zgłoszenie →
+- **Fazy F0–F5 planu jednego flow są zrobione, F6 częściowo** (AI review w CI, serwery MCP, faza designu
+  z tabelą ramek Figmy; kontrakt 0.9.0). Pętla zgłoszenie →
   triaż → intencja → bramki → fazy tf → wydanie → ocena skutku → nowe zgłoszenie działa w kodzie wszystkich
   czterech aplikacji; szczegóły i numery PR-ów w planie, §8.
 - **Luki z mapy ekosystemu:** G1 i G2 zrobione (poza krokami zależnymi od trybu SaaS i sprintdecka; G2.3 wstrzymane,
@@ -105,7 +106,8 @@ zmiany w pdi, o zmianie w repo, pdi indeksuje) — rejestr w `docs/decyzje.md`. 
 1. Przeczytaj „Stan na 2026-10-27” wyżej, [plan jednego flow](plan-jeden-flow-sdlc.md) §8 (fazy i luki),
    [plan G1/G2](plan-g1-g2.md) §10 i [plan automatyzacji](plan-automatyzacja-i-konsola.md) §8 (stan realizacji)
    oraz [`decyzje.md`](decyzje.md).
-2. Następne kroki, od najmniejszej zależności:
+2. Pełna lista tego, co zostało (do zbudowania, do sprawdzenia, do decyzji, ręcznie): plan jednego flow, §8,
+   „Co zostało”. Najbliższe kroki, od najmniejszej zależności:
    - **Przebieg na sobie i pilot:** jedna prawdziwa zmiana przez wszystkie aplikacje
      ([przebieg S5](przebieg-na-sobie-s5.md)), potem pilot na backlogu według planu G1/G2 (§4.8, §5.9); jego wynik
      rozstrzyga D-G23.

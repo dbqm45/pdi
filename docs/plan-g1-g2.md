@@ -411,7 +411,7 @@ Fazy [planu jednego flow](plan-jeden-flow-sdlc.md), od których zależą kroki p
 | F3 pdi MVP | zrobione | pdi #23 (zgłoszenia, duplikaty, przyjęcie przez fazę intent); tf #82 (triaż PRB w stanach pdi), #84 (faza intent z przyjętego PRB); ci_for_sdlc #66 (gotowość do pdi) |
 | F4 orkiestracja | zrobione | pdi #16, #17; tf #79 (fazy bez interakcji); ci_for_sdlc #66 (zatwierdzenie z bramek pdi) |
 | F5 zamknięcie pętli | zrobione | ShipScope #109–#113 (zdarzenia, API usług, release notes z intencji, lead time od intencji i od zgłoszenia); pdi #18–#21, #26 (ocena skutku, graf śladu, `metric.breached`, powiadomienia, data zgłoszenia w nagłówku zmiany); tf #81 (pasma kontrolne) |
-| F6 rozszerzenia | częściowo | zrobione: AI review w CI z `REVIEW.md` (tf #86); brakuje: designu przez Figma MCP, evali przepływu, OpenAPI jako źródła, porównania ekranów z Figmą, Slacka/Teams i lustra w Jirze |
+| F6 rozszerzenia | częściowo | zrobione: AI review w CI z `REVIEW.md` (tf #86), faza designu z tabelą ramek Figmy (kontrakt 0.9.0, pdi #41; tf #94; ci_for_sdlc #87), serwery MCP (K-1); brakuje: próby na prawdziwym pliku Figmy, evali przepływu, OpenAPI jako źródła, porównania ekranów z Figmą, Slacka/Teams i lustra w Jirze |
 
 Decyzje DG1–DG7 z §2 są wpisane do [`decyzje.md`](decyzje.md) jako przyjęte 2026-10-25. DG1, DG2, DG4, DG5 i DG6
 są zastosowane w kodzie; DG3 i DG7 dotyczą kroków jeszcze niezrealizowanych (G2.3, G2.5).
