@@ -20,6 +20,7 @@ SCHEMA_NAMES = (
     "release_plan",
     "autonomy",
     "triage_recommendation",
+    "reconstruction",
 )
 # Schematy plików zestawu wzorcowego kształtu historyjki (dla testów tf i ci_for_sdlc, nie dla wymiany danych).
 FIXTURE_SCHEMAS = {

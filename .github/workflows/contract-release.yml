@@ -1,0 +1,39 @@
+# Wydanie kontraktu: po wejściu zmiany contract/ na main zakłada tag contract-v<wersja z contract/contract.json>.
+# Tag jest niezmienny: jeśli istnieje, a pliki contract/ (poza README) się zmieniły, workflow kończy się błędem (trzeba podnieść wersję).
+name: contract-release
+on:
+  push:
+    branches: [main]
+    paths: ["contract/**"]
+
+permissions: {}
+
+concurrency:
+  group: contract-release
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Tag contract-v<wersja>
+        run: |
+          version=$(python3 -c 'import json; print(json.load(open("contract/contract.json"))["version"])')
+          tag="contract-v${version}"
+          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            if git diff --quiet "${tag}" HEAD -- contract/ ':!contract/README.md'; then
+              echo "${tag} już istnieje i pliki kontraktu są te same (zmiana tylko w README)"
+              exit 0
+            fi
+            echo "::error::${tag} już istnieje, a contract/ się zmienił — podnieś wersję w contract/contract.json"
+            exit 1
+          fi
+          git tag "${tag}" HEAD
+          git push origin "refs/tags/${tag}"
+          echo "założono ${tag}"
