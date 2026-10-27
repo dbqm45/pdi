@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Problems — reports and triage</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0;background:#F4F6F9}
+a{color:#2846B5}a:hover{color:#1B3285}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.st-run{background:#E6ECFB;color:#22409F}
+.st-wait{background:#FFF0D2;color:#7A4700}
+.st-block{background:#FCE6E3;color:#A1271D}
+.st-live{background:#DDF2E5;color:#17663A}
+.st-hidden{background:#ECEFF3;color:#3F4B5B}
+.btn{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:13px;font-weight:500;border-radius:8px;padding:8px 12px;min-height:36px;cursor:pointer;border:1px solid #C9D1DC;background:#FFFFFF;color:#15202B}
+.btn-primary{background:#2846B5;border-color:#2846B5;color:#FFFFFF}
+.field{font-family:inherit;font-size:14px;padding:9px 11px;border:1px solid #C9D1DC;border-radius:8px;background:#FFFFFF;color:#15202B;min-height:40px;box-sizing:border-box;width:100%}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1000px; box-sizing: border-box; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #15202B; background: #F4F6F9; display: flex; flex-wrap: wrap; align-items: stretch">
+
+  <div style="flex: 1 1 240px; max-width: 248px; min-width: 200px; background: #FFFFFF; border-right: 1px solid #DDE3EA">
+    <dc-import name="Nawigacja" active="problems" hint-size="248px,900px"></dc-import>
+  </div>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+    <header style="display: flex; flex-direction: column; gap: 2px; padding: 14px 28px; background: #FFFFFF; border-bottom: 1px solid #DDE3EA">
+      <h1 style="margin: 0; font-size: 20px; font-weight: 600">Problems</h1>
+      <span style="font-size: 13px; color: #445163">Describe the problem, not the solution. Only an accepted intent reaches the repo; a rejection always comes with a reason.</span>
+    </header>
+
+    <div style="padding: 20px 28px; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+
+      <section aria-labelledby="h-new" style="flex: 2 1 420px; min-width: 0; background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px">
+        <h2 id="h-new" style="margin: 0; font-size: 16px; font-weight: 600">Report a problem</h2>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="who" style="font-size: 13px; font-weight: 500">Who has the problem</label>
+          <input id="who" class="field" type="text" value="A facilitator of an estimation session">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="what" style="font-size: 13px; font-weight: 500">What they cannot do</label>
+          <textarea id="what" class="field" rows="3" style="resize: vertical">Cannot go back to last week's voting result to show the team where a decision came from.</textarea>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="impact" style="font-size: 13px; font-weight: 500">What it leads to</label>
+          <textarea id="impact" class="field" rows="2" style="resize: vertical">The same discussions repeat in later meetings.</textarea>
+        </div>
+
+        <div style="background: #E6ECFB; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px">
+          <span style="font-size: 13px; font-weight: 600; color: #1B3285">Claude asks before the report goes to triage</span>
+          <sc-for list="{{questions}}" as="q" hint-placeholder-count="3">
+            <span style="font-size: 13px; color: #15202B">{{q.n}}. {{q.text}}</span>
+          </sc-for>
+          <span style="font-size: 12px; color: #39465A">Similar report: <a href="#prb-9">PRB-9 “No record of why we voted that way”</a> → CHG-7 in build. A duplicate?</span>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 8px">
+          <button class="btn btn-primary" type="button" onClick="{{submit}}">Send report</button>
+          <button class="btn" type="button">Join PRB-9</button>
+        </div>
+        <sc-if value="{{sent}}" hint-placeholder-val="{{false}}">
+          <p role="status" style="margin: 0; font-size: 13px; color: #17663A; font-weight: 500">Saved as PRB-15. You will be notified after triage and after the release.</p>
+        </sc-if>
+      </section>
+
+      <section aria-labelledby="h-list" style="flex: 3 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+        <h2 id="h-list" style="margin: 0; font-size: 16px; font-weight: 600">Reports</h2>
+        <sc-for list="{{problems}}" as="p" hint-placeholder-count="5">
+          <article style="background: #FFFFFF; border: 1px solid #DDE3EA; border-radius: 10px; padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center">
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5B6878; width: 56px">{{p.key}}</span>
+            <div style="flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+              <span style="font-weight: 600; font-size: 14px">{{p.title}}</span>
+              <span style="font-size: 12px; color: #445163">{{p.meta}}</span>
+            </div>
+            <span class="chip {{p.cls}}">{{p.state}}</span>
+            <span style="font-size: 12px; color: #445163; width: 170px">{{p.next}}</span>
+          </article>
+        </sc-for>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { sent: false }; }
+  renderVals() {
+    return {
+      sent: this.state.sent,
+      submit: () => this.setState({ sent: true }),
+      questions: [
+        { n: 1, text: 'How often do you go back to older sessions — weekly, at retros, during disputes?' },
+        { n: 2, text: 'What do you need from that session: the votes, the comments or only the decision?' },
+        { n: 3, text: 'Who else should see it — only the team, or also a PO outside the room?' },
+      ],
+      problems: [
+        { key: 'PRB-14', title: 'Stories copied by hand from Jira before a session', meta: 'reported by Anna · 4 similar reports', state: 'accepted → CHG-9', cls: 'st-run', next: 'waiting for B3' },
+        { key: 'PRB-13', title: 'Voting on a phone cuts off the cards', meta: 'form · 1 report', state: 'clarifying', cls: 'st-wait', next: 'questions sent to the reporter' },
+        { key: 'PRB-12', title: 'Export results to CSV', meta: 'Slack · 2 reports', state: 'parked', cls: 'st-hidden', next: 'returns at 3 new reports' },
+        { key: 'PRB-11', title: 'Free rooms overload realtime', meta: 'tf control band · metric.breached', state: 'accepted → CHG-8', cls: 'st-run', next: 'blocked: 2 questions' },
+        { key: 'PRB-10', title: 'Dark theme in the room', meta: 'form · 1 report', state: 'rejected', cls: 'st-block', next: 'reason: outside the MVP scope' },
+        { key: 'PRB-6', title: 'Larger teams do not fit in a room', meta: 'reported by Marek · 5 reports', state: 'released', cls: 'st-live', next: 'CHG-5 · outcome review: met?' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

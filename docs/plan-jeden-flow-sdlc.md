@@ -293,7 +293,8 @@ Fazy F0–F5 są zrobione; zostają rozszerzenia, kroki zależne od innych prac 
 
 **Do decyzji właściciela**
 - G5 (narzędzie analityki produktu) i G8 (narzędzie incydentów).
-- G6 jedno wejście dla ludzi, G7 miary przepływu, P1 wspólna platforma, P2 Jira czy repo.
+- G6 jedno wejście dla ludzi, G7 miary przepływu, P1 wspólna platforma, P2 Jira czy repo. Propozycja do G6 i P1:
+  [jedna platforma](15-jedna-platforma.md) z makietą w `design/platforma/`.
 - D4–D7 z §9 (D5 jako DA4: stack usługi pdi), DA3–DA6 z planu automatyzacji, D-F3 (plik Figmy do próby).
 
 **Ręcznie**
