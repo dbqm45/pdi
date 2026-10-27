@@ -14,7 +14,7 @@ from typing_extensions import TypedDict  # pydantic na 3.11 wymaga TypedDict z t
 from pdi import autonomy
 from pdi.changes import ChangeNotFound
 from pdi.dispatch import DispatchConfig
-from pdi.impact import ShipScopeConfig
+from pdi.impact import ShipScopeConfig, read_connection
 from pdi.inbox import Inbox, ItemClosed, ItemNotFound
 from pdi.notify import NotifyConfig, ReporterNotifyConfig
 from pdi.problems import InvalidProblem, ProblemNotFound, ProblemStore
@@ -355,6 +355,17 @@ def build_server(
             return trace(open_registry(), change, shipscope=ShipScopeConfig.from_env(), live=live)
         except ChangeNotFound as e:
             raise ToolError(str(e)) from e
+
+    @server.tool(annotations=_READ)
+    def get_shipscope_connection() -> dict[str, Any]:
+        """Połączenie z ShipScope: nazwa workspace'u i stan połączenia z pdi (none, pending, connected, degraded,
+        disconnected), jak widzi je ShipScope (PDI_SHIPSCOPE_URL, PDI_SHIPSCOPE_TOKEN). Odczyt potwierdza ShipScope, że
+        pdi go czyta."""
+        value, error = read_connection(ShipScopeConfig.from_env())
+        if error:
+            raise ToolError(error)
+        assert value is not None  # noqa: S101 — bez błędu jest wartość
+        return value
 
     @server.tool(annotations=_WRITE)
     def record_problem(
