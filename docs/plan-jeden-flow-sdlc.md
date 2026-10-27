@@ -225,7 +225,9 @@ Każda faza kończy się czymś, co działa samo, nawet jeśli następna się op
 ### F4 — Orkiestracja
 - **tf:** uruchamianie person bez interakcji, szablon workflow fazy z budżetem — **zrobione 2026-10-26** (tf #79, `phase_run.py` i `sdlc-phase.yml` w `mode-pdi`).
 - **pdi:** maszyna stanów per CHG, skrzynka bramek — **zrobione 2026-10-26** (pdi #16, [plan](plan-f4-pdi.md); w Pythonie, na skrzynce z G1.5).
-- **ci_for_sdlc:** pytania i zatwierdzenia przez pdi, decyzje z ID z pdi — **zrobione 2026-10-26** (ci_for_sdlc #66: gotowość zmiany z historyjek `change:CHG-n` do pdi, zatwierdzenie po `gate.decided`; pdi: wysyłka `gate.decided` do ci_for_sdlc).
+- **ci_for_sdlc:** pytania i zatwierdzenia przez pdi, decyzje z ID z pdi — **zrobione 2026-10-26** (ci_for_sdlc #66: gotowość zmiany z historyjek `change:CHG-n` do pdi, zatwierdzenie po `gate.decided`; pdi: wysyłka `gate.decided` do ci_for_sdlc). Prośba o zatwierdzenie zmiany niegotowej
+  jako `gate.requested` z blokadami historyjek w `questions` (przycisk w ci_for_sdlc; gotowa zmiana idzie dalej przez
+  `readiness.changed`) — **zrobione 2026-10-27** (ci_for_sdlc #84).
 - **Działa po fazie:** człowiek klika tylko na bramkach; kolejne fazy startują same.
 
 ### F5 — Zamknięcie pętli

@@ -65,7 +65,9 @@ tę samą bramkę zamyka starszą otwartą pozycję jako `superseded`.
 - **tf:** `tf run <persona> --change CHG-n --phase …` i `core/workflows/sdlc-phase.yml` z wejściami jak wyżej;
   wysyłanie `gate.requested` na `/events/tf`; zapis decyzji z `gate.decided` do `changes/CHG-n/decisions.md` (D2/R1).
 - **ci_for_sdlc:** wysyłanie `readiness.changed` i `gate.requested` na `/events/ci_for_sdlc`, `/api/decisions`
-  z ID z pdi, `POST /api/items/:key/approve` wywoływane po `gate.decided`.
+  z ID z pdi, `POST /api/items/:key/approve` wywoływane po `gate.decided`. **Zrobione:** `readiness.changed`
+  i zatwierdzenie po `gate.decided` (ci_for_sdlc #66), `gate.requested` dla zmiany niegotowej, wysyłane ręcznie
+  przyciskiem (ci_for_sdlc #84, 2026-10-27).
 - **pdi:** polityka uwagi (dokument 05: poziomy 0–3, budżet, deduplikacja sygnałów), usługa z DA4, konsola.
 
 ## Testy (najpierw czerwone)
