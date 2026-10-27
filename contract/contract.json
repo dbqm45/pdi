@@ -1,5 +1,5 @@
 {
-  "version": "0.6.0",
+  "version": "0.7.0",
   "key_pattern": "^[A-Z][A-Z0-9]+-[0-9]+$",
   "prefixes": {
     "problem": "PRB",

@@ -6,8 +6,10 @@ Co trafia do skrzynki: `gate.requested` z tf i ci_for_sdlc, `readiness.changed: 
 (`pdi.impact`). Każde zdarzenie aktualizuje też stan zmiany (`pdi.changes`, reguły w `pdi.flow`). Decyzja na bramce
 zapisuje się w rejestrze, przesuwa stan, zostawia `gate.decided` w `outbox/` i uruchamia następną fazę tf
 (`pdi.dispatch`). Propozycje zmiany poziomu autonomii (A3, `pdi.autonomy`) też są pozycjami skrzynki; zatwierdzenie
-zmienia politykę `autonomy.yaml`. Plany: docs/plan-g15-pdi.md, docs/plan-f4-pdi.md, docs/plan-f5-ocena-skutku.md,
-docs/plan-a3-licznik-akceptacji.md.
+zmienia politykę `autonomy.yaml`. `decision.recorded` z ci_for_sdlc (A2b, kontrakt 0.7.0) nie tworzy pozycji: to
+decyzja już podjęta u nadawcy, więc trafia wprost do rejestru (licznik akceptacji z A3 ją liczy). Plany:
+docs/plan-g15-pdi.md, docs/plan-f4-pdi.md, docs/plan-f5-ocena-skutku.md, docs/plan-a3-licznik-akceptacji.md,
+docs/plan-a2b-pdi.md.
 """
 
 from __future__ import annotations
@@ -27,7 +29,7 @@ from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig, Post, dispatch_phase
 from pdi.notify import NotifyConfig, ReporterNotifyConfig, notify_ci_for_sdlc
 from pdi.problems import ProblemStore
-from pdi.registry import Decision, DecisionNotFound, InvalidDecision, Registry
+from pdi.registry import CannotSupersede, Decision, DecisionNotFound, InvalidDecision, Registry
 
 Item: TypeAlias = dict[str, Any]
 
@@ -35,8 +37,10 @@ Item: TypeAlias = dict[str, Any]
 ACCEPTED = {
     "shipscope": ("release.stage_changed", "feature.released"),
     "tf": ("gate.requested", "metric.breached"),
-    "ci_for_sdlc": ("gate.requested", "readiness.changed"),
+    "ci_for_sdlc": ("gate.requested", "readiness.changed", "decision.recorded"),
 }
+# Typy decyzji, które nadawca zapisuje w rejestrze zdarzeniem `decision.recorded` (decyzja D-A2).
+RECORDABLE = {"ci_for_sdlc": ("finding.auto_close",)}
 GATE_OUTCOMES = flow.OUTCOMES
 IMPACT_OUTCOMES = impact.OUTCOMES
 PROBLEM_OUTCOMES = ("accepted", "rejected")
@@ -126,6 +130,8 @@ class Inbox:
         """Przyjmuje zdarzenie: `created` (nowa pozycja), `duplicate`, `scheduled` (zaplanowana ocena skutku MVP)
         albo `recorded` (tylko stan zmiany)."""
         _check_event(event)
+        if event["type"] == "decision.recorded":
+            return self._record_decision(event)
         payload = event["payload"]
         if self._known(event["id"]):
             return {"status": "duplicate", "item": self.get(event["id"])}
@@ -189,6 +195,73 @@ class Inbox:
         touched += [self._path(item["id"]), self.changes.save(state)]
         warning = self.registry.commit(touched, f"inbox {item['id']}: {item['summary']}")
         return {"status": "created", "item": item, **({"warning": warning} if warning else {})}
+
+    def _record_decision(self, event: dict[str, Any]) -> dict[str, Any]:
+        """Decyzja podjęta u nadawcy → rejestr: `recorded` albo `duplicate` (to samo zdarzenie) z numerem `DEC`."""
+        p, sender = event["payload"], event["source"]
+        decision_type, ref = p["decision_type"], p["ref"]
+        allowed = RECORDABLE.get(sender, ())
+        if decision_type not in allowed:
+            raise InvalidEvent(
+                f"decision_type: {sender} nie zapisuje decyzji typu {decision_type} (może: {', '.join(allowed)})."
+            )
+        if "automation" in p and decision_type in contract.settings()["autonomy"]["protected_types"]:
+            raise InvalidEvent(f"{decision_type} to typ chroniony (DA2): decyduje człowiek, bez automation.")
+        seen = self.registry.find(tags=[f"event:{event['id']}"], limit=1)
+        if seen:
+            return {"status": "duplicate", "item": None, "decision": seen[0]["id"]}
+
+        tags = [sender, f"ref:{ref}", f"event:{event['id']}", f"typ:{decision_type}"]
+        warnings = []
+        if "automation" in p:
+            policy_level = autonomy.level_of(self.registry, decision_type)
+            if p["automation"]["level"] < policy_level:
+                tags.append("autonomy:outside-policy")
+                warnings.append(
+                    f"{decision_type}: automat na poziomie {p['automation']['level']}, a polityka pdi ma poziom "
+                    f"{policy_level} — zapisane ze znacznikiem autonomy:outside-policy."
+                )
+        draft: Decision = {
+            "statement": p["statement"],
+            "why": p.get("why") or f"Decyzja z {sender} ({decision_type}) dla {ref}.",
+            "decided_by": p["decided_by"],
+            "decided_at": event["occurred_at"][:10],
+            "kind": p.get("kind", "other"),
+            "decision_type": decision_type,
+            "drafted_by": p["drafted_by"],
+            "source": {"kind": sender, "url": p.get("url") or ref, "excerpt": ref},
+            "tags": tags,
+        }
+        for key in ("draft_edited", "automation"):
+            if key in p:
+                draft[key] = p[key]
+        if p.get("evidence"):
+            draft["evidence"] = [{**e, "epistemic_status": "observation"} for e in p["evidence"]]
+        links = {k: p[f] for k, f in (("chg", "change"), ("prb", "problem")) if f in p}
+        if links:
+            draft["links"] = links
+        try:
+            if "supersedes" in p:
+                self._check_superseded(p["supersedes"], sender, ref)
+                decision = self.registry.supersede(p["supersedes"], draft)
+            else:
+                decision = self.registry.record(draft)
+        except (InvalidDecision, CannotSupersede) as e:
+            raise InvalidEvent(str(e)) from e
+        if decision.get("warning"):
+            warnings.append(decision["warning"])
+        status = "duplicate" if decision.get("duplicate") else "recorded"
+        result: dict[str, Any] = {"status": status, "item": None, "decision": decision["id"]}
+        return {**result, "warning": " ".join(warnings)} if warnings else result
+
+    def _check_superseded(self, old_id: str, sender: str, ref: str) -> None:
+        """Nadawca zastępuje tylko własną decyzję o tym samym `ref` (np. ponowne otwarcie pytania)."""
+        try:
+            old = self.registry.get(old_id)
+        except DecisionNotFound as e:
+            raise InvalidEvent(f"supersedes: nie ma decyzji {old_id}.") from e
+        if old["source"].get("kind") != sender or f"ref:{ref}" not in old.get("tags", ()):
+            raise InvalidEvent(f"supersedes: {old_id} nie jest decyzją {sender} dla {ref}.")
 
     def _plan_review(self, change: str, released_at: str) -> dict[str, Any]:
         intent = impact.intent_decision(self.registry, change)

@@ -49,6 +49,12 @@ def load_policy(registry: Registry) -> dict[str, Any]:
     return data
 
 
+def level_of(registry: Registry, decision_type: str) -> int:
+    """Poziom typu w polityce organizacji (brak wpisu = poziom domyślny z kontraktu)."""
+    entry = _entry(load_policy(registry), decision_type)
+    return int(entry.get("level", _settings()["default_level"]))
+
+
 def _entry(policy: dict[str, Any], decision_type: str) -> dict[str, Any]:
     entry: dict[str, Any] = next((e for e in policy["policy"] if e["decision_type"] == decision_type), {})
     return entry

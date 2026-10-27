@@ -15,6 +15,7 @@ from tests.test_inbox import SECRET, gate_event, metric_event, readiness_event, 
 
 TF_SECRET = "sekret-tf"  # noqa: S105 — sekret testowy
 FORM_TOKEN = "tok-formularza"  # noqa: S105 — token testowy
+CI_SECRET = "s-ci"  # noqa: S105 — sekret testowy
 
 NOW = datetime(2026, 10, 23, 9, 30, tzinfo=UTC)
 TS = str(int(NOW.timestamp()))
@@ -337,3 +338,23 @@ def test_main_watches_shipscope_when_configured(monkeypatch: pytest.MonkeyPatch,
     with pytest.raises(Stop):
         main()
     assert [c.url for c in watched] == ["https://shipscope.example.com"]
+
+
+def test_ci_for_sdlc_decision_is_recorded_and_answered_with_its_number(registry: Registry) -> None:
+    from tests.test_decision_recorded import recorded_event
+
+    srv = make_server(Inbox(registry), {"ci_for_sdlc": CI_SECRET}, port=0, clock=lambda: NOW)
+    thread = threading.Thread(target=srv.serve_forever, daemon=True)
+    thread.start()
+    try:
+        body = encode(recorded_event())
+        args: dict[str, Any] = {"path": "/events/ci_for_sdlc", "event": "decision.recorded", "prefix": "x-pdi"}
+        status, answer = post(srv, body, secret=CI_SECRET, **args)
+        again, again_answer = post(srv, body, secret=CI_SECRET, **args)
+    finally:
+        srv.shutdown()
+        srv.server_close()
+
+    assert (status, answer["status"], answer["item"]) == (200, "recorded", None)
+    assert registry.get(answer["decision"])["decision_type"] == "finding.auto_close"
+    assert (again, again_answer["status"], again_answer["decision"]) == (200, "duplicate", answer["decision"])

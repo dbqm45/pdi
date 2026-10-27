@@ -141,7 +141,7 @@ Stan na 2026-10-26, sprawdzony na gałęziach `main` wszystkich repozytoriów.
 |---|---|---|---|
 | A0 kontrakt 0.5.0 | zrobione | pdi #24 | [plan A0](plan-a0-kontrakt-050.md) |
 | A1 orkiestrator i skrzynka (F4) | zrobione | pdi #15–#17; tf #79; ci_for_sdlc #66 | maszyna stanów per CHG, fazy tf bez interakcji, zatwierdzenie w ci_for_sdlc z bramek pdi |
-| A2 zamykanie pytań z cytatem | do zrobienia | | ci_for_sdlc |
+| A2 zamykanie pytań z cytatem | w toku | pdi (A2b: kontrakt 0.7.0, odbiór `decision.recorded`) | decyzja D-A2: zatwierdzenie w ci_for_sdlc, gotowa decyzja do rejestru pdi; do zrobienia w ci_for_sdlc: A2a i wysyłka ([polecenia startowe](polecenia-startowe-a2.md)) |
 | A3 licznik akceptacji szkiców | zrobione | pdi #27 | [plan A3](plan-a3-licznik-akceptacji.md) |
 | A4 flagi według reguły | do zrobienia | | potrzebuje źródła metryk ochronnych (luka G5); do tego czasu `flag.stage_advance` zostaje na poziomie 3 |
 | A5 decyzje ze spotkań i Slacka | do zrobienia | | |

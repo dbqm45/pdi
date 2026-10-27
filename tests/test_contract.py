@@ -21,6 +21,7 @@ EVENT_TYPES = [
     "decision.auto_applied",
     "decision.vetoed",
     "run.progress",
+    "decision.recorded",
 ]
 
 
@@ -44,7 +45,7 @@ def test_schema_is_valid_json_schema_2020_12(name: str) -> None:
 def test_settings_define_version_key_pattern_and_default_prefixes() -> None:
     settings = contract.settings()
 
-    assert settings["version"] == contract.CONTRACT_VERSION == "0.6.0"
+    assert settings["version"] == contract.CONTRACT_VERSION == "0.7.0"
     assert settings["prefixes"] == {"problem": "PRB", "change": "CHG", "task": "TSK", "decision": "DEC"}
     assert settings["key_pattern"] == "^[A-Z][A-Z0-9]+-[0-9]+$"
 
@@ -451,7 +452,7 @@ def test_events_from_contract_0_4_0_are_still_valid() -> None:
 
 
 def test_events_from_contract_0_5_0_are_still_valid() -> None:
-    for t in EVENT_TYPES:
+    for t in EVENT_TYPES[:12]:  # typy istniejące w 0.5.0 i 0.6.0
         assert contract.errors("event", {**example(f"event-{t}"), "contract_version": "0.5.0"}) == []
 
 
@@ -559,3 +560,47 @@ def test_tf_state_follows_mapping_table(status: str) -> None:
         patch = {"executor": "human"} if tf_state == "ready-for-human" else {}
         ok = contract.errors("triage_recommendation", recommendation(status, tf_state=tf_state, **patch)) == []
         assert ok == (tf_state in TF_STATE[status]), (status, tf_state)
+
+
+# --- kontrakt 0.7.0: decyzja zapisana w aplikacji nadawcy (A2b, decyzja D-A2) ---
+
+
+def recorded(**payload: Any) -> dict[str, Any]:
+    event = example("event-decision.recorded")
+    return {**event, "payload": {**event["payload"], **payload}}
+
+
+def test_decision_recorded_example_is_a_human_decision_on_an_ai_draft() -> None:
+    p = example("event-decision.recorded")["payload"]
+
+    assert (p["decision_type"], p["drafted_by"], p["draft_edited"]) == ("finding.auto_close", "ai", False)
+    assert "automation" not in p
+
+
+@pytest.mark.parametrize("field", ["decision_type", "ref", "statement", "decided_by", "drafted_by"])
+def test_decision_recorded_requires(field: str) -> None:
+    event = example("event-decision.recorded")
+    payload = {k: v for k, v in event["payload"].items() if k != field}
+
+    assert contract.errors("event", {**event, "payload": payload}) != []
+
+
+def test_decision_recorded_by_automation_has_no_human_edit_flag() -> None:
+    auto = {"level": 1, "rule": "odpowiedź znaleziona w źródle, z cytatem"}
+
+    ok = recorded(automation=auto)
+    del ok["payload"]["draft_edited"]
+    assert contract.errors("event", ok) == []
+    assert contract.errors("event", recorded(automation=auto)) != [], "automation wyklucza draft_edited"
+    assert contract.errors("event", recorded(automation={"level": 2, "rule": "x"})) != [], "poziom 2 wymaga veto_until"
+
+
+def test_decision_recorded_checks_keys_and_evidence() -> None:
+    assert contract.errors("event", recorded(supersedes="dec-1")) != []
+    assert contract.errors("event", recorded(change="CHG-12", problem="PRB-3", supersedes="DEC-4")) == []
+    assert contract.errors("event", recorded(evidence=[{"source_url": "https://x"}])) != [], "cytat bez tekstu"
+    assert contract.errors("event", recorded(unknown=1)) != []
+
+
+def test_decision_source_kind_includes_ci_for_sdlc() -> None:
+    assert "ci_for_sdlc" in enum("decision", "source", "properties", "kind")

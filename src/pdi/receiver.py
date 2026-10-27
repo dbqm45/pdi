@@ -105,10 +105,10 @@ def make_server(
             except InvalidEvent as e:
                 return self._answer(400, {"error": str(e)})
             item = result["item"]
-            self._answer(
-                202 if result["status"] == "created" else 200,
-                {"status": result["status"], "item": item["id"] if item else None},
-            )
+            answer: dict[str, Any] = {"status": result["status"], "item": item["id"] if item else None}
+            if "decision" in result:  # decision.recorded: numer DEC dla nadawcy (A2b)
+                answer["decision"] = result["decision"]
+            self._answer(202 if result["status"] == "created" else 200, answer)
 
         def do_GET(self) -> None:  # noqa: N802
             url = urlsplit(self.path)
