@@ -1,6 +1,6 @@
 # Jeden flow SDLC — plan aktualizacji pdi, tf, ci_for_sdlc i ShipScope
 
-Data: 2026-10-23 · Status: **F0–F5 zrobione, F6 częściowo** (stan na 2026-10-27, §7 i §8) · Wersja HTML: https://claude.ai/artifact/DoRYpdhzHwjTpGEnBx3UvV
+Data: 2026-10-23 · Status: **F0–F5 zrobione, F6 częściowo** (stan na 2026-10-27 wieczorem, §7 i §8) · Wersja HTML: https://claude.ai/artifact/DoRYpdhzHwjTpGEnBx3UvV
 
 Jak połączyć cztery projekty w jeden proces od zgłoszenia problemu do informacji, że funkcja jest wydana na PROD
 i czy przyniosła oczekiwany efekt. Co zrobić w każdym repo i w jakiej kolejności. Kontekst rozmowy, z której plan
@@ -188,7 +188,9 @@ Każda faza kończy się czymś, co działa samo, nawet jeśli następna się op
 
 ### F0 — Kontrakt
 - **pdi:** repo startowe, `contract/`: schematy problem, zmiana, decyzja, zdarzenie; zasady ID; testy walidacji —
-  **zrobione 2026-10-23** (kontrakt 0.3.0, [plan](plan-f0-kontrakt.md)); dziś kontrakt 0.7.0.
+  **zrobione 2026-10-23** (kontrakt 0.3.0, [plan](plan-f0-kontrakt.md)); dziś kontrakt 0.9.0, od 0.8.0 z wydaniami
+  pod niezmiennym tagiem `contract-v<wersja>`, z których tf (#93) i ci_for_sdlc (#85) generują przypięte kopie
+  sprawdzane w CI ([plan](plan-f2-kontrakt-rekonstrukcja-i-wydania.md)).
 - **tf:** dziennik per zmiana, szablony intent/plan — **zrobione** w nakładce `mode-pdi` jako `decision_record.py`
   (`change new`, `check`, `decision add/pending/mark/export/gate`); instalacja tf w ShipScope i pdi — zrobione
   w ShipScope (`docs/project/`), w pdi jeszcze nie.
@@ -231,7 +233,8 @@ Każda faza kończy się czymś, co działa samo, nawet jeśli następna się op
 - **Działa po fazie:** człowiek klika tylko na bramkach; kolejne fazy startują same.
 
 ### F5 — Zamknięcie pętli
-- **ci_for_sdlc:** wiele przestrzeni roboczych w jednej instalacji — **zrobione 2026-10-27 na plikach** (ci_for_sdlc #86, #88: osobne źródła, analiza i decyzje per przestrzeń, trasy `/api/w/:ws/…`, przełącznik w UI, wspólne pdi — gotowość zmiany `CHG-n` z historyjek wszystkich przestrzeni, `gate.decided` zatwierdza w każdej; zmiana nazwy i usuwanie; `workspace` w narzędziach MCP). Postgres oraz konta i role (kroki 2–3 `docs/SAAS.md` w ci_for_sdlc) w toku.
+- **ci_for_sdlc:** wiele przestrzeni roboczych w jednej instalacji — **zrobione 2026-10-27 na plikach** (ci_for_sdlc #86, #88: osobne źródła, analiza i decyzje per przestrzeń, trasy `/api/w/:ws/…`, przełącznik w UI, wspólne pdi — gotowość zmiany `CHG-n` z historyjek wszystkich przestrzeni, `gate.decided` zatwierdza w każdej; zmiana nazwy i usuwanie; `workspace` w narzędziach MCP); stan przestrzeni w Postgresie z `CI_DATABASE_URL` i RLS — **zrobione** (#89). Konta
+  i role (krok 3 `docs/SAAS.md` w ci_for_sdlc) w toku.
 - **ShipScope:** `feature.released`, API usług (**zrobione 2026-10-26**, dbqm45/evdt-service-shipscope#109, #110), release notes z intencji (**zrobione**, #111), lead time od intencji i od zgłoszenia (**zrobione**, #112, #113).
 - **pdi:** powiadomienia (**zrobione 2026-10-26**, [plan](plan-f5-powiadomienia.md): mały rejestr PRB, podpisany webhook do zgłaszającego po triażu, wydaniu i ocenie skutku), ocena skutku decyzji (**zrobione 2026-10-26**, [plan](plan-f5-ocena-skutku.md): termin z intencji po wydaniu R1, dane z API usług ShipScope, szkic wniosku, wynik potwierdza człowiek), graf śladu (**zrobione 2026-10-26**, [plan](plan-f5-graf-sladu.md): `get_trace`, luki pokazane, nie naprawiane).
 - **tf:** pasma kontrolne na metrykach z ShipScope → nowy PRB — **zrobione 2026-10-26** (tf #81 `metric_watch.py`
@@ -239,7 +242,10 @@ Każda faza kończy się czymś, co działa samo, nawet jeśli następna się op
 - **Działa po fazie:** pełna pętla zgłoszenie → wydanie → skutek → nowe zgłoszenie.
 
 ### F6 — Rozszerzenia
-- **tf:** faza designu przez Figma MCP, AI review w CI (**zrobione**, tf #86, `REVIEW.md`), evale flow.
+- **tf:** faza designu przez Figma MCP (w planie; decyzja D-F1: agent domyślnie linkuje ramki projektanta), AI review
+  w CI (**zrobione**, tf #86, `REVIEW.md`), evale flow.
+- **Kontrakt:** format `design.md` z tabelą ramek Figmy (wymaganie, ścieżka, stan, ramka) — **zrobione 2026-10-27**
+  (kontrakt 0.9.0, pdi #41, [plan](plan-f6-design-md.md); ci_for_sdlc czyta ramki z linków, #87).
 - **ci_for_sdlc:** OpenAPI jako źródło, porównanie ekranów z ramkami Figmy.
 - **pdi:** kanały Slack/Teams, lustro w Jirze dla organizacji, które go potrzebują.
 - **Wszystkie:** Claude jako interfejs (K-1, **zrobione**: serwery MCP pdi, ci_for_sdlc #74 i ShipScope #114).
