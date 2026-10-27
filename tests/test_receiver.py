@@ -9,7 +9,7 @@ from typing import Any
 import pytest
 
 from pdi.inbox import Inbox
-from pdi.receiver import MAX_BODY, PATH, main, make_server
+from pdi.receiver import MAX_BODY, PATH, connection_line, main, make_server
 from pdi.registry import Registry
 from tests.test_inbox import SECRET, gate_event, metric_event, readiness_event, released_event, sign, stage_event
 
@@ -133,6 +133,31 @@ def test_get_is_405(server: HTTPServer) -> None:
     conn.close()
 
     assert response.status == 405
+
+
+def ping(
+    server: HTTPServer, *, path: str = PATH, secret: str = SECRET, signature: str | None = None, event: str = "ping"
+) -> int:
+    conn = http.client.HTTPConnection("127.0.0.1", server.server_address[1], timeout=5)
+    headers = {"x-shipscope-timestamp": TS, "x-shipscope-event": event}
+    headers["x-shipscope-signature"] = signature if signature is not None else sign(TS, b"", secret)
+    conn.request("GET", path, headers=headers)
+    response = conn.getresponse()
+    response.read()
+    conn.close()
+    return response.status
+
+
+def test_signed_ping_is_200_and_stores_nothing(server: HTTPServer, registry: Registry) -> None:
+    assert ping(server) == 200
+    assert Inbox(registry).items(None) == []
+
+
+def test_ping_needs_the_senders_secret(server: HTTPServer) -> None:
+    assert ping(server, secret="inny") == 401  # noqa: S106 — sekret testowy
+    assert ping(server, signature="v1=00") == 401
+    assert ping(server, path="/events/ci_for_sdlc") == 404, "path without a configured secret"
+    assert ping(server, event="feature.released") == 405, "GET carries only a ping"
 
 
 def test_main_requires_secret(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> None:
@@ -273,3 +298,42 @@ def test_form_paths_are_404_without_form_token(registry: Registry) -> None:
         srv.server_close()
 
     assert status == 404
+
+
+# --- połączenie z ShipScope: odczyt przy starcie i raz dziennie ---
+
+
+def test_connection_line_says_the_state_or_the_problem() -> None:
+    line = connection_line({"workspace": "Acme", "state": "connected", "receiver_url": "https://pdi.example.com"}, None)
+    assert line == "pdi-receiver: ShipScope: workspace Acme, połączenie z pdi: connected\n"
+    assert "pending" in connection_line({"workspace": "Acme", "state": "pending", "receiver_url": None}, None)
+    assert connection_line(None, "ShipScope odpowiedział 401 na połączenie.") == (
+        "pdi-receiver: ShipScope: ShipScope odpowiedział 401 na połączenie.\n"
+    )
+
+
+def test_main_watches_shipscope_when_configured(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> None:
+    watched: list[Any] = []
+
+    class Stop(Exception):
+        pass
+
+    class Server:
+        def serve_forever(self) -> None:
+            raise Stop
+
+    monkeypatch.setenv("PDI_REGISTRY_PATH", str(tmp_path))
+    monkeypatch.setenv("PDI_SHIPSCOPE_SIGNING_SECRET", SECRET)
+    monkeypatch.setattr("pdi.receiver.make_server", lambda *a, **k: Server())
+    monkeypatch.setattr("pdi.receiver.watch_shipscope", lambda config: watched.append(config))
+
+    monkeypatch.delenv("PDI_SHIPSCOPE_URL", raising=False)
+    with pytest.raises(Stop):
+        main()
+    assert watched == [], "nothing to read without PDI_SHIPSCOPE_URL"
+
+    monkeypatch.setenv("PDI_SHIPSCOPE_URL", "https://shipscope.example.com")
+    monkeypatch.setenv("PDI_SHIPSCOPE_TOKEN", "shps_test")
+    with pytest.raises(Stop):
+        main()
+    assert [c.url for c in watched] == ["https://shipscope.example.com"]

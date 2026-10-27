@@ -28,8 +28,9 @@ tf przez `workflow_dispatch` (po `changes_requested` — poprawki tej samej fazy
 `retry_dispatch` w Claude pokazują i ponawiają.
 
 ```bash
+# PDI_SHIPSCOPE_*: trzy zmienne z ShipScope, Settings → Integrations → pdi
 PDI_REGISTRY_PATH=~/pdi-decisions \
-PDI_SHIPSCOPE_SIGNING_SECRET=<sekret podpisu z ShipScope: Settings → Sources> \
+PDI_SHIPSCOPE_URL=<ShipScope> PDI_SHIPSCOPE_TOKEN=<shps_…> PDI_SHIPSCOPE_SIGNING_SECRET=<sekret> \
 PDI_TF_SIGNING_SECRET=<sekret wspólny z tf> PDI_CI_FOR_SDLC_SIGNING_SECRET=<sekret wspólny z ci_for_sdlc> \
 PDI_DISPATCH_REPO=<właściciel/repo produktu> PDI_GITHUB_TOKEN=<token z prawem actions:write> \
 uv run pdi-receiver        # http://127.0.0.1:8787/events/<shipscope|tf|ci_for_sdlc>
@@ -47,8 +48,14 @@ Decyzja na bramce `approve-for-implementation` trafia też do ci_for_sdlc: podpi
 z numerem decyzji. Nieudana wysyłka zostaje w stanie zmiany (`ci_for_sdlc.status: failed`); `retry_dispatch` ją ponawia.
 
 ShipScope wysyła tylko na publiczny adres `https://`, więc przed odbiornikiem stoi proxy TLS albo tunel (np.
-Cloudflare Tunnel); ten adres z `/events/shipscope` dodaje admin w ShipScope: Settings → General → Outgoing events.
-Odbiornik obsługuje jedno żądanie naraz i przyjmuje najwyżej 64 KB; 2xx kończy ponowienia ShipScope.
+Cloudflare Tunnel). Admin w ShipScope wpisuje ten adres w Settings → Integrations → pdi („Connect”). ShipScope zakłada
+wtedy token usługi, subskrypcję zdarzeń na `<adres>/events/shipscope` z własnym sekretem i raz pokazuje trzy zmienne:
+`PDI_SHIPSCOPE_URL`, `PDI_SHIPSCOPE_TOKEN`, `PDI_SHIPSCOPE_SIGNING_SECRET`. Połączenie jest potwierdzone, gdy obie
+strony się zobaczą: odbiornik czyta przy starcie i raz dziennie `GET /api/service/v1/connection` i wypisuje stan
+(`pdi-receiver: ShipScope: workspace Acme, połączenie z pdi: connected`), a ShipScope co godzinę i z przycisku „Test”
+wysyła podpisany ping `GET /events/shipscope` (nagłówek `X-ShipScope-Event: ping`, podpis nad pustą treścią), na który
+odbiornik odpowiada 200. W Claude stan pokazuje `get_shipscope_connection`. Odbiornik obsługuje jedno żądanie naraz
+i przyjmuje najwyżej 64 KB; 2xx kończy ponowienia ShipScope.
 
 ### Ocena skutku (F5)
 
@@ -64,7 +71,7 @@ ShipScope (`deployments`, `failed_deployments`, `rollbacks` — suma; `lead_time
 
 ```bash
 PDI_REGISTRY_PATH=~/pdi-decisions PDI_SHIPSCOPE_URL=https://<ShipScope> \
-PDI_SHIPSCOPE_TOKEN=<token usługi shps_… z ShipScope: Settings → General → Service tokens> \
+PDI_SHIPSCOPE_TOKEN=<token usługi shps_… z ShipScope: Settings → pdi> \
 uv run pdi-impact-review   # {"opened": [{"id": "impact-CHG-12-R1", "change": "CHG-12", "verdict": "met"}]}
 ```
 

@@ -209,6 +209,36 @@ def read_item(config: ShipScopeConfig, key: str, *, get: Get | None = None) -> t
     return (None, error) if error else (value, None)
 
 
+CONNECTION_STATES = ("none", "pending", "connected", "degraded", "disconnected")
+
+
+def read_connection(config: ShipScopeConfig, *, get: Get | None = None) -> tuple[dict[str, Any] | None, str | None]:
+    """Połączenie z pdi widziane przez ShipScope (`GET /api/service/v1/connection`): `({workspace, state,
+    receiver_url}, None)` albo `(None, błąd bez tokenu)`. Sam odczyt potwierdza ShipScope, że pdi go czyta."""
+    problem = _config_problem(config)
+    if problem:
+        return None, problem
+    assert config.url is not None and config.token is not None  # noqa: S101 — sprawdzone wyżej
+    url = f"{config.url.rstrip('/')}/api/service/v1/connection"
+    value, error = _read_json(get or _get, url, _headers(config.token), "połączenie")
+    if error:
+        return None, error
+    workspace, pdi = value.get("workspace"), value.get("pdi")
+    if not (
+        isinstance(workspace, dict)
+        and isinstance(workspace.get("name"), str)
+        and isinstance(pdi, dict)
+        and pdi.get("state") in CONNECTION_STATES
+    ):
+        return None, "ShipScope zwrócił połączenie w nieznanym kształcie."
+    receiver = pdi.get("receiverUrl")
+    return {
+        "workspace": workspace["name"],
+        "state": pdi["state"],
+        "receiver_url": receiver if isinstance(receiver, str) else None,
+    }, None
+
+
 def _headers(token: str) -> dict[str, str]:
     return {"authorization": f"Bearer {token}", "accept": "application/json"}
 
