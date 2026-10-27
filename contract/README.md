@@ -4,7 +4,8 @@ Schematy i zasady wspólne dla pdi, tf, ci_for_sdlc i ShipScope ([decyzja D1](..
 Wersjonowany wg SemVer 2.0.0 w [`contract.json`](contract.json); zmiana niezgodna wstecz podnosi wersję główną
 (w 0.x — drugą liczbę). Odbiorca zdarzeń przypina wersję przez pole `contract_version`.
 
-Wersja: `0.7.0`. Historia: 0.7.0 — zdarzenie `decision.recorded` (decyzja podjęta w aplikacji nadawcy do zapisu
+Wersja: `0.8.0`. Historia: 0.8.0 — eksport rekonstrukcji z kodu (format tf → ci_for_sdlc, F2) i wydania kontraktu
+jako tagi `contract-v<wersja>`; 0.7.0 — zdarzenie `decision.recorded` (decyzja podjęta w aplikacji nadawcy do zapisu
 w rejestrze pdi, A2b, decyzja D-A2) i `source.kind: ci_for_sdlc` w decyzji; 0.6.0 — rekomendacja triażu zgłoszenia (schemat przeniesiony z tf, F3);
 0.5.0 — poziomy autonomii (polityka, pola decyzji, zdarzenia skrzynki i postępu pracy
 agenta; DA1, DA2), `source_reported_at` w nagłówku zmiany (lead time od zgłoszenia w ShipScope); 0.4.0 — historyjka z kryteriami (G2), plan wydania (G1), nowe pola cięcia,
@@ -23,14 +24,25 @@ agenta; DA1, DA2), `source_reported_at` w nagłówku zmiany (lead time od zgłos
 | [`release-plan.schema.json`](release-plan.schema.json) | plan wydania zmiany: MVP z miarą, linie `R1…Rn` z cięciami, flagi z etapami udostępniania | `changes/CHG-n/release.yaml` | [`examples/release-plan.json`](examples/release-plan.json) |
 | [`autonomy.schema.json`](autonomy.schema.json) | polityka autonomii organizacji: typ decyzji → poziom 0–3, okno weta, warunek, progi obniżenia i podniesienia | konfiguracja organizacji (zmiana polityki to decyzja człowieka) | [`examples/autonomy.json`](examples/autonomy.json) |
 | [`triage-recommendation.schema.json`](triage-recommendation.schema.json) | rekomendacja triażu `PRB`: stan pdi z polami, których wymaga, i stan tf z tabeli mapowania; decyzję podejmuje człowiek w pdi | wyjście triażu tf (`triage_pdi.py recommend`) dla pdi | [`examples/triage-recommendation.json`](examples/triage-recommendation.json) |
+| [`reconstruction.schema.json`](reconstruction.schema.json) | eksport rekonstrukcji z kodu: reguły, wymagania i słownik z dowodami `plik:linia` (format `tf-reconstruction`, wersja 1) | `docs/project/00-reconstruction/reconstruction.json` w repo produktu; pisze tf (`recon_export.py`), czyta ci_for_sdlc (konektor rekonstrukcji) | [`examples/reconstruction.json`](examples/reconstruction.json) |
 | [`fixtures/story-shape/`](fixtures/story-shape/README.md) | zestaw wzorcowy reguł STORY i AC: historyjki, oczekiwane wyniki, wspólne słownictwo | testy tf i ci_for_sdlc | — |
 
 Walidacja w Pythonie: `from pdi import contract; contract.errors("problem", obj)` (pusta lista = poprawny);
 nazwy: `decision`, `problem`, `change`, `task`, `event`, `story`, `release_plan`, `autonomy`,
-`triage_recommendation`.
+`triage_recommendation`, `reconstruction`.
 
-Zgodność wstecz: 0.7.0 dodaje tylko nowy typ zdarzenia i wartość `source.kind`; 0.6.0 dodaje tylko nowy schemat; wszystkie pola dodane w 0.5.0 są opcjonalne, a zdarzenia
+Zgodność wstecz: 0.8.0 dodaje tylko nowy schemat; 0.7.0 dodaje tylko nowy typ zdarzenia i wartość `source.kind`; 0.6.0 dodaje tylko nowy schemat; wszystkie pola dodane w 0.5.0 są opcjonalne, a zdarzenia
 z `contract_version` 0.4.0–0.6.0 dalej przechodzą walidację. Zestaw wzorcowy `fixtures/story-shape/` ma wersję 0.4.0 — tę, w której zmienił się ostatnio.
+
+## Wydania i kopie u konsumentów (od 0.8.0)
+
+- **Jedno źródło:** schematy edytuje się tylko tu. Po wejściu zmiany `contract/` na `main` workflow
+  `contract-release.yml` zakłada tag `contract-v<wersja>` (wersja z `contract.json`). Tag jest niezmienny — nowa treść
+  wymaga nowej wersji.
+- **Konsumenci** (tf, ci_for_sdlc) trzymają kopie potrzebnych plików przypięte do wersji, bo działają bez dostępu do
+  pdi (skrypty tf u użytkownika, serwer ci_for_sdlc). Kopie są **generowane** skryptem synchronizacji z tagu i nigdy
+  nie edytowane ręcznie; CI konsumenta sprawdza, że są bajt w bajt równe plikom z tagu.
+- Aktualizacja u konsumenta: zmiana wersji w pliku przypięcia, uruchomienie synchronizacji, testy, PR.
 
 ## Poziomy autonomii (0.5.0, decyzje [DA1 i DA2](../docs/decyzje.md))
 

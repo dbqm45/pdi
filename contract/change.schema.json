@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/dbqm45/pdi/contract/change.schema.json",
-  "title": "Nagłówek artefaktu zmiany CHG (pdi, kontrakt 0.7.0)",
+  "title": "Nagłówek artefaktu zmiany CHG (pdi, kontrakt 0.8.0)",
   "description": "Nagłówek YAML pliku w docs/project/changes/CHG-n/. Nagłówek artefaktu tf (core-project-record) + pola change, source, tasks. Prosty YAML: wartości to tekst, liczba albo lista tekstów.",
   "type": "object",
   "additionalProperties": false,

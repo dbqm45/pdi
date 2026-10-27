@@ -3,7 +3,7 @@
   "type": "gate.decided",
   "occurred_at": "2026-10-23T10:00:00Z",
   "source": "pdi",
-  "contract_version": "0.7.0",
+  "contract_version": "0.8.0",
   "payload": {
     "change": "CHG-12",
     "gate": "B1",

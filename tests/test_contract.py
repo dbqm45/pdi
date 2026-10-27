@@ -45,7 +45,7 @@ def test_schema_is_valid_json_schema_2020_12(name: str) -> None:
 def test_settings_define_version_key_pattern_and_default_prefixes() -> None:
     settings = contract.settings()
 
-    assert settings["version"] == contract.CONTRACT_VERSION == "0.7.0"
+    assert settings["version"] == contract.CONTRACT_VERSION == "0.8.0"
     assert settings["prefixes"] == {"problem": "PRB", "change": "CHG", "task": "TSK", "decision": "DEC"}
     assert settings["key_pattern"] == "^[A-Z][A-Z0-9]+-[0-9]+$"
 
@@ -604,3 +604,40 @@ def test_decision_recorded_checks_keys_and_evidence() -> None:
 
 def test_decision_source_kind_includes_ci_for_sdlc() -> None:
     assert "ci_for_sdlc" in enum("decision", "source", "properties", "kind")
+
+
+# --- kontrakt 0.8.0: eksport rekonstrukcji z kodu (F2; format tf → ci_for_sdlc) ---
+
+
+def test_reconstruction_example_is_a_tf_export() -> None:
+    rec = example("reconstruction")
+
+    assert "reconstruction" in contract.SCHEMA_NAMES
+    assert rec["format"] == "tf-reconstruction" and rec["format_version"] == 1
+    assert contract.errors("reconstruction", rec) == []
+    assert rec["rules"] and rec["requirements"] and rec["domain"]
+
+
+def _first_rule(rec: dict[str, Any]) -> dict[str, Any]:
+    rule: dict[str, Any] = rec["rules"][0]
+    return rule
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        pytest.param(lambda r: r.update(format="other"), id="zly-format"),
+        pytest.param(lambda r: r.update(format_version=2), id="nieznana-wersja-formatu"),
+        pytest.param(lambda r: r.pop("rules"), id="brak-regul"),
+        pytest.param(lambda r: _first_rule(r).update(status="maybe"), id="nieznany-status"),
+        pytest.param(lambda r: _first_rule(r).pop("evidence"), id="brak-dowodow"),
+        pytest.param(lambda r: _first_rule(r)["evidence"][0].update(line=0), id="linia-od-1"),
+    ],
+)
+def test_invalid_reconstructions_are_rejected(mutate: Any) -> None:
+    rec = json.loads(json.dumps(example("reconstruction")))
+    assert _first_rule(rec)["evidence"], "przykład musi mieć regułę z dowodem"
+
+    mutate(rec)
+
+    assert contract.errors("reconstruction", rec) != []

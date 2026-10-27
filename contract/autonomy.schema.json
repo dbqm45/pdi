@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/dbqm45/pdi/contract/autonomy.schema.json",
-  "title": "Polityka autonomii organizacji (pdi, kontrakt 0.7.0)",
+  "title": "Polityka autonomii organizacji (pdi, kontrakt 0.8.0)",
   "description": "Poziom autonomii dla typów decyzji (DA1). Typy spoza polityki mają poziom domyślny 3. Typy chronione (DA2) nie schodzą poniżej 3.",
   "type": "object",
   "additionalProperties": false,
