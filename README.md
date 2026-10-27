@@ -47,6 +47,12 @@ Decyzja na bramce `approve-for-implementation` trafia też do ci_for_sdlc: podpi
 `readiness.changed`; tam `PDI_SIGNING_SECRET`). ci_for_sdlc zatwierdza wtedy historyjki zmiany (etykieta `change:CHG-n`)
 z numerem decyzji. Nieudana wysyłka zostaje w stanie zmiany (`ci_for_sdlc.status: failed`); `retry_dispatch` ją ponawia.
 
+Od A2b ([plan](docs/plan-a2b-pdi.md), decyzja D-A2) ci_for_sdlc wysyła też `decision.recorded`: decyzję podjętą już
+u siebie (zamknięcie pytania z cytatem, `finding.auto_close`). Nie tworzy pozycji w skrzynce, tylko wpis w rejestrze
+(`source.kind: ci_for_sdlc`, znaczniki `ref:<pytanie>` i `event:<id>`); odpowiedź niesie numer `DEC`. Licznik
+akceptacji (`autonomy_report`, `pdi-stats`) liczy te decyzje; decyzja automatu poniżej poziomu z `autonomy.yaml`
+dostaje znacznik `autonomy:outside-policy`.
+
 ShipScope wysyła tylko na publiczny adres `https://`, więc przed odbiornikiem stoi proxy TLS albo tunel (np.
 Cloudflare Tunnel). Admin w ShipScope wpisuje ten adres w Settings → Integrations → pdi („Connect”). ShipScope zakłada
 wtedy token usługi, subskrypcję zdarzeń na `<adres>/events/shipscope` z własnym sekretem i raz pokazuje trzy zmienne:

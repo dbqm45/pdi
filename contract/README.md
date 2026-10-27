@@ -4,7 +4,8 @@ Schematy i zasady wspólne dla pdi, tf, ci_for_sdlc i ShipScope ([decyzja D1](..
 Wersjonowany wg SemVer 2.0.0 w [`contract.json`](contract.json); zmiana niezgodna wstecz podnosi wersję główną
 (w 0.x — drugą liczbę). Odbiorca zdarzeń przypina wersję przez pole `contract_version`.
 
-Wersja: `0.6.0`. Historia: 0.6.0 — rekomendacja triażu zgłoszenia (schemat przeniesiony z tf, F3);
+Wersja: `0.7.0`. Historia: 0.7.0 — zdarzenie `decision.recorded` (decyzja podjęta w aplikacji nadawcy do zapisu
+w rejestrze pdi, A2b, decyzja D-A2) i `source.kind: ci_for_sdlc` w decyzji; 0.6.0 — rekomendacja triażu zgłoszenia (schemat przeniesiony z tf, F3);
 0.5.0 — poziomy autonomii (polityka, pola decyzji, zdarzenia skrzynki i postępu pracy
 agenta; DA1, DA2), `source_reported_at` w nagłówku zmiany (lead time od zgłoszenia w ShipScope); 0.4.0 — historyjka z kryteriami (G2), plan wydania (G1), nowe pola cięcia,
 `release` w `feature.released`, zdarzenie `release.stage_changed`, zestaw wzorcowy kształtu historyjki, konwencje;
@@ -28,8 +29,8 @@ Walidacja w Pythonie: `from pdi import contract; contract.errors("problem", obj)
 nazwy: `decision`, `problem`, `change`, `task`, `event`, `story`, `release_plan`, `autonomy`,
 `triage_recommendation`.
 
-Zgodność wstecz: 0.6.0 dodaje tylko nowy schemat; wszystkie pola dodane w 0.5.0 są opcjonalne, a zdarzenia
-z `contract_version` 0.4.0 i 0.5.0 dalej przechodzą walidację. Zestaw wzorcowy `fixtures/story-shape/` ma wersję 0.4.0 — tę, w której zmienił się ostatnio.
+Zgodność wstecz: 0.7.0 dodaje tylko nowy typ zdarzenia i wartość `source.kind`; 0.6.0 dodaje tylko nowy schemat; wszystkie pola dodane w 0.5.0 są opcjonalne, a zdarzenia
+z `contract_version` 0.4.0–0.6.0 dalej przechodzą walidację. Zestaw wzorcowy `fixtures/story-shape/` ma wersję 0.4.0 — tę, w której zmienił się ostatnio.
 
 ## Poziomy autonomii (0.5.0, decyzje [DA1 i DA2](../docs/decyzje.md))
 
@@ -113,6 +114,7 @@ Powody odrzucenia: `out_of_strategy`, `works_as_designed`, `cost_disproportionat
 | `decision.proposed` | pdi, ci_for_sdlc, tf | `decision_type`, `level` (0–3), `summary`; na poziomie 2 także `veto_until` — od 0.5.0 |
 | `decision.auto_applied` | pdi | `decision`, `decision_type`, `level` (0–2) — od 0.5.0 |
 | `decision.vetoed` | pdi | `decision_type`, `vetoed_by` — od 0.5.0 |
+| `decision.recorded` | ci_for_sdlc | `decision_type`, `ref`, `statement`, `decided_by`, `drafted_by`; opcjonalnie `draft_edited` (człowiek) albo `automation` (automat, nigdy oba), `evidence` (cytaty), `supersedes`, `url`, `change`, `problem`. Decyzja już podjęta u nadawcy; pdi zapisuje ją w rejestrze i odpowiada numerem `DEC` — od 0.7.0 |
 | `run.progress` | tf | `phase`, `status` (`started` / `in_progress` / `waiting_gate` / `done` / `failed`); opcjonalnie `cost_usd`, `budget_usd` — od 0.5.0 |
 | `decision.basis_invalidated` | pdi | `decision`, `assumption`, `signal`, `attention_level` (0–3) — przyjęte 2026-10-23 ([dokument 12 §4.2](../docs/12-zmiana-kierunku-sdlc.md#42-nowe-zdarzenie-w-kontrakcie)), używane od F5 |
 

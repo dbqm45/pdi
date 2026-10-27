@@ -14,6 +14,8 @@
   z 2026-10-27: zamknięcie zatwierdza człowiek w ci_for_sdlc, a ci_for_sdlc wysyła do pdi gotową decyzję
   (typ, szkic AI, `draft_edited`, cytat, odniesienie do pytania). Potrzebne: jedno nowe zdarzenie w kontrakcie pdi
   (0.7.0), odbiór w `pdi-receiver` z zapisem do rejestru i wysyłka z ci_for_sdlc. Drogi w obie strony nie ma.
+  **Część pdi zrobiona 2026-10-27** ([plan](plan-a2b-pdi.md)): kontrakt 0.7.0 z `decision.recorded`, odbiór
+  i zapis w rejestrze. Zostaje wysyłka z ci_for_sdlc — polecenie niżej, po A2a.
 
 ## A2a — polecenie
 
@@ -58,4 +60,37 @@ Gates: npm test, npm run typecheck, npm run lint:commit. GitHub Actions do not r
 the gates locally and say so in the PR. Commit and PR on my request.
 Out of scope: sending proposals or decisions to pdi and receiving outcomes from pdi (A2b: needs a pdi contract change —
 if you find you need it, stop and tell me); changing the autonomy level automatically.
+```
+
+## A2b — polecenie (ci_for_sdlc, po A2a)
+
+```text
+Implement step A2b of the automation and console plan from repo dbqm45/pdi: send the decisions from A2a to pdi's
+registry so pdi's acceptance counter (A3) counts them. Read in pdi (main, contract 0.7.0): contract/README.md (event
+`decision.recorded`), contract/event.schema.json ($defs.decision_recorded), contract/examples/event-decision.recorded.json,
+docs/plan-a2b-pdi.md (what pdi does with it), decision D-A2 in docs/decyzje.md (the human confirms in ci_for_sdlc; pdi
+only records — there is no way back from pdi). Answer me in Polish; code, commits and PR title in English (repo
+CLAUDE.md).
+
+1. Plan first in docs/ (extend docs/PDI-F4-PLAN.md or a new file) before code; TDD.
+2. Every finding.auto_close decision from A2a (accepted, edited, rejected, reopened, auto-applied) queues one
+   `decision.recorded` event in the existing pdi outbox (packages/server/src/pdi.ts, PdiLink: same URL, signature,
+   retries) with contract_version 0.7.0:
+   - human: drafted_by ai, draft_edited false for Accept, true for Edit / Reject / Reopen; decided_by the user;
+   - automation (apply): automation {level, rule}, no draft_edited, decided_by "ci_for_sdlc";
+   - ref = "<item key>/<finding id>", url = the item page anchored to the finding, evidence = the verified quote and
+     its source URL, change = the change:CHG-n label when the item has one;
+   - Reopen supersedes the earlier decision: send supersedes with the DEC number pdi answered for it.
+3. Store the DEC number from pdi's answer ({"status": "recorded" | "duplicate", "decision": "DEC-n"}) on the local
+   decision and show it next to it. A decision without a DEC yet stays visibly "not in pdi"; a reopen whose original
+   has no DEC waits until it has one. Do not drop decision events after MAX_ATTEMPTS — they are the audit trail;
+   keep them queued and visible in GET /api/pdi.
+4. pdi answers 400 with a reason (type not allowed, protected type with automation, supersedes of another ref):
+   keep the event as failed with that reason, do not retry it.
+
+Tests: payload per outcome (accept, edit, reject, reopen, auto-apply) validated against a copy of pdi's
+event.schema.json 0.7.0, DEC stored from the answer, reopen waits for the original DEC, 400 is not retried, decision
+events are never dropped. Gates: npm test, npm run typecheck, npm run lint:commit. GitHub Actions do not run on this
+account right now — run the gates locally and say so in the PR. Commit and PR on my request.
+Out of scope: reading pdi's autonomy policy (the level stays an admin setting in ci_for_sdlc for now).
 ```
