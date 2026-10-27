@@ -58,6 +58,7 @@ def test_cli_prints_summary(
     assert "2026-W44: 1" in out
     assert "Razem: 1" in out
     assert "Autonomia" in out and "finding.auto_close: poziom 3" in out
+    assert "Prognozy (G3): 0, z wynikiem 0" in out
 
 
 def test_summary_counts_per_project(tmp_path: Path, make_draft: Draft) -> None:

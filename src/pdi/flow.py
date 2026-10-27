@@ -119,6 +119,22 @@ def feature_released(
     return new
 
 
+def forecast_made(state: State, forecast: dict[str, Any], *, at: str) -> State:
+    """Prognoza zmiany (G3, `pdi.forecast`) zastępuje poprzednią; nieudana ma `status: failed` i `error`."""
+    new = _copy(state)
+    new["forecast"] = forecast
+    new["history"].append({"at": at, "what": "forecast.made", "status": forecast["status"]})
+    return new
+
+
+def forecast_settled(state: State, actual: dict[str, Any], *, at: str) -> State:
+    """Zmiana dostarczona: rzeczywisty czas przepływu obok prognozy (`pdi.forecast.compare`)."""
+    new = _copy(state)
+    new["forecast"]["actual"] = actual
+    new["history"].append({"at": at, "what": "forecast.settled", "actual_days": actual["actual_days"]})
+    return new
+
+
 def impact_scheduled(state: State, plan: dict[str, Any], *, at: str) -> State:
     """Ocena skutku MVP zaplanowana na `plan["due"]` (F5, `pdi.impact.due_date`)."""
     new = _copy(state)

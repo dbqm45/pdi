@@ -61,7 +61,11 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
         "find_similar_problems",
         "autonomy_report",
         "propose_autonomy_changes",
+        "forecast_change",
+        "forecast_report",
     }
+    assert tools["forecast_report"].annotations.read_only_hint is True
+    assert tools["forecast_change"].annotations.read_only_hint is False
     assert tools["autonomy_report"].annotations.read_only_hint is True
     assert tools["propose_autonomy_changes"].annotations.read_only_hint is False
     assert tools["find_similar_problems"].annotations.read_only_hint is True
@@ -135,7 +139,7 @@ async def test_stdio_end_to_end(tmp_path: Path, make_draft: Draft) -> None:
         listed = await session.list_tools()
         result = await session.call_tool("record_decision", make_draft())
 
-    assert len(listed.tools) == 22
+    assert len(listed.tools) == 24
     assert json.loads(result.content[0].text)["id"] == "DEC-0001"
     assert (tmp_path / "rejestr" / "decisions" / "_ogolne" / "DEC-0001.md").is_file()
 
@@ -275,3 +279,18 @@ async def test_autonomy_through_tools(server: Any, registry: Registry, make_draf
     assert row["recommendation"]["action"] == "lower"
     assert registry.get("DEC-0001")["draft_edited"] is False
     assert decided["decision"]["decision_type"] == "autonomy.level_change"
+
+
+async def test_forecast_through_tools(
+    server: Any, registry: Registry, make_draft: Draft, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("PDI_SHIPSCOPE_URL", raising=False)
+    Inbox(registry).receive(gate_event(gate="approve-for-implementation", source="ci_for_sdlc"))
+
+    made = await call(server, "forecast_change", {"change": "CHG-12"})
+    report = await call(server, "forecast_report", {})
+
+    assert made["status"] == "failed" and "PDI_SHIPSCOPE_URL" in made["error"]
+    assert report == {"count": 0, "ratio_median": None, "within_range_share": None, "changes": []}
+    with pytest.raises(ToolError, match="list_changes"):
+        await server.call_tool("forecast_change", {"change": "CHG-404"})

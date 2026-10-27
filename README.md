@@ -84,6 +84,23 @@ uv run pdi-impact-review   # {"opened": [{"id": "impact-CHG-12-R1", "change": "C
 Bez `PDI_SHIPSCOPE_URL` pozycja otwiera się z `unknown` i błędem w `data.errors`. Te same `PDI_SHIPSCOPE_*` ustawia się
 dla serwera MCP.
 
+### Prognoza zmiany (G3)
+
+Od decyzji D-E1 prognozę „kiedy to będzie” liczy automat. Przy zatwierdzeniu bramki `approve-for-implementation`
+pdi czyta z API usług ShipScope liczbę cięć zmiany (`/changes`) i czas przepływu dostarczonych zmian z 180 dni
+(`/flow`) i zapisuje w stanie zmiany `forecast`: cięcia × mediana dni na cięcie, przedział P25–P75 i `doubts`, czyli
+powody, by zamiast liczby zapytać zespół (mniej niż 5 zmian w historii, plan większy niż cokolwiek w historii, sama
+historia elementów, brak historii). Nieudany odczyt zostawia `status: failed` z powodem i nie blokuje decyzji. Po
+każdym `feature.released` i raz dziennie z `pdi-forecast` dostarczona zmiana dostaje `actual` (rzeczywiste dni,
+`ratio`, `within_range`); ten sam przebieg ponawia nieudane prognozy sprzed pierwszego wydania. W Claude
+`forecast_change` liczy prognozę od nowa, a `forecast_report` i `pdi-stats` pokazują kalibrację. Bez
+`PDI_SHIPSCOPE_URL` prognozy nie ma. Plan: [`docs/plan-g3-prognoza.md`](docs/plan-g3-prognoza.md).
+
+```bash
+PDI_REGISTRY_PATH=~/pdi-decisions PDI_SHIPSCOPE_URL=https://<ShipScope> PDI_SHIPSCOPE_TOKEN=<shps_…> \
+uv run pdi-forecast        # {"settled": [{"change": "CHG-12", "forecast": "ok", "actual": {"actual_days": 7.5, …}}]}
+```
+
 ### Graf śladu (F5)
 
 `get_trace(change)` w Claude składa graf jednej zmiany: PRB → CHG → bramki i decyzje → TSK → PR → wdrożenia

@@ -11,7 +11,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp_types import ToolAnnotations
 from typing_extensions import TypedDict  # pydantic na 3.11 wymaga TypedDict z typing_extensions
 
-from pdi import autonomy
+from pdi import autonomy, forecast
 from pdi.changes import ChangeNotFound
 from pdi.dispatch import DispatchConfig
 from pdi.impact import ShipScopeConfig, read_connection
@@ -506,6 +506,25 @@ def build_server(
             return open_inbox().retry_dispatch(change)
         except (ChangeNotFound, InvalidDecision) as e:
             raise ToolError(str(e)) from e
+
+    @server.tool(annotations=_WRITE)
+    def forecast_change(change: str) -> dict[str, Any]:
+        """Prognoza zmiany (G3) od nowa: liczba cięć z ShipScope × tempo na cięcie z dostarczonych zmian z 180 dni.
+
+        expected_days z przedziałem low_days–high_days (P25–P75), basis (changes / items) i doubts — powody, by
+        zamiast ufać liczbie zapytać zespół (np. w pokoju sprintdecka). Zwykle powstaje sama przy zatwierdzeniu
+        approve-for-implementation; to narzędzie liczy ją ponownie, np. po poprawie planu.
+        """
+        try:
+            return open_inbox().make_forecast(change)
+        except ChangeNotFound as e:
+            raise ToolError(str(e)) from e
+
+    @server.tool(annotations=_READ)
+    def forecast_report() -> dict[str, Any]:
+        """Kalibracja prognoz (G3): ile zmian ma prognozę i wynik, mediana ratio (rzeczywiste / prognozowane dni),
+        odsetek wyników w przedziale prognozy i lista zmian z prognozą."""
+        return forecast.calibration(open_inbox().changes.all(status=None))
 
     @server.tool(annotations=_READ)
     def autonomy_report() -> dict[str, list[dict[str, Any]]]:
