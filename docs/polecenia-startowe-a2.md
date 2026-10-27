@@ -8,11 +8,12 @@
 - **A2a — ci_for_sdlc samo** (polecenie poniżej): wykrycie odpowiedzi w źródle z cytatem, polityka
   `off | suggest | apply`, zamknięcie jako decyzja `resolve` z dowodem, lista „Zamknięte automatycznie” i „Otwórz
   ponownie”, lokalny pomiar akceptacji. Działa bez pdi.
-- **A2b — połączenie z pdi** (osobny krok, wymaga decyzji): żeby licznik akceptacji z A3 liczył `finding.auto_close`,
-  decyzje muszą trafiać do rejestru pdi. Dziś ci_for_sdlc wysyła do pdi tylko `readiness.changed`, a pdi odsyła tylko
-  `gate.decided`, które wymaga klucza zmiany (CHG) — pytanie w trybie Jira nie zawsze go ma. Zdarzenia
-  `decision.proposed` pdi jeszcze nie odbiera, a w kontrakcie brakuje zdarzenia zwrotnego z wynikiem decyzji
-  i odniesienia do pytania w ci_for_sdlc. To zmiana kontraktu (0.7.0) i odbiornika pdi.
+- **A2b — połączenie z pdi** (osobny krok): żeby licznik akceptacji z A3 liczył `finding.auto_close`, decyzje muszą
+  trafiać do rejestru pdi. Dziś ci_for_sdlc wysyła do pdi tylko `readiness.changed`, a pdi odsyła tylko
+  `gate.decided` (z kluczem zmiany CHG, którego pytanie w trybie Jira nie zawsze ma). Decyzja [D-A2](decyzje.md)
+  z 2026-10-27: zamknięcie zatwierdza człowiek w ci_for_sdlc, a ci_for_sdlc wysyła do pdi gotową decyzję
+  (typ, szkic AI, `draft_edited`, cytat, odniesienie do pytania). Potrzebne: jedno nowe zdarzenie w kontrakcie pdi
+  (0.7.0), odbiór w `pdi-receiver` z zapisem do rejestru i wysyłka z ci_for_sdlc. Drogi w obie strony nie ma.
 
 ## A2a — polecenie
 
