@@ -197,8 +197,11 @@ Każda faza kończy się czymś, co działa samo, nawet jeśli następna się op
 - **Działa po fazie:** ShipScope pokazuje „CHG-12: Deployed (hidden) na PROD” bez Jiry i bez pdi.
 
 ### F2 — Spójność na repo
-- **tf:** rekonstrukcja F1a–F2 z eksportem JSON.
-- **ci_for_sdlc:** konektor repo, konektor rekonstrukcji, status check na PR, słownik claims EV.
+- **tf:** rekonstrukcja F1a–F2 z eksportem JSON — **zrobione** (tf #83).
+- **ci_for_sdlc:** konektor repo, konektor rekonstrukcji, status check na PR, słownik claims EV — **zrobione
+  2026-10-26** (ci_for_sdlc #69, #71, #73; reguły REL-007 i REL-008 na zmianach z repo: #72). Słownik EV jest kopią
+  terminów z tf `pack-ev` 1.1.0; tf #88 dopisało później do `dom-ev-glossary` trzy definicje uptime (surowa, NEVI,
+  SLA), a ci_for_sdlc rozróżnia na razie dwie (z planowanym serwisem i bez), więc NEVI i SLA traktuje jak jedną.
 - **Działa po fazie:** PR z wymaganiami dostaje czerwony check, gdy wymaganie przeczy dokumentacji albo stanowi kodu.
 
 ### F3 — pdi MVP

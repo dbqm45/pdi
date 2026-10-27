@@ -1,6 +1,6 @@
 # Automatyzacja i konsola — plan
 
-Data: 2026-10-25 · Status: **w realizacji** — A0, A1, A3 i A6 zrobione, A2, A4, A5, A7, A8 i konsola (K-1–K-4) do zrobienia (stan w §8); DA1 i DA2 przyjęte, DA3–DA6 otwarte
+Data: 2026-10-25 · Status: **w realizacji** — A0, A1, A3, A6 i K-1 zrobione, A2, A4, A5, A7, A8 i konsola (K-2–K-4) do zrobienia (stan w §8); DA1 i DA2 przyjęte, DA3–DA6 otwarte
 
 Gdzie jeszcze zautomatyzować workflow od pomysłu do wdrożenia i jak dać człowiekowi jedno miejsce, w którym widzi,
 co się dzieje, i podejmuje decyzje tak jak w rozmowie z Claude. Uzupełnia [plan jednego flow](plan-jeden-flow-sdlc.md)
@@ -148,7 +148,7 @@ Stan na 2026-10-26, sprawdzony na gałęziach `main` wszystkich repozytoriów.
 | A6 triaż z grupowaniem (F3) | zrobione | pdi #23; tf #82 | duplikaty i rekomendacja triażu w stanach pdi |
 | A7 review uproszczone | do zrobienia | | AI review w CI jest (tf #86); brakuje trybu `review.light` i listy wrażliwych ścieżek; wymaga działającego CI |
 | A8 lustro Jira ↔ repo | do zrobienia | | |
-| K-1 Claude jako interfejs | do zrobienia | | serwer MCP pdi jest (także skrzynka: `list_inbox`, `decide_inbox_item`); brakuje serwerów MCP dla ci_for_sdlc i ShipScope (ShipScope ma API usług, #110) |
+| K-1 Claude jako interfejs | zrobione | ci_for_sdlc #74; ShipScope #114 | trzy lokalne serwery stdio obok siebie: pdi (decyzje i skrzynka), ci_for_sdlc (`packages/mcp`, gotowość) i ShipScope (`adapters/mcp`, stan wydań); oba nowe tylko do odczytu, bez zatwierdzania (DA5 otwarta). Serwer ci_for_sdlc nie wysyła tokenu, bo odczyty API są dziś otwarte; token do odczytu to K1b w `docs/BACKLOG-DEFERRED.md` ci_for_sdlc — do zrobienia przed wystawieniem ci_for_sdlc poza localhost |
 | K-2 skrzynka i oś zdarzeń w UI | do zrobienia | | skrzynka i graf śladu są w pdi po stronie danych; brakuje interfejsu |
 | K-3 rozmowa w konsoli | do zrobienia | | |
 | K-4 graf śladu i panel w Jirze | do zrobienia | | makieta ekranów: [`design/konsola/`](../design/konsola/README.md) |

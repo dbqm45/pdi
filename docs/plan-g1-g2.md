@@ -1,6 +1,6 @@
 # Plan wydania i kształt historyjek — plan domknięcia luk G1 i G2
 
-Data: 2026-10-25 · Status: **w realizacji**: 9 z 14 kroków zrobione; czekają G1.4 (konektor repo z F2), G2.5 (SaaS), G2.6, G1.6, G2.3 wstrzymane (stan w §10; [plan K0](plan-k0-kontrakt-040.md)); decyzje DG1–DG7 przyjęte w [`decyzje.md`](decyzje.md) · Wersja HTML: https://claude.ai/artifact/G9Z2ubF7EtoWxMST1M7Gy1
+Data: 2026-10-25 · Status: **w realizacji**: 10 z 14 kroków zrobione; czekają G2.5 (SaaS), G2.6, G1.6, G2.3 wstrzymane (stan w §10; [plan K0](plan-k0-kontrakt-040.md)); decyzje DG1–DG7 przyjęte w [`decyzje.md`](decyzje.md) · Wersja HTML: https://claude.ai/artifact/G9Z2ubF7EtoWxMST1M7Gy1
 
 Szczegółowy plan dla dwóch luk z mapy ekosystemu (https://claude.ai/artifact/9gz1UhJZRNXHq5VgUciava): **G2** —
 kształt historyjki i kryteriów akceptacji, **G1** — plan wydania i MVP. Dla każdej: reguły, zmiany w konkretnych
@@ -381,9 +381,9 @@ dopisek `Flag:`, który dodaje Talos z tf. Zdarzenia do pdi wymagają wychodząc
 
 ## 10. Stan realizacji
 
-Stan na 2026-10-26, sprawdzony na gałęziach `main` wszystkich repozytoriów. G1 i G2 są zrobione poza G1.4, który
-czeka na konektor repo w ci_for_sdlc (F2), krokami zależnymi od trybu SaaS i sprintdecka oraz G2.3, wstrzymanym
-decyzją [D-G23](decyzje.md). Fazy F1, F3, F4 i F5 planu jednego flow są zrobione; F2 i F6 częściowo.
+Stan na 2026-10-27, sprawdzony na gałęziach `main` wszystkich repozytoriów. G1 i G2 są zrobione poza krokami
+zależnymi od trybu SaaS i sprintdecka oraz G2.3, wstrzymanym decyzją [D-G23](decyzje.md). Fazy F1–F5 planu jednego
+flow są zrobione; F6 częściowo.
 
 | Krok | Repo | Stan | Gdzie | Uwagi |
 |---|---|---|---|---|
@@ -397,7 +397,7 @@ decyzją [D-G23](decyzje.md). Fazy F1, F3, F4 i F5 planu jednego flow są zrobio
 | G1.3 zakładka „Plan wydania” | ShipScope | zrobione (tryb Jira i repo) | #106, #108 | migracje 036 i 038 zamiast 032–033 z planu (numeracja ShipScope poszła dalej); plan kroku w `design-docs/G1.3-PLAN.pl.md`; tryb repo waliduje `release.yaml` przypiętą kopią schematu z kontraktu i pokazuje błędy spójności |
 | G1.5 bramki i zdarzenia | pdi + ShipScope | zrobione | ShipScope #109, pdi #15–#17 | [plan kroku](plan-g15-pdi.md): skrzynka dla `release.stage_changed` i `feature.released` (#15); maszyna stanów per CHG i bramki z tf i ci_for_sdlc w F4 (#16, #17) |
 | G2.3 propozycje AI | ci_for_sdlc | wstrzymane | #62 | decyzja [D-G23](decyzje.md): rozstrzygnięcie po pilocie |
-| G1.4 reguły REL w repo | ci_for_sdlc | czeka | | F2: konektor `docs/project/changes/` i status check na PR |
+| G1.4 reguły REL w repo | ci_for_sdlc | zrobione | #72 | REL-007 (flaga bez etapów, kryterium wyjścia, właściciela albo `remove_by`) i REL-008 (samokontrola planu cięć tf) tylko na zmianach z repo; adnotacje na `release.yaml` i `plan.md` w bramce PR. Rozjazd z tf: szablon `plan.md` zmiany w tf nie ma kolumn „Rodzaj”, „Odblokowuje” i „Wymagania”, więc każdy fundament zapisany przez tf (wynik „(fundament) …”) dostaje ostrzeżenie REL-008 — do poprawy w tf |
 | G2.5 panel w Jirze | nowe repo + ci_for_sdlc | czeka | | tryb SaaS ci_for_sdlc i ShipScope |
 | G2.6 sygnał z estymacji | sprintdeck + ci_for_sdlc | czeka | | pokoje, talia „Risk” (S6) i limity (S3) są w sprintdecku (#4–#11); brakuje importu z Jiry; rola sprintdecka zmieniona decyzją [D-E1](decyzje.md) |
 | G1.6 edytor mapy historyjek | pdi | warunkowo | | po pilocie |
@@ -407,7 +407,7 @@ Fazy [planu jednego flow](plan-jeden-flow-sdlc.md), od których zależą kroki p
 | Faza | Stan | Gdzie |
 |---|---|---|
 | F1 ślad w commitach | zrobione | tf #80 (dopisek `Change:`, hook `commit-msg`, Talos na cięciach zmiany); ShipScope #107 |
-| F2 spójność na repo | częściowo | zrobione: eksport rekonstrukcji w JSON (tf #83), rekonstrukcja jako źródło w ci_for_sdlc (#69); brakuje: konektora `changes/` i status checka na PR (blokuje G1.4) |
+| F2 spójność na repo | zrobione | eksport rekonstrukcji w JSON (tf #83); w ci_for_sdlc: rekonstrukcja jako źródło (#69), konektor `docs/project/changes/` z bramką na PR (`analyze --repo … --fail-on`, szablon `docs/templates/change-check.yml`, #71), słownik claims per domena z pakietem EV (#73, ustawienie `project.claimPack`) |
 | F3 pdi MVP | zrobione | pdi #23 (zgłoszenia, duplikaty, przyjęcie przez fazę intent); tf #82 (triaż PRB w stanach pdi), #84 (faza intent z przyjętego PRB); ci_for_sdlc #66 (gotowość do pdi) |
 | F4 orkiestracja | zrobione | pdi #16, #17; tf #79 (fazy bez interakcji); ci_for_sdlc #66 (zatwierdzenie z bramek pdi) |
 | F5 zamknięcie pętli | zrobione | ShipScope #109–#113 (zdarzenia, API usług, release notes z intencji, lead time od intencji i od zgłoszenia); pdi #18–#21, #26 (ocena skutku, graf śladu, `metric.breached`, powiadomienia, data zgłoszenia w nagłówku zmiany); tf #81 (pasma kontrolne) |
@@ -426,10 +426,11 @@ nie był sprawdzany lokalnie w tej aktualizacji.
 **Następne kroki:**
 1. Przebieg na sobie: jedna zmiana sprintdecka od PRB w pdi do oceny skutku przez wszystkie aplikacje, żeby
    sprawdzić połączenia na prawdziwej zmianie, a nie tylko w testach.
-2. F2 w ci_for_sdlc (konektor `changes/`, status check na PR): odblokowuje G1.4.
+2. tf: kolumny „Rodzaj”, „Odblokowuje” i „Wymagania” w szablonie `plan.md` zmiany
+   (`modes/mode-pdi/skills/pdi-decisions/templates/plan.md`), zgodne z `plan-ciec.md` i z tym, co czyta REL-008.
 3. Pilot na prawdziwym backlogu według kryteriów z §4.8 i §5.9; jego wynik rozstrzyga D-G23 (G2.3).
-4. K-1 z [planu automatyzacji i konsoli](plan-automatyzacja-i-konsola.md): serwery MCP dla ci_for_sdlc
-   i ShipScope (ShipScope ma już API usług, #110).
+4. A2 z [planu automatyzacji i konsoli](plan-automatyzacja-i-konsola.md) (zamykanie pytań z cytatem w ci_for_sdlc);
+   K-1 jest zrobione (serwery MCP w ci_for_sdlc #74 i ShipScope #114).
 5. Naprawić płatności GitHub Actions.
 
 ---
