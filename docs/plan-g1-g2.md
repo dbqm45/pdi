@@ -421,15 +421,16 @@ kroku, sprawdzone 2026-10-26 na pdi `db1c7ef`). Bez CI na GitHubie scalono PR-y 
 od #106 w ShipScope i od #15 w pdi. Lokalnie sprawdzone: ci_for_sdlc `packages/core` 437/437 testów i typecheck na kodzie
 G1.2; tf `tools/workspace.py check --packs pack-it` na kodzie G2.4; pdi na `main` z 2026-10-26 (`cc5784b`): pytest
 587 testów, ruff, format i mypy, czyli kroki `ci.yml`. Kod tf, ci_for_sdlc, ShipScope i sprintdecka scalony 2026-10-26
-nie był sprawdzany lokalnie w tej aktualizacji.
+nie był sprawdzany lokalnie w tej aktualizacji. Od 2026-10-27 GitHub Actions znowu uruchamia zadania (zielone przebiegi
+na pdi #37, ShipScope #119 i ci_for_sdlc #79).
 
 **Następne kroki:**
 1. Przebieg na sobie: jedna zmiana sprintdecka od PRB w pdi do oceny skutku przez wszystkie aplikacje, żeby
    sprawdzić połączenia na prawdziwej zmianie, a nie tylko w testach.
 2. Pilot na prawdziwym backlogu według kryteriów z §4.8 i §5.9; jego wynik rozstrzyga D-G23 (G2.3).
-3. A2 z [planu automatyzacji i konsoli](plan-automatyzacja-i-konsola.md) (zamykanie pytań z cytatem w ci_for_sdlc);
-   K-1 jest zrobione (serwery MCP w ci_for_sdlc #74 i ShipScope #114).
-4. Naprawić płatności GitHub Actions.
+3. Dalsze kroki [planu automatyzacji i konsoli](plan-automatyzacja-i-konsola.md) (A4, A5, A7, A8, konsola); A2
+   i K-1 są zrobione.
+4. Luki spoza G1/G2 (G3–G8): stan w [planie jednego flow](plan-jeden-flow-sdlc.md), §8.
 
 ---
 

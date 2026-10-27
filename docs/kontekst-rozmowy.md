@@ -1,7 +1,8 @@
 # Kontekst rozmowy (2026-10-23) — punkt startowy dla kolejnej sesji
 
 Podsumowanie rozmowy, z której powstał [`plan-jeden-flow-sdlc.md`](plan-jeden-flow-sdlc.md). Następna sesja
-zaczyna od tego pliku i od planu.
+zaczyna od sekcji „Stan na 2026-10-27” i „Przekazanie” niżej oraz od planu. Reszta pliku to zapis stanu z 23.10,
+zostawiony jako uzasadnienie planu.
 
 ## TL;DR
 - Cel: jeden proces **AI-native SDLC** od zgłoszenia problemu (lub pomysłu) do wydania na PROD i oceny skutku,
@@ -13,8 +14,21 @@ zaczyna od tego pliku i od planu.
   orkiestracja, graf śladu, ocena skutku). Na `main` repo było puste (tylko README); równolegle na gałęzi
   `claude/magical-dirac-wjvn8y` powstała wcześniejsza praca koncepcyjna (dokumenty 01–11, testy v1 i v2) —
   jak przechodzi do tego kierunku: [`12-zmiana-kierunku-sdlc.md`](12-zmiana-kierunku-sdlc.md).
-- Stan: **nic nie zostało jeszcze zaimplementowane**. Jest plan, 7 decyzji do podjęcia i kolejność faz F0–F6.
-- Następny krok: **F0 — kontrakt** (schematy w `pdi/contract/` + dziennik per zmiana w tf).
+- Stan na 23.10: nic nie było jeszcze zaimplementowane (plan, 7 decyzji, fazy F0–F6). Stan dzisiejszy: niżej.
+
+## Stan na 2026-10-27
+- **Fazy F0–F5 planu jednego flow są zrobione, F6 częściowo** (AI review w CI, serwery MCP). Pętla zgłoszenie →
+  triaż → intencja → bramki → fazy tf → wydanie → ocena skutku → nowe zgłoszenie działa w kodzie wszystkich
+  czterech aplikacji; szczegóły i numery PR-ów w planie, §8.
+- **Luki z mapy ekosystemu:** G1 i G2 zrobione (poza krokami zależnymi od trybu SaaS i sprintdecka; G2.3 wstrzymane,
+  D-G23); G3 kroki 1–2 zrobione (czas przepływu w ShipScope #119, prognoza i kalibracja w pdi #37); G4 zrobione
+  (ci_for_sdlc #75–#77); G5 i G8 czekają na wybór narzędzia; G6 i G7 to decyzje architektoniczne.
+- **Automatyzacja:** A0, A1, A2 (zamykanie pytań z cytatem: ci_for_sdlc #81, #82, pdi kontrakt 0.7.0), A3, A6 i K-1
+  zrobione; A4, A5, A7, A8 i konsola K-2–K-4 do zrobienia ([plan](plan-automatyzacja-i-konsola.md), §8).
+- **ShipScope bez pdi i z pdi:** warstwa pdi (zmiany z repo, plan wydania, zdarzenia, API usług) działa tylko dla
+  workspace'u połączonego z pdi (ShipScope #115–#118).
+- **CI:** GitHub Actions znowu uruchamia zadania (zielone przebiegi 27.10 na pdi #37, ShipScope #119,
+  ci_for_sdlc #79).
 
 ## Repozytoria i co w nich jest (sprawdzone)
 
@@ -88,22 +102,19 @@ pdi · D6 budżet agentów · D7 format dziennika w ShipScope. Rekomendacje są 
 zmiany w pdi, o zmianie w repo, pdi indeksuje) — rejestr w `docs/decyzje.md`. Pozostałe otwarte.
 
 ## Przekazanie — jak kontynuować
-1. Przeczytaj ten plik, `docs/plan-jeden-flow-sdlc.md`, `docs/13-rola-pdi-w-sdlc.md` (rola pdi, rozbieżność R1
-   co do rejestru decyzji) i `docs/12-zmiana-kierunku-sdlc.md` (propozycje pól schematu
-   decyzji i zdarzenia `decision.basis_invalidated`, wynikające z testów v1 i v2).
-2. D1–D3 i D-S1–S4 przyjęte (`docs/decyzje.md`; D-S4: decyzje w katalogach projektów, ID globalne).
-   **Krok 1 z dokumentu 14 zbudowany i scalony do `main`** (`src/pdi/`, `contract/`, `integrations/claude-code/`;
-   plan i wynik: `docs/plan-krok-1.md`). Właściciel ma repo `pdi-decisions` i zainstalowany serwer; trwa
-   10 dni walidacji na sobie (W1–W4, notatki w `eval/dogfood/`). Kolejne kanały dopiero po walidacji.
-   **F0 w pdi zrobione (kontrakt 0.3.0):** schematy zgłoszenia, artefaktu zmiany, cięcia i zdarzeń w `contract/`
-   (plan: `docs/plan-f0-kontrakt.md`). R7 (stany biznesowe w pdi, tf bez zmian, tłumaczenie na granicy) i `decision.basis_invalidated` przyjęte.
-   Następne w F0: tf — dziennik per zmiana (`project_record.py change new`), osobna sesja z repo tf.
-   Plan i polecenie startowe są w tf: `docs/plans/2026-10-23-integracja-pdi.md` (gałąź `claude/magical-dirac-wjvn8y`
-   w `dbqm45/tf`).
-3. F0 w pdi: `contract/` ze schematami JSON (problem, zmiana, decyzja, zdarzenie), zasady ID, testy walidacji;
-   rozważ instalację tf w pdi (`tf`) i przejście fazy 0–4 cyklu tf dla samego pdi (przebieg próbny).
-4. F0 w tf (osobna sesja z repo tf): `core-project-record` — dziennik per zmiana `docs/project/changes/<ID>/`,
-   pola `change` i `source` w nagłówku, `project_record.py change new`.
-5. Potem F1 (dopisek `Change:` w tf + sync elementów z repo w ShipScope) — szczegóły w planie.
+1. Przeczytaj „Stan na 2026-10-27” wyżej, [plan jednego flow](plan-jeden-flow-sdlc.md) §8 (fazy i luki),
+   [plan G1/G2](plan-g1-g2.md) §10 i [plan automatyzacji](plan-automatyzacja-i-konsola.md) §8 (stan realizacji)
+   oraz [`decyzje.md`](decyzje.md).
+2. Następne kroki, od najmniejszej zależności:
+   - **Przebieg na sobie i pilot:** jedna prawdziwa zmiana przez wszystkie aplikacje
+     ([przebieg S5](przebieg-na-sobie-s5.md)), potem pilot na backlogu według planu G1/G2 (§4.8, §5.9); jego wynik
+     rozstrzyga D-G23.
+   - **G3 krok 3:** prognoza przy zadaniu w pokoju sprintdecka, po MVP sprintdecka (konta, import z Jiry).
+     Prognozy zbierają historię dopiero od ShipScope 0.2.60 (data pierwszego commita).
+   - **G5, G8:** wybór narzędzia przez właściciela; A4 (flagi według reguły) czeka na G5.
+   - **A5, A7, A8, konsola K-2–K-4:** według planu automatyzacji.
+   - ci_for_sdlc: nowy wzorzec wizualny `settings.png` (ręcznie, `update_snapshots`).
+3. Zasady: odpowiedzi po polsku; plan przed kodem, testy najpierw czerwone; przypiętych schematów kontraktu nie
+   edytuje się w aplikacjach (kopie 1:1); wersji i changelogów nie podbija się ręcznie.
 
 Wersja HTML planu (prywatny artifact): https://claude.ai/artifact/DoRYpdhzHwjTpGEnBx3UvV
