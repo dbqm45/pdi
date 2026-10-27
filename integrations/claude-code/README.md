@@ -53,6 +53,21 @@ wcześniejsze decyzje, zanim coś zaproponuje.
 
 Sprawdzenie: `claude mcp list` pokazuje `pdi` jako połączony; w sesji `/mcp` → `pdi` → 9 narzędzi.
 
+## Obok ci_for_sdlc i ShipScope (K-1)
+
+Jedna rozmowa może widzieć decyzje (pdi), gotowość wymagań (ci_for_sdlc) i stan wydań (ShipScope). Oba dodatkowe
+serwery są tylko do odczytu, działają lokalnie (stdio, Node, bez zależności) i czytają API swojej usługi:
+
+```bash
+claude mcp add --scope user ci-sdlc -e CI_SDLC_URL=http://localhost:4317 \
+  -- node ~/ci_for_sdlc/packages/mcp/src/ci-sdlc-mcp.js
+claude mcp add --scope user shipscope -e SHIPSCOPE_URL=https://shipscope.example.com -e SHIPSCOPE_TOKEN=shps_… \
+  -- node ~/evdt-service-shipscope/adapters/mcp/shipscope-mcp.js
+```
+
+Token ShipScope tworzysz w Settings → General → Service tokens i trzymasz tylko w konfiguracji Claude, nie w repo.
+Narzędzia i ograniczenia: `packages/mcp/README.md` w ci_for_sdlc, `adapters/mcp/README.md` w ShipScope.
+
 ## Użycie
 - `/record-decision` — Claude przygotowuje szkic decyzji z rozmowy, pokazuje go i zapisuje po Twoim „tak”.
   Komenda ma z góry zezwolenie na narzędzia pdi, więc po „tak” nie ma drugiego pytania o uprawnienia
