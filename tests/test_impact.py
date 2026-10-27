@@ -1,3 +1,4 @@
+import re
 from datetime import date
 from typing import Any
 
@@ -10,6 +11,7 @@ from pdi.impact import (
     due_date,
     intent_decision,
     parse_horizon,
+    read_connection,
 )
 from pdi.registry import Registry
 
@@ -214,3 +216,59 @@ def test_collect_without_usable_config_reads_nothing(config: ShipScopeConfig, ma
 
     assert shipscope.calls == []
     assert match in data["errors"][0]
+
+
+class FakeConnection:
+    def __init__(self, status: int = 200, body: Any = None) -> None:
+        self.status = status
+        self.body = (
+            body
+            if body is not None
+            else {
+                "workspace": {"id": "t1", "name": "Acme"},
+                "pdi": {"state": "pending", "receiverUrl": "https://pdi.example.com"},
+            }
+        )
+        self.calls: list[str] = []
+
+    def __call__(self, url: str, headers: dict[str, str]) -> tuple[int, bytes]:
+        import json
+
+        self.calls.append(url)
+        return self.status, json.dumps(self.body).encode()
+
+
+def test_read_connection_names_the_workspace_and_the_state() -> None:
+    get = FakeConnection()
+    config = ShipScopeConfig(url="https://shipscope.example.com/", token=TOKEN)
+
+    value, error = read_connection(config, get=get)
+
+    assert error is None
+    assert value == {"workspace": "Acme", "state": "pending", "receiver_url": "https://pdi.example.com"}
+    assert get.calls == ["https://shipscope.example.com/api/service/v1/connection"]
+
+
+@pytest.mark.parametrize(
+    ("get", "match"),
+    [
+        (FakeConnection(401), "401"),
+        (FakeConnection(body={"workspace": "Acme"}), "kształcie"),
+        (FakeConnection(body={"workspace": {"name": "A"}, "pdi": {"state": "maybe"}}), "kształcie"),
+    ],
+)
+def test_read_connection_errors_never_carry_the_token(get: FakeConnection, match: str) -> None:
+    value, error = read_connection(ShipScopeConfig(url="https://shipscope.example.com", token=TOKEN), get=get)
+
+    assert value is None
+    assert error is not None and re.search(match, error)
+    assert TOKEN not in error
+
+
+def test_read_connection_without_config_reads_nothing() -> None:
+    get = FakeConnection()
+
+    value, error = read_connection(ShipScopeConfig(url=None), get=get)
+
+    assert value is None and error is not None and "PDI_SHIPSCOPE_URL" in error
+    assert get.calls == []

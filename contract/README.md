@@ -4,7 +4,8 @@ Schematy i zasady wspólne dla pdi, tf, ci_for_sdlc i ShipScope ([decyzja D1](..
 Wersjonowany wg SemVer 2.0.0 w [`contract.json`](contract.json); zmiana niezgodna wstecz podnosi wersję główną
 (w 0.x — drugą liczbę). Odbiorca zdarzeń przypina wersję przez pole `contract_version`.
 
-Wersja: `0.5.0`. Historia: 0.5.0 — poziomy autonomii (polityka, pola decyzji, zdarzenia skrzynki i postępu pracy
+Wersja: `0.6.0`. Historia: 0.6.0 — rekomendacja triażu zgłoszenia (schemat przeniesiony z tf, F3);
+0.5.0 — poziomy autonomii (polityka, pola decyzji, zdarzenia skrzynki i postępu pracy
 agenta; DA1, DA2), `source_reported_at` w nagłówku zmiany (lead time od zgłoszenia w ShipScope); 0.4.0 — historyjka z kryteriami (G2), plan wydania (G1), nowe pola cięcia,
 `release` w `feature.released`, zdarzenie `release.stage_changed`, zestaw wzorcowy kształtu historyjki, konwencje;
 0.3.0 — zgłoszenie, artefakt zmiany, cięcie, zdarzenia, wspólny wzorzec klucza;
@@ -20,13 +21,15 @@ agenta; DA1, DA2), `source_reported_at` w nagłówku zmiany (lead time od zgłos
 | [`story.schema.json`](story.schema.json) | historyjka `US-n` (albo klucz z Jiry) ze scenariuszami `AC-n` w formacie `gwt`, `ears` albo `free` | eksport z tf, konektor repo ci_for_sdlc | [`examples/story.json`](examples/story.json) |
 | [`release-plan.schema.json`](release-plan.schema.json) | plan wydania zmiany: MVP z miarą, linie `R1…Rn` z cięciami, flagi z etapami udostępniania | `changes/CHG-n/release.yaml` | [`examples/release-plan.json`](examples/release-plan.json) |
 | [`autonomy.schema.json`](autonomy.schema.json) | polityka autonomii organizacji: typ decyzji → poziom 0–3, okno weta, warunek, progi obniżenia i podniesienia | konfiguracja organizacji (zmiana polityki to decyzja człowieka) | [`examples/autonomy.json`](examples/autonomy.json) |
+| [`triage-recommendation.schema.json`](triage-recommendation.schema.json) | rekomendacja triażu `PRB`: stan pdi z polami, których wymaga, i stan tf z tabeli mapowania; decyzję podejmuje człowiek w pdi | wyjście triażu tf (`triage_pdi.py recommend`) dla pdi | [`examples/triage-recommendation.json`](examples/triage-recommendation.json) |
 | [`fixtures/story-shape/`](fixtures/story-shape/README.md) | zestaw wzorcowy reguł STORY i AC: historyjki, oczekiwane wyniki, wspólne słownictwo | testy tf i ci_for_sdlc | — |
 
 Walidacja w Pythonie: `from pdi import contract; contract.errors("problem", obj)` (pusta lista = poprawny);
-nazwy: `decision`, `problem`, `change`, `task`, `event`, `story`, `release_plan`, `autonomy`.
+nazwy: `decision`, `problem`, `change`, `task`, `event`, `story`, `release_plan`, `autonomy`,
+`triage_recommendation`.
 
-Zgodność wstecz: wszystkie pola dodane w 0.5.0 są opcjonalne, a zdarzenia z `contract_version` 0.4.0 dalej
-przechodzą walidację. Zestaw wzorcowy `fixtures/story-shape/` ma wersję 0.4.0 — tę, w której zmienił się ostatnio.
+Zgodność wstecz: 0.6.0 dodaje tylko nowy schemat; wszystkie pola dodane w 0.5.0 są opcjonalne, a zdarzenia
+z `contract_version` 0.4.0 i 0.5.0 dalej przechodzą walidację. Zestaw wzorcowy `fixtures/story-shape/` ma wersję 0.4.0 — tę, w której zmienił się ostatnio.
 
 ## Poziomy autonomii (0.5.0, decyzje [DA1 i DA2](../docs/decyzje.md))
 
@@ -86,6 +89,12 @@ i `duplicate` tf tylko rekomenduje; decyzję i pilnowanie progu powrotu przejmuj
 | `rejected` | `rejection_reason` z listy (+ `rejection_note`) | `wontfix` |
 | `parked` | `return_when` (próg powrotu) | brak odpowiednika — w tf `needs-triage` z etykietą `deferred` |
 | `duplicate` | `duplicate_of` | `wontfix` (z linkiem do oryginału) |
+
+Rekomendacja triażu (`triage-recommendation.schema.json`, od 0.6.0) ma ten sam stan i te same pola co zgłoszenie
+(test pilnuje list): `clarifying` z pytaniami, `accepted` z briefem i wykonawcą (`agent` → `ready-for-agent`,
+`human` → `ready-for-human`; bez `change` — zmianę tworzy pdi po decyzji), `rejected` z powodem
+(`out_of_scope_recorded` także z plikiem `.out-of-scope/*.md`), `parked` z progiem powrotu, `duplicate`
+z oryginałem. `tf_state` musi zgadzać się z tabelą wyżej.
 
 Powody odrzucenia: `out_of_strategy`, `works_as_designed`, `cost_disproportionate`, `already_exists`,
 `out_of_scope_recorded` (wpis w `.out-of-scope/` tf), `other`.

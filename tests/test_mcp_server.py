@@ -50,6 +50,7 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
         "retry_dispatch",
         "open_due_impact_reviews",
         "get_trace",
+        "get_shipscope_connection",
         "record_problem",
         "list_problems",
         "get_problem",
@@ -67,6 +68,7 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
     assert tools["list_problems"].annotations.read_only_hint is True
     assert tools["triage_problem"].annotations.read_only_hint is False
     assert tools["get_trace"].annotations.read_only_hint is True
+    assert tools["get_shipscope_connection"].annotations.read_only_hint is True
     assert tools["open_due_impact_reviews"].annotations.read_only_hint is False
     assert tools["list_changes"].annotations.read_only_hint is True
     assert tools["retry_dispatch"].annotations.read_only_hint is False
@@ -133,7 +135,7 @@ async def test_stdio_end_to_end(tmp_path: Path, make_draft: Draft) -> None:
         listed = await session.list_tools()
         result = await session.call_tool("record_decision", make_draft())
 
-    assert len(listed.tools) == 21
+    assert len(listed.tools) == 22
     assert json.loads(result.content[0].text)["id"] == "DEC-0001"
     assert (tmp_path / "rejestr" / "decisions" / "_ogolne" / "DEC-0001.md").is_file()
 
