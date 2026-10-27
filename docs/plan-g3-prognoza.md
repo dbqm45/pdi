@@ -1,6 +1,6 @@
 # Plan — prognoza zmiany i jej kalibracja (G3, krok 2)
 
-Stan: 2026-10-27. Luka G3 po decyzji D-E1 (25.10): prognozę „kiedy to będzie” liczy automat z liczby cięć planu tf
+Stan: 2026-10-27, **zrobione** (pdi #37). Luka G3 po decyzji D-E1 (25.10): prognozę „kiedy to będzie” liczy automat z liczby cięć planu tf
 i historycznego czasu przepływu z ShipScope, a ludzie głosują tylko wtedy, gdy automat zgłasza wątpliwość. Krok 1
 (dbqm45/evdt-service-shipscope#119) dał `GET /api/service/v1/flow`. Ten krok liczy prognozę w pdi, zapisuje ją
 w stanie zmiany i po dostarczeniu porównuje z wynikiem. Pokazanie prognozy w pokoju sprintdecka przyjdzie po MVP

@@ -1,6 +1,6 @@
 # Automatyzacja i konsola — plan
 
-Data: 2026-10-25 · Status: **w realizacji** — A0, A1, A3, A6 i K-1 zrobione, A2, A4, A5, A7, A8 i konsola (K-2–K-4) do zrobienia (stan w §8); DA1 i DA2 przyjęte, DA3–DA6 otwarte
+Data: 2026-10-25 · Status: **w realizacji** — A0, A1, A2, A3, A6 i K-1 zrobione, A4, A5, A7, A8 i konsola (K-2–K-4) do zrobienia (stan w §8); DA1 i DA2 przyjęte, DA3–DA6 otwarte
 
 Gdzie jeszcze zautomatyzować workflow od pomysłu do wdrożenia i jak dać człowiekowi jedno miejsce, w którym widzi,
 co się dzieje, i podejmuje decyzje tak jak w rozmowie z Claude. Uzupełnia [plan jednego flow](plan-jeden-flow-sdlc.md)
@@ -135,20 +135,20 @@ uproszczonego review zakłada zielone CI.
 
 ## 8. Stan realizacji
 
-Stan na 2026-10-26, sprawdzony na gałęziach `main` wszystkich repozytoriów.
+Stan na 2026-10-27, sprawdzony na gałęziach `main` wszystkich repozytoriów.
 
 | Krok | Stan | Gdzie | Uwagi |
 |---|---|---|---|
 | A0 kontrakt 0.5.0 | zrobione | pdi #24 | [plan A0](plan-a0-kontrakt-050.md) |
 | A1 orkiestrator i skrzynka (F4) | zrobione | pdi #15–#17; tf #79; ci_for_sdlc #66 | maszyna stanów per CHG, fazy tf bez interakcji, zatwierdzenie w ci_for_sdlc z bramek pdi |
-| A2 zamykanie pytań z cytatem | w toku | pdi (A2b: kontrakt 0.7.0, odbiór `decision.recorded`) | decyzja D-A2: zatwierdzenie w ci_for_sdlc, gotowa decyzja do rejestru pdi; do zrobienia w ci_for_sdlc: A2a i wysyłka ([polecenia startowe](polecenia-startowe-a2.md)) |
+| A2 zamykanie pytań z cytatem | zrobione | ci_for_sdlc #81 (A2a), #82 (A2b); pdi #36 (kontrakt 0.7.0, odbiór `decision.recorded`) | decyzja D-A2: zatwierdzenie w ci_for_sdlc (polityka `autoClose`), gotowa decyzja do rejestru pdi z numerem `DEC`; licznik akceptacji (A3) ją liczy |
 | A3 licznik akceptacji szkiców | zrobione | pdi #27 | [plan A3](plan-a3-licznik-akceptacji.md) |
 | A4 flagi według reguły | do zrobienia | | potrzebuje źródła metryk ochronnych (luka G5); do tego czasu `flag.stage_advance` zostaje na poziomie 3 |
 | A5 decyzje ze spotkań i Slacka | do zrobienia | | |
 | A6 triaż z grupowaniem (F3) | zrobione | pdi #23; tf #82 | duplikaty i rekomendacja triażu w stanach pdi |
 | A7 review uproszczone | do zrobienia | | AI review w CI jest (tf #86); brakuje trybu `review.light` i listy wrażliwych ścieżek; wymaga działającego CI |
 | A8 lustro Jira ↔ repo | do zrobienia | | |
-| K-1 Claude jako interfejs | zrobione | ci_for_sdlc #74; ShipScope #114 | trzy lokalne serwery stdio obok siebie: pdi (decyzje i skrzynka), ci_for_sdlc (`packages/mcp`, gotowość) i ShipScope (`adapters/mcp`, stan wydań); oba nowe tylko do odczytu, bez zatwierdzania (DA5 otwarta). Serwer ci_for_sdlc nie wysyła tokenu, bo odczyty API są dziś otwarte; token do odczytu to K1b w `docs/BACKLOG-DEFERRED.md` ci_for_sdlc — do zrobienia przed wystawieniem ci_for_sdlc poza localhost |
+| K-1 Claude jako interfejs | zrobione | ci_for_sdlc #74; ShipScope #114 | trzy lokalne serwery stdio obok siebie: pdi (decyzje i skrzynka), ci_for_sdlc (`packages/mcp`, gotowość) i ShipScope (`adapters/mcp`, stan wydań); oba nowe tylko do odczytu, bez zatwierdzania (DA5 otwarta). Odczyty API ci_for_sdlc wymagają tokenu, gdy ustawiony jest `CI_READ_TOKEN`, a serwer MCP wysyła go jako `CI_SDLC_TOKEN` (K1b, ci_for_sdlc #80) |
 | K-2 skrzynka i oś zdarzeń w UI | do zrobienia | | skrzynka i graf śladu są w pdi po stronie danych; brakuje interfejsu |
 | K-3 rozmowa w konsoli | do zrobienia | | |
 | K-4 graf śladu i panel w Jirze | do zrobienia | | makieta ekranów: [`design/konsola/`](../design/konsola/README.md) |

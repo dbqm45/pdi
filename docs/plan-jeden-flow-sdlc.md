@@ -1,6 +1,6 @@
 # Jeden flow SDLC — plan aktualizacji pdi, tf, ci_for_sdlc i ShipScope
 
-Data: 2026-10-23 · Status: **propozycja** (nic jeszcze nie zrobione) · Wersja HTML: https://claude.ai/artifact/DoRYpdhzHwjTpGEnBx3UvV
+Data: 2026-10-23 · Status: **F0–F5 zrobione, F6 częściowo** (stan na 2026-10-27, §7 i §8) · Wersja HTML: https://claude.ai/artifact/DoRYpdhzHwjTpGEnBx3UvV
 
 Jak połączyć cztery projekty w jeden proces od zgłoszenia problemu do informacji, że funkcja jest wydana na PROD
 i czy przyniosła oczekiwany efekt. Co zrobić w każdym repo i w jakiej kolejności. Kontekst rozmowy, z której plan
@@ -176,6 +176,10 @@ Jiry), zdarzeń wychodzących i API dla innych usług.
 | Release notes z intencji | Delivery summary bierze tytuł i opis z `intent.md`, nie z ticketu | notatki pisane językiem problemu | F5 |
 | Lead time od zgłoszenia | Insights: PRB utworzone → wydane na prod (daty z pdi) | pełna miara „od pomysłu do produkcji” | F5 |
 
+Stan 2026-10-27: wszystko z tabeli jest zrobione (ShipScope #107, #109–#113). Doszły: połączenie z pdi
+z potwierdzonym stanem (#115), warstwa pdi widoczna tylko po połączeniu (#116, #118) i czas przepływu dla prognozy
+G3 (#119).
+
 ## 8. Kolejność realizacji
 
 > **Aktualizacja 2026-10-23:** dodana faza **F0+ — pdi standalone** (rejestr decyzji z zapisem z Claude CLI przez MCP), niezależna od tf, ci_for_sdlc i ShipScope; w F0 najpierw schemat decyzji. Szczegóły: [`14-pdi-standalone.md`](14-pdi-standalone.md#7-zmiana-kolejności-w-planie-jednego-flow).
@@ -183,8 +187,11 @@ Jiry), zdarzeń wychodzących i API dla innych usług.
 Każda faza kończy się czymś, co działa samo, nawet jeśli następna się opóźni. Każdy punkt to osobny PR w danym repo.
 
 ### F0 — Kontrakt
-- **pdi:** repo startowe, `contract/`: schematy problem, zmiana, decyzja, zdarzenie; zasady ID; testy walidacji.
-- **tf:** dziennik per zmiana (`project_record.py change new`), szablony intent/plan; instalacja tf w ShipScope i pdi.
+- **pdi:** repo startowe, `contract/`: schematy problem, zmiana, decyzja, zdarzenie; zasady ID; testy walidacji —
+  **zrobione 2026-10-23** (kontrakt 0.3.0, [plan](plan-f0-kontrakt.md)); dziś kontrakt 0.7.0.
+- **tf:** dziennik per zmiana, szablony intent/plan — **zrobione** w nakładce `mode-pdi` jako `decision_record.py`
+  (`change new`, `check`, `decision add/pending/mark/export/gate`); instalacja tf w ShipScope i pdi — zrobione
+  w ShipScope (`docs/project/`), w pdi jeszcze nie.
 - **Działa po fazie:** zmianę da się opisać w repo w jednym, sprawdzalnym formacie.
 
 > **G1 i G2 (plan wydania, kształt historyjki)** — kroki z [planu G1/G2](plan-g1-g2.md) w fazach: K0 (kontrakt
@@ -194,6 +201,8 @@ Każda faza kończy się czymś, co działa samo, nawet jeśli następna się op
 ### F1 — Ślad w commitach
 - **tf:** dopisek `Change:` i hook; Talos czyta `plan.md` zmiany; raport przebiegu w repo.
 - **ShipScope:** sync elementów z repo, hierarchia CHG → TSK, grupowanie po zmianach, flagi z kluczami zmian.
+- **Zrobione 2026-10-26:** tf #80 (dopisek `Change:`, hook `commit-msg`, Talos na cięciach zmiany); ShipScope #107
+  (zmiany i zadania z `docs/project/changes/`).
 - **Działa po fazie:** ShipScope pokazuje „CHG-12: Deployed (hidden) na PROD” bez Jiry i bez pdi.
 
 ### F2 — Spójność na repo
@@ -206,8 +215,10 @@ Każda faza kończy się czymś, co działa samo, nawet jeśli następna się op
 
 ### F3 — pdi MVP
 - **pdi:** intake, wzbogacenie, triaż, rejestr decyzji, przyjęcie do budowy jako PR z `intent.md` — **zrobione 2026-10-26** ([plan](plan-f3-pdi.md): formularz i narzędzia w Claude, duplikaty i próg powrotu, przyjęcie przez fazę `intent` w tf; kontekst z tf i ci_for_sdlc później).
-- **tf:** `proc-issue-triage` z wejściem i wyjściem w JSON.
-- **ci_for_sdlc:** wychodzące webhooki.
+- **tf:** `proc-issue-triage` z wejściem i wyjściem w JSON — **zrobione 2026-10-26** (tf #82 `triage_pdi.py`, #84
+  faza `intent` z przyjętego PRB, #87 schemat rekomendacji z kontraktu 0.6.0).
+- **ci_for_sdlc:** wychodzące webhooki — **zrobione 2026-10-26** (ci_for_sdlc #66: `readiness.changed` do pdi;
+  od #82 także `decision.recorded`).
 - **Działa po fazie:** pilot na dwóch problemach EV (operacje masowe w Control Tower, definicja uptime) od
   zgłoszenia do przyjętej intencji. Bramki to wciąż zwykłe PR-y.
 
@@ -218,15 +229,31 @@ Każda faza kończy się czymś, co działa samo, nawet jeśli następna się op
 - **Działa po fazie:** człowiek klika tylko na bramkach; kolejne fazy startują same.
 
 ### F5 — Zamknięcie pętli
-- **ShipScope:** `feature.released`, API usług (**zrobione 2026-10-26**, dbqm45/evdt-service-shipscope#110), release notes z intencji, lead time od zgłoszenia.
+- **ShipScope:** `feature.released`, API usług (**zrobione 2026-10-26**, dbqm45/evdt-service-shipscope#109, #110), release notes z intencji (**zrobione**, #111), lead time od intencji i od zgłoszenia (**zrobione**, #112, #113).
 - **pdi:** powiadomienia (**zrobione 2026-10-26**, [plan](plan-f5-powiadomienia.md): mały rejestr PRB, podpisany webhook do zgłaszającego po triażu, wydaniu i ocenie skutku), ocena skutku decyzji (**zrobione 2026-10-26**, [plan](plan-f5-ocena-skutku.md): termin z intencji po wydaniu R1, dane z API usług ShipScope, szkic wniosku, wynik potwierdza człowiek), graf śladu (**zrobione 2026-10-26**, [plan](plan-f5-graf-sladu.md): `get_trace`, luki pokazane, nie naprawiane).
-- **tf:** pasma kontrolne na metrykach z ShipScope → nowy PRB.
+- **tf:** pasma kontrolne na metrykach z ShipScope → nowy PRB — **zrobione 2026-10-26** (tf #81 `metric_watch.py`
+  → `metric.breached`; pdi otwiera problem do triażu).
 - **Działa po fazie:** pełna pętla zgłoszenie → wydanie → skutek → nowe zgłoszenie.
 
 ### F6 — Rozszerzenia
-- **tf:** faza designu przez Figma MCP, AI review w CI, evale flow.
+- **tf:** faza designu przez Figma MCP, AI review w CI (**zrobione**, tf #86, `REVIEW.md`), evale flow.
 - **ci_for_sdlc:** OpenAPI jako źródło, porównanie ekranów z ramkami Figmy.
 - **pdi:** kanały Slack/Teams, lustro w Jirze dla organizacji, które go potrzebują.
+- **Wszystkie:** Claude jako interfejs (K-1, **zrobione**: serwery MCP pdi, ci_for_sdlc #74 i ShipScope #114).
+
+### Luki domknięte po fazach (G1–G4)
+Mapa ekosystemu wskazała luki, których fazy F0–F6 nie pokrywały. Stan na 2026-10-27:
+
+| Luka | Stan | Gdzie |
+|---|---|---|
+| G1 plan wydania i MVP, G2 kształt historyjki i AC | zrobione poza krokami zależnymi od trybu SaaS i sprintdecka; G2.3 wstrzymane (D-G23) | [plan G1/G2](plan-g1-g2.md), §10 |
+| G3 kalibracja prognozy (od D-E1 prognozę liczy automat) | kroki 1–2 zrobione: czas przepływu od pierwszego commita do PROD w API usług ShipScope (#119), prognoza przy `approve-for-implementation` i jej porównanie z wynikiem w pdi (#37); krok 3, prognoza w pokoju sprintdecka, po MVP sprintdecka | [plan G3](plan-g3-prognoza.md) |
+| G4 ślad kryterium akceptacji do testu | zrobione: wyniki JUnit XML, reguły TEST-001…003, `--tests` w bramce, karta na stronie elementu (ci_for_sdlc #75–#77) | ci_for_sdlc `docs/PDI-G4-PLAN.md` |
+| G5 dane o użyciu, G8 incydenty | czekają na wybór narzędzia (analityka produktu; PagerDuty, Opsgenie, …) | |
+| G6, G7 (jedno wejście dla ludzi, miary przepływu) | decyzje architektoniczne do podjęcia | |
+
+Automatyzacja decyzji (poziomy autonomii, licznik akceptacji, zamykanie pytań z cytatem) idzie według
+[planu automatyzacji i konsoli](plan-automatyzacja-i-konsola.md), §8.
 
 ## 9. Decyzje do podjęcia
 

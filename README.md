@@ -4,12 +4,14 @@ Warstwa decyzji w procesie AI-native SDLC: zgłoszenia problemów, triaż, rejes
 orkiestracja etapów, graf śladu od zgłoszenia do wydania na PROD i ocena skutku decyzji. Współpracuje z tf
 (fabryka agentów), ci_for_sdlc (kontrola spójności definicji) i ShipScope (status wydań).
 
-Stan: **krok 1 trybu standalone zbudowany** — rejestr decyzji, serwer MCP i komenda `/record-decision`
-([instalacja w Claude Code](integrations/claude-code/README.md)) — oraz skrzynka bramek z orkiestracją zmian
-(G1.5 i strona pdi F4, niżej). Reszta flow SDLC na etapie planu.
+Stan (2026-10-27): **rejestr decyzji z serwerem MCP i komendą `/record-decision`**
+([instalacja w Claude Code](integrations/claude-code/README.md)), **skrzynka bramek z orkiestracją zmian, intake
+i triaż zgłoszeń, ocena skutku, graf śladu i prognoza zmiany** (niżej). Fazy F0–F5
+[planu jednego flow](docs/plan-jeden-flow-sdlc.md) są zrobione we wszystkich czterech aplikacjach; stan faz i luk
+G1–G8: tamże, §8.
 
 Praca z kodem: `uv sync`, potem `uv run pytest`, `uv run ruff check src tests`, `uv run ruff format --check src tests`,
-`uv run mypy src` (te same kroki w CI: `.github/workflows/ci.yml`). Walidacja na sobie: [`eval/dogfood/`](eval/dogfood/README.md). Kod: `src/pdi/`, kontrakt 0.3.0 (decyzja, zgłoszenie, zmiana, cięcie, zdarzenia): [`contract/`](contract/README.md), plan kroku: [`docs/plan-krok-1.md`](docs/plan-krok-1.md).
+`uv run mypy src` (te same kroki w CI: `.github/workflows/ci.yml`). Walidacja na sobie: [`eval/dogfood/`](eval/dogfood/README.md). Kod: `src/pdi/`, kontrakt 0.7.0 (decyzja, zgłoszenie, zmiana, cięcie, plan wydania, zdarzenia, autonomia): [`contract/`](contract/README.md), plan kroku: [`docs/plan-krok-1.md`](docs/plan-krok-1.md).
 
 ## Skrzynka bramek i orkiestracja (G1.5, F4)
 
