@@ -45,7 +45,7 @@ def test_schema_is_valid_json_schema_2020_12(name: str) -> None:
 def test_settings_define_version_key_pattern_and_default_prefixes() -> None:
     settings = contract.settings()
 
-    assert settings["version"] == contract.CONTRACT_VERSION == "0.8.0"
+    assert settings["version"] == contract.CONTRACT_VERSION == "0.9.0"
     assert settings["prefixes"] == {"problem": "PRB", "change": "CHG", "task": "TSK", "decision": "DEC"}
     assert settings["key_pattern"] == "^[A-Z][A-Z0-9]+-[0-9]+$"
 
