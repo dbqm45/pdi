@@ -1,6 +1,6 @@
 # Automatyzacja i konsola — plan
 
-Data: 2026-10-25 · Status: **w realizacji** — A0, A1, A2, A3, A6 i K-1 zrobione, A4, A5, A7, A8 i konsola (K-2–K-4) do zrobienia (stan w §8); DA1 i DA2 przyjęte, DA3–DA6 otwarte
+Data: 2026-10-25 · Status: **w realizacji** — A0, A1, A2, A3, A5 (lokalnie), A6 i K-1 zrobione, A4, A7, A8 i konsola (K-2–K-4) do zrobienia (stan w §8); DA1 i DA2 przyjęte, DA3–DA6 otwarte
 
 Gdzie jeszcze zautomatyzować workflow od pomysłu do wdrożenia i jak dać człowiekowi jedno miejsce, w którym widzi,
 co się dzieje, i podejmuje decyzje tak jak w rozmowie z Claude. Uzupełnia [plan jednego flow](plan-jeden-flow-sdlc.md)
@@ -144,7 +144,7 @@ Stan na 2026-10-27, sprawdzony na gałęziach `main` wszystkich repozytoriów.
 | A2 zamykanie pytań z cytatem | zrobione | ci_for_sdlc #81 (A2a), #82 (A2b); pdi #36 (kontrakt 0.7.0, odbiór `decision.recorded`) | decyzja D-A2: zatwierdzenie w ci_for_sdlc (polityka `autoClose`), gotowa decyzja do rejestru pdi z numerem `DEC`; licznik akceptacji (A3) ją liczy |
 | A3 licznik akceptacji szkiców | zrobione | pdi #27 | [plan A3](plan-a3-licznik-akceptacji.md) |
 | A4 flagi według reguły | do zrobienia | | potrzebuje źródła metryk ochronnych (luka G5); do tego czasu `flag.stage_advance` zostaje na poziomie 3 |
-| A5 decyzje ze spotkań i Slacka | do zrobienia | | |
+| A5 decyzje ze spotkań i Slacka | zrobione (wersja lokalna) | pdi ([plan A5](plan-a5-decyzje-z-rozmow.md)) | `propose_decisions_from_conversation` i komenda `/decisions-from`: szkice z dosłownymi cytatami sprawdzanymi w tekście, zatwierdzenie albo odrzucenie każdego w skrzynce; kontrakt 0.10.0 (`source.kind: meeting`). Aplikacja Slacka (skrót na wiadomości) po decyzji o usłudze pdi (DA4) |
 | A6 triaż z grupowaniem (F3) | zrobione | pdi #23; tf #82 | duplikaty i rekomendacja triażu w stanach pdi |
 | A7 review uproszczone | do zrobienia | | AI review w CI jest (tf #86); brakuje trybu `review.light` i listy wrażliwych ścieżek; wymaga działającego CI |
 | A8 lustro Jira ↔ repo | do zrobienia | | |

@@ -4,7 +4,8 @@ Schematy i zasady wspólne dla pdi, tf, ci_for_sdlc i ShipScope ([decyzja D1](..
 Wersjonowany wg SemVer 2.0.0 w [`contract.json`](contract.json); zmiana niezgodna wstecz podnosi wersję główną
 (w 0.x — drugą liczbę). Odbiorca zdarzeń przypina wersję przez pole `contract_version`.
 
-Wersja: `0.9.0`. Historia: 0.9.0 — format tabeli ramek w `design.md` (etap 07 Design, F6): konwencje, schemat
+Wersja: `0.10.0`. Historia: 0.10.0 — `source.kind: meeting` w decyzji (decyzje z transkrypcji spotkań, A5);
+0.9.0 — format tabeli ramek w `design.md` (etap 07 Design, F6): konwencje, schemat
 odczytanej tabeli, parser referencyjny `pdi.design`; 0.8.0 — eksport rekonstrukcji z kodu (format tf → ci_for_sdlc, F2) i wydania kontraktu
 jako tagi `contract-v<wersja>`; 0.7.0 — zdarzenie `decision.recorded` (decyzja podjęta w aplikacji nadawcy do zapisu
 w rejestrze pdi, A2b, decyzja D-A2) i `source.kind: ci_for_sdlc` w decyzji; 0.6.0 — rekomendacja triażu zgłoszenia (schemat przeniesiony z tf, F3);

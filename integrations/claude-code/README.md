@@ -40,6 +40,7 @@ claude mcp list       # pdi powinien mieć status „Connected”
 ```bash
 mkdir -p ~/.claude/commands
 cp ~/pdi/integrations/claude-code/record-decision.md ~/.claude/commands/
+cp ~/pdi/integrations/claude-code/decisions-from.md ~/.claude/commands/   # decyzje ze Slacka i spotkań (A5)
 ```
 
 **6. Próba:** uruchom `claude` w dowolnym projekcie, wpisz `/mcp` — `pdi` z 9 narzędziami. Ustal z Claude cokolwiek
@@ -70,6 +71,9 @@ Narzędzia i ograniczenia: `packages/mcp/README.md` w ci_for_sdlc, `adapters/mcp
 
 ## Użycie
 - `/record-decision` — Claude przygotowuje szkic decyzji z rozmowy, pokazuje go i zapisuje po Twoim „tak”.
+- `/decisions-from <link>` — decyzje z wątku Slacka albo transkrypcji spotkania (A5): Claude wybiera to, co
+  rzeczywiście ustalono, z dosłownymi cytatami; pdi sprawdza, że cytaty są w tekście, i wystawia szkice w skrzynce;
+  każdy zatwierdzasz albo odrzucasz. Tekstu rozmowy pdi nie zapisuje — tylko cytaty i link.
   Komenda ma z góry zezwolenie na narzędzia pdi, więc po „tak” nie ma drugiego pytania o uprawnienia
   (zapis jest w gicie i można go cofnąć).
 - „Co już zdecydowaliśmy o …?” — Claude wywołuje `find_decisions`.
