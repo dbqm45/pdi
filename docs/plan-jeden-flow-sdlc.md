@@ -275,7 +275,7 @@ Fazy F0–F5 są zrobione; zostają rozszerzenia, kroki zależne od innych prac 
 | Próba fazy designu na prawdziwym pliku Figmy (tryb A, potem B) | tf | konto i plik Figmy (D-F3) |
 | Evale flow (PRB → intent, intent → plan) | tf | — |
 | OpenAPI jako źródło, porównanie ekranów z ramkami Figmy | ci_for_sdlc | — |
-| Instalacja tf w pdi, aktualizacja starszej instalacji w `ci_for_sdlc/.claude` | pdi, ci_for_sdlc | — |
+| Instalacja tf w pdi, aktualizacja starszej instalacji w `ci_for_sdlc/.claude` | pdi, ci_for_sdlc | decyzja właściciela (odłożona 2026-10-28; ustalenia w [`TODO.md`](../TODO.md)) |
 | Kanały Slack/Teams (A5: decyzje ze spotkań i Slacka) | pdi | — |
 | Lustro Jira ↔ repo (A8) | pdi + konektory | zapis do Jiry etapami (DG3) |
 | Review uproszczone `review.light` (A7) | tf + ci_for_sdlc | lista wrażliwych ścieżek |
