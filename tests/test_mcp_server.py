@@ -63,7 +63,9 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
         "propose_autonomy_changes",
         "forecast_change",
         "forecast_report",
+        "propose_decisions_from_conversation",
     }
+    assert tools["propose_decisions_from_conversation"].annotations.read_only_hint is False
     assert tools["forecast_report"].annotations.read_only_hint is True
     assert tools["forecast_change"].annotations.read_only_hint is False
     assert tools["autonomy_report"].annotations.read_only_hint is True
@@ -139,7 +141,7 @@ async def test_stdio_end_to_end(tmp_path: Path, make_draft: Draft) -> None:
         listed = await session.list_tools()
         result = await session.call_tool("record_decision", make_draft())
 
-    assert len(listed.tools) == 24
+    assert len(listed.tools) == 25
     assert json.loads(result.content[0].text)["id"] == "DEC-0001"
     assert (tmp_path / "rejestr" / "decisions" / "_ogolne" / "DEC-0001.md").is_file()
 
@@ -294,3 +296,32 @@ async def test_forecast_through_tools(
     assert report == {"count": 0, "ratio_median": None, "within_range_share": None, "changes": []}
     with pytest.raises(ToolError, match="list_changes"):
         await server.call_tool("forecast_change", {"change": "CHG-404"})
+
+
+async def test_decisions_from_conversation_through_tools(server: Any, registry: Registry, make_draft: Draft) -> None:
+    from tests.test_capture import SOURCE, THREAD, candidate
+
+    proposed = await call(
+        server,
+        "propose_decisions_from_conversation",
+        {
+            "source": SOURCE,
+            "text": THREAD,
+            "candidates": [candidate(), candidate(statement="X.", quotes=["brak w tekście"])],
+        },
+    )
+    item = proposed["items"][0]
+    decided = await call(
+        server,
+        "decide_inbox_item",
+        {
+            "item_id": item["id"],
+            "outcome": "approved",
+            **make_draft(statement=item["draft"]["statement"], why=item["draft"]["why"]),
+        },
+    )
+
+    assert len(proposed["refused"]) == 1
+    assert decided["decision"]["source"]["kind"] == "slack"
+    assert decided["decision"]["kind"] == "product"
+    assert registry.get(decided["decision"]["id"])["draft_edited"] is False

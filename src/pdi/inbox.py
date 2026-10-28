@@ -24,7 +24,7 @@ from typing import Any, TypeAlias
 
 import yaml
 
-from pdi import autonomy, contract, flow, forecast, impact
+from pdi import autonomy, capture, contract, flow, forecast, impact
 from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig, Post, dispatch_phase
 from pdi.notify import NotifyConfig, ReporterNotifyConfig, notify_ci_for_sdlc
@@ -45,6 +45,7 @@ GATE_OUTCOMES = flow.OUTCOMES
 IMPACT_OUTCOMES = impact.OUTCOMES
 PROBLEM_OUTCOMES = ("accepted", "rejected")
 AUTONOMY_OUTCOMES = ("approved", "rejected")
+CAPTURE_OUTCOMES = ("approved", "rejected")
 SIGNATURE_TOLERANCE_SECONDS = 300
 MVP_RELEASE = "R1"
 SEEN_EVENTS_KEPT = 200
@@ -264,6 +265,16 @@ class Inbox:
         if old["source"].get("kind") != sender or f"ref:{ref}" not in old.get("tags", ()):
             raise InvalidEvent(f"supersedes: {old_id} nie jest decyzją {sender} dla {ref}.")
 
+    def _dismiss_capture(self, item: Item, draft: Decision) -> dict[str, Any]:
+        """Odrzucony szkic z rozmowy („to nie była decyzja”): pozycja zamknięta, bez wpisu w rejestrze."""
+        at = _iso(self.registry.now())
+        item = {**item, "status": "decided", "outcome": "rejected", "decision": None, "decided_at": at}
+        if draft.get("why"):
+            item["rejection_reason"] = draft["why"]
+        self._write(item, overwrite=True)
+        warning = self.registry.commit([self._path(item["id"])], f"inbox {item['id']}: szkic odrzucony")
+        return {"item": item, "decision": None, "change": None, **({"warning": warning} if warning else {})}
+
     def _plan_review(self, change: str, released_at: str) -> dict[str, Any]:
         intent = impact.intent_decision(self.registry, change)
         due, basis = impact.due_date(released_at, intent)
@@ -364,6 +375,35 @@ class Inbox:
 
     # --- autonomia (A3) ---
 
+    def propose_captures(
+        self, source: dict[str, Any], text: str, candidates: list[dict[str, Any]]
+    ) -> dict[str, list[Any]]:
+        """Szkice decyzji z wątku albo transkrypcji (A5) → pozycje `kind: capture`.
+
+        Kandydatura bez cytatu obecnego w tekście wraca w `refused` z powodem; ta sama drugi raz — w `duplicates`.
+        Tekst rozmowy nie jest zapisywany.
+        """
+        capture.check_source(source, text)
+        at = _iso(self.registry.now())
+        created: list[Item] = []
+        refused: list[dict[str, str]] = []
+        duplicates: list[str] = []
+        for candidate in candidates:
+            problem = capture.candidate_problem(candidate, text)
+            if problem:
+                refused.append({"statement": str(candidate.get("statement") or ""), "reason": problem})
+                continue
+            item = capture.item(source, candidate, item_id=capture.item_id(source, candidate, at[:10]), at=at)
+            self._dir.mkdir(parents=True, exist_ok=True)
+            try:
+                self._write(item, overwrite=False)
+            except FileExistsError:
+                duplicates.append(item["id"])
+                continue
+            warning = self.registry.commit([self._path(item["id"])], f"inbox {item['id']}: {item['summary'][:60]}")
+            created.append({**item, **({"warning": warning} if warning else {})})
+        return {"items": created, "refused": refused, "duplicates": duplicates}
+
     def propose_autonomy_changes(self) -> list[Item]:
         """Pozycje „zmienić poziom autonomii typu X?” dla rekomendacji z licznika akceptacji szkiców.
 
@@ -442,6 +482,10 @@ class Inbox:
             raise InvalidDecision(f"Triaż problemu wymaga outcome: jednego z {', '.join(PROBLEM_OUTCOMES)}.")
         if item["kind"] == "autonomy" and outcome not in AUTONOMY_OUTCOMES:
             raise InvalidDecision(f"Propozycja autonomii wymaga outcome: {' albo '.join(AUTONOMY_OUTCOMES)}.")
+        if item["kind"] == "capture" and outcome not in CAPTURE_OUTCOMES:
+            raise InvalidDecision(f"Szkic z rozmowy wymaga outcome: {' albo '.join(CAPTURE_OUTCOMES)}.")
+        if item["kind"] == "capture" and outcome == "rejected":
+            return self._dismiss_capture(item, draft)
         new_policy = None
         if item["kind"] == "autonomy" and outcome == "approved":
             try:  # najpierw sprawdzenie polityki, żeby nie zapisać decyzji, której kontrakt nie przyjmie
@@ -471,17 +515,20 @@ class Inbox:
             extra = _problem_fields(item, draft)
         if item["kind"] == "autonomy":
             extra = {"evidence": [*(draft.get("evidence") or []), autonomy.evidence(item)]}
+        if item["kind"] == "capture":
+            extra = capture.decision_fields(item, draft)
         decision_type = draft.get("decision_type") or _decision_type(item, gate)
         if item["kind"] == "autonomy":
             decision_type = autonomy.LEVEL_CHANGE_TYPE
         record = {
             **draft,
             **extra,
-            "kind": _DECISION_KIND[item["kind"]],
-            "decision_type": decision_type,
+            "kind": _DECISION_KIND.get(item["kind"], extra.get("kind")),
             "links": links,
             "tags": tags,
         }
+        if decision_type:
+            record["decision_type"] = decision_type
         decision = self.registry.record(record)
 
         result: dict[str, Any] = {}
@@ -714,10 +761,12 @@ def _problem_fields(item: Item, draft: Decision) -> dict[str, Any]:
     return {"evidence": [*(draft.get("evidence") or []), {"text": text, "epistemic_status": "observation"}]}
 
 
-def _decision_type(item: Item, gate: str) -> str:
-    """Typ decyzji z pozycji skrzynki: bramka etapu flagi → flag.stage_advance, inna bramka → gate.<bramka>."""
+def _decision_type(item: Item, gate: str) -> str | None:
+    """Typ decyzji z pozycji skrzynki: bramka etapu flagi → flag.stage_advance, inna bramka → gate.<bramka>.
+
+    Szkic z rozmowy (A5) nie ma typu, chyba że poda go człowiek."""
     if item["kind"] != "gate":
-        return _DECISION_TYPE[item["kind"]]
+        return _DECISION_TYPE.get(item["kind"])
     if item["event"]["type"] == "release.stage_changed":
         return "flag.stage_advance"
     slug = re.sub(r"[^a-z0-9]+", "_", gate.lower()).strip("_")
@@ -725,6 +774,8 @@ def _decision_type(item: Item, gate: str) -> str:
 
 
 def _tags(item: Item, gate: str, outcome: str | None) -> list[str]:
+    if item["kind"] == "capture":
+        return ["capture", f"capture:{item['source']['kind']}"]
     if item["kind"] == "autonomy":
         return ["autonomy", f"autonomy:{outcome}", f"typ:{item['decision_type']}"]
     if item["kind"] == "problem":

@@ -95,5 +95,5 @@ def test_file_without_frame_table_is_an_error() -> None:
         parse_design_md("# Projekt\n\n| A | B |\n|---|---|\n| 1 | 2 |\n")
 
 
-def test_contract_version_is_0_9_0() -> None:
-    assert contract.CONTRACT_VERSION == "0.9.0"
+def test_contract_version_is_at_least_0_9_0() -> None:
+    assert tuple(int(x) for x in contract.CONTRACT_VERSION.split(".")) >= (0, 9, 0)

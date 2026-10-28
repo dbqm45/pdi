@@ -8,6 +8,7 @@ from typing import Any
 
 from pdi import autonomy, forecast
 from pdi.changes import ChangeStore
+from pdi.inbox import Inbox
 from pdi.registry import GENERAL_PROJECT_DIR, Registry
 
 
@@ -28,6 +29,21 @@ def summarize(registry: Registry) -> dict[str, Any]:
             1 for d in decisions if any(a["load_bearing"] for a in d.get("assumptions", ()))
         ),
         "forecasts": forecast.calibration(ChangeStore(registry).all(status=None)),
+        "captures": _captures(registry, decisions),
+    }
+
+
+def _captures(registry: Registry, decisions: list[dict[str, Any]]) -> dict[str, int]:
+    """Szkice decyzji z rozmów (A5): ile wystawiono, zatwierdzono, poprawiono przed zapisem i odrzucono."""
+    items = [i for i in Inbox(registry).items(status=None) if i["kind"] == "capture"]
+    ids = {i.get("decision") for i in items if i.get("decision")}
+    approved = [d for d in decisions if d["id"] in ids]
+    return {
+        "proposed": len(items),
+        "open": sum(1 for i in items if i["status"] == "open"),
+        "approved": len(approved),
+        "edited": sum(1 for d in approved if d.get("draft_edited")),
+        "rejected": sum(1 for i in items if i.get("outcome") == "rejected"),
     }
 
 
@@ -46,6 +62,11 @@ def main() -> None:
     print(
         f"Prognozy (G3): {len(f['changes'])}, z wynikiem {f['count']}, mediana rzeczywiste/prognoza "
         f"{f['ratio_median']}, w przedziale {f['within_range_share']}"
+    )
+    c = s["captures"]
+    print(
+        f"Szkice z rozmów (A5): wystawione {c['proposed']}, otwarte {c['open']}, zatwierdzone {c['approved']} "
+        f"(z poprawką {c['edited']}), odrzucone {c['rejected']}"
     )
     print("Autonomia (szkice AI bez poprawek w oknie):")
     for row in autonomy.report(registry):
