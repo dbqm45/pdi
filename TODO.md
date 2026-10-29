@@ -55,6 +55,14 @@ ani bramka nie wiedzą, że zmiana rusza obszar objęty decyzją.
   zmiany i podaje w podsumowaniu, które decyzje sprawdził.
 - [ ] **`applies_to` przy zapisie decyzji** — `record_decision` przyjmuje pole; tf `decision add` je przekazuje (pozycja
   w tf przy następnej zmianie `mode-pdi`).
+- [ ] **Sposób weryfikacji i odwracalność decyzji** (źródło: J. Wąsowski, „SDD — Missing Spec Decisions: The
+  Two-Implementations Technique and a Decision Register”, 2026-10): opcjonalne pola `verify` (rodzaj: test /
+  fitness function w CI / punkt przeglądu, plus odwołanie, np. id testu) i `reversibility` (`local` — agent decyduje
+  i zapisuje; `broad` — agent proponuje, człowiek akceptuje; `one_way` — właściciel rozstrzyga przed implementacją:
+  usuwanie danych, migracja, uprawnienia produkcyjne, publiczny kontrakt API). Decyzja bez sposobu weryfikacji to
+  życzenie; ci_for_sdlc może sprawdzić, że `verify` wskazuje istniejący test. Klasy decyzji, o które pytać, gdy
+  specyfikacja milczy: skala, tryb wykonania (od razu / w tle), awaria i ponowienia, uprawnienia, migracja
+  istniejących danych.
 - [ ] **Szablon PR „Wpływ na decyzje”** (`.github/pull_request_template.md`): których decyzji dotyczy, czy zmienia
   przyjętą (nie / tak / nie wiem), uzasadnienie. Ten sam szablon w ci_for_sdlc i tf.
 
