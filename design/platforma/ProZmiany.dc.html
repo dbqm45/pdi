@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>My changes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
+<style>
+body{margin:0;background:#FFFFFF}
+a{color:#18181b;text-decoration:none}
+.btn{font-family:"Geist",ui-sans-serif,system-ui,sans-serif;font-size:13px;font-weight:500;border-radius:8px;padding:0 12px;height:34px;cursor:pointer;border:1px solid #e4e4e7;background:#FFFFFF;color:#18181b;display:inline-flex;align-items:center;gap:6px;box-sizing:border-box;white-space:nowrap;text-decoration:none}
+.btn:hover{background:#fafafa}
+.btn-dark{background:#18181b;border-color:#18181b;color:#FFFFFF}
+.chipf{font-family:"Geist",ui-sans-serif,system-ui,sans-serif;font-size:13px;font-weight:500;border-radius:999px;padding:0 12px;height:32px;cursor:pointer;border:1px solid #e4e4e7;background:#FFFFFF;color:#52525b;display:inline-flex;align-items:center;gap:6px}
+.row{display:grid;grid-template-columns:28px minmax(0,1.6fr) 196px 120px 92px 32px;align-items:center;gap:14px;padding:12px 28px;border-top:1px solid #f4f4f5}
+.row:hover{background:#fafafa}
+.num{font-variant-numeric:tabular-nums}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1000px; box-sizing: border-box; font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; color: #18181b; background: #FFFFFF; display: flex; flex-wrap: wrap; align-items: stretch">
+
+  <div style="flex: 1 1 232px; max-width: 240px; min-width: 200px; background: #fafafa; border-right: 1px solid #ececee">
+    <dc-import name="ProNav" active="changes" hint-size="240px,960px"></dc-import>
+  </div>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px 28px; border-bottom: 1px solid #ececee">
+      <span style="font-size: 14px; font-weight: 600; flex-grow: 1">My changes</span>
+      <button class="btn" type="button">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#52525b" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M7 12h10M10 18h4"></path></svg>
+        Filter
+      </button>
+      <a class="btn btn-dark" href="Problemy.dc.html">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        New problem
+      </a>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 14px 28px">
+      <sc-for list="{{filters}}" as="f" hint-placeholder-count="4">
+        <button class="chipf" type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}} <span class="num" style="{{f.countStyle}}">{{f.count}}</span></button>
+      </sc-for>
+    </div>
+
+    <div style="overflow-x: auto">
+      <div style="min-width: 900px">
+        <div class="row" style="padding-top: 8px; padding-bottom: 8px; background: #fafafa; border-top: 1px solid #ececee; font-size: 12px; font-weight: 500; color: #71717a">
+          <span></span><span>Change</span><span>Progress</span><span>Expected</span><span>Environments</span><span></span>
+        </div>
+        <sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+          <div style="display: flex; align-items: center; gap: 8px; padding: 14px 28px 8px; border-top: 1px solid #ececee">
+            <span aria-hidden="true" style="{{g.dot}}"></span>
+            <span style="font-size: 13px; font-weight: 600">{{g.label}}</span>
+            <span class="num" style="font-size: 12px; color: #71717a">{{g.count}}</span>
+          </div>
+          <sc-for list="{{g.rows}}" as="r" hint-placeholder-count="2">
+            <a class="row" href="ProZmiana.dc.html">
+              <span aria-hidden="true" style="{{r.ring}}"><span style="{{r.ringInner}}"></span></span>
+              <span style="min-width: 0; display: flex; flex-direction: column; gap: 3px">
+                <span style="display: flex; align-items: baseline; gap: 8px; min-width: 0">
+                  <span style="font-size: 14px; font-weight: 600; white-space: nowrap">{{r.title}}</span>
+                  <span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #a1a1aa">{{r.key}}</span>
+                </span>
+                <span style="font-size: 13px; color: #52525b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{r.now}}</span>
+              </span>
+              <span style="display: flex; flex-direction: column; gap: 6px">
+                <span aria-hidden="true" style="display: flex; gap: 3px">
+                  <sc-for list="{{r.steps}}" as="s" hint-placeholder-count="8"><span style="{{s}}"></span></sc-for>
+                </span>
+                <span style="font-size: 12px; color: #52525b">{{r.stepLabel}}</span>
+              </span>
+              <span style="display: flex; flex-direction: column; gap: 2px">
+                <span class="num" style="font-size: 13px; font-weight: 500">{{r.eta}}</span>
+                <span style="{{r.etaNoteStyle}}">{{r.etaNote}}</span>
+              </span>
+              <span style="display: flex; gap: 4px" aria-label="{{r.envLabel}}">
+                <sc-for list="{{r.envs}}" as="e" hint-placeholder-count="3"><span style="{{e.style}}">{{e.name}}</span></sc-for>
+              </span>
+              <span aria-hidden="true" style="{{r.avatar}}">{{r.initials}}</span>
+            </a>
+          </sc-for>
+        </sc-for>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { filter: 'all' }; }
+  renderVals() {
+    const C = {
+      you: { solid: '#f5b400', soft: '#fef4d4', fg: '#8a5a00', label: 'Your turn' },
+      ai: { solid: '#4f46e5', soft: '#eef2ff', fg: '#3730a3', label: 'AI working' },
+      wait: { solid: '#a1a1aa', soft: '#f4f4f5', fg: '#52525b', label: 'Waiting' },
+      done: { solid: '#12b76a', soft: '#dcfae6', fg: '#067647', label: 'With users' },
+    };
+    const names = ['Problem described', 'Direction agreed', 'AI plans', 'Approve the plan', 'AI builds', 'Check and release', 'On environments', 'With users'];
+    const env = (name, s) => ({ name, style: 'font-family: Geist Mono, monospace; font-size: 10px; font-weight: 600; width: 24px; height: 20px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; ' + (s === 'on' ? 'background: #dcfae6; color: #067647;' : s === 'hidden' ? 'background: #f4f4f5; color: #3f3f46; box-shadow: inset 0 0 0 1px #d4d4d8;' : s === 'warn' ? 'background: #fef4d4; color: #8a5a00;' : 'background: #fafafa; color: #d4d4d8; box-shadow: inset 0 0 0 1px #f0f0f2;') });
+    const av = (i, bg, fg) => ({ initials: i, avatar: 'width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; background: ' + bg + '; color: ' + fg + ';' });
+    const row = (o) => {
+      const c = C[o.who];
+      const pct = Math.round(((o.step + (o.who === 'done' ? 1 : 0.5)) / 8) * 100);
+      return Object.assign({}, o, av(o.ini, o.who === 'ai' ? '#eef2ff' : '#e0e7ff', '#3730a3'), {
+        stepLabel: (o.step + 1) + ' of 8 · ' + names[o.step],
+        steps: names.map((n, i) => 'display: block; width: 18px; height: 6px; border-radius: 3px; background: ' + (i < o.step ? '#18181b' : i === o.step ? c.solid : '#e4e4e7') + ';'),
+        ring: 'width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: conic-gradient(' + c.solid + ' ' + pct + '%, #ececee 0);',
+        ringInner: 'display: block; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF;',
+        envs: [env('T', o.e[0]), env('Q', o.e[1]), env('P', o.e[2])],
+        envLabel: 'TEST ' + o.e[0] + ', QA ' + o.e[1] + ', PROD ' + o.e[2],
+        etaNoteStyle: 'font-size: 12px; color: ' + (o.unsure ? '#8a5a00' : '#71717a') + ';',
+      });
+    };
+    const all = [
+      row({ who: 'you', key: 'CHG-8', title: 'Room limits', now: 'Choose the free plan limit — the sources disagree (10 or 8).', step: 3, eta: '~5 days', etaNote: 'after your decision', ini: 'AK', e: ['off', 'warn', 'off'] }),
+      row({ who: 'you', key: 'CHG-9', title: 'Jira import', now: 'Plan ready: 5 parts. Approve it or change the direction.', step: 3, eta: '~9 days', etaNote: 'unsure · little history', unsure: true, ini: 'AK', e: ['off', 'off', 'off'] }),
+      row({ who: 'you', key: 'CHG-6', title: '“Risk” deck', now: 'On PROD, hidden. Turn it on for users when you are ready.', step: 6, eta: 'Today', etaNote: 'one click', ini: 'AK', e: ['on', 'on', 'hidden'] }),
+      row({ who: 'ai', key: 'CHG-7', title: 'Session report', now: 'Building — 3 of 4 parts done, one in review.', step: 4, eta: 'Thu, Oct 30', etaNote: 'day 4 of ~7', ini: 'AI', e: ['on', 'off', 'off'] }),
+      row({ who: 'wait', key: 'PRB-13', title: 'Voting on a phone cuts off the cards', now: 'Waiting for the reporter to answer 3 questions.', step: 0, eta: '—', etaNote: 'not planned yet', ini: 'MZ', e: ['off', 'off', 'off'] }),
+      row({ who: 'done', key: 'CHG-5', title: 'Room for 10 people', now: 'With users for 30 days — goal met.', step: 7, eta: 'Shipped', etaNote: 'Sep 27 · 2 days late', ini: 'MZ', e: ['on', 'on', 'on'] }),
+    ];
+    const f = this.state.filter;
+    const order = ['you', 'ai', 'wait', 'done'];
+    const shown = order.filter((k) => f === 'all' || f === k);
+    const groups = shown.map((k) => {
+      const rows = all.filter((r) => r.who === k);
+      return { label: C[k].label, count: String(rows.length), rows, dot: 'width: 8px; height: 8px; border-radius: 50%; background: ' + C[k].solid + ';' };
+    }).filter((g) => g.rows.length);
+    const mkF = (id, label, count) => ({
+      label, count: String(count), pressed: f === id ? 'true' : 'false', pick: () => this.setState({ filter: id }),
+      style: f === id ? 'background: #18181b; border-color: #18181b; color: #FFFFFF;' : '',
+      countStyle: 'font-size: 12px; font-weight: 600; ' + (f === id ? 'color: #d4d4d8;' : 'color: #a1a1aa;'),
+    });
+    return {
+      groups,
+      filters: [mkF('all', 'All', all.length), mkF('you', 'Your turn', 3), mkF('ai', 'AI working', 1), mkF('done', 'With users', 1)],
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Room limits — from problem to users</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
+<style>
+body{margin:0;background:#f4f4f5}
+a{color:#1e293b;text-decoration:none}a:hover{text-decoration:underline}
+.btn{font-family:"Geist",ui-sans-serif,system-ui,sans-serif;font-size:14px;font-weight:500;border-radius:10px;padding:10px 16px;min-height:44px;cursor:pointer;border:1px solid #e4e4e7;background:#FFFFFF;color:#18181b}
+.btn-primary{background:#1e293b;border-color:#1e293b;color:#FFFFFF}
+.opt{font-family:inherit;text-align:left;width:100%;cursor:pointer;border-radius:10px;padding:12px 14px;min-height:48px;font-size:15px;color:#18181b;display:flex;flex-direction:column;gap:2px}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1250px; box-sizing: border-box; font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; color: #18181b; background: #f4f4f5; display: flex; flex-direction: column">
+
+  <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 16px 32px; background: #FFFFFF; border-bottom: 1px solid #e4e4e7">
+    <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-weight: 500; font-size: 14px; color: #1e293b">pis</span>
+    <a href="Prosty.dc.html" style="font-size: 14px; flex-grow: 1">← My changes</a>
+  </header>
+
+  <main style="width: 100%; max-width: 1180px; margin: 0 auto; box-sizing: border-box; padding: 28px 32px; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start">
+
+    <section aria-labelledby="h1" style="flex: 3 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 18px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <h1 id="h1" style="margin: 0; font-size: 28px; font-weight: 600">Room limits</h1>
+        <span style="font-size: 16px; color: #52525b">Free rooms without a limit overload the service.</span>
+      </div>
+
+      <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+        <sc-for list="{{stages}}" as="s" hint-placeholder-count="8">
+          <li style="display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 14px">
+            <div style="display: flex; flex-direction: column; align-items: center">
+              <span style="{{s.dot}}">{{s.mark}}</span>
+              <span style="{{s.line}}"></span>
+            </div>
+            <div style="padding-bottom: 22px; display: flex; flex-direction: column; gap: 6px">
+              <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px">
+                <span style="{{s.nameStyle}}">{{s.name}}</span>
+                <span style="{{s.badgeStyle}}">{{s.who}}</span>
+                <span style="font-size: 13px; color: #65656d">{{s.when}}</span>
+              </div>
+              <span style="{{s.textStyle}}">{{s.text}}</span>
+
+              <sc-if value="{{s.isDecision}}" hint-placeholder-val="{{false}}">
+                <div style="margin-top: 6px; border: 1px solid #f9e3a3; border-radius: 16px; background: #fffbeb; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px">
+                  <span style="font-size: 17px; font-weight: 600">How many people can join a free room?</span>
+                  <span style="font-size: 14px; color: #52525b">The story and the code say 10. The pricing page says 8. The AI builds whatever you choose and updates the other places.</span>
+                  <sc-for list="{{options}}" as="o" hint-placeholder-count="3">
+                    <button class="opt" type="button" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}" style="{{o.style}}">
+                      <span style="font-weight: 600">{{o.label}}</span>
+                      <span style="font-size: 13px; color: #52525b">{{o.effect}}</span>
+                    </button>
+                  </sc-for>
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+                    <button class="btn btn-primary" type="button" onClick="{{confirm}}">Confirm and let the AI build</button>
+                    <a href="SpojnoscZmiana.dc.html" style="font-size: 14px" style="font-weight: 500">See where each source says it →</a>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </li>
+        </sc-for>
+      </ol>
+    </section>
+
+    <aside style="flex: 2 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 18px">
+      <section aria-labelledby="h-vis" style="background: #FFFFFF; border: 1px solid #e4e4e7; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px">
+        <h2 id="h-vis" style="margin: 0; font-size: 17px; font-weight: 600">Where can it be seen?</h2>
+        <sc-for list="{{visibility}}" as="v" hint-placeholder-count="4">
+          <div style="display: flex; align-items: center; gap: 12px; border-top: 1px solid #f4f4f5; padding-top: 10px">
+            <span style="width: 92px; font-weight: 600; font-size: 14px">{{v.where}}</span>
+            <span style="{{v.style}}">{{v.state}}</span>
+          </div>
+        </sc-for>
+        <span style="font-size: 13px; color: #65656d">The code reaches TEST, QA and PROD hidden. Users see it only after you turn it on.</span>
+      </section>
+
+      <section aria-labelledby="h-next" style="background: #FFFFFF; border: 1px solid #e4e4e7; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px">
+        <h2 id="h-next" style="margin: 0; font-size: 17px; font-weight: 600">What happens next</h2>
+        <span style="font-size: 15px">{{next}}</span>
+        <span style="font-size: 13px; color: #65656d">Expected: about 5 days of AI work after your decision (4–7, based on similar changes).</span>
+      </section>
+
+      <section aria-labelledby="h-det" style="background: #FFFFFF; border: 1px solid #e4e4e7; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px">
+        <h2 id="h-det" style="margin: 0; font-size: 17px; font-weight: 600">Details for specialists</h2>
+        <a href="SpojnoscZmiana.dc.html" style="font-size: 14px">Consistency checks: sources, screens, tests →</a>
+        <a href="Praca.dc.html" style="font-size: 14px">Plan and its 3 parts →</a>
+        <a href="Wydania.dc.html" style="font-size: 14px">Deployments by environment →</a>
+        <a href="Produkt.dc.html" style="font-size: 14px">Feature switches →</a>
+      </section>
+    </aside>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1250}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { choice: null, decided: false }; }
+  renderVals() {
+    const C = {
+      you: { fg: '#8a5a00', bg: '#fef4d4', bar: '#f5b400', on: '#18181b', label: 'You decide' },
+      ai: { fg: '#1e293b', bg: '#f1f5f9', bar: '#1e293b', on: '#FFFFFF', label: 'AI works' },
+      wait: { fg: '#52525b', bg: '#f4f4f5', bar: '#a1a1aa', on: '#FFFFFF', label: 'Waiting' },
+      done: { fg: '#067647', bg: '#dcfae6', bar: '#12b76a', on: '#FFFFFF', label: 'Done' },
+    };
+    const decided = this.state.decided;
+    const S = [
+      { name: 'Problem described', actor: 'Alert from the service, confirmed by Marek', when: 'Oct 21', text: 'Rooms on the free plan have no limit; the realtime service slows down at peak times.' },
+      { name: 'Direction agreed', actor: 'You', when: 'Oct 22', text: 'You decided: limit free rooms by number of people and session length.' },
+      { name: 'AI plans', actor: 'AI', when: 'Oct 22 – 24', text: 'Plan ready: 3 parts — the limit in the API, the “room is full” screen, the session timer.' },
+      { name: 'You approve the plan', actor: 'You', when: decided ? 'today' : 'now', text: decided ? 'You chose: ' + this.state.choice + '. Plan approved.' : 'One question must be answered before the AI can build.' },
+      { name: 'AI builds', actor: 'AI', when: decided ? 'now' : 'next', text: decided ? 'The AI is building the 3 parts and testing them.' : 'The AI builds and tests the 3 parts, one at a time.' },
+      { name: 'You check and release', actor: 'You', when: 'later', text: 'You review the result and allow it to go to production.' },
+      { name: 'On TEST · QA · PROD', actor: 'Automatic', when: 'later', text: 'Deployed step by step, still hidden from users.' },
+      { name: 'With users', actor: 'You', when: 'later', text: 'You turn it on. After 30 days we check whether the slowdowns stopped.' },
+    ];
+    const cur = decided ? 4 : 3;
+    const whoAt = (i) => (i === cur ? (decided ? 'ai' : 'you') : i < cur ? 'done' : 'wait');
+    const stages = S.map((s, i) => {
+      const k = whoAt(i);
+      const c = C[k];
+      const isCur = i === cur;
+      return {
+        name: s.name, when: s.when, text: s.text,
+        who: i < cur ? s.actor : isCur ? C[k].label : s.actor,
+        mark: i < cur ? '✓' : String(i + 1),
+        dot: 'width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; flex-shrink: 0; ' + (i < cur ? 'background: #067647; color: #FFFFFF;' : isCur ? 'background: ' + c.bar + '; color: ' + c.on + '; box-shadow: 0 0 0 5px ' + c.bg + ';' : 'background: #FFFFFF; color: #71717a; border: 2px solid #d4d4d8; box-sizing: border-box;'),
+        line: 'flex-grow: 1; width: 2px; min-height: 18px; background: ' + (i < cur ? '#12b76a' : '#e4e4e7') + ';' + (i === S.length - 1 ? ' visibility: hidden;' : ''),
+        nameStyle: 'font-size: 17px; font-weight: 600; color: ' + (i > cur ? '#71717a' : '#18181b') + ';',
+        badgeStyle: 'font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; ' + (isCur ? 'background: ' + c.bg + '; color: ' + c.fg + ';' : 'background: #f4f4f5; color: #52525b;'),
+        textStyle: 'font-size: 15px; color: ' + (i > cur ? '#71717a' : '#52525b') + ';',
+        isDecision: isCur && !decided,
+      };
+    });
+    const opts = [
+      { id: '10', label: '10 people', effect: 'Keeps the story and the code; the AI asks for the pricing page to be updated.' },
+      { id: '8', label: '8 people', effect: 'The AI changes the story, the code and the tests to 8.' },
+      { id: 'later', label: 'Not sure yet — build with 10 and check with sales this week', effect: 'Recorded as an accepted risk with a review date, so it is not forgotten.' },
+    ];
+    const choice = this.state.choice;
+    return {
+      stages,
+      options: opts.map((o) => ({
+        label: o.label, effect: o.effect,
+        pressed: choice === o.label ? 'true' : 'false',
+        style: choice === o.label ? 'border: 2px solid #1e293b; background: #f1f5f9;' : 'border: 1px solid #e4e4e7; background: #FFFFFF;',
+        pick: () => this.setState({ choice: o.label }),
+      })),
+      confirm: () => { if (this.state.choice) this.setState({ decided: true }); },
+      next: decided ? 'The AI is building. You will be asked again when the result is ready for your check.' : 'Waiting for your answer above. Nothing moves until then.',
+      visibility: [
+        { where: 'TEST', state: 'not yet', style: 'font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: #f4f4f5; color: #52525b; border: 1px solid #e4e4e7;' },
+        { where: 'QA', state: 'not yet', style: 'font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: #f4f4f5; color: #52525b; border: 1px solid #e4e4e7;' },
+        { where: 'PROD', state: 'not yet', style: 'font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: #f4f4f5; color: #52525b; border: 1px solid #e4e4e7;' },
+        { where: 'Users', state: 'no — off until you turn it on', style: 'font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: #f4f4f5; color: #52525b; border: 1px solid #e4e4e7;' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

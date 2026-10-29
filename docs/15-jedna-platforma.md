@@ -42,6 +42,30 @@ Rozmowa z Claude jest panelem na każdym ekranie (K-3 z planu automatyzacji). Pr
 PO pyta, co ma użytkownik, a dev i ops, co leży na środowisku. ShipScope ma ten podział już dziś (widok produktowy
 i techniczny); w jednym produkcie widok produktowy traci Jirę jako źródło, a techniczny dzieli się na kilka ekranów.
 
+### Prosty model: czyja kolej
+
+Ekrany szczegółowe (makieta: 1–7) są dla specjalistów. Dla właściciela produktu każda zmiana przechodzi przez osiem
+etapów nazwanych zwykłymi słowami, a ekran mówi przede wszystkim, czyja jest kolej i jaki jest jeden następny krok:
+
+| # | Etap | Kto |
+|---|---|---|
+| 1 | Problem described | zgłaszający |
+| 2 | Direction agreed | człowiek |
+| 3 | AI plans | AI |
+| 4 | You approve the plan | człowiek (decyzja) |
+| 5 | AI builds | AI |
+| 6 | You check and release | człowiek (decyzja) |
+| 7 | On TEST · QA · PROD | automatycznie |
+| 8 | With users | człowiek włącza przełącznik |
+
+Cztery kolory stanu: **Your turn** (żółty: czeka na decyzję człowieka), **AI working** (granat w wersji prostej, indygo w Pro), **Waiting**
+(szary: czeka na kogoś z zewnątrz) i **With users** (zielony). Decyzja na etapie 4 lub 6 to pytanie z opcjami
+i skutkiem każdej z nich; „jeszcze nie wiem” jest opcją zapisywaną jako zaakceptowane ryzyko z terminem przeglądu.
+AI nie zaczyna budować bez tej decyzji. Szczegóły (spójność, wdrożenia, przełączniki) są linkami „for specialists”.
+
+Makieta ma dwie wersje tego modelu: prostą w kolorach ci_for_sdlc (0a–0c) i dopracowaną wizualnie „Pro” (0d–0f:
+Overview, My changes, jedna zmiana z interaktywną decyzją).
+
 ## 3. Źródło: proces zamiast Jiry
 
 Po połączeniu z pdi ShipScope już czyta zmiany i cięcia z repo, pokazuje przyrost „Changes (repo)” i plan wydania

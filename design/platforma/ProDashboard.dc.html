@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Overview</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
+<style>
+body{margin:0;background:#FFFFFF}
+a{color:#18181b;text-decoration:none}
+.card{background:#FFFFFF;border:1px solid #ececee;border-radius:14px;box-shadow:0 1px 2px rgba(24,24,27,.04)}
+.btn{font-family:"Geist",ui-sans-serif,system-ui,sans-serif;font-size:13px;font-weight:500;border-radius:8px;padding:0 12px;height:34px;cursor:pointer;border:1px solid #e4e4e7;background:#FFFFFF;color:#18181b;display:inline-flex;align-items:center;gap:6px;box-sizing:border-box;white-space:nowrap;text-decoration:none}
+.btn:hover{background:#fafafa}
+.btn-dark{background:#18181b;border-color:#18181b;color:#FFFFFF}
+.btn-dark:hover{background:#27272a}
+.h2{margin:0;font-size:15px;font-weight:600;letter-spacing:-0.01em}
+.muted{color:#71717a}
+.num{font-variant-numeric:tabular-nums}
+.row:hover{background:#fafafa}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1160px; box-sizing: border-box; font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; color: #18181b; background: #FFFFFF; display: flex; flex-wrap: wrap; align-items: stretch">
+
+  <div style="flex: 1 1 232px; max-width: 240px; min-width: 200px; background: #fafafa; border-right: 1px solid #ececee">
+    <dc-import name="ProNav" active="overview" hint-size="240px,960px"></dc-import>
+  </div>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; background: #FFFFFF">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px 28px; border-bottom: 1px solid #ececee">
+      <span style="font-size: 14px; font-weight: 600; flex-grow: 1">Overview</span>
+      <label style="display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; border: 1px solid #e4e4e7; border-radius: 8px; background: #fafafa; width: 300px; max-width: 100%; box-sizing: border-box">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="2" stroke-linecap="round"><path d="M4 11a7 7 0 1 0 14 0a7 7 0 1 0-14 0M20 20l-3.5-3.5"></path></svg>
+                <input type="search" aria-label="Search" placeholder="Search or jump to…" style="border: none; background: transparent; font-family: inherit; font-size: 13px; flex-grow: 1; min-width: 0; outline-offset: 2px">
+        <span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #71717a; border: 1px solid #e4e4e7; border-radius: 4px; padding: 1px 5px; background: #FFFFFF">⌘K</span>
+      </label>
+      <button class="btn" type="button" aria-label="Notifications" style="width: 34px; padding: 0; justify-content: center">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#52525b" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+      </button>
+      <a class="btn btn-dark" href="Problemy.dc.html">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        New problem
+      </a>
+    </header>
+
+    <div style="padding: 26px 28px 36px; display: flex; flex-direction: column; gap: 24px; max-width: 1240px; width: 100%; box-sizing: border-box">
+
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px">
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px">
+          <h1 style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.03em">Good afternoon, Anna</h1>
+          <span style="font-size: 15px; color: #52525b">3 decisions are waiting for you. The AI is building 1 change; nothing is blocked on it.</span>
+        </div>
+        <div role="group" aria-label="Period" style="display: flex; padding: 3px; border-radius: 9px; background: #f4f4f5; gap: 2px">
+          <button type="button" class="btn" style="height: 28px; border: none; background: transparent; color: #52525b">7 days</button>
+          <button type="button" class="btn" aria-pressed="true" style="height: 28px; border: none; box-shadow: 0 1px 2px rgba(24,24,27,.1)">30 days</button>
+          <button type="button" class="btn" style="height: 28px; border: none; background: transparent; color: #52525b">Quarter</button>
+        </div>
+      </div>
+
+      <section aria-label="Key numbers" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px">
+        <sc-for list="{{kpis}}" as="k" hint-placeholder-count="4">
+          <div class="card" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+            <span style="font-size: 13px; color: #52525b; font-weight: 500">{{k.label}}</span>
+            <div style="display: flex; align-items: flex-end; gap: 10px">
+              <span class="num" style="font-size: 28px; font-weight: 600; letter-spacing: -0.03em; flex-grow: 1">{{k.value}}</span>
+              <svg aria-hidden="true" width="96" height="34" viewBox="0 0 96 34"><path d="{{k.area}}" fill="{{k.fill}}"></path><path d="{{k.line}}" fill="none" stroke="{{k.stroke}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </div>
+            <span style="display: flex; align-items: center; gap: 6px; font-size: 12px">
+              <span style="{{k.deltaStyle}}">{{k.delta}}</span>
+              <span class="muted">{{k.note}}</span>
+            </span>
+          </div>
+        </sc-for>
+      </section>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; align-items: start">
+
+        <section aria-labelledby="h-dec" class="card" style="display: flex; flex-direction: column">
+          <div style="display: flex; align-items: center; gap: 10px; padding: 16px 18px 10px">
+            <h2 id="h-dec" class="h2" style="flex-grow: 1">Needs your decision</h2>
+            <span style="font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #fef4d4; color: #8a5a00">3</span>
+          </div>
+          <sc-for list="{{decisions}}" as="d" hint-placeholder-count="3">
+            <a class="row" href="ProZmiana.dc.html" style="display: flex; align-items: center; gap: 14px; padding: 12px 18px; border-top: 1px solid #f4f4f5">
+              <span aria-hidden="true" style="{{d.iconBox}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{d.icon}}"></path></svg></span>
+              <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+                <span style="font-size: 14px; font-weight: 600">{{d.title}}</span>
+                <span style="font-size: 13px; color: #52525b">{{d.what}}</span>
+              </span>
+              <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0">
+                <span style="font-size: 12px; color: #52525b; font-weight: 500">{{d.kind}}</span>
+                <span class="muted" style="font-size: 12px">{{d.age}}</span>
+              </span>
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="2" stroke-linecap="round"><path d="m9 18 6-6-6-6"></path></svg>
+            </a>
+          </sc-for>
+        </section>
+
+        <section aria-labelledby="h-pipe" class="card" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <h2 id="h-pipe" class="h2" style="flex-grow: 1">Delivery pipeline</h2>
+            <a href="ProZmiany.dc.html" style="font-size: 13px; color: #52525b">View all</a>
+          </div>
+          <div aria-hidden="true" style="display: flex; height: 10px; border-radius: 999px; overflow: hidden; gap: 2px; background: #f4f4f5">
+            <sc-for list="{{segments}}" as="s" hint-placeholder-count="5">
+              <span style="{{s.style}}"></span>
+            </sc-for>
+          </div>
+          <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+            <sc-for list="{{stages}}" as="s" hint-placeholder-count="8">
+              <li style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid #f4f4f5; font-size: 13px">
+                <span aria-hidden="true" style="{{s.dot}}"></span>
+                <span style="width: 150px; flex-shrink: 0; font-weight: 500">{{s.name}}</span>
+                <span style="flex-grow: 1; color: #71717a; min-width: 0">{{s.items}}</span>
+                <span class="num" style="{{s.countStyle}}">{{s.count}}</span>
+              </li>
+            </sc-for>
+          </ol>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: #52525b">
+            <sc-for list="{{legend}}" as="l" hint-placeholder-count="4">
+              <span style="display: inline-flex; align-items: center; gap: 6px"><span aria-hidden="true" style="{{l.dot}}"></span>{{l.label}}</span>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: start">
+        <section aria-labelledby="h-env" class="card" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 4px">
+          <h2 id="h-env" class="h2" style="margin-bottom: 8px">Environments</h2>
+          <sc-for list="{{envs}}" as="e" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid #f4f4f5">
+              <span aria-hidden="true" style="{{e.dot}}"></span>
+              <span style="font-weight: 600; font-size: 13px; width: 48px">{{e.name}}</span>
+              <span style="flex-grow: 1; font-size: 13px; color: #52525b">{{e.note}}</span>
+              <span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #52525b">{{e.when}}</span>
+            </div>
+          </sc-for>
+        </section>
+
+        <section aria-labelledby="h-out" class="card" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 4px">
+          <h2 id="h-out" class="h2" style="margin-bottom: 8px">Outcomes</h2>
+          <sc-for list="{{outcomes}}" as="o" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid #f4f4f5">
+              <span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+                <span style="font-size: 13px; font-weight: 600">{{o.title}}</span>
+                <span style="font-size: 12px; color: #71717a">{{o.metric}}</span>
+              </span>
+              <span style="{{o.chip}}">{{o.result}}</span>
+            </div>
+          </sc-for>
+        </section>
+
+        <section aria-labelledby="h-act" class="card" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 4px">
+          <h2 id="h-act" class="h2" style="margin-bottom: 8px">Activity</h2>
+          <sc-for list="{{activity}}" as="a" hint-placeholder-count="5">
+            <div style="display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-top: 1px solid #f4f4f5; font-size: 13px">
+              <span aria-hidden="true" style="{{a.avatar}}">{{a.initials}}</span>
+              <span style="flex-grow: 1; min-width: 0; line-height: 1.4"><strong style="font-weight: 600">{{a.who}}</strong> <span style="color: #52525b">{{a.what}}</span></span>
+              <span class="muted" style="font-size: 12px; flex-shrink: 0">{{a.when}}</span>
+            </div>
+          </sc-for>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1160}}'>
+class Component extends DCLogic {
+  spark(values) {
+    const w = 96, h = 34, pad = 3;
+    const min = Math.min.apply(null, values), max = Math.max.apply(null, values);
+    const pts = values.map((v, i) => [Math.round(i * (w / (values.length - 1)) * 10) / 10, Math.round((h - pad - ((v - min) / ((max - min) || 1)) * (h - 2 * pad)) * 10) / 10]);
+    const line = 'M' + pts.map((p) => p[0] + ' ' + p[1]).join(' L');
+    return { line, area: line + ' L' + w + ' ' + h + ' L0 ' + h + ' Z' };
+  }
+  renderVals() {
+    const C = {
+      you: { solid: '#f5b400', soft: '#fef4d4', fg: '#8a5a00', label: 'You decide' },
+      ai: { solid: '#4f46e5', soft: '#eef2ff', fg: '#3730a3', label: 'AI working' },
+      wait: { solid: '#a1a1aa', soft: '#f4f4f5', fg: '#52525b', label: 'Waiting' },
+      done: { solid: '#12b76a', soft: '#dcfae6', fg: '#067647', label: 'With users' },
+    };
+    const kpi = (label, value, delta, good, note, values, stroke, fill) => Object.assign({ label, value, delta, note, stroke, fill,
+      deltaStyle: 'font-weight: 600; padding: 1px 6px; border-radius: 6px; ' + (good ? 'background: #dcfae6; color: #067647;' : 'background: #fee4e2; color: #b42318;') }, this.spark(values));
+    const I = {
+      split: 'M16 3h5v5M8 3H3v5M21 3l-7.5 7.5M3 3l7.5 7.5M12 12v9',
+      file: 'M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h4',
+      power: 'M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0',
+    };
+    const stage = (name, owner, items) => ({ name, count: String(items.length), items: items.join(' · ') || '—',
+      dot: 'width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: ' + (items.length ? C[owner].solid : '#e4e4e7') + ';',
+      countStyle: 'font-size: 13px; font-weight: 600; min-width: 22px; text-align: center; padding: 1px 6px; border-radius: 6px; ' + (items.length ? 'background: ' + C[owner].soft + '; color: ' + C[owner].fg + ';' : 'color: #a1a1aa;') });
+    const stages = [
+      stage('Problem described', 'wait', ['Phone voting']),
+      stage('Direction agreed', 'you', []),
+      stage('AI plans', 'ai', []),
+      stage('You approve the plan', 'you', ['Room limits', 'Jira import']),
+      stage('AI builds', 'ai', ['Session report']),
+      stage('You check and release', 'you', []),
+      stage('On TEST · QA · PROD', 'wait', ['Risk deck']),
+      stage('With users', 'done', ['Room for 10']),
+    ];
+    const owners = ['wait', 'you', 'ai', 'you', 'ai', 'you', 'wait', 'done'];
+    const segments = stages.map((s, i) => ({ n: Number(s.count), o: owners[i] })).filter((s) => s.n).map((s) => ({ style: 'display: block; flex: ' + s.n + ' 1 0; background: ' + C[s.o].solid + ';' }));
+    const av = (bg, fg) => 'width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; background: ' + bg + '; color: ' + fg + ';';
+    const dot = (c) => 'width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: ' + c + '; box-shadow: 0 0 0 3px ' + c + '22;';
+    return {
+      kpis: [
+        kpi('Problem to users', '12 days', '−3 d', true, 'median, last 5 changes', [19, 17, 18, 15, 16, 14, 12], '#4f46e5', '#eef2ff'),
+        kpi('Reached users', '1', '+1', true, 'in the last 30 days', [0, 0, 1, 0, 1, 0, 1], '#12b76a', '#ecfdf3'),
+        kpi('Forecasts on target', '67%', '+17 pt', true, '4 of 6 within range', [40, 45, 50, 50, 55, 60, 67], '#4f46e5', '#eef2ff'),
+        kpi('Decision wait time', '1.5 days', '+0.4 d', false, 'median time with you', [0.8, 1, 0.9, 1.2, 1.1, 1.4, 1.5], '#f04438', '#fff1f0'),
+      ],
+      decisions: [
+        { title: 'Room limits', what: 'Free plan limit — 10 or 8 people? The sources disagree.', kind: 'Approve the plan', age: 'waiting 2 days', icon: I.split, iconBox: 'width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #fef4d4; color: #8a5a00;' },
+        { title: 'Jira import', what: 'Plan ready: 5 parts, about 9 days — the forecast is unsure.', kind: 'Approve the plan', age: 'waiting 5 h', icon: I.file, iconBox: 'width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #fef4d4; color: #8a5a00;' },
+        { title: '“Risk” deck', what: 'On PROD, hidden from users. Nothing else is missing.', kind: 'Turn on for users', age: 'ready since yesterday', icon: I.power, iconBox: 'width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #dcfae6; color: #067647;' },
+      ],
+      stages, segments,
+      legend: ['you', 'ai', 'wait', 'done'].map((k) => ({ label: C[k].label, dot: 'width: 8px; height: 8px; border-radius: 50%; background: ' + C[k].solid + ';' })),
+      envs: [
+        { name: 'TEST', note: 'Session report · Room limits', when: '13:50', dot: dot('#12b76a') },
+        { name: 'QA', note: 'Room limits: screen on, API off', when: 'yesterday', dot: dot('#f5b400') },
+        { name: 'PROD', note: 'Risk deck (hidden) · api 1.8.0', when: '14:02', dot: dot('#12b76a') },
+      ],
+      outcomes: [
+        { title: 'Room for 10 people', metric: 'rollbacks 0 · target ≤ 1', result: 'Goal met', chip: 'font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #dcfae6; color: #067647;' },
+        { title: 'Create a room', metric: 'rooms per week +38%', result: 'Goal met', chip: 'font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #dcfae6; color: #067647;' },
+        { title: 'Fibonacci deck', metric: 'no success metric', result: 'Not measured', chip: 'font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #f4f4f5; color: #52525b;' },
+      ],
+      activity: [
+        { initials: 'AI', who: 'Agent', what: 'finished part 3 of Session report', when: '13:40', avatar: av('#eef2ff', '#3730a3') },
+        { initials: 'SS', who: 'ShipScope', what: 'deployed api 1.8.0 to PROD', when: '14:02', avatar: av('#f4f4f5', '#3f3f46') },
+        { initials: 'AK', who: 'Anna', what: 'agreed the direction for Jira import', when: '11:05', avatar: av('#e0e7ff', '#3730a3') },
+        { initials: 'CI', who: 'Consistency', what: 'found a conflict in Room limits', when: '10:12', avatar: av('#fef4d4', '#8a5a00') },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

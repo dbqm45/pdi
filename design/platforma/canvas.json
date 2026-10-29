@@ -1,24 +1,204 @@
 {
   "v": 3,
-  "createdOnFiles": {"v": 1, "at": "2026-10-27T19:45:00Z"},
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-27T19:45:00Z"
+  },
   "title": "Product Intelligence Suite — jeden produkt",
-  "launch": {"view": "canvas"},
+  "launch": {
+    "view": "canvas"
+  },
   "pages": [],
   "boards": {
-    "Main.dc.html": {"x": 0, "y": 0, "w": 1440, "h": 1080, "title": "Now (start screen)", "expand": "fill", "is_interactive": true},
-    "Produkt.dc.html": {"x": 1520, "y": 0, "w": 1440, "h": 1180, "title": "Product: features and switches", "expand": "fill", "is_interactive": true},
-    "Praca.dc.html": {"x": 3040, "y": 0, "w": 1440, "h": 1000, "title": "Work: changes and their flow", "expand": "fill", "is_interactive": true},
-    "Wydania.dc.html": {"x": 0, "y": 1300, "w": 1440, "h": 1080, "title": "Releases: environments (ShipScope)", "expand": "fill", "is_interactive": true},
-    "Problemy.dc.html": {"x": 1520, "y": 1300, "w": 1440, "h": 1000, "title": "Problems: reports and triage", "expand": "fill", "is_interactive": true},
-    "Nawigacja.dc.html": {"x": 3040, "y": 1300, "w": 248, "h": 900, "title": "Menu (shared component)"},
-    "Spojnosc.dc.html": {"x": 0, "y": 2600, "w": 1440, "h": 1100, "title": "Consistency: readiness and questions (ci_for_sdlc)", "expand": "fill", "is_interactive": true},
-    "SpojnoscZmiana.dc.html": {"x": 1520, "y": 2600, "w": 1440, "h": 1500, "title": "Consistency: one change (CHG-8)", "expand": "fill", "is_interactive": true}
+    "Prosty.dc.html": {
+      "x": 0,
+      "y": -1500,
+      "w": 1440,
+      "h": 1100,
+      "title": "Simple: my changes (one axis, who has the ball)",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "ProstaZmiana.dc.html": {
+      "x": 1520,
+      "y": -1500,
+      "w": 1440,
+      "h": 1250,
+      "title": "Simple: one change from problem to users",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1080,
+      "title": "Now (start screen)",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Produkt.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 1180,
+      "title": "Product: features and switches",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Praca.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 1000,
+      "title": "Work: changes and their flow",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Wydania.dc.html": {
+      "x": 0,
+      "y": 1300,
+      "w": 1440,
+      "h": 1080,
+      "title": "Releases: environments (ShipScope)",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Problemy.dc.html": {
+      "x": 1520,
+      "y": 1300,
+      "w": 1440,
+      "h": 1000,
+      "title": "Problems: reports and triage",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Nawigacja.dc.html": {
+      "x": 3040,
+      "y": 1300,
+      "w": 248,
+      "h": 900,
+      "title": "Menu (shared component)"
+    },
+    "Spojnosc.dc.html": {
+      "x": 0,
+      "y": 2600,
+      "w": 1440,
+      "h": 1100,
+      "title": "Consistency: readiness and questions (ci_for_sdlc)",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "SpojnoscZmiana.dc.html": {
+      "x": 1520,
+      "y": 2600,
+      "w": 1440,
+      "h": 1500,
+      "title": "Consistency: one change (CHG-8)",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Dashboard.dc.html": {
+      "x": 3040,
+      "y": -1500,
+      "w": 1440,
+      "h": 1180,
+      "title": "Simple: dashboard",
+      "expand": "fill"
+    },
+    "ProDashboard.dc.html": {
+      "x": 6080,
+      "y": -1500,
+      "w": 1440,
+      "h": 1160,
+      "title": "Pro: Overview",
+      "expand": "fill"
+    },
+    "ProZmiany.dc.html": {
+      "x": 7600,
+      "y": -1500,
+      "w": 1440,
+      "h": 1000,
+      "title": "Pro: My changes",
+      "expand": "fill"
+    },
+    "ProZmiana.dc.html": {
+      "x": 9120,
+      "y": -1500,
+      "w": 1440,
+      "h": 1200,
+      "title": "Pro: one change",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "ProNav.dc.html": {
+      "x": 10640,
+      "y": -1500,
+      "w": 240,
+      "h": 960,
+      "title": "Pro: sidebar (component)"
+    }
   },
-  "order": ["Main.dc.html", "Produkt.dc.html", "Praca.dc.html", "Wydania.dc.html", "Problemy.dc.html", "Nawigacja.dc.html", "Spojnosc.dc.html", "SpojnoscZmiana.dc.html"],
+  "order": [
+    "Prosty.dc.html",
+    "ProstaZmiana.dc.html",
+    "Dashboard.dc.html",
+    "ProDashboard.dc.html",
+    "ProZmiany.dc.html",
+    "ProZmiana.dc.html",
+    "ProNav.dc.html",
+    "Main.dc.html",
+    "Produkt.dc.html",
+    "Praca.dc.html",
+    "Wydania.dc.html",
+    "Problemy.dc.html",
+    "Nawigacja.dc.html",
+    "Spojnosc.dc.html",
+    "SpojnoscZmiana.dc.html"
+  ],
   "notes": {
-    "t1": {"x": 0, "y": -300, "text": "One product: a menu built around questions, not around apps", "kind": "title1", "maxW": 4480},
-    "s1": {"x": 3400, "y": 1300, "w": 420, "text": "Sample data: sprintdeck built through the whole ecosystem. Screens read from the existing APIs (pdi, ci_for_sdlc, ShipScope's service API); tf works in the product repo. Values in brackets, such as [COST], are to be decided.", "fill": "gray"},
-    "s2": {"x": 3040, "y": 2600, "w": 420, "text": "Consistency = ci_for_sdlc: findings (GAP, CONFLICT, AMBIGUITY, OUTDATED, MISSING_COVERAGE, DRIFT) across eight dimensions, each with evidence from its sources. A decision resolves a finding by choosing an option, accepts the risk with a reason and a review date, or dismisses it; it goes to the pdi register as DEC-n.", "fill": "blue"}
+    "t0": {
+      "x": 0,
+      "y": -1800,
+      "text": "Simple version: one axis from problem to users, and who has the ball",
+      "kind": "title1",
+      "maxW": 4480
+    },
+    "t1": {
+      "x": 0,
+      "y": -300,
+      "text": "Detailed version: a menu built around questions, not around apps",
+      "kind": "title1",
+      "maxW": 4480
+    },
+    "s1": {
+      "x": 3400,
+      "y": 1300,
+      "w": 420,
+      "text": "Sample data: sprintdeck built through the whole ecosystem. Screens read from the existing APIs (pdi, ci_for_sdlc, ShipScope's service API); tf works in the product repo. Values in brackets, such as [COST], are to be decided.",
+      "fill": "gray"
+    },
+    "s2": {
+      "x": 3040,
+      "y": 2600,
+      "w": 420,
+      "text": "Consistency = ci_for_sdlc: findings (GAP, CONFLICT, AMBIGUITY, OUTDATED, MISSING_COVERAGE, DRIFT) across eight dimensions, each with evidence from its sources. A decision resolves a finding by choosing an option, accepts the risk with a reason and a review date, or dismisses it; it goes to the pdi register as DEC-n.",
+      "fill": "blue"
+    },
+    "s3": {
+      "x": 4560,
+      "y": -1500,
+      "w": 420,
+      "text": "The simple version replaces the menu with one question: where is each change, and is it my turn? Eight stages in plain words, four colours (You decide, AI is working, Waiting, Done), one sentence and at most one button per change. The detailed screens below stay one click away as “details”.",
+      "fill": "green"
+    },
+    "t2": {
+      "x": 6080,
+      "y": -1800,
+      "text": "Polished version: the same simple model, product-grade UI",
+      "kind": "title1",
+      "maxW": 4800
+    }
   },
   "designSystems": []
 }
