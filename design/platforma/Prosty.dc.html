@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>My changes — where each one is and whose turn it is</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
+<style>
+body{margin:0;background:#f4f4f5}
+a{color:#1e293b;text-decoration:none}a:hover{text-decoration:underline}
+.btn{font-family:"Geist",ui-sans-serif,system-ui,sans-serif;font-size:14px;font-weight:500;border-radius:10px;padding:10px 16px;min-height:44px;cursor:pointer;border:1px solid #e4e4e7;background:#FFFFFF;color:#18181b;text-decoration:none;display:inline-flex;align-items:center;box-sizing:border-box;white-space:nowrap}
+.btn-primary{background:#1e293b;border-color:#1e293b;color:#FFFFFF}
+.btn-primary:hover{color:#FFFFFF;background:#0f172a;text-decoration:none}
+.tab{font-family:"Geist",ui-sans-serif,system-ui,sans-serif;font-size:14px;font-weight:500;border-radius:999px;padding:8px 16px;min-height:40px;cursor:pointer;border:1px solid #e4e4e7;background:#FFFFFF;color:#18181b}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1100px; box-sizing: border-box; font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; color: #18181b; background: #f4f4f5; display: flex; flex-direction: column">
+
+  <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 16px 32px; background: #FFFFFF; border-bottom: 1px solid #e4e4e7">
+    <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-weight: 500; font-size: 14px; color: #1e293b">pis</span>
+    <span style="font-weight: 600; font-size: 15px; flex-grow: 1">Sprintdeck</span>
+    <a class="btn btn-primary" href="Problemy.dc.html">Describe a problem</a>
+  </header>
+
+  <main style="width: 100%; max-width: 1180px; margin: 0 auto; box-sizing: border-box; padding: 28px 32px; display: flex; flex-direction: column; gap: 20px">
+
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 24px">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px">
+        <h1 style="margin: 0; font-size: 26px; font-weight: 600">{{headline}}</h1>
+        <span style="font-size: 15px; color: #52525b">Every change goes through the same eight steps. The coloured step is where it is now.</span>
+      </div>
+      <div role="group" aria-label="Show" style="display: flex; gap: 8px">
+        <button class="tab" type="button" aria-pressed="{{pMine}}" onClick="{{showMine}}" style="{{tMine}}">My turn (3)</button>
+        <button class="tab" type="button" aria-pressed="{{pAll}}" onClick="{{showAll}}" style="{{tAll}}">All changes (6)</button>
+      </div>
+    </div>
+
+    <div aria-label="What the colours mean" style="display: flex; flex-wrap: wrap; gap: 10px 22px; font-size: 14px; color: #52525b">
+      <sc-for list="{{legend}}" as="l" hint-placeholder-count="4">
+        <span style="display: inline-flex; align-items: center; gap: 8px"><span style="{{l.dot}}"></span>{{l.label}}</span>
+      </sc-for>
+    </div>
+
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+      <article style="background: #FFFFFF; border: 1px solid #e4e4e7; border-radius: 16px; padding: 18px 22px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px 20px">
+          <div style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+            <a href="ProstaZmiana.dc.html" style="font-size: 18px; font-weight: 600; color: #18181b; text-decoration: none">{{r.title}}</a>
+            <span style="font-size: 14px; color: #65656d">{{r.problem}}</span>
+          </div>
+          <sc-if value="{{r.action}}" hint-placeholder-val="{{true}}">
+            <a class="btn btn-primary" href="ProstaZmiana.dc.html">{{r.action}}</a>
+          </sc-if>
+        </div>
+
+        <ol aria-label="Steps" style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px">
+          <sc-for list="{{r.steps}}" as="s" hint-placeholder-count="8">
+            <li style="display: flex; flex-direction: column; gap: 6px">
+              <span style="{{s.bar}}"></span>
+              <span style="{{s.labelStyle}}">{{s.label}}</span>
+            </li>
+          </sc-for>
+        </ol>
+
+        <div style="{{r.nowStyle}}">
+          <span style="{{r.badgeStyle}}">{{r.who}}</span>
+          <span style="font-size: 15px; color: #18181b">{{r.now}}</span>
+        </div>
+      </article>
+    </sc-for>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { view: 'mine' }; }
+  renderVals() {
+    const C = {
+      you: { fg: '#8a5a00', bg: '#fef4d4', bar: '#f5b400', on: '#18181b', label: 'You decide' },
+      ai: { fg: '#1e293b', bg: '#f1f5f9', bar: '#1e293b', on: '#FFFFFF', label: 'AI is working' },
+      wait: { fg: '#52525b', bg: '#f4f4f5', bar: '#a1a1aa', on: '#FFFFFF', label: 'Waiting for something else' },
+      done: { fg: '#067647', bg: '#dcfae6', bar: '#12b76a', on: '#FFFFFF', label: 'Done' },
+    };
+    const names = ['Problem described', 'Direction agreed', 'AI plans', 'You approve the plan', 'AI builds', 'You check and release', 'On TEST · QA · PROD', 'With users'];
+    const track = (cur, who) => names.map((label, i) => {
+      const bg = i < cur ? C.done.bar : i === cur ? C[who].bar : '#e4e4e7';
+      return {
+        label,
+        bar: 'display: block; height: 10px; border-radius: 5px; background: ' + bg + ';',
+        labelStyle: 'font-size: 12px; line-height: 1.3; ' + (i === cur ? 'font-weight: 600; color: #18181b;' : i < cur ? 'color: #52525b;' : 'color: #71717a;'),
+      };
+    });
+    const row = (o) => {
+      const c = C[o.who];
+      return Object.assign({}, o, {
+        steps: track(o.step, o.who),
+        who: c.label,
+        badgeStyle: 'flex-shrink: 0; font-size: 13px; font-weight: 600; padding: 4px 12px; border-radius: 999px; background: ' + c.bg + '; color: ' + c.fg + ';',
+        nowStyle: 'display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 14px; border-radius: 10px; background: ' + (o.who === 'you' ? '#fffbeb' : '#fafafa') + ';',
+      });
+    };
+    const all = [
+      row({ mine: true, title: 'Room limits', problem: 'Free rooms without a limit overload the service.', step: 3, who: 'you', now: 'The sources disagree on the free plan limit: 10 in the story and the code, 8 on the pricing page. Choose one before the AI builds.', action: 'Decide' }),
+      row({ mine: true, title: 'Jira import', problem: 'A facilitator copies stories from Jira by hand before every session.', step: 3, who: 'you', now: 'The AI finished the plan: 5 parts, about 9 days — unsure, little history. Approve it or change the direction.', action: 'Review the plan' }),
+      row({ mine: true, title: '“Risk” deck', problem: 'The team votes on points, not on risk.', step: 6, who: 'you', now: 'The code is on PROD but hidden from users. Turn it on when you are ready; nothing else is missing.', action: 'Turn on for users' }),
+      row({ mine: false, title: 'Session report', problem: 'The team has no record of why it voted the way it did.', step: 4, who: 'ai', now: 'The AI is building: 3 of 4 parts done, one in review. Nothing is needed from you.', action: '' }),
+      row({ mine: false, title: 'Voting on a phone cuts off the cards', problem: 'Reported through the form by a facilitator.', step: 0, who: 'wait', now: 'Problem described. Claude asked the reporter 3 questions and is waiting for the answers.', action: '' }),
+      row({ mine: false, title: 'Room for 10 people', problem: 'Larger teams did not fit in one room.', step: 7, who: 'done', now: 'With users for 30 days. The goal was met (no rollbacks against a target of at most 1). The result is recorded.', action: '' }),
+    ];
+    const mine = this.state.view === 'mine';
+    const on = 'background: #1e293b; border-color: #1e293b; color: #FFFFFF;';
+    return {
+      headline: mine ? '3 changes are waiting for you' : 'All changes',
+      rows: mine ? all.filter((r) => r.mine) : all,
+      legend: ['you', 'ai', 'wait', 'done'].map((k) => ({ label: C[k].label, dot: 'display: inline-block; width: 22px; height: 10px; border-radius: 5px; background: ' + C[k].bar + ';' })),
+      pMine: mine ? 'true' : 'false', pAll: mine ? 'false' : 'true',
+      tMine: mine ? on : '', tAll: mine ? '' : on,
+      showMine: () => this.setState({ view: 'mine' }),
+      showAll: () => this.setState({ view: 'all' }),
+    };
+  }
+}
+</script>
+</body>
+</html>

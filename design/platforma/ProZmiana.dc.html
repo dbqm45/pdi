@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Room limits</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
+<style>
+body{margin:0;background:#FFFFFF}
+a{color:#18181b;text-decoration:none}
+.card{background:#FFFFFF;border:1px solid #ececee;border-radius:14px;box-shadow:0 1px 2px rgba(24,24,27,.04)}
+.btn{font-family:"Geist",ui-sans-serif,system-ui,sans-serif;font-size:13px;font-weight:500;border-radius:8px;padding:0 12px;height:34px;cursor:pointer;border:1px solid #e4e4e7;background:#FFFFFF;color:#18181b;display:inline-flex;align-items:center;gap:6px;box-sizing:border-box;white-space:nowrap;text-decoration:none}
+.btn:hover{background:#fafafa}
+.btn-dark{background:#18181b;border-color:#18181b;color:#FFFFFF;height:38px;padding:0 16px;font-size:14px}
+.btn-dark:hover{background:#27272a}
+.tab{font-family:"Geist",ui-sans-serif,system-ui,sans-serif;font-size:13px;font-weight:500;padding:0 2px;height:40px;border:none;border-bottom:2px solid transparent;background:transparent;color:#71717a;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.opt{font-family:inherit;text-align:left;width:100%;cursor:pointer;border-radius:12px;padding:14px 16px;font-size:14px;color:#18181b;display:flex;align-items:flex-start;gap:12px;box-sizing:border-box}
+.prop{display:grid;grid-template-columns:104px minmax(0,1fr);gap:10px;align-items:center;padding:8px 0;font-size:13px}
+.k{color:#71717a}
+.num{font-variant-numeric:tabular-nums}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1200px; box-sizing: border-box; font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; color: #18181b; background: #FFFFFF; display: flex; flex-wrap: wrap; align-items: stretch">
+
+  <div style="flex: 1 1 232px; max-width: 240px; min-width: 200px; background: #fafafa; border-right: 1px solid #ececee">
+    <dc-import name="ProNav" active="changes" hint-size="240px,960px"></dc-import>
+  </div>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px 28px; border-bottom: 1px solid #ececee">
+      <nav aria-label="Breadcrumb" style="display: flex; align-items: center; gap: 8px; font-size: 14px; flex-grow: 1">
+        <a href="ProZmiany.dc.html" style="color: #71717a">My changes</a>
+        <span aria-hidden="true" style="color: #d4d4d8">/</span>
+        <span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #71717a">CHG-8</span>
+      </nav>
+      <button class="btn" type="button">Share</button>
+      <button class="btn" type="button" aria-label="More" style="width: 34px; padding: 0; justify-content: center"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="#52525b"><path d="M5 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm7 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm7 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"></path></svg></button>
+    </header>
+
+    <div style="padding: 22px 28px 0; display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px">
+        <h1 style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.03em">Room limits</h1>
+        <span style="{{pillStyle}}"><span aria-hidden="true" style="{{pillDot}}"></span>{{pill}}</span>
+      </div>
+      <span style="font-size: 15px; color: #52525b">Free rooms without a limit overload the realtime service at peak times.</span>
+      <div role="tablist" aria-label="Sections" style="display: flex; gap: 22px; border-bottom: 1px solid #ececee; margin-top: 8px">
+        <button class="tab" type="button" role="tab" aria-selected="true" style="color: #18181b; border-bottom-color: #18181b">Overview</button>
+        <button class="tab" type="button" role="tab" aria-selected="false">Plan <span style="font-size: 12px; color: #a1a1aa">3</span></button>
+        <button class="tab" type="button" role="tab" aria-selected="false">Checks <span style="font-size: 12px; color: #a1a1aa">5</span></button>
+        <button class="tab" type="button" role="tab" aria-selected="false">Releases</button>
+        <button class="tab" type="button" role="tab" aria-selected="false">Activity</button>
+      </div>
+    </div>
+
+    <div style="padding: 22px 28px 36px; display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start">
+      <div style="flex: 3 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 18px">
+
+        <section aria-label="Progress" class="card" style="padding: 18px 20px">
+          <ol style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px">
+            <sc-for list="{{steps}}" as="s" hint-placeholder-count="8">
+              <li style="display: flex; flex-direction: column; gap: 8px; min-width: 0">
+                <div style="display: flex; align-items: center; gap: 6px">
+                  <span aria-hidden="true" style="{{s.dot}}">{{s.mark}}</span>
+                  <span aria-hidden="true" style="{{s.line}}"></span>
+                </div>
+                <span style="{{s.labelStyle}}">{{s.label}}</span>
+                <span style="font-size: 11px; color: #a1a1aa">{{s.who}}</span>
+              </li>
+            </sc-for>
+          </ol>
+        </section>
+
+        <sc-if value="{{open}}" hint-placeholder-val="{{true}}">
+          <section aria-labelledby="h-q" class="card" style="padding: 0; overflow: hidden; border-color: #f6e6b0; box-shadow: 0 1px 2px rgba(24,24,27,.04), 0 0 0 4px #fffbeb">
+            <div style="display: flex; align-items: center; gap: 10px; padding: 14px 20px; background: #fffbeb; border-bottom: 1px solid #f6e6b0">
+              <span aria-hidden="true" style="width: 26px; height: 26px; border-radius: 8px; background: #f5b400; color: #18181b; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 8v5M12 16.5v.01"></path></svg></span>
+              <span style="font-size: 13px; font-weight: 600; color: #8a5a00; flex-grow: 1">Your decision is needed before the AI can build</span>
+              <span style="font-size: 12px; color: #8a5a00">waiting 2 days</span>
+            </div>
+            <div style="padding: 18px 20px; display: flex; flex-direction: column; gap: 12px">
+              <h2 id="h-q" style="margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em">How many people can join a free room?</h2>
+              <p style="margin: 0; font-size: 14px; color: #52525b">The story and the code say 10; the pricing page says 8. Whatever you choose, the AI builds it and updates the other places.</p>
+              <div role="radiogroup" aria-labelledby="h-q" style="display: flex; flex-direction: column; gap: 8px">
+                <sc-for list="{{options}}" as="o" hint-placeholder-count="3">
+                  <button class="opt" type="button" role="radio" aria-checked="{{o.checked}}" onClick="{{o.pick}}" style="{{o.style}}">
+                    <span aria-hidden="true" style="{{o.radio}}"><span style="{{o.radioDot}}"></span></span>
+                    <span style="display: flex; flex-direction: column; gap: 3px">
+                      <span style="font-weight: 600">{{o.label}}</span>
+                      <span style="font-size: 13px; color: #52525b">{{o.effect}}</span>
+                    </span>
+                    <sc-if value="{{o.tag}}" hint-placeholder-val="{{false}}"><span style="margin-left: auto; font-size: 12px; font-weight: 500; color: #52525b; background: #f4f4f5; border-radius: 6px; padding: 2px 8px; white-space: nowrap">{{o.tag}}</span></sc-if>
+                  </button>
+                </sc-for>
+              </div>
+              <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding-top: 4px">
+                <button class="btn btn-dark" type="button" onClick="{{confirm}}" aria-disabled="{{noChoice}}" style="{{confirmStyle}}">Confirm and let the AI build</button>
+                <a class="btn" href="SpojnoscZmiana.dc.html" style="height: 38px">Compare the sources</a>
+                <span style="font-size: 12px; color: #71717a">Recorded as a decision you can find later.</span>
+              </div>
+            </div>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{done}}" hint-placeholder-val="{{false}}">
+          <section role="status" class="card" style="padding: 16px 20px; display: flex; align-items: center; gap: 12px; border-color: #abefc6; background: #f6fef9">
+            <span aria-hidden="true" style="width: 28px; height: 28px; border-radius: 50%; background: #12b76a; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg></span>
+            <span style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1">
+              <span style="font-size: 14px; font-weight: 600">Decision recorded · {{choiceLabel}}</span>
+              <span style="font-size: 13px; color: #52525b">DEC-0142. The AI started building; you will be asked again when the result is ready to check.</span>
+            </span>
+            <button class="btn" type="button" onClick="{{undo}}">Undo</button>
+          </section>
+        </sc-if>
+
+        <section aria-labelledby="h-plan" class="card" style="padding: 6px 0 4px">
+          <div style="display: flex; align-items: center; gap: 10px; padding: 10px 20px">
+            <h2 id="h-plan" style="margin: 0; font-size: 15px; font-weight: 600; flex-grow: 1">The plan · 3 parts</h2>
+            <span style="font-size: 12px; color: #71717a">prepared by the AI · Oct 24</span>
+          </div>
+          <sc-for list="{{parts}}" as="p" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-top: 1px solid #f4f4f5">
+              <span aria-hidden="true" style="width: 30px; height: 30px; border-radius: 8px; background: #f4f4f5; color: #3f3f46; display: flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{p.icon}}"></path></svg></span>
+              <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+                <span style="font-size: 14px; font-weight: 500">{{p.title}}</span>
+                <span style="font-size: 12px; color: #71717a">{{p.where}}</span>
+              </span>
+              <span style="{{p.stateStyle}}">{{p.state}}</span>
+            </div>
+          </sc-for>
+        </section>
+      </div>
+
+      <aside style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+        <section aria-label="Details" class="card" style="padding: 8px 18px">
+          <div class="prop"><span class="k">Whose turn</span><span style="{{turnStyle}}">{{turn}}</span></div>
+          <div class="prop" style="border-top: 1px solid #f4f4f5"><span class="k">Owner</span><span style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="width: 22px; height: 22px; border-radius: 50%; background: #e0e7ff; color: #3730a3; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600">AK</span>Anna Kowal</span></div>
+          <div class="prop" style="border-top: 1px solid #f4f4f5"><span class="k">Domain</span><span>Rooms</span></div>
+          <div class="prop" style="border-top: 1px solid #f4f4f5"><span class="k">Came from</span><span>Service alert, confirmed by Marek</span></div>
+          <div class="prop" style="border-top: 1px solid #f4f4f5; align-items: start"><span class="k">Expected</span>
+            <span style="display: flex; flex-direction: column; gap: 6px">
+              <span><strong class="num" style="font-weight: 600">~5 days</strong> <span style="color: #71717a">after your decision</span></span>
+              <span aria-hidden="true" style="position: relative; display: block; height: 6px; border-radius: 3px; background: #f4f4f5"><span style="position: absolute; left: 30%; width: 40%; top: 0; bottom: 0; border-radius: 3px; background: #c7d2fe"></span><span style="position: absolute; left: 48%; top: -3px; width: 4px; height: 12px; border-radius: 2px; background: #4f46e5"></span></span>
+              <span style="font-size: 12px; color: #71717a">4–7 days, from 6 similar changes</span>
+            </span>
+          </div>
+        </section>
+
+        <section aria-labelledby="h-vis" class="card" style="padding: 14px 18px; display: flex; flex-direction: column; gap: 4px">
+          <h2 id="h-vis" style="margin: 0 0 6px; font-size: 14px; font-weight: 600">Where it can be seen</h2>
+          <sc-for list="{{vis}}" as="v" hint-placeholder-count="4">
+            <div style="display: flex; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid #f4f4f5; font-size: 13px">
+              <span aria-hidden="true" style="{{v.dot}}"></span>
+              <span style="font-weight: 600; width: 52px">{{v.where}}</span>
+              <span style="color: #52525b">{{v.state}}</span>
+            </div>
+          </sc-for>
+        </section>
+
+        <section aria-labelledby="h-ai" class="card" style="padding: 14px 18px; display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span aria-hidden="true" style="width: 24px; height: 24px; border-radius: 7px; background: #eef2ff; color: #4f46e5; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l1.9 5 5 1.9-5 1.9-1.9 5-1.9-5-5-1.9 5-1.9z"></path></svg></span>
+            <h2 id="h-ai" style="margin: 0; font-size: 14px; font-weight: 600; flex-grow: 1">AI agent</h2>
+            <span style="{{agentPill}}">{{agentState}}</span>
+          </div>
+          <span style="font-size: 13px; color: #52525b">{{agentText}}</span>
+        </section>
+
+        <section aria-labelledby="h-links" class="card" style="padding: 14px 18px; display: flex; flex-direction: column; gap: 2px">
+          <h2 id="h-links" style="margin: 0 0 6px; font-size: 14px; font-weight: 600">For specialists</h2>
+          <a href="SpojnoscZmiana.dc.html" style="display: flex; justify-content: space-between; padding: 7px 0; font-size: 13px; border-top: 1px solid #f4f4f5">Consistency checks <span style="color: #a1a1aa">5 →</span></a>
+          <a href="Wydania.dc.html" style="display: flex; justify-content: space-between; padding: 7px 0; font-size: 13px; border-top: 1px solid #f4f4f5">Deployments <span style="color: #a1a1aa">→</span></a>
+          <a href="Produkt.dc.html" style="display: flex; justify-content: space-between; padding: 7px 0; font-size: 13px; border-top: 1px solid #f4f4f5">Feature switches <span style="color: #a1a1aa">→</span></a>
+        </section>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1200}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { choice: null, decided: false }; }
+  renderVals() {
+    const d = this.state.decided;
+    const cur = d ? 4 : 3;
+    const names = ['Problem', 'Direction', 'AI plans', 'Approve plan', 'AI builds', 'Check & release', 'Environments', 'With users'];
+    const who = ['Marek', 'Anna', 'AI', 'Anna', 'AI', 'Anna', 'automatic', 'Anna'];
+    const curColor = d ? '#4f46e5' : '#f5b400';
+    const steps = names.map((label, i) => ({
+      label, who: i < cur ? 'done' : who[i],
+      mark: i < cur ? '✓' : String(i + 1),
+      dot: 'width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; ' + (i < cur ? 'background: #18181b; color: #FFFFFF;' : i === cur ? 'background: ' + curColor + '; color: ' + (d ? '#FFFFFF' : '#18181b') + '; box-shadow: 0 0 0 4px ' + (d ? '#eef2ff' : '#fef4d4') + ';' : 'background: #FFFFFF; color: #a1a1aa; box-shadow: inset 0 0 0 1.5px #e4e4e7;'),
+      line: 'display: block; flex-grow: 1; height: 2px; border-radius: 1px; background: ' + (i < cur ? '#18181b' : '#ececee') + ';' + (i === 7 ? ' visibility: hidden;' : ''),
+      labelStyle: 'font-size: 12px; line-height: 1.3; ' + (i === cur ? 'font-weight: 600; color: #18181b;' : i < cur ? 'font-weight: 500; color: #3f3f46;' : 'color: #a1a1aa;'),
+    }));
+    const O = [
+      { id: '10', label: '10 people', effect: 'Keep the story and the code. The AI asks for the pricing page to be updated.', tag: 'matches the code' },
+      { id: '8', label: '8 people', effect: 'The AI changes the story, the code and the tests to 8.', tag: '' },
+      { id: 'later', label: 'Build with 10, confirm with sales this week', effect: 'Recorded as an accepted risk with a review date, so it is not forgotten.', tag: 'risk' },
+    ];
+    const ch = this.state.choice;
+    const options = O.map((o) => {
+      const on = ch === o.id;
+      return {
+        label: o.label, effect: o.effect, tag: o.tag, checked: on ? 'true' : 'false', pick: () => this.setState({ choice: o.id }),
+        style: on ? 'border: 1.5px solid #18181b; background: #fafafa; box-shadow: 0 1px 2px rgba(24,24,27,.06);' : 'border: 1px solid #e4e4e7; background: #FFFFFF;',
+        radio: 'flex-shrink: 0; margin-top: 2px; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-sizing: border-box; ' + (on ? 'border: 5px solid #18181b;' : 'border: 1.5px solid #d4d4d8;'),
+        radioDot: 'display: block; width: 0; height: 0;',
+      };
+    });
+    const chosen = O.find((o) => o.id === ch);
+    const part = (title, where, icon) => ({ title, where, icon, state: d ? 'building' : 'not started', stateStyle: 'font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 6px; ' + (d ? 'background: #eef2ff; color: #3730a3;' : 'background: #f4f4f5; color: #52525b;') });
+    const vdot = (c) => 'width: 8px; height: 8px; border-radius: 50%; background: ' + c + ';';
+    return {
+      steps, options, open: !d, done: d,
+      choiceLabel: chosen ? chosen.label : '',
+      noChoice: ch ? 'false' : 'true',
+      confirmStyle: ch ? '' : 'opacity: .45; cursor: not-allowed;',
+      confirm: () => { if (this.state.choice) this.setState({ decided: true }); },
+      undo: () => this.setState({ decided: false }),
+      pill: d ? 'AI is building' : 'Your turn · approve the plan',
+      pillStyle: 'display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; ' + (d ? 'background: #eef2ff; color: #3730a3;' : 'background: #fef4d4; color: #8a5a00;'),
+      pillDot: 'width: 6px; height: 6px; border-radius: 50%; background: ' + (d ? '#4f46e5' : '#f5b400') + ';',
+      turn: d ? 'AI agent' : 'You',
+      turnStyle: 'justify-self: start; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px; ' + (d ? 'background: #eef2ff; color: #3730a3;' : 'background: #fef4d4; color: #8a5a00;'),
+      agentState: d ? 'Working' : 'Paused',
+      agentPill: 'font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; ' + (d ? 'background: #eef2ff; color: #3730a3;' : 'background: #f4f4f5; color: #52525b;'),
+      agentText: d ? 'Building part 1 of 3: the limit in the API. Tests run after every part.' : 'Ready to build the 3 parts as soon as you answer. It will not start without your decision.',
+      parts: [
+        part('Limit in the API', 'sprintdeck-api · rooms and sessions', 'M4 6h16M4 12h16M4 18h10'),
+        part('“This room is full” screen', 'sprintdeck-web · join flow', 'M3 5h18v14H3zM3 9h18'),
+        part('Session timer', 'sprintdeck-realtime · 30 minutes on the free plan', 'M12 7v5l3 2M3 12a9 9 0 1 0 18 0a9 9 0 1 0-18 0'),
+      ],
+      vis: [
+        { where: 'TEST', state: 'not yet', dot: vdot('#d4d4d8') },
+        { where: 'QA', state: 'not yet', dot: vdot('#d4d4d8') },
+        { where: 'PROD', state: 'not yet', dot: vdot('#d4d4d8') },
+        { where: 'Users', state: 'off until you turn it on', dot: vdot('#d4d4d8') },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dashboard — the whole product at a glance</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
+<style>
+body{margin:0;background:#f4f4f5}
+a{color:#1e293b;text-decoration:none}a:hover{text-decoration:underline}
+.btn{font-family:"Geist",ui-sans-serif,system-ui,sans-serif;font-size:14px;font-weight:500;border-radius:10px;padding:8px 14px;min-height:40px;cursor:pointer;border:1px solid #e4e4e7;background:#FFFFFF;color:#18181b;text-decoration:none;display:inline-flex;align-items:center;box-sizing:border-box;white-space:nowrap}
+.btn:hover{text-decoration:none;background:#fafafa}
+.btn-primary{background:#1e293b;border-color:#1e293b;color:#FFFFFF}
+.btn-primary:hover{background:#0f172a;color:#FFFFFF}
+.nav{font-size:14px;font-weight:500;padding:8px 12px;border-radius:10px;color:#52525b;min-height:40px;display:inline-flex;align-items:center;box-sizing:border-box}
+.nav:hover{text-decoration:none;background:#f4f4f5}
+.panel{background:#FFFFFF;border:1px solid #e4e4e7;border-radius:16px;box-shadow:0 1px 2px rgba(24,24,27,.04)}
+.lbl{font-family:"Geist Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#65656d}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1180px; box-sizing: border-box; font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; color: #18181b; background: #f4f4f5; display: flex; flex-direction: column">
+
+  <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 12px 32px; background: #FFFFFF; border-bottom: 1px solid #e4e4e7">
+    <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-weight: 600; font-size: 14px; color: #1e293b">pis</span>
+    <span style="font-weight: 600; font-size: 15px; margin-right: 8px">Sprintdeck</span>
+    <nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 4px; flex-grow: 1">
+      <a class="nav" href="Dashboard.dc.html" aria-current="page" style="background: #f1f5f9; color: #1e293b; font-weight: 600">Dashboard</a>
+      <a class="nav" href="Prosty.dc.html">My changes</a>
+      <a class="nav" href="Problemy.dc.html">Problems</a>
+      <a class="nav" href="Produkt.dc.html">Product</a>
+      <a class="nav" href="Wydania.dc.html">Releases</a>
+    </nav>
+    <a class="btn btn-primary" href="Problemy.dc.html">Describe a problem</a>
+  </header>
+
+  <main style="width: 100%; max-width: 1280px; margin: 0 auto; box-sizing: border-box; padding: 28px 32px; display: flex; flex-direction: column; gap: 22px">
+
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <h1 style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.02em">3 things need you today</h1>
+      <span style="font-size: 15px; color: #52525b">6 changes in progress · AI is working on 1 · 1 reached users this month</span>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: stretch">
+      <section aria-labelledby="h-turn" class="panel" style="flex: 3 1 560px; min-width: 0; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px">
+        <h2 id="h-turn" style="margin: 0; font-size: 17px; font-weight: 600">Your turn</h2>
+        <sc-for list="{{turn}}" as="t" hint-placeholder-count="3">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 12px 14px; border-radius: 12px; background: #fffbeb; border: 1px solid #f6e6b0">
+            <div style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 15px; font-weight: 600">{{t.title}}</span>
+              <span style="font-size: 13px; color: #52525b">{{t.what}}</span>
+            </div>
+            <span style="font-size: 12px; color: #8a5a00; font-weight: 600">{{t.step}}</span>
+            <a class="btn btn-primary" href="ProstaZmiana.dc.html">{{t.action}}</a>
+          </div>
+        </sc-for>
+      </section>
+
+      <section aria-label="This month" style="flex: 2 1 340px; min-width: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+        <sc-for list="{{tiles}}" as="k" hint-placeholder-count="4">
+          <div class="panel" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 4px">
+            <span class="lbl">{{k.label}}</span>
+            <span style="font-size: 26px; font-weight: 600; letter-spacing: -0.03em">{{k.value}}</span>
+            <span style="font-size: 13px; color: #52525b">{{k.note}}</span>
+          </div>
+        </sc-for>
+      </section>
+    </div>
+
+    <section aria-labelledby="h-flow" class="panel" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 14px">
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 20px">
+        <h2 id="h-flow" style="margin: 0; font-size: 17px; font-weight: 600; flex-grow: 1">Where every change is</h2>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; color: #52525b">
+          <sc-for list="{{legend}}" as="l" hint-placeholder-count="4">
+            <span style="display: inline-flex; align-items: center; gap: 6px"><span style="{{l.dot}}"></span>{{l.label}}</span>
+          </sc-for>
+        </div>
+      </div>
+      <div style="overflow-x: auto">
+        <ol style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(8, minmax(130px, 1fr)); gap: 8px; min-width: 1060px">
+          <sc-for list="{{columns}}" as="c" hint-placeholder-count="8">
+            <li style="{{c.box}}">
+              <span style="{{c.bar}}"></span>
+              <span style="font-size: 13px; font-weight: 600">{{c.name}}</span>
+              <span style="font-size: 12px; color: #65656d">{{c.who}}</span>
+              <span style="font-size: 22px; font-weight: 600; letter-spacing: -0.03em">{{c.count}}</span>
+              <sc-for list="{{c.items}}" as="i" hint-placeholder-count="1">
+                <a href="ProstaZmiana.dc.html" style="display: block; font-size: 13px; padding: 6px 8px; border-radius: 8px; background: #FFFFFF; border: 1px solid #e4e4e7">{{i}}</a>
+              </sc-for>
+            </li>
+          </sc-for>
+        </ol>
+      </div>
+    </section>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+      <section aria-labelledby="h-users" class="panel" style="flex: 1 1 460px; min-width: 0; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px">
+        <h2 id="h-users" style="margin: 0; font-size: 17px; font-weight: 600">Recently with users</h2>
+        <sc-for list="{{released}}" as="r" hint-placeholder-count="3">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; border-top: 1px solid #f4f4f5; padding-top: 10px">
+            <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 15px; font-weight: 600">{{r.title}}</span>
+              <span style="font-size: 13px; color: #52525b">{{r.when}}</span>
+            </div>
+            <span style="{{r.chip}}">{{r.result}}</span>
+          </div>
+        </sc-for>
+      </section>
+
+      <section aria-labelledby="h-att" class="panel" style="flex: 1 1 460px; min-width: 0; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px">
+        <h2 id="h-att" style="margin: 0; font-size: 17px; font-weight: 600">Worth a look</h2>
+        <sc-for list="{{attention}}" as="a" hint-placeholder-count="3">
+          <div style="{{a.box}}">
+            <span style="font-size: 14px; font-weight: 600">{{a.title}}</span>
+            <span style="font-size: 13px; color: #52525b">{{a.what}}</span>
+          </div>
+        </sc-for>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const C = {
+      you: { bar: '#f5b400', soft: '#fffbeb', border: '#f6e6b0', label: 'You decide' },
+      ai: { bar: '#1e293b', soft: '#f1f5f9', border: '#e2e8f0', label: 'AI is working' },
+      wait: { bar: '#a1a1aa', soft: '#fafafa', border: '#e4e4e7', label: 'Waiting for something else' },
+      done: { bar: '#12b76a', soft: '#f0fdf4', border: '#abefc6', label: 'With users' },
+    };
+    const col = (name, who, owner, items) => ({
+      name, who, count: String(items.length), items,
+      box: 'display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 12px; min-height: 180px; background: ' + C[owner].soft + '; border: 1px solid ' + C[owner].border + ';',
+      bar: 'display: block; height: 6px; border-radius: 3px; background: ' + C[owner].bar + ';',
+    });
+    return {
+      turn: [
+        { title: 'Room limits', what: 'Choose the free plan limit: 10 or 8 people. The sources disagree.', step: 'Step 4 · approve the plan', action: 'Decide' },
+        { title: 'Jira import', what: 'The AI finished the plan: 5 parts, about 9 days (unsure).', step: 'Step 4 · approve the plan', action: 'Review the plan' },
+        { title: '“Risk” deck', what: 'On PROD, hidden from users. Nothing else is missing.', step: 'Step 7 · ready for users', action: 'Turn on' },
+      ],
+      tiles: [
+        { label: 'Reached users', value: '1', note: 'in the last 30 days' },
+        { label: 'Problem → users', value: '12 days', note: 'median of the last 5 changes' },
+        { label: 'Forecasts on target', value: '4 of 6', note: 'within the expected range' },
+        { label: 'Waiting on decisions', value: '1.5 days', note: 'median time a decision waits for you' },
+      ],
+      legend: ['you', 'ai', 'wait', 'done'].map((k) => ({ label: C[k].label, dot: 'display: inline-block; width: 18px; height: 8px; border-radius: 4px; background: ' + C[k].bar + ';' })),
+      columns: [
+        col('Problem described', 'reporter', 'wait', ['Voting on a phone']),
+        col('Direction agreed', 'you', 'you', []),
+        col('AI plans', 'AI', 'ai', []),
+        col('You approve the plan', 'you', 'you', ['Room limits', 'Jira import']),
+        col('AI builds', 'AI', 'ai', ['Session report']),
+        col('You check and release', 'you', 'you', []),
+        col('On TEST · QA · PROD', 'automatic', 'wait', ['“Risk” deck']),
+        col('With users', 'outcome after 30 days', 'done', ['Room for 10 people']),
+      ],
+      released: [
+        { title: 'Room for 10 people', when: 'with users for 30 days', result: 'goal met', chip: 'font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: #dcfae6; color: #067647;' },
+        { title: 'Create a room', when: 'with users for 2 months', result: 'goal met', chip: 'font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: #dcfae6; color: #067647;' },
+        { title: 'Fibonacci deck', when: 'with users for 3 months', result: 'no goal set', chip: 'font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: #f4f4f5; color: #52525b; border: 1px solid #e4e4e7;' },
+      ],
+      attention: [
+        { title: 'Room limits on QA: the screen is on, the API is off', what: 'QA testers see a limit the service does not apply yet.', box: 'display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 12px; background: #fff6f5; border: 1px solid #fbcdc9;' },
+        { title: 'An accepted risk is past its review date', what: 'Room for 10 people: reconnect without tests — review was due 2 days ago.', box: 'display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 12px; background: #fffbeb; border: 1px solid #f6e6b0;' },
+        { title: 'The Jira import forecast is unsure', what: 'Only 3 similar changes so far. A short risk vote with the team may help.', box: 'display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 12px; background: #fafafa; border: 1px solid #e4e4e7;' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>
