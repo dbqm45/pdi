@@ -61,3 +61,16 @@ ani bramka nie wiedzą, że zmiana rusza obszar objęty decyzją.
 **Odbiorca:** ci_for_sdlc — reguła na PR, gdy zmienione pliki trafiają w `applies_to` przyjętej decyzji (pozycja w
 `ci_for_sdlc/TODO.md`). Czego nie robić: osobnego `INDEX.md` decyzji w repo — rejestr pdi jest katalogiem, druga kopia
 by się rozjeżdżała.
+
+## Autoryzacja zdalnego serwera MCP (etap 2 z `docs/14-pdi-standalone.md`, zapisane 2026-10-29)
+
+Dziś serwer MCP pdi działa przez stdio (lokalnie, bez autoryzacji). Etap 2 planu — ten sam serwer jako zdalny
+connector Claude.ai / desktop (HTTP) — wymaga autoryzacji wg specyfikacji MCP. Źródło przeglądu: artykuł „MCP
+Learnings” (C. Hobbs, 2026-10); wymagania sprawdzić w specyfikacji na modelcontextprotocol.io z datą przed planem.
+- [ ] **Przed etapem 2:** OAuth 2.1 z PKCE i odkrywaniem serwera autoryzacji z metadanych zasobu; rejestracja
+  klienta przez Client ID Metadata Documents oraz (dla starszych klientów) Dynamic Client Registration
+  [niezweryfikowane: plan usunięcia DCR w 2027]; serwer MCP tylko waliduje tokeny (odbiorca, termin, zakresy),
+  a wydawanie i odświeżanie zostawia zewnętrznemu dostawcy OAuth zamiast własnego serwera autoryzacji.
+- [ ] Zakresy (scopes) dopasowane do narzędzi: odczyt rejestru osobno od zapisu decyzji i od `supersede_decision`;
+  zapis decyzji i zastępowanie jako narzędzia wysokiego ryzyka z potwierdzeniem (wzorzec „zgoda związana z
+  argumentami”, pozycja w `tf/docs/todo.md`, sekcja wzorców bezpieczeństwa).
