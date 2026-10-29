@@ -89,3 +89,14 @@ na apps.extensions.modelcontextprotocol.io z datą przed planem [niezweryfikowan
   poprawki zostaje odrzucona. Powód odrzucenia wraca do kontekstu modelu, żeby kolejny szkic go uwzględnił.
 - [ ] Fallback: host bez MCP Apps dostaje szkic jako treść strukturalną i dotychczasowe potwierdzenie w rozmowie.
 - [ ] Pomiar: karta ma skrócić czas zapisu (W2, mediana ≤ 60 s) — porównać z `/record-decision` w dogfoodingu.
+
+## Zatwierdzenie bramki związane z dowodem (zapisane 2026-10-29)
+
+Źródło: artykuł o Accension („How to Verify AI-Generated Code: Checks, Review and Receipts”, 2026-10) — zgoda człowieka
+dotyczy konkretnego dowodu, a zmieniony dowód unieważnia zgodę. Dziś `gate.requested` z tf niesie ścieżkę artefaktu
+i link do PR, bez skrótu treści.
+- [ ] Kontrakt zdarzenia `gate.requested`: pole ze skrótem SHA-256 artefaktu i SHA commita (zmiana wstecznie zgodna —
+  pole opcjonalne, potem wymagane). Zatwierdzenie bramki w pdi zapisuje ten skrót; zdarzenie zwrotne do tf niesie go
+  z powrotem, a tf przed następną fazą porównuje go z bieżącym artefaktem (pozycja w `tf/docs/todo.md`).
+- [ ] UI zatwierdzenia pokazuje skrót i datę artefaktu; zgoda na nieaktualną wersję jest odrzucana z komunikatem
+  „artefakt zmienił się po wysłaniu prośby”. TDD: test zgody na zmieniony artefakt.
