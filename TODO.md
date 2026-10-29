@@ -74,3 +74,18 @@ Learnings” (C. Hobbs, 2026-10); wymagania sprawdzić w specyfikacji na modelco
 - [ ] Zakresy (scopes) dopasowane do narzędzi: odczyt rejestru osobno od zapisu decyzji i od `supersede_decision`;
   zapis decyzji i zastępowanie jako narzędzia wysokiego ryzyka z potwierdzeniem (wzorzec „zgoda związana z
   argumentami”, pozycja w `tf/docs/todo.md`, sekcja wzorców bezpieczeństwa).
+
+## Karta zatwierdzenia decyzji jako MCP App (etap 2, zapisane 2026-10-29)
+
+Źródło: artykuł „Stop Returning JSON. Start Shipping UI with MCP Apps” (A. Tkachuk, 2026-09-14). Rozszerzenie MCP
+Apps pozwala serwerowi dołączyć do narzędzia interfejs (`ui://…`), który host (Claude.ai, desktop, VS Code)
+renderuje w rozmowie; przyciski wołają narzędzia przez hosta. Obsługę w hostach i pola specyfikacji sprawdzić
+na apps.extensions.modelcontextprotocol.io z datą przed planem [niezweryfikowane]. Dotyczy etapu 2 (zdalny connector).
+- [ ] **„AI szkicuje, człowiek zatwierdza” jako karta, nie jako „tak” w czacie:** `present_decision_draft` pokazuje
+  szkic (stwierdzenie, uzasadnienie, opcje, założenia ze statusami epistemicznymi) z przyciskami Zatwierdź / Popraw /
+  Odrzuć. `record_decision` z widocznością tylko dla App (`_meta.ui.visibility: ["app"]`), więc model nie zapisze
+  decyzji bez kliknięcia człowieka — to wzmacnia zasadę z §2 `docs/14-pdi-standalone.md` mechanizmem zamiast prośbą.
+- [ ] Zatwierdzenie przez ID szkicu i jego wersję (hash pól), nie przez przesłanie całego tekstu: karta sprzed
+  poprawki zostaje odrzucona. Powód odrzucenia wraca do kontekstu modelu, żeby kolejny szkic go uwzględnił.
+- [ ] Fallback: host bez MCP Apps dostaje szkic jako treść strukturalną i dotychczasowe potwierdzenie w rozmowie.
+- [ ] Pomiar: karta ma skrócić czas zapisu (W2, mediana ≤ 60 s) — porównać z `/record-decision` w dogfoodingu.
