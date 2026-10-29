@@ -36,3 +36,28 @@ uv run pytest && uv run ruff check src tests && uv run mypy src   # bramki pdi b
 ```
 Potem przejrzeć wygenerowany `CLAUDE.md` (dopisać komendy pdi: `uv run pytest`, ruff, mypy, Python 3.11 i 3.13)
 i otworzyć PR. Przy okazji: aktualizacja starszej instalacji w `ci_for_sdlc/.claude` (ten sam punkt planu).
+
+## Decyzje przypięte do kodu: `applies_to` (zapisane 2026-10-29)
+
+Źródło: artykuł „Teaching AI Agents to Remember: ADRs, Specs, Engineering Decisions” (A. Kokane, 2026-10-19).
+Przypadek z niego: dwa PR-y, każdy poprawny, razem odwracają przyjętą decyzję, bo drugi agent jej nie znał.
+
+**Co już jest w kontrakcie** (`contract/decision.schema.json`): uzasadnienie i opcje, `assumptions[]` z
+`load_bearing` i `invalidated_if` („kiedy rozważyć ponownie”), `review_by`, `status: superseded` z `supersedes` /
+`superseded_by`, `links` do PRB, CHG, TSK i PR. Brakuje jednego: **nic nie łączy decyzji z plikami**, więc ani agent,
+ani bramka nie wiedzą, że zmiana rusza obszar objęty decyzją.
+
+**Do zrobienia** (TDD, wersja kontraktu wg SemVer; tag `contract-v…` po merge'u):
+- [ ] **Pole `applies_to` w decyzji** — wzorce ścieżek (`services/document-processing/**`) i/lub nazwy komponentów;
+  opcjonalne, więc zgodne wstecz (podbicie minor kontraktu). Przykład w `contract/examples/`, README kontraktu.
+- [ ] **Zapytanie „decyzje dla tych ścieżek”** w MCP (`find_decisions` z parametrem ścieżek albo osobne narzędzie):
+  przyjęte decyzje, których `applies_to` pasuje do podanych plików, z `why` i założeniami. Agent woła je przed planem
+  zmiany i podaje w podsumowaniu, które decyzje sprawdził.
+- [ ] **`applies_to` przy zapisie decyzji** — `record_decision` przyjmuje pole; tf `decision add` je przekazuje (pozycja
+  w tf przy następnej zmianie `mode-pdi`).
+- [ ] **Szablon PR „Wpływ na decyzje”** (`.github/pull_request_template.md`): których decyzji dotyczy, czy zmienia
+  przyjętą (nie / tak / nie wiem), uzasadnienie. Ten sam szablon w ci_for_sdlc i tf.
+
+**Odbiorca:** ci_for_sdlc — reguła na PR, gdy zmienione pliki trafiają w `applies_to` przyjętej decyzji (pozycja w
+`ci_for_sdlc/TODO.md`). Czego nie robić: osobnego `INDEX.md` decyzji w repo — rejestr pdi jest katalogiem, druga kopia
+by się rozjeżdżała.
