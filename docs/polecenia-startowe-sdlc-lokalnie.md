@@ -1,4 +1,4 @@
-# Polecenia startowe: L1–L5 i etapy 2–14 planu `sdlc up`
+# Polecenia startowe: L1–L5 i etapy 2–15 planu `sdlc up`
 
 **Data:** 2026-10-30 · **Źródło:** [plan `sdlc up`](plan-sdlc-lokalnie.md) §2 (Z1–Z5) i §4, decyzje DL1–DL3
 ([decyzje](decyzje.md)) · **Stan przed startem:** pdi `9ec4e66`, ShipScope 0.2.64, ci_for_sdlc 0.1.34
@@ -14,6 +14,7 @@ i lustro Jira ↔ repo) po etapie 7. Etap 9 (incydenty i aplikacja Slacka) start
 a etap 10 (rozmowa w konsoli, krok K-3) po etapie 9. Etap 11 (zaległe kroki G1/G2) startuje po etapie 10, a etap 12
 (jedno wejście dla ludzi i miary przepływu) po etapie 11. Etap 13 (przełącznik funkcjonalności i pierwsze łączenie
 backendów) startuje po etapie 12, a etap 14 (kolejne moduły łączenia backendów, powtarzany) po etapie 13.
+Etap 15 (pilotaż z design partnerami) startuje po etapach 13–14.
 
 | Krok | Repo | Sesja w katalogu |
 |---|---|---|
@@ -35,6 +36,7 @@ backendów) startuje po etapie 12, a etap 14 (kolejne moduły łączenia backend
 | etap 12 | pdi (+ ShipScope, ci_for_sdlc, tf) | `/Users/x/WebstormProjects/pdi` |
 | etap 13 | pdi (+ ShipScope, tf) | `/Users/x/WebstormProjects/pdi` |
 | etap 14 | pdi (+ ShipScope, ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` |
+| etap 15 | pdi (+ repo, w których pilotaż odsłoni luki) | `/Users/x/WebstormProjects/pdi` |
 
 GitHub Actions na tym koncie nie działa (płatności). Każde polecenie każe więc uruchomić bramki lokalnie i napisać
 o tym w PR.
@@ -1363,4 +1365,83 @@ Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy sr
 checks and each touched repo's own gates, all in Actions. At the end, with me: run S5's main path through the
 merged module (report → change → release → outcome) and show the removed integration code. Commit, PRs, the
 migration on real data, the cut-over, the removal of the old path and changes in other repos on my request.
+```
+
+## Etap 15 — pdi: pilotaż z design partnerami na platformie
+
+Start dopiero po etapach 13–14 (platforma działa jako jeden produkt: powłoka, jedno logowanie, przełącznik
+funkcjonalności; nie trzeba czekać na połączenie wszystkich modułów). Pilotaż z partnerami jest od 2026-10-23
+wstrzymany ([dokument 11](11-propozycja-wartosci.md)), a materiały w `outreach/` i kryteria z
+[dokumentów 06](06-mvp-i-pilotaz.md) i [08](08-plan-projektu.md) opisują starą propozycję wartości (strażnik podstaw
+decyzji dla PM-a). Dlatego polecenie najpierw odwiesza pilotaż jako decyzję, przepisuje propozycję i kryteria pod
+platformę ([dokument 15](15-jedna-platforma.md): jeden flow od zgłoszenia do skutku), a dopiero potem przygotowuje
+wdrożenie u partnera. Sesja w klonie pdi. Kontakt z kandydatami, umowy i dostęp do ich systemów są zawsze po Twojej
+stronie; żadna wiadomość nie wychodzi bez Ciebie.
+
+```text
+Implement stage 15: a pilot of the platform with external design partners, after stages 13–14. The partner part of
+the project is on hold (docs/11-propozycja-wartosci.md, note of 2026-10-23: "Część dotycząca zewnętrznych design
+partnerów jest wstrzymana") and its materials describe the earlier value (the decision-basis guardian for a PM).
+Restart it for the platform: decision first, then materials, onboarding and measurement. Answer me in Polish; code,
+commits and PR titles in English, Conventional Commits; pdi docs and outreach materials in Polish.
+
+Preconditions, check them first and stop if one is missing:
+- the platform works as one product for me: stage 12's shell and single sign-in, stage 13's feature switch, and the
+  S5 flow on sprintdeck end to end (report → change → release → outcome); list what is still missing and whether
+  it blocks a partner;
+- the pilot materials as they are: docs/06-mvp-i-pilotaz.md (§6.4 metrics, §6.5 live pilot), docs/08-plan-projektu.md
+  (stage 0 and 5, §4 stop criteria, §5 success measures), docs/11-propozycja-wartosci.md, docs/15-jedna-platforma.md,
+  outreach/ (propozycja-dla-pm.md, profil-design-partnera.md, wiadomosc-kontaktowa.md, zasady-poufnosci.md,
+  lista-kandydatow.md, rejestr-kandydatow-szablon.csv);
+- the evidence so far: the S5 journals (stages 2–3), stage 6's acceptance counter, stage 12's G7 measures.
+
+Goal: a recorded decision to restart the pilot for the platform, a rewritten value proposition and success
+criteria that the platform's own data can measure, updated outreach materials ready for me to send, and an onboarding
+path for one partner team that takes a day, not a week: their workspace, tf in their repo, their Jira/Confluence/
+Figma connected with the least access, their first report through the flow. During the pilot, a weekly evidence
+report per partner from the platform's own measures, and a final go/no-go against criteria written before it began.
+
+Today:
+- doc 11's value ("strażnik podstaw decyzji") moved into pdi's decision registry (doc 12 §3–4); the platform (doc 15)
+  offers one flow from report to outcome with decisions, readiness, release state and autonomy;
+- outreach/ targets PMs with 1–3 decisions under way and a 4–6 week watch; the platform's user is wider (PO, dev,
+  ops) and its pilot needs a repo, CI and a tracker;
+- the confidentiality rules (outreach/zasady-poufnosci.md) were written for weekly documents, not for a service that
+  reads a partner's code, Jira, Confluence and Slack;
+- doc 08 §4 has stop criteria and doc 06 §6.4 metrics for the old scope.
+
+1. Decisions first, before any material or code. Show me the recommendation for each, wait for my answer, then record
+   them in docs/decyzje.md (and a note at the top of doc 11):
+   a. Restart: yes or not yet, from the evidence and what still blocks a partner; the pilot's one main question
+      (e.g. "does a team get from report to released change with fewer hand-offs and known decisions?").
+   b. The partner profile: team size, stack, tracker, CI, who uses the platform (PO, dev, ops), how many partners
+      (doc 08 aimed at 3+), how long (weeks), and what they must already have (GitHub, Actions, Jira or repo mode).
+   c. Success and stop criteria, each measurable by the platform (G7 measures, acceptance rate, decisions recorded,
+      hand-offs removed, partner's own rating), with thresholds set before the pilot.
+   d. Data and confidentiality: what the platform reads from a partner, where it is stored, retention, who at our side
+      can see it, the model provider's terms, deletion at the end; a written agreement before any access.
+2. Then a plan in docs/ (plan-etap15-pilotaz.md): the decisions, the onboarding path step by step with what is still
+   manual, the weekly report, the support model (who answers, how fast), the risks (a partner's CI or Jira differs,
+   a secret mishandled, noise), open questions. Wait for my OK.
+3. Then, only what the plan approves:
+   - rewrite outreach/ for the platform (offer, profile, contact templates, confidentiality rules, candidate register)
+     and a one-page pilot agreement draft; I send and sign, never you;
+   - the onboarding path: gaps found by walking it on a fresh test workspace with a fresh test repo, each fixed in its
+     repo by TDD (red test first), small PRs after my OK;
+   - the weekly evidence report from the platform's data (no partner data in our repos or logs).
+4. Docs: docs/decyzje.md, doc 11 (status), docs/06 and docs/08 (pilot sections point to the new plan),
+   docs/15-jedna-platforma.md (pilot state), README (how a partner starts).
+
+Tests:
+- the onboarding path on a fresh test workspace and repo reaches the first report in the flow without a step that
+  needs a secret copied by hand;
+- a partner's workspace is isolated (tenancy and RLS as before); deleting a partner removes their data per 1d;
+- the weekly report computes each criterion from fixed fixtures the same way as G7 does, and shows "no data", never
+  zero, when a source is missing;
+- no partner name, code, issue text or secret in our repos, logs, events or reports beyond what 1d allows.
+
+Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy src) plus each touched repo's own gates,
+all in Actions. At the end, walk the onboarding path with me on a fresh test workspace and repo, and show me the
+outreach materials ready to send. Commit, PRs, every message to a candidate, any agreement, any access to a partner's
+systems and changes in other repos on my request.
 ```
