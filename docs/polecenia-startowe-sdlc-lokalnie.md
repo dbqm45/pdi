@@ -1,4 +1,4 @@
-# Polecenia startowe: L1–L5 i etapy 2–13 planu `sdlc up`
+# Polecenia startowe: L1–L5 i etapy 2–14 planu `sdlc up`
 
 **Data:** 2026-10-30 · **Źródło:** [plan `sdlc up`](plan-sdlc-lokalnie.md) §2 (Z1–Z5) i §4, decyzje DL1–DL3
 ([decyzje](decyzje.md)) · **Stan przed startem:** pdi `9ec4e66`, ShipScope 0.2.64, ci_for_sdlc 0.1.34
@@ -13,7 +13,7 @@ Etap 7 (etapy flag według reguły i metryki ochronne) startuje po etapie 6, a e
 i lustro Jira ↔ repo) po etapie 7. Etap 9 (incydenty i aplikacja Slacka) startuje po etapie 8,
 a etap 10 (rozmowa w konsoli, krok K-3) po etapie 9. Etap 11 (zaległe kroki G1/G2) startuje po etapie 10, a etap 12
 (jedno wejście dla ludzi i miary przepływu) po etapie 11. Etap 13 (przełącznik funkcjonalności i pierwsze łączenie
-backendów) startuje po etapie 12.
+backendów) startuje po etapie 12, a etap 14 (kolejne moduły łączenia backendów, powtarzany) po etapie 13.
 
 | Krok | Repo | Sesja w katalogu |
 |---|---|---|
@@ -34,6 +34,7 @@ backendów) startuje po etapie 12.
 | etap 11 | pdi (+ ci_for_sdlc, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
 | etap 12 | pdi (+ ShipScope, ci_for_sdlc, tf) | `/Users/x/WebstormProjects/pdi` |
 | etap 13 | pdi (+ ShipScope, tf) | `/Users/x/WebstormProjects/pdi` |
+| etap 14 | pdi (+ ShipScope, ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` |
 
 GitHub Actions na tym koncie nie działa (płatności). Każde polecenie każe więc uruchomić bramki lokalnie i napisać
 o tym w PR.
@@ -1292,4 +1293,74 @@ Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy sr
 checks and each touched repo's own gates, all in Actions. At the end, with me: a dry run of the S5 feature's switch
 on TEST, then a real switch on TEST, then the PROD decision in the inbox (I decide whether to approve). Commit, PRs,
 ADR-004, any real switch on QA or PROD, migration of existing connections and changes in other repos on my request.
+```
+
+## Etap 14 — pdi (+ ShipScope, ci_for_sdlc): łączenie backendów moduł po module
+
+Start dopiero po etapie 13 (pierwszy moduł połączony i działa na produkcji, plan łączenia z części B zatwierdzony).
+Źródło: [dokument 15](15-jedna-platforma.md) §1 (granice: tf zawsze osobno, ShipScope i ci_for_sdlc jako osobne
+silniki we wspólnym produkcie) i §6 krok 6 oraz plan łączenia z etapu 13 (`plan-etap13-przelacznik.md`, część B).
+Zakres zna dopiero ten plan, więc polecenie jest pętlą: jedna sesja to jeden moduł, a etap powtarza się, dopóki plan ma
+kolejne moduły. Cennika i rozliczeń z §1 dokumentu 15 nie obejmuje, bo żaden plan ich nie opisuje. Sesja w klonie
+pdi; zmiany w ShipScope i ci_for_sdlc osobnymi PR-ami w ich repo, po Twojej zgodzie.
+
+```text
+Implement stage 14: the next module of the backend merge from docs/15-jedna-platforma.md §6 step 6 ("łączenie
+backendu moduł po module"), following the merge plan written in stage 13 part B (docs/plan-etap13-przelacznik.md).
+One module per session; repeat the stage while the plan has modules left. Answer me in Polish; code, commits and PR
+titles in English, Conventional Commits.
+
+Preconditions, check them first and stop if one is missing:
+- stage 13 is done: the feature switch works, the first module (pdi with ShipScope's pdi layer) is merged and in
+  production, and its rollback was tested;
+- the merge plan from stage 13 part B is approved and lists the remaining modules in order, each with what it removes
+  and what it keeps; tell me which module is next and whether any earlier one is unfinished (if so, finish that first);
+- doc 15 §1's boundaries: tf always separate (it runs in the customer's repo and CI); ShipScope (deployments, flags,
+  drift) and ci_for_sdlc (definition consistency) are separate engines with value on their own, and their trust
+  boundaries differ (ShipScope's worker holds sealed customer tokens, ci_for_sdlc reads Confluence and Figma).
+
+Goal: the next module is merged so that its integration code (tokens between services, signed events, connection
+checks, duplicate models) is gone, behaviour seen by users and by the contract does not change, and the engine it
+came from still works alone where the plan says it must. After it: the plan's table shows it done, what was removed,
+and what is next.
+
+Today:
+- The shell (stage 12) reads pdi, ci_for_sdlc and ShipScope's service API; stage 13 merged the first module.
+- Three stacks: Node + Fastify + Postgres with RLS (ShipScope), a TypeScript monorepo (ci_for_sdlc), Python (pdi's
+  MCP server and CLI) plus the pdi service from stage 4. The contract in contract/ is the boundary between modules,
+  so merging should not need rewrites (doc 15 §1).
+- Each engine has hundreds of tests; they are the proof that behaviour did not change.
+
+1. Before any code, for the next module, show me and wait for my answer, then record it in docs/decyzje.md and the
+   merge plan:
+   a. What moves, where to (into the pdi service or a shared module), and in which language and stack; why this
+      costs less than keeping the integration (doc 15 §1's test).
+   b. Data: which tables or files move, the migration (idempotent, with a dry run), tenancy and RLS after the move,
+      and how sealed secrets move without being decrypted outside their worker.
+   c. What the source engine keeps so it still works alone (or the decision that it no longer needs to), and what
+      changes for its existing users and settings.
+   d. Rollback: how to return to the previous path, and for how long both paths are kept.
+2. Then add the module's section to the merge plan: steps, tests carried over (one for one), contract checks, failure
+   cases, cut-over order. Wait for my OK.
+3. Implement only what the plan approves, TDD (red test first), small PRs, each in its repo after my OK: the moved
+   code behind the existing contract, the migration with a dry run, the switch of callers, then removal of the old
+   integration code once the new path has run in production for the agreed time.
+4. Docs: the merge plan's table, docs/15-jedna-platforma.md §6 state, the touched engines' README and architecture
+   docs (ShipScope's CLAUDE.md and design-docs, ci_for_sdlc's docs), docs/przebieg-na-sobie-s5.md if anything a user
+   does changes.
+
+Tests:
+- the module's existing tests pass in their new place unchanged or are replaced one for one, with a list of each
+  mapping in the PR;
+- contract tests on both sides of every remaining boundary pass;
+- the migration: every record readable after it, a second run changes nothing, the dry run writes nothing;
+- tenancy and RLS hold after the move (one tenant never sees another's data); sealed secrets are never decrypted
+  outside their worker;
+- the source engine still works alone where the plan says so;
+- rollback restores the previous path with its data; no secret or token in logs, URLs, events or client bundles.
+
+Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy src) plus the service's and console's
+checks and each touched repo's own gates, all in Actions. At the end, with me: run S5's main path through the
+merged module (report → change → release → outcome) and show the removed integration code. Commit, PRs, the
+migration on real data, the cut-over, the removal of the old path and changes in other repos on my request.
 ```
