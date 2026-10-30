@@ -1,50 +1,41 @@
-# Polecenia startowe: L1–L5 i etapy 2–18 planu `sdlc up`
+# Polecenia startowe: L1–L5 i etapy 2–18
 
-**Data:** 2026-10-30 · **Źródło:** [plan `sdlc up`](plan-sdlc-lokalnie.md) §2 (Z1–Z5) i §4, decyzje DL1–DL3
-([decyzje](decyzje.md)) · **Stan przed startem:** pdi `9ec4e66`, ShipScope 0.2.64, ci_for_sdlc 0.1.34
+**Data:** 2026-10-30 · **Źródła:** [plan `sdlc up`](plan-sdlc-lokalnie.md) (L1–L5, etapy 2–3), [plan automatyzacji
+i konsoli](plan-automatyzacja-i-konsola.md), [plan G1/G2](plan-g1-g2.md), [plan jednego flow](plan-jeden-flow-sdlc.md),
+[dokument 15](15-jedna-platforma.md) i [decyzje](decyzje.md); źródło każdego kroku w tabeli · **Stan przed L1:** pdi
+`9ec4e66`, ShipScope 0.2.64, ci_for_sdlc 0.1.34 (etapy sprawdzają aktualny stan same, w warunkach startu)
 
-L1, L2 i L3 są niezależne. Każdy idzie w osobnej sesji Claude Code w swoim repo. Polecenie wklejasz jako pierwszą
-wiadomość sesji. L4 (`sdlc` w `pdi/stack/`) startuje dopiero po merge'u wszystkich trzech, a L5 (repo próbne)
-po merge'u L4. Etap 2 (scenariusz S5 na sprintdecku) startuje po L5 i udanym przebiegu §5 na repo
-próbnym. Etap 3 (produkcja, §7 planu) startuje po etapie 2, a etap 4 (usługa pdi
-i konsola, krok K-2) po etapie 3. Etap 5 (graf śladu, rejestr decyzji i panel w Jirze, krok K-4) startuje po
-etapie 4, a etap 6 (autonomia zdobywana na danych) po etapie 5.
-Etap 7 (etapy flag według reguły i metryki ochronne) startuje po etapie 6, a etap 8 (uproszczone review
-i lustro Jira ↔ repo) po etapie 7. Etap 9 (incydenty i aplikacja Slacka) startuje po etapie 8,
-a etap 10 (rozmowa w konsoli, krok K-3) po etapie 9. Etap 11 (zaległe kroki G1/G2) startuje po etapie 10, a etap 12
-(jedno wejście dla ludzi i miary przepływu) po etapie 11. Etap 13 (przełącznik funkcjonalności i pierwsze łączenie
-backendów) startuje po etapie 12, a etap 14 (kolejne moduły łączenia backendów, powtarzany) po etapie 13.
-Etap 15 (pilotaż z design partnerami) startuje po etapach 13–14. Etap 16 (utrzymanie i niezawodność platformy)
-startuje po etapie 15, a etap 17 (cennik i rozliczenia) po etapie 16. Etap 18 (przegląd na dowodach
-i nowa mapa drogowa) startuje po etapie 17.
+Każde polecenie wklejasz jako pierwszą wiadomość nowej sesji Claude Code w katalogu z tabeli. Kroki idą po kolei:
+każdy startuje po kroku z kolumny „Startuje po” i sam sprawdza swoje warunki startu, a gdy któregoś brakuje,
+zatrzymuje się. L1, L2 i L3 są niezależne i mogą iść równolegle. Kolumnę „Stan” aktualizuj po merge'u kroku.
 
-| Krok | Repo | Sesja w katalogu |
-|---|---|---|
-| L1 | ShipScope | `/Users/x/WebstormProjects/evdt-service-shipscope` |
-| L2 | pdi | `/Users/x/WebstormProjects/pdi` |
-| L3 | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` |
-| L4 | pdi | `/Users/x/WebstormProjects/pdi` |
-| L5 | pdi (+ nowe repo `sdlc-sandbox`) | `/Users/x/WebstormProjects/pdi` |
-| etap 2 | pdi (+ sprintdeck) | `/Users/x/WebstormProjects/pdi` |
-| etap 3 | pdi (+ ShipScope, tf, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
-| etap 4 | pdi | `/Users/x/WebstormProjects/pdi` |
-| etap 5 | pdi (+ nowe repo panelu Forge) | `/Users/x/WebstormProjects/pdi` |
-| etap 6 | pdi (+ ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` |
-| etap 7 | pdi (+ ShipScope, tf, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
-| etap 8 | pdi (+ tf, ci_for_sdlc, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
-| etap 9 | pdi (+ ShipScope, tf, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
-| etap 10 | pdi (+ ci_for_sdlc, ShipScope) | `/Users/x/WebstormProjects/pdi` |
-| etap 11 | pdi (+ ci_for_sdlc, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
-| etap 12 | pdi (+ ShipScope, ci_for_sdlc, tf) | `/Users/x/WebstormProjects/pdi` |
-| etap 13 | pdi (+ ShipScope, tf) | `/Users/x/WebstormProjects/pdi` |
-| etap 14 | pdi (+ ShipScope, ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` |
-| etap 15 | pdi (+ repo, w których pilotaż odsłoni luki) | `/Users/x/WebstormProjects/pdi` |
-| etap 16 | pdi (+ ShipScope, ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` |
-| etap 17 | pdi (+ ShipScope, ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` |
-| etap 18 | pdi (pozostałe repo tylko do odczytu) | `/Users/x/WebstormProjects/pdi` |
+| Krok | Co | Startuje po | Źródło | Repo | Sesja w katalogu | Stan |
+|---|---|---|---|---|---|---|
+| [L1](#l1--shipscope-tryb-lokalny-dla-adresów-pdi) | ShipScope: tryb lokalny dla adresów pdi | — | [plan `sdlc up`](plan-sdlc-lokalnie.md) §4 | ShipScope | `/Users/x/WebstormProjects/evdt-service-shipscope` | zrobione |
+| [L2](#l2--pdi-fazy-uruchamiane-lokalnie-pdi_dispatchlocal) | pdi: fazy uruchamiane lokalnie | — | [plan `sdlc up`](plan-sdlc-lokalnie.md) §4 | pdi | `/Users/x/WebstormProjects/pdi` | zrobione |
+| [L3](#l3--ci_for_sdlc-gotowość-zmian-z-repo-do-pdi) | ci_for_sdlc: gotowość zmian z repo do pdi | — | [plan `sdlc up`](plan-sdlc-lokalnie.md) §4 | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` | zrobione |
+| [L4](#l4--pdi-sdlc-jedno-polecenie-dla-całego-stosu) | `sdlc`: jedno polecenie dla całego stosu | L1, L2, L3 | [plan `sdlc up`](plan-sdlc-lokalnie.md) §4 | pdi | `/Users/x/WebstormProjects/pdi` | zrobione |
+| [L5](#l5--pdi--nowe-repo-sdlc-sandbox-repo-próbne) | repo próbne `sdlc-sandbox` | L4 | [plan `sdlc up`](plan-sdlc-lokalnie.md) §4 | pdi (+ nowe repo `sdlc-sandbox`) | `/Users/x/WebstormProjects/pdi` | zrobione |
+| [Etap 2](#etap-2--pdi--sprintdeck-scenariusz-s5-na-prawdziwym-wdrożeniu) | scenariusz S5 na sprintdecku | L5 i udany [przebieg lokalny](przebieg-lokalny.md) | [plan `sdlc up`](plan-sdlc-lokalnie.md) §6, [S5](przebieg-na-sobie-s5.md) | pdi (+ sprintdeck) | `/Users/x/WebstormProjects/pdi` | czeka |
+| [Etap 3](#etap-3--pdi--shipscope-tf-z-localhosta-na-produkcję) | z localhosta na produkcję | etap 2, działające Actions | [plan `sdlc up`](plan-sdlc-lokalnie.md) §7 | pdi (+ ShipScope, tf, sprintdeck) | `/Users/x/WebstormProjects/pdi` | czeka |
+| [Etap 4](#etap-4--pdi-usługa-da4-i-konsola-krok-k-2) | usługa pdi i konsola (K-2) | etap 3 | [automatyzacja i konsola](plan-automatyzacja-i-konsola.md) §5.3, DA3–DA5 | pdi | `/Users/x/WebstormProjects/pdi` | czeka |
+| [Etap 5](#etap-5--pdi-graf-śladu-rejestr-decyzji-i-panel-w-jirze-k-4) | graf śladu, rejestr decyzji, panel w Jirze (K-4) | etap 4 | [automatyzacja i konsola](plan-automatyzacja-i-konsola.md) §5.3, [G1/G2](plan-g1-g2.md) G2.5 | pdi (+ nowe repo panelu Forge) | `/Users/x/WebstormProjects/pdi` | czeka |
+| [Etap 6](#etap-6--pdi-autonomia-zdobywana-na-danych) | autonomia zdobywana na danych | etap 5 | [automatyzacja i konsola](plan-automatyzacja-i-konsola.md) §1, §3, A3 | pdi (+ ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` | czeka |
+| [Etap 7](#etap-7--pdi--shipscope-tf-etapy-flag-według-reguły-a4-i-metryki-ochronne-g5) | etapy flag według reguły (A4), metryki ochronne (G5) | etap 6 | [automatyzacja i konsola](plan-automatyzacja-i-konsola.md) A4, [jeden flow](plan-jeden-flow-sdlc.md) G5 | pdi (+ ShipScope, tf, sprintdeck) | `/Users/x/WebstormProjects/pdi` | czeka |
+| [Etap 8](#etap-8--pdi--tf-ci_for_sdlc-uproszczone-review-a7-i-lustro-jira--repo-a8) | uproszczone review (A7), lustro Jira ↔ repo (A8) | etap 7 | [automatyzacja i konsola](plan-automatyzacja-i-konsola.md) A7, A8 | pdi (+ tf, ci_for_sdlc, sprintdeck) | `/Users/x/WebstormProjects/pdi` | czeka |
+| [Etap 9](#etap-9--pdi-incydenty-w-pętli-skutku-g8-i-aplikacja-slacka-a5) | incydenty (G8), aplikacja Slacka (A5) | etap 8 | [jeden flow](plan-jeden-flow-sdlc.md) G8, [A5](plan-a5-decyzje-z-rozmow.md) | pdi (+ ShipScope, tf, sprintdeck) | `/Users/x/WebstormProjects/pdi` | czeka |
+| [Etap 10](#etap-10--pdi-rozmowa-w-konsoli-k-3) | rozmowa w konsoli (K-3) | etap 9 i dowód z K-1 | [automatyzacja i konsola](plan-automatyzacja-i-konsola.md) §5.3 | pdi (+ ci_for_sdlc, ShipScope) | `/Users/x/WebstormProjects/pdi` | czeka |
+| [Etap 11](#etap-11--ci_for_sdlc--pdi-sprintdeck-zaległe-kroki-g1g2-g23-g16-g26) | zaległe kroki G2.3, G1.6, G2.6 | etap 10 i wynik pilota reguł | [G1/G2](plan-g1-g2.md) §10 | pdi (+ ci_for_sdlc, sprintdeck) | `/Users/x/WebstormProjects/pdi` | czeka |
+| [Etap 12](#etap-12--pdi-jedno-wejście-dla-ludzi-g6-p1-i-miary-przepływu-g7) | jedno wejście (G6, P1), miary przepływu (G7) | etap 11 | [jeden flow](plan-jeden-flow-sdlc.md), [dokument 15](15-jedna-platforma.md) §6 kroki 1–4 | pdi (+ ShipScope, ci_for_sdlc, tf) | `/Users/x/WebstormProjects/pdi` | czeka |
+| [Etap 13](#etap-13--pdi--shipscope-tf-przełącznik-funkcjonalności-i-pierwsze-łączenie-backendów) | przełącznik funkcjonalności, pierwsze łączenie backendów | etap 12 | [dokument 15](15-jedna-platforma.md) §4, §6 kroki 5–6 | pdi (+ ShipScope, tf) | `/Users/x/WebstormProjects/pdi` | czeka |
+| [Etap 14](#etap-14--pdi--shipscope-ci_for_sdlc-łączenie-backendów-moduł-po-module) | kolejne moduły łączenia backendów (powtarzany) | etap 13 | [dokument 15](15-jedna-platforma.md) §6 krok 6, plan z etapu 13 | pdi (+ ShipScope, ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` | czeka |
+| [Etap 15](#etap-15--pdi-pilotaż-z-design-partnerami-na-platformie) | pilotaż z design partnerami | etapy 13–14 | [06](06-mvp-i-pilotaz.md), [08](08-plan-projektu.md), [11](11-propozycja-wartosci.md) | pdi (+ repo, w których pilotaż odsłoni luki) | `/Users/x/WebstormProjects/pdi` | czeka |
+| [Etap 16](#etap-16--pdi--shipscope-ci_for_sdlc-utrzymanie-i-niezawodność-platformy) | utrzymanie i niezawodność platformy | etap 15 | brak planu; wzorce ShipScope (SLO, kopie, sekrety) | pdi (+ ShipScope, ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` | czeka |
+| [Etap 17](#etap-17--pdi-cennik-i-rozliczenia-platformy) | cennik i rozliczenia | etap 16 i wyniki pilotażu | brak planu; [dokument 15](15-jedna-platforma.md) §1 | pdi (+ ShipScope, ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` | czeka |
+| [Etap 18](#etap-18--pdi-przegląd-na-dowodach-i-nowa-mapa-drogowa) | przegląd na dowodach i nowa mapa drogowa | etap 17 | brak planu | pdi (pozostałe repo tylko do odczytu) | `/Users/x/WebstormProjects/pdi` | czeka |
 
-GitHub Actions na tym koncie nie działa (płatności). Każde polecenie każe więc uruchomić bramki lokalnie i napisać
-o tym w PR.
+GitHub Actions na tym koncie nie działa (płatności). L1–L5 i etap 2 każą więc uruchomić bramki lokalnie i napisać
+o tym w PR. Etap 3 sprawdza działające Actions jako warunek startu, a etapy 4–18 zakładają, że działają.
 
 ## L1 — ShipScope: tryb lokalny dla adresów pdi
 

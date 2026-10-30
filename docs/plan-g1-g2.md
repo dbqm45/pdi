@@ -402,6 +402,8 @@ flow są zrobione; F6 częściowo.
 | G2.6 sygnał z estymacji | sprintdeck + ci_for_sdlc | czeka | | pokoje, talia „Risk” (S6) i limity (S3) są w sprintdecku (#4–#11); brakuje importu z Jiry; rola sprintdecka zmieniona decyzją [D-E1](decyzje.md) |
 | G1.6 edytor mapy historyjek | pdi | warunkowo | | po pilocie |
 
+Polecenia startowe: G2.5 → etap 5, G2.3, G1.6 i G2.6 → etap 11 ([`polecenia-startowe-sdlc-lokalnie.md`](polecenia-startowe-sdlc-lokalnie.md)).
+
 Fazy [planu jednego flow](plan-jeden-flow-sdlc.md), od których zależą kroki powyżej:
 
 | Faza | Stan | Gdzie |

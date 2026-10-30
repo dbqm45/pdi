@@ -118,6 +118,9 @@ Sekcja Consistency ma dwa poziomy (makieta: ekrany 6 i 7):
 5. Plan przełączenia na sucho i decyzja w pdi; potem pierwszy wykonawca zapisu.
 6. Łączenie backendu moduł po module, zaczynając od pdi i warstwy pdi w ShipScope.
 
+Polecenia startowe: kroki 1–4 → etap 12, krok 5 i pierwszy moduł kroku 6 → etap 13, kolejne moduły → etap 14
+([`polecenia-startowe-sdlc-lokalnie.md`](polecenia-startowe-sdlc-lokalnie.md)).
+
 ## 7. Otwarte pytania
 
 - Gdzie dziś żyją flagi w serwisach (evdt-shipscope-flags, inny dostawca, pliki w kodzie)? Od tego zależy pierwszy
