@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import dataclasses
 import json
 import os
 import re
@@ -49,6 +50,10 @@ POLL_SECONDS = 2.0
 WORKSPACE_POLL_SECONDS = 5.0
 DEPLOY_ENVIRONMENTS = {"prod": "production", "test": "test"}
 RESET_WORD = "usuń"
+SANDBOX_TEMPLATE = "dbqm45/sdlc-sandbox"
+# Źródło flag repo próbnego w ShipScope (L5): config/flags.{test,prod}.json, { "<klucz>": { "enabled", "rollout" } }.
+SANDBOX_FLAGS = {"file": "config/flags.{env}.json", "valuePath": "enabled", "rolloutPath": "rollout"}
+TRACK_ATTEMPTS = 5
 
 
 @dataclass
@@ -457,6 +462,85 @@ def cmd_reset(ctx: Ctx) -> int:
     return 0
 
 
+def cmd_sandbox(ctx: Ctx, name: str, owner: str | None) -> int:
+    """Repo próbne z szablonu: utworzone albo użyte ponownie, sklonowane, śledzone w ShipScope, repo faz tf (L5)."""
+    config = home.load_config(ctx.root / "config.toml")
+    if config is None:
+        raise Stop("Najpierw: uv run sdlc up")
+    if not re.match(r"^[A-Za-z0-9_.-]{1,100}$", name):
+        raise Stop("Nazwa repo: litery, cyfry, . _ -")
+    if owner is None:
+        code, out, err = ctx.run(["gh", "api", "user", "--jq", ".login"], None, ctx.environ, None)
+        owner = out.strip()
+        if code != 0 or not owner:
+            raise Stop(f"gh: kto jest zalogowany? ({_first_line(err) or code}) — gh auth login")
+    if not re.match(r"^[A-Za-z0-9-]{1,39}$", owner):
+        raise Stop("--owner: login konta GitHub")
+    repo = f"{owner}/{name}"
+    clone = config.pdi.parent / name
+    code, _, _ = ctx.run(["gh", "repo", "view", repo, "--json", "name"], None, ctx.environ, None)
+    if code != 0:
+        argv = ["gh", "repo", "create", repo, "--template", SANDBOX_TEMPLATE, "--private", "--clone"]
+        code, _, err = ctx.run(argv, clone.parent, ctx.environ, None)
+        if code != 0:
+            raise Stop(f"gh repo create: {_first_line(err) or code}")
+        ctx.out(f"Repo {repo}: utworzone z szablonu {SANDBOX_TEMPLATE} (prywatne).")
+    elif (clone / ".git").exists():
+        code, _, err = ctx.run(["git", "-C", str(clone), "pull", "--ff-only"], None, ctx.environ, None)
+        if code != 0:
+            raise Stop(f"git pull w {clone}: {_first_line(err) or code}")
+    else:
+        code, _, err = ctx.run(["gh", "repo", "clone", repo, str(clone)], None, ctx.environ, None)
+        if code != 0:
+            raise Stop(f"gh repo clone: {_first_line(err) or code}")
+    track(ctx, config, repo)
+    updated = dataclasses.replace(config, checkout=clone, deploy_repo=repo)
+    if updated != config:
+        home.save_config(ctx.root / "config.toml", updated)
+        if pid_of(ctx, "pdi-receiver") is not None:
+            stop(ctx, "pdi-receiver")
+        start_receiver(ctx, updated, home.read_env(ctx.root / "env"))
+        ctx.out("pdi: repo faz tf (PDI_DISPATCH_CHECKOUT) ustawione; odbiornik uruchomiony ponownie. Serwer MCP pdi")
+        ctx.out("weźmie je od następnej sesji Claude.")
+    ctx.out("")
+    ctx.out(f"  repo            https://github.com/{repo}")
+    ctx.out(f"  klon            {clone}")
+    ctx.out(
+        "  pierwszy krok   uv run sdlc open, potem zgłoszenie z README repo próbnego (pdi: docs/przebieg-lokalny.md)"
+    )
+    ctx.out("gotowe")
+    return 0
+
+
+def track(ctx: Ctx, config: home.Config, repo: str) -> None:
+    """Śledzenie repo i jego źródło flag w ShipScope (`local-pdi.js track`); czeka na instalację aplikacji GitHub."""
+    argv = ["node", LOCAL_PDI, "track", "--repo", repo, "--flags", json.dumps(SANDBOX_FLAGS)]
+    told = False
+    for _ in range(TRACK_ATTEMPTS):
+        code, out, err = ctx.run(argv, config.shipscope, ctx.environ, None)
+        if code == 0:
+            created = (_json(out).get("flagSource") or {}).get("created")
+            ctx.out(
+                f"ShipScope: {repo} śledzone, flagi z config/flags.{{env}}.json{' (nowe źródło)' if created else ''}."
+            )
+            return
+        if code == 3:
+            raise Stop("ShipScope nie ma jeszcze przestrzeni — najpierw: uv run sdlc up")
+        if code != 5:
+            raise Stop(f"ShipScope track: {_first_line(err) or f'kod {code}'}")
+        if not told:
+            url = shipscope_url(config)
+            ctx.out(f"ShipScope nie widzi jeszcze {repo}. W przeglądarce, zalogowany w ShipScope ({url}/):")
+            ctx.out("  1. Settings → GitHub → Install (aplikacja GitHub ShipScope);")
+            ctx.out(f"  2. na GitHubie wybierz konto {repo.split('/')[0]} i „All repositories” (albo tylko {repo});")
+            ctx.out("  3. po powrocie do ShipScope instalacja jest połączona z przestrzenią.")
+            told = True
+        ctx.type_line("Naciśnij Enter, gdy skończysz… ")
+    raise Stop(
+        f"ShipScope dalej nie widzi {repo} — sprawdź instalację aplikacji GitHub i uruchom `sdlc sandbox` ponownie."
+    )
+
+
 def cmd_mcp(ctx: Ctx, name: str) -> int:
     """Serwer MCP ze zmiennymi z ~/.sdlc/env — tę komendę rejestruje `sdlc up` w Claude Code."""
     config = home.load_config(ctx.root / "config.toml")
@@ -490,6 +574,9 @@ def main(argv: list[str] | None = None, *, ctx: Ctx | None = None) -> int:
     sub.add_parser("open", help="ShipScope i formularz zgłoszeń w przeglądarce")
     sub.add_parser("down", help="zatrzymuje procesy i Postgresa; dane zostają")
     sub.add_parser("reset", help="usuwa dane po potwierdzeniu")
+    sandbox = sub.add_parser("sandbox", help="repo próbne z szablonu: utworzone, sklonowane, śledzone, repo faz tf")
+    sandbox.add_argument("name")
+    sandbox.add_argument("--owner", help="konto GitHub (domyślnie zalogowane w gh)")
     mcp = sub.add_parser("mcp", help="(dla Claude Code) serwer MCP ze zmiennymi z ~/.sdlc/env")
     mcp.add_argument("name", choices=("pdi", "shipscope"))
     args = parser.parse_args(argv)
@@ -509,6 +596,8 @@ def main(argv: list[str] | None = None, *, ctx: Ctx | None = None) -> int:
             return cmd_down(ctx)
         if args.command == "reset":
             return cmd_reset(ctx)
+        if args.command == "sandbox":
+            return cmd_sandbox(ctx, args.name, args.owner)
         return cmd_mcp(ctx, args.name)
     except Stop as e:
         ctx.out(f"✗ {e}")
@@ -612,6 +701,14 @@ def _state(out: str) -> str:
         return str(json.loads(out)["connection"]["state"])
     except (ValueError, KeyError, TypeError):
         return "nieznany"
+
+
+def _json(text: str) -> dict[str, Any]:
+    try:
+        value = json.loads(text)
+    except ValueError:
+        return {}
+    return value if isinstance(value, dict) else {}
 
 
 def _first_line(text: str) -> str:
