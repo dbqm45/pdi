@@ -1,7 +1,10 @@
 """Uruchomienie fazy tf po decyzji na bramce (F4): `workflow_dispatch` szablonu fazy przez API GitHuba.
 
-pdi nie uruchamia agentów u siebie (dokument 13, R4): stan jest w pdi, wykonanie w GitHub Actions. Błąd nie cofa
-decyzji — zapisuje się w stanie zmiany, a `retry_dispatch` ponawia. Token nigdy nie trafia do wyniku.
+Na produkcji pdi nie uruchamia agentów u siebie (dokument 13, R4): stan jest w pdi, wykonanie w GitHub Actions.
+Jedyny wyjątek to `PDI_DISPATCH=local` (decyzja DL1, rozwój i próby): wtedy pdi wykonuje te same kroki co szablon
+fazy w lokalnym klonie repo produktu (`PDI_DISPATCH_CHECKOUT`, `pdi.dispatch_local`). Bez `PDI_DISPATCH` zachowanie
+jest takie jak przed L2. Błąd nie cofa decyzji — zapisuje się w stanie zmiany, a `retry_dispatch` ponawia. Token
+nigdy nie trafia do wyniku.
 """
 
 from __future__ import annotations
@@ -13,7 +16,10 @@ import urllib.error
 import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
+
+from pdi import dispatch_local
 
 Post = Callable[[str, dict[str, str], bytes], int]
 API = "https://api.github.com"
@@ -30,6 +36,13 @@ class DispatchConfig:
     ref: str = "main"
     token: str | None = field(default=None, repr=False)
     budget_usd: str | None = None
+    # PDI_DISPATCH: brak — workflow_dispatch (Actions); "local" — przebieg w klonie PDI_DISPATCH_CHECKOUT (DL1).
+    mode: str | None = None
+    checkout: str | None = None
+
+    @property
+    def local(self) -> bool:
+        return self.mode == "local"
 
     @classmethod
     def from_env(cls) -> DispatchConfig:
@@ -39,6 +52,8 @@ class DispatchConfig:
             ref=os.environ.get("PDI_DISPATCH_REF") or "main",
             token=os.environ.get("PDI_GITHUB_TOKEN") or None,
             budget_usd=os.environ.get("PDI_PHASE_BUDGET_USD") or None,
+            mode=os.environ.get("PDI_DISPATCH") or None,
+            checkout=os.environ.get("PDI_DISPATCH_CHECKOUT") or None,
         )
 
 
@@ -55,13 +70,39 @@ def dispatch_phase(
     post: Post | None = None,
     source: str | None = None,
     problem: str | None = None,
+    runs_dir: Path | None = None,
+    spawn: dispatch_local.Spawn | None = None,
+    run: dispatch_local.Run | None = None,
 ) -> dict[str, Any]:
     """Uruchamia fazę `phase` dla `change`; wynik `{"status": sent | skipped | failed, …}` do zapisu w stanie.
 
     `source` (PRB) i `problem` (JSON zgłoszenia) idą tylko przy przyjęciu do budowy (F3, faza `intent`); szablon fazy
-    bez tych wejść ich nie dostaje.
+    bez tych wejść ich nie dostaje. W trybie lokalnym wynik ma `mode: local` i `status: running | failed`, a log
+    przebiegu trafia do `runs_dir` (`$PDI_REGISTRY_PATH/runs`).
     """
     result: dict[str, Any] = {"status": "failed", "phase": phase, "rework": rework, "at": at}
+    if config.mode and not config.local:
+        return {**result, "error": f"PDI_DISPATCH: dozwolone tylko „local” (albo brak), jest „{config.mode[:40]}”."}
+    if config.local:
+        if runs_dir is None:
+            return {**result, "mode": "local", "error": "Brak katalogu przebiegów (runs) — błąd konfiguracji pdi."}
+        return dispatch_local.start(
+            runs_dir=runs_dir,
+            checkout=config.checkout,
+            ref=config.ref,
+            budget_usd=config.budget_usd,
+            change=change,
+            phase=phase,
+            gate=gate,
+            outcome=outcome,
+            decision=decision,
+            rework=rework,
+            at=at,
+            source=source,
+            problem=problem,
+            run=run,
+            spawn=spawn,
+        )
     if not config.repo:
         return {**result, "status": "skipped", "error": "Brak PDI_DISPATCH_REPO — faza nie została uruchomiona."}
     result.update(repo=config.repo, workflow=config.workflow)

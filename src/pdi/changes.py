@@ -1,7 +1,8 @@
 """Stan orkiestracji zmian (F4): pliki `changes/<CHG>.yaml` w katalogu rejestru.
 
 To nie jest artefakt zmiany — intencja, plan i decyzje o zmianie żyją w repo produktu (D2/R1). Tu jest tylko to,
-co orkiestrator wie o przebiegu: zatwierdzone bramki, na co zmiana czeka, ostatnie uruchomienie fazy.
+co orkiestrator wie o przebiegu: zatwierdzone bramki, na co zmiana czeka, ostatnie uruchomienie fazy. Przy odczycie
+lokalne uruchomienie fazy (`PDI_DISPATCH=local`) dostaje wynik przebiegu z `runs/` (`pdi.dispatch_local.settle`).
 """
 
 from __future__ import annotations
@@ -11,7 +12,7 @@ from pathlib import Path
 
 import yaml
 
-from pdi import contract
+from pdi import contract, dispatch_local
 from pdi.flow import State, new_state
 from pdi.registry import Registry
 
@@ -38,7 +39,7 @@ class ChangeStore:
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
         if not isinstance(data, dict):
             raise ChangeNotFound(f"{path.name}: uszkodzony stan zmiany.")
-        return data
+        return dispatch_local.settle(data)
 
     def load(self, change: str) -> State:
         """Stan zmiany albo nowy, pusty — gdy to pierwsze zdarzenie o niej."""

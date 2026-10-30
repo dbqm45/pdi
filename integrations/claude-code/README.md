@@ -54,6 +54,22 @@ wcześniejsze decyzje, zanim coś zaproponuje.
 
 Sprawdzenie: `claude mcp list` pokazuje `pdi` jako połączony; w sesji `/mcp` → `pdi` → 9 narzędzi.
 
+**Fazy tf na tym komputerze (tryb lokalny, tylko do rozwoju).** Żeby zatwierdzenie bramki (`decide_inbox_item`) albo
+przyjęcie zgłoszenia (`triage_problem` z `accepted`) samo uruchamiało następną fazę w lokalnym klonie repo produktu,
+bez GitHub Actions, dodaj do rejestracji serwera (i tak samo do `pdi-receiver`):
+```bash
+  -e PDI_DISPATCH=local \
+  -e PDI_DISPATCH_CHECKOUT="$HOME/sklep" \
+  -e PDI_PHASE_BUDGET_USD=3 \
+  -e PDI_EVENTS_URL=http://127.0.0.1:8787 -e PDI_TF_SIGNING_SECRET=<sekret odbiornika> \
+```
+`PDI_DISPATCH_CHECKOUT` to bezwzględna ścieżka klonu repo produktu z tf (tryb mode-pdi), bez niezatwierdzonych zmian.
+Faza idzie w tle i kończy się PR-em oraz nową bramką w skrzynce. `get_change CHG-n` pokazuje `dispatch.status`
+(`running`, `done` z `pr`, `failed` z `step` i `error`) i ścieżkę logu; `retry_dispatch CHG-n` ponawia nieudaną fazę.
+Druga decyzja dla zmiany, której faza jeszcze trwa, jest odrzucana. `git` i `gh` muszą być zalogowane na komputerze.
+Na produkcji tego nie ustawiaj — fazy idą przez Actions (R4). Szczegóły: [README](../../README.md) i
+[plan L2](../../docs/plan-l2-dispatch-lokalny.md).
+
 ## Obok ci_for_sdlc i ShipScope (K-1)
 
 Jedna rozmowa może widzieć decyzje (pdi), gotowość wymagań (ci_for_sdlc) i stan wydań (ShipScope). Oba dodatkowe

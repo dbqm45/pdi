@@ -201,7 +201,7 @@ konfiguracji.
 | Krok | Repo | Zależy od | Stan |
 |---|---|---|---|
 | L1 | ShipScope | — | do zrobienia |
-| L2 | pdi | DL1 | do zrobienia |
+| L2 | pdi | DL1 | zrobione ([plan L2](plan-l2-dispatch-lokalny.md)) |
 | L3 | ci_for_sdlc | — | do zrobienia |
 | L4 | pdi | L1, L2, L3, DL2, DL3 | do zrobienia |
 | L5 | nowe repo `sdlc-sandbox` + pdi | L4, DL4 | do zrobienia |

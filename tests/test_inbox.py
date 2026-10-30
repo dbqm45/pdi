@@ -780,3 +780,103 @@ def test_explicit_decision_type_and_draft_edited_are_kept(inbox: Inbox, make_dra
     )["decision"]
 
     assert (decision["decision_type"], decision["draft_edited"]) == ("release.go", True)
+
+
+# --- PDI_DISPATCH=local (L2) ---
+
+
+def local_inbox(registry: Registry, checkout: Path, spawn: Any) -> Inbox:
+    from tests.test_dispatch_local import FakeRun
+
+    cfg = DispatchConfig(repo=None, mode="local", checkout=str(checkout), budget_usd="3")
+    return Inbox(registry, dispatch=cfg, local_spawn=spawn, local_run=FakeRun())
+
+
+def test_local_mode_gate_decision_starts_a_background_phase_and_shows_its_pr(
+    registry: Registry, make_draft: Draft, tmp_path: Path
+) -> None:
+    from tests.test_dispatch_local import PR, FakeRun, FakeSpawn, make_checkout
+
+    repo = make_checkout(tmp_path)
+    spawn = FakeSpawn()
+    inbox = local_inbox(registry, repo, spawn)
+    inbox.receive(gate_event())
+
+    result = inbox.decide("evt-gate-1", make_draft(), outcome="approved")
+
+    dispatch = result["change"]["dispatch"]
+    assert (dispatch["mode"], dispatch["status"], dispatch["phase"]) == ("local", "running", "requirements")
+    assert (dispatch["gate"], dispatch["decision"]) == ("B1", "DEC-0001")
+    assert dispatch["log"].startswith(str(registry.root / "runs" / "CHG-12-requirements-"))
+    (spec,) = spawn.specs
+    assert (spec["phase"], spec["decision"], spec["budget_usd"]) == ("requirements", "DEC-0001", "3")
+
+    from pdi import dispatch_local
+
+    dispatch_local.finish(spec, spawn.envs[0], run=FakeRun())
+    shown = inbox.changes.get("CHG-12")
+    assert (shown["dispatch"]["status"], shown["dispatch"]["pr"]) == ("done", PR)
+    assert shown["history"][-1]["what"] == "dispatch.done"
+    assert inbox.changes.all()[0]["dispatch"]["status"] == "done"
+
+
+def test_local_mode_refuses_a_decision_while_the_phase_runs(
+    registry: Registry, make_draft: Draft, tmp_path: Path
+) -> None:
+    from tests.test_dispatch_local import FakeSpawn, make_checkout
+
+    repo = make_checkout(tmp_path)
+    inbox = local_inbox(registry, repo, FakeSpawn())
+    inbox.receive(gate_event())
+    inbox.decide("evt-gate-1", make_draft(), outcome="approved")
+    inbox.receive(gate_event("evt-gate-2", gate="B2", summary="Wymagania."))
+
+    with pytest.raises(InvalidDecision, match="trwa"):
+        inbox.decide("evt-gate-2", make_draft(), outcome="approved")
+    with pytest.raises(InvalidDecision, match="trwa"):
+        inbox.retry_dispatch("CHG-12")
+    assert inbox.get("evt-gate-2")["status"] == "open"
+    assert [d["id"] for d in registry.decisions()] == ["DEC-0001"]
+
+
+def test_local_mode_failed_phase_can_be_retried(registry: Registry, make_draft: Draft, tmp_path: Path) -> None:
+    from tests.test_dispatch_local import FakeRun, FakeSpawn, make_checkout
+
+    repo = make_checkout(tmp_path)
+    failing = FakeRun()
+    failing.responses["git push"] = (1, "rejected")
+    inbox = local_inbox(registry, repo, FakeSpawn(failing))
+    inbox.receive(gate_event())
+    inbox.decide("evt-gate-1", make_draft(), outcome="approved")
+    failed = inbox.changes.get("CHG-12")["dispatch"]
+    assert (failed["status"], failed["step"]) == ("failed", "push")
+
+    again = FakeSpawn()
+    retried = local_inbox(registry, repo, again).retry_dispatch("CHG-12")
+
+    assert (retried["dispatch"]["status"], retried["dispatch"]["mode"]) == ("running", "local")
+    assert retried["dispatch"]["log"] != failed["log"]
+    assert (again.specs[0]["phase"], again.specs[0]["gate"], again.specs[0]["decision"]) == (
+        "requirements",
+        "B1",
+        "DEC-0001",
+    )
+    state = inbox.changes.get("CHG-12")
+    assert state["dispatch"]["status"] == "running"
+    assert state["history"][-1]["what"] == "dispatch.retried"
+
+
+def test_local_mode_without_checkout_fails_and_keeps_the_decision(registry: Registry, make_draft: Draft) -> None:
+    from tests.test_dispatch_local import FakeSpawn
+
+    spawn = FakeSpawn()
+    cfg = DispatchConfig(repo=None, mode="local", checkout=None)
+    inbox = Inbox(registry, dispatch=cfg, local_spawn=spawn)
+    inbox.receive(gate_event())
+
+    result = inbox.decide("evt-gate-1", make_draft(), outcome="approved")
+
+    assert registry.get("DEC-0001")["kind"] == "gate"
+    assert result["change"]["dispatch"]["status"] == "failed"
+    assert "PDI_DISPATCH_CHECKOUT" in result["change"]["dispatch"]["error"]
+    assert spawn.specs == []

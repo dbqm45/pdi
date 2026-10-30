@@ -24,7 +24,7 @@ from typing import Any, TypeAlias
 
 import yaml
 
-from pdi import autonomy, capture, contract, flow, forecast, impact
+from pdi import autonomy, capture, contract, dispatch_local, flow, forecast, impact
 from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig, Post, dispatch_phase
 from pdi.notify import NotifyConfig, ReporterNotifyConfig, notify_ci_for_sdlc
@@ -109,6 +109,8 @@ class Inbox:
         shipscope_get: impact.Get | None = None,
         reporters: ReporterNotifyConfig | None = None,
         reporter_post: Post | None = None,
+        local_spawn: dispatch_local.Spawn | None = None,
+        local_run: dispatch_local.Run | None = None,
     ) -> None:
         self.registry = registry
         self.changes = ChangeStore(registry)
@@ -120,9 +122,17 @@ class Inbox:
         self._notify_post = notify_post
         self._shipscope = shipscope or impact.ShipScopeConfig(url=None)
         self._shipscope_get = shipscope_get
+        self._local_spawn = local_spawn
+        self._local_run = local_run
         # Zgłaszający zmiany dostaje powiadomienie o jej wydaniu i ocenie skutku (F5).
         self.problems = ProblemStore(
-            registry, notify=reporters, post=reporter_post, dispatch=self._dispatch, dispatch_post=post
+            registry,
+            notify=reporters,
+            post=reporter_post,
+            dispatch=self._dispatch,
+            dispatch_post=post,
+            local_spawn=local_spawn,
+            local_run=local_run,
         )
 
     # --- przyjęcie ---
@@ -503,9 +513,11 @@ class Inbox:
         gate: str = (item.get("gate") or _gate_of(item["event"]) or "") if item["kind"] == "gate" else ""
         if item["kind"] == "gate" and state is not None:
             try:  # najpierw sprawdzenie przejścia, żeby nie zapisać decyzji, której stan nie przyjmie
-                flow.gate_decided(state, gate, outcome or "", "DEC-0", at=at)
+                _, planned = flow.gate_decided(state, gate, outcome or "", "DEC-0", at=at)
             except flow.InvalidTransition as e:
                 raise InvalidDecision(str(e)) from e
+            if planned:
+                self._refuse_if_running(item["change"])
         tags = list(draft.get("tags") or [])
         tags += [t for t in _tags(item, gate, outcome) if t not in tags]
         extra: dict[str, Any] = {}
@@ -640,7 +652,9 @@ class Inbox:
         state = self.changes.get(change)
         last: dict[str, Any] = state.get("dispatch") or {}
         sent_ci: dict[str, Any] = state.get("ci_for_sdlc") or {}
-        redo_run = bool(last) and last["status"] != "sent"
+        if last.get("status") == "running":
+            self._refuse_if_running(change)
+        redo_run = bool(last) and last["status"] in ("failed", "skipped")
         redo_ci = bool(sent_ci) and sent_ci["status"] != "sent"
         if not redo_run and not redo_ci:
             raise InvalidDecision(f"{change}: nie ma uruchomienia fazy ani wysyłki do ci_for_sdlc do ponowienia.")
@@ -653,6 +667,10 @@ class Inbox:
                 "source": last.get("source"),
                 "problem": last.get("problem"),
             }
+            if (
+                self._dispatch.local and run["source"] and not run["problem"]
+            ):  # lokalnie treści zgłoszenia nie ma w stanie
+                run["problem"] = self.problems.phase_problem(self.problems.get(run["source"]))
             state["dispatch"] = self._run(change, run, last["gate"], last["outcome"], last["decision"], at)
             state["history"].append({"at": at, "what": "dispatch.retried", "status": state["dispatch"]["status"]})
             out["dispatch"] = state["dispatch"]
@@ -678,9 +696,18 @@ class Inbox:
             post=self._post,
             source=run.get("source"),
             problem=run.get("problem"),
+            runs_dir=self.registry.root / "runs",
+            spawn=self._local_spawn,
+            run=self._local_run,
         )
-        extra = {k: run[k] for k in ("source", "problem") if run.get(k)}
+        kept = ("source",) if self._dispatch.local else ("source", "problem")
+        extra = {k: run[k] for k in kept if run.get(k)}
         return {**result, "gate": gate, "outcome": outcome, "decision": decision, **extra}
+
+    def _refuse_if_running(self, change: str) -> None:
+        busy = dispatch_local.running(self.registry.root / "runs", change)
+        if busy is not None:
+            raise InvalidDecision(f"{change}: trwa poprzednia faza (log {busy}) — poczekaj na jej koniec i ponów.")
 
     # --- pliki ---
 
