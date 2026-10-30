@@ -1,4 +1,4 @@
-# Polecenia startowe: L1–L5 i etapy 2–17 planu `sdlc up`
+# Polecenia startowe: L1–L5 i etapy 2–18 planu `sdlc up`
 
 **Data:** 2026-10-30 · **Źródło:** [plan `sdlc up`](plan-sdlc-lokalnie.md) §2 (Z1–Z5) i §4, decyzje DL1–DL3
 ([decyzje](decyzje.md)) · **Stan przed startem:** pdi `9ec4e66`, ShipScope 0.2.64, ci_for_sdlc 0.1.34
@@ -15,7 +15,8 @@ a etap 10 (rozmowa w konsoli, krok K-3) po etapie 9. Etap 11 (zaległe kroki G1/
 (jedno wejście dla ludzi i miary przepływu) po etapie 11. Etap 13 (przełącznik funkcjonalności i pierwsze łączenie
 backendów) startuje po etapie 12, a etap 14 (kolejne moduły łączenia backendów, powtarzany) po etapie 13.
 Etap 15 (pilotaż z design partnerami) startuje po etapach 13–14. Etap 16 (utrzymanie i niezawodność platformy)
-startuje po etapie 15, a etap 17 (cennik i rozliczenia) po etapie 16.
+startuje po etapie 15, a etap 17 (cennik i rozliczenia) po etapie 16. Etap 18 (przegląd na dowodach
+i nowa mapa drogowa) startuje po etapie 17.
 
 | Krok | Repo | Sesja w katalogu |
 |---|---|---|
@@ -40,6 +41,7 @@ startuje po etapie 15, a etap 17 (cennik i rozliczenia) po etapie 16.
 | etap 15 | pdi (+ repo, w których pilotaż odsłoni luki) | `/Users/x/WebstormProjects/pdi` |
 | etap 16 | pdi (+ ShipScope, ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` |
 | etap 17 | pdi (+ ShipScope, ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` |
+| etap 18 | pdi (pozostałe repo tylko do odczytu) | `/Users/x/WebstormProjects/pdi` |
 
 GitHub Actions na tym koncie nie działa (płatności). Każde polecenie każe więc uruchomić bramki lokalnie i napisać
 o tym w PR.
@@ -1598,4 +1600,68 @@ Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy sr
 checks and each touched repo's own gates, all in Actions. At the end, with me: one full cycle in the provider's test
 mode (trial → plan → usage → limit → upgrade → cancellation). Commit, PRs, prices published anywhere, the provider
 account and live mode, any charge, any change to a real customer's plan, and changes in other repos on my request.
+```
+
+## Etap 18 — pdi: przegląd na dowodach i nowa mapa drogowa
+
+Start dopiero po etapie 17 (wyniki pilotażu, co najmniej kwartał danych z produkcji, pierwszy pełny miesiąc
+rozliczeń, jeśli etap 17 doszedł do trybu produkcyjnego). Ten etap nie dokłada funkcji: zestawia dowody z pilotażu,
+produkcji, kosztów i miar z założeniami planów, z których powstały etapy 2–17, zapisuje, co kontynuować, zmienić
+albo wyciąć, i pisze plan kolejnych etapów. Wynikiem jest tylko dokumentacja i decyzje; wycięcie kodu albo funkcji
+polecenie proponuje jako osobne etapy, nigdy nie usuwa niczego samo. Sesja w klonie pdi (plany, decyzje, polecenia
+startowe); pozostałe repo tylko do odczytu. Każda decyzja „kontynuować, zmienić, wyciąć” należy do Ciebie.
+
+```text
+Run stage 18: an evidence-based review of everything stages 2–17 built, and a new roadmap. No new features in this
+stage: the output is a review, recorded decisions and a plan for the next stages. Answer me in Polish; pdi docs in
+Polish; commits and PR titles in English, Conventional Commits.
+
+Preconditions, check them first and stop if one is missing:
+- stage 17 is done or stopped at a recorded point, and you know which stages 2–17 were completed, partly done,
+  skipped or stopped (from docs/polecenia-startowe-sdlc-lokalnie.md, docs/decyzje.md and each stage's plan file);
+- evidence exists for at least one quarter of production: the pilot's weekly reports and go/no-go (stage 15), the G7
+  measures (stage 12), the autonomy report (stage 6), the cost view (stage 16), incidents (stage 9, if built), the SLO
+  and error budget history (stage 16), billing data (stage 17, if live). Name each source you could not read;
+- the other repos (ShipScope, ci_for_sdlc, tf, sprintdeck) are read-only for this stage.
+
+Goal: one review document and one roadmap I can decide on:
+- for each stage and each major capability (inbox, timeline, trace, registry, autonomy levels, flag rules, light
+  review, Jira mirror, incidents, Slack, chat, one shell, feature switch, merged backends, pilot, operations,
+  pricing): the assumption it was built on (quote the plan or decision), the evidence of use and value now, the cost
+  to keep it (code size, tests, incidents, model and hosting cost), and a recommendation: keep, change, or cut;
+- the decisions still open across the docs (decyzje.md, plans' "do decyzji" sections, doc 15 §7) and which the
+  evidence now answers;
+- a new roadmap: the next stages, in order, each with its reason from the evidence, its dependency and its stop
+  criterion, in the same shape as the earlier starter prompts' preconditions.
+
+Today:
+- Stages 2–17 were written ahead of the evidence, each with "decisions first" and conditions (e.g. K-3 only if chat
+  was the main mode, G2.3 only after the pilot, A4 only with guard metrics).
+- docs/kontekst-rozmowy.md, plan-jeden-flow-sdlc.md, plan-automatyzacja-i-konsola.md §8, plan-g1-g2.md §10 and
+  docs/15-jedna-platforma.md hold status tables that may have drifted from what is live.
+- Some documents describe earlier directions (docs/01–11, outreach/) and are marked as superseded only in part.
+
+1. Collect before judging. Build a table of capability × (built? live? used how often, by whom; value measure; cost;
+   incidents; open decisions), each cell with its source (file, query, report, date). Mark every guess as a guess.
+   Show me the table and the gaps in the evidence before any recommendation.
+2. Then the review (docs/przeglad-etap18.md): per capability, the assumption, the evidence, the cost and the
+   recommendation with its reason; what surprised us; what the evidence cannot yet answer and what would answer it.
+   Wait for my decisions on each keep/change/cut, then record them in docs/decyzje.md.
+3. Then the roadmap (docs/plan-po-przegladzie.md): the next stages in order, each with goal, reason (from the
+   review), dependency, preconditions, stop criterion and rough size; cuts listed as their own stages (what is removed,
+   migration for users, rollback), never removed silently. Wait for my OK.
+4. Docs, after my OK: update the status tables (kontekst-rozmowy.md, plan-jeden-flow-sdlc.md,
+   plan-automatyzacja-i-konsola.md §8, plan-g1-g2.md §10, docs/15-jedna-platforma.md) so they match what is live;
+   mark superseded documents at their top with a link to what replaces them; add the new roadmap's first stage to
+   docs/polecenia-startowe-sdlc-lokalnie.md only when I ask.
+
+Checks (instead of tests, since this stage writes no code):
+- every number in the review has a source and a date; every recommendation names the evidence it rests on;
+- no status table claims a capability is live when its evidence says otherwise;
+- no partner name, issue text, code or secret in the review or roadmap beyond what stage 15's confidentiality rule
+  allows; aggregated numbers only;
+- the markdown passes the repo's doc checks if any (links resolve, tables render).
+
+Gates: uv run pytest (doc-related tests, if any) and the repo's lint for docs. Commit, PR, any decision to cut a
+capability, any message to partners about changes, and any change in other repos on my request.
 ```
