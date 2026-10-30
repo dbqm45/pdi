@@ -202,9 +202,9 @@ konfiguracji.
 |---|---|---|---|
 | L1 | ShipScope | — | do zrobienia |
 | L2 | pdi | DL1 | do zrobienia |
-| L3 | ci_for_sdlc | — | do zrobienia |
+| L3 | ci_for_sdlc | — | zrobione (ci_for_sdlc #102) |
 | L4 | pdi | L1, L2, L3, DL2, DL3 | do zrobienia |
 | L5 | nowe repo `sdlc-sandbox` + pdi | L4, DL4 | do zrobienia |
 
-L1, L2 i L3 są niezależne i mogą iść równolegle w trzech sesjach. Polecenia startowe:
+L1, L2 i L3 są niezależne i mogą iść równolegle w trzech sesjach. Polecenia startowe L1–L4:
 [`polecenia-startowe-sdlc-lokalnie.md`](polecenia-startowe-sdlc-lokalnie.md).

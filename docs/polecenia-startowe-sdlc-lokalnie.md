@@ -1,16 +1,17 @@
-# Polecenia startowe: L1, L2 i L3 planu `sdlc up`
+# Polecenia startowe: L1–L4 planu `sdlc up`
 
-**Data:** 2026-10-30 · **Źródło:** [plan `sdlc up`](plan-sdlc-lokalnie.md) §2 (Z1, Z2, Z4) i §4, decyzje DL1–DL3
+**Data:** 2026-10-30 · **Źródło:** [plan `sdlc up`](plan-sdlc-lokalnie.md) §2 (Z1–Z5) i §4, decyzje DL1–DL3
 ([decyzje](decyzje.md)) · **Stan przed startem:** pdi `9ec4e66`, ShipScope 0.2.64, ci_for_sdlc 0.1.34
 
-Trzy kroki są niezależne. Każdy idzie w osobnej sesji Claude Code w swoim repo. Polecenie wklejasz jako pierwszą
-wiadomość sesji. Po merge'u wszystkich trzech: L4 (`sdlc` w `pdi/stack/`), potem L5 (repo próbne).
+L1, L2 i L3 są niezależne. Każdy idzie w osobnej sesji Claude Code w swoim repo. Polecenie wklejasz jako pierwszą
+wiadomość sesji. L4 (`sdlc` w `pdi/stack/`) startuje dopiero po merge'u wszystkich trzech, potem L5 (repo próbne).
 
 | Krok | Repo | Sesja w katalogu |
 |---|---|---|
 | L1 | ShipScope | `/Users/x/WebstormProjects/evdt-service-shipscope` |
 | L2 | pdi | `/Users/x/WebstormProjects/pdi` |
 | L3 | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` |
+| L4 | pdi | `/Users/x/WebstormProjects/pdi` |
 
 GitHub Actions na tym koncie nie działa (płatności). Każde polecenie każe więc uruchomić bramki lokalnie i napisać
 o tym w PR.
@@ -138,4 +139,108 @@ change; refusal without variables (exit 2); exit code unchanged on a failed deli
 contract test of the event against the pinned pdi contract copy.
 Gates: npm test, npm run typecheck, npm run test:contract, npm run lint:commit. GitHub Actions do not run on this
 account right now — run the gates locally and say so in the PR. Commit and PR on my request.
+```
+
+## L4 — pdi: `sdlc`, jedno polecenie dla całego stosu
+
+Start dopiero po merge'u L1, L2 i L3 (L3: ci_for_sdlc #102). Sesja w klonie pdi.
+
+```text
+Implement step L4 of docs/plan-sdlc-lokalnie.md (§2 rows Z3 and Z5, §4 L4) in this repo, under decisions DL2
+(services run as processes on localhost, only Postgres in Docker) and DL3 (`sdlc` lives in pdi/stack/) in
+docs/decyzje.md. Answer me in Polish; code, commits and PR title in English, Conventional Commits.
+
+Precondition: L1 (ShipScope local mode, dbqm45/evdt-service-shipscope), L2 (PDI_DISPATCH=local in this repo) and L3
+(ci_for_sdlc `--send-to-pdi`, dbqm45/ci_for_sdlc #102) are merged to main. Check this first (pdi knows
+PDI_DISPATCH=local; ShipScope's safe-fetch accepts loopback with a localhost PUBLIC_BASE_URL). If one is missing, stop
+and tell me; do not work around it.
+
+Goal: on a Mac with Docker, gh, claude, Node and uv installed, `uv run sdlc up` ends with a line "gotowe", and
+`uv run sdlc status` shows `connected` for ShipScope ↔ pdi and ci_for_sdlc → pdi. Nobody copies a secret, token or
+address by hand (S5 steps P2, P5, P7 and P8 in docs/przebieg-na-sobie-s5.md are what this replaces).
+
+Today:
+- pdi-receiver (src/pdi/receiver.py) listens on 127.0.0.1:8787. It verifies senders with PDI_SHIPSCOPE_SIGNING_SECRET,
+  PDI_TF_SIGNING_SECRET and PDI_CI_FOR_SDLC_SIGNING_SECRET, and reads ShipScope through PDI_SHIPSCOPE_URL and
+  PDI_SHIPSCOPE_TOKEN.
+- The MCP server is `pdi-mcp`; impact/forecast read the same ShipScope variables.
+- ShipScope's Settings → Integrations → pdi → Connect (lib/pdi-connection.js) gives the three PDI_SHIPSCOPE_* values
+  once.
+- ci_for_sdlc runs as a CLI on the repo:
+  - command: `npm run analyze -- --repo <path> --send-to-pdi`, with PDI_EVENTS_URL, PDI_SIGNING_SECRET (=
+    pdi's PDI_CI_FOR_SDLC_SIGNING_SECRET) and CI_DATA_DIR;
+  - output lines: `pdi: <url>`, `  pdi readiness.changed <CHG> <readiness> delivered|queued (<why>)|unchanged`,
+    `  pdi queued <type> <CHG> attempts=N next=<iso> (<error>)`;
+  - exit 2 when the pdi config is missing.
+  Its server is `npm start` on PORT (default 4317).
+- Read ShipScope's server for its port, its dev start (`npm run dev`, web and worker), the Postgres it needs, how the
+  GitHub App is created (manifest flow), and the API behind Connect and Track repository, including which
+  credentials those calls need.
+
+1. Plan first in docs/ (plan-l4-sdlc.md: commands, files, order, tests, open questions) before code; TDD (red test
+   first).
+   If Connect or another step can only be done by a signed-in admin in the browser, say so in the plan and propose the
+   smallest way (a one-time step `sdlc up` waits for, or a separate ShipScope change for later). Do not change
+   ShipScope in this PR.
+2. The package src/pdi/stack/ (DL3's "pdi/stack/"; the wheel packages only src/pdi) with the entry point
+   `sdlc = "pdi.stack.cli:main"` in [project.scripts]. Stdlib only:
+   - argparse;
+   - tomllib to read the config;
+   - subprocess with argument lists, never shell strings;
+   - urllib for the HTTP calls.
+3. `sdlc up`, idempotent (a second run starts what is not running and changes nothing else):
+   a. Check docker, gh (and `gh auth status`), claude, node, npm and uv. On a miss, print one install command per tool
+      and exit 1.
+   b. Config in ~/.sdlc/config.toml: the paths of the pdi, ShipScope and ci_for_sdlc clones, the decision registry
+      (PDI_REGISTRY_PATH) and the optional product checkout (PDI_DISPATCH_CHECKOUT). On the first run, ask once and
+      write it; afterwards never ask.
+   c. ~/.sdlc/env (mode 600, ~/.sdlc 700):
+      - generate the missing secrets once and never overwrite them: PDI_TF_SIGNING_SECRET,
+        PDI_CI_FOR_SDLC_SIGNING_SECRET, PDI_FORM_TOKEN and ShipScope's TOKEN_ENCRYPTION_KEY;
+      - set PDI_EVENTS_URL=http://127.0.0.1:8787, PDI_DISPATCH=local and the budget (DL5 recommendation:
+        PDI_PHASE_BUDGET_USD=3).
+   d. Start in order, each waiting for its health check with a timeout:
+      - Postgres for ShipScope in Docker: a named container and a named volume, so `down` keeps the data;
+      - ShipScope web and worker with a localhost PUBLIC_BASE_URL (L1 local mode);
+      - pdi-receiver;
+      - the ci_for_sdlc server if the plan needs it (the repo flow needs only the CLI).
+      Processes run detached with pid files and logs in ~/.sdlc/logs/.
+   e. On the first run, connect ShipScope to pdi through ShipScope's API and write the three PDI_SHIPSCOPE_* values into
+      ~/.sdlc/env. Restart pdi-receiver so it picks them up.
+   f. Register the MCP servers `pdi` and `shipscope` in Claude Code (`claude mcp add --scope user`) with the same
+      variables. Re-registering replaces, never duplicates. Say in the docs where claude stores those values.
+   g. Print each service with its URL and end with "gotowe".
+4. `sdlc deploy <prod|test> [--repo owner/name]`:
+   - use `gh api` to create a GitHub Deployment for the HEAD of main of the trial repo (environment `production` or
+     `test`), then a `success` status;
+   - print the deployment id and the sha.
+5. `sdlc status`:
+   - each process (running, pid, URL) and Postgres;
+   - ShipScope ↔ pdi from ShipScope `GET /api/service/v1/connection` and pdi's get_shipscope_connection view;
+   - ci_for_sdlc → pdi from the last `--send-to-pdi` result (delivered or still queued in its CI_DATA_DIR);
+   - the last events in the receiver log and the open items in the pdi inbox.
+   `sdlc open`: open ShipScope and the problem form in the browser. `sdlc down`: stop the processes and the Postgres
+   container, keep the data. `sdlc reset`: delete the data only after I type the name it asks for.
+6. Secrets:
+   - never in argv of child processes (pass them through the environment), and never in logs or in sdlc's own output;
+   - `status` shows only whether each is set;
+   - the env file is written atomically.
+7. Docs:
+   - README (`sdlc` section: requirements, the five commands, the files in ~/.sdlc);
+   - docs/plan-sdlc-lokalnie.md §9 (L4 state).
+
+Tests (tests/test_stack.py, with an injected command runner, HTTP client and home dir; no real Docker, network or
+processes):
+- env generated with mode 600 and existing values never overwritten;
+- missing tools reported with install commands;
+- start order and health-check waits, and an idempotent second `up`;
+- the exact `gh api` calls for deploy prod and test;
+- the `claude mcp add` calls;
+- the connection step writes the three variables;
+- no secret in argv, logs or output;
+- `reset` refuses without the typed name;
+- `down` keeps the volume.
+
+Gates: uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src. GitHub
+Actions do not run on this account right now: run the gates locally and say so in the PR. Commit and PR on my request.
 ```
