@@ -1,4 +1,4 @@
-# Polecenia startowe: L1–L5 i etapy 2–5 planu `sdlc up`
+# Polecenia startowe: L1–L5 i etapy 2–6 planu `sdlc up`
 
 **Data:** 2026-10-30 · **Źródło:** [plan `sdlc up`](plan-sdlc-lokalnie.md) §2 (Z1–Z5) i §4, decyzje DL1–DL3
 ([decyzje](decyzje.md)) · **Stan przed startem:** pdi `9ec4e66`, ShipScope 0.2.64, ci_for_sdlc 0.1.34
@@ -8,7 +8,7 @@ wiadomość sesji. L4 (`sdlc` w `pdi/stack/`) startuje dopiero po merge'u wszyst
 po merge'u L4. Etap 2 (scenariusz S5 na sprintdecku) startuje po L5 i udanym przebiegu §5 na repo
 próbnym. Etap 3 (produkcja, §7 planu) startuje po etapie 2, a etap 4 (usługa pdi
 i konsola, krok K-2) po etapie 3. Etap 5 (graf śladu, rejestr decyzji i panel w Jirze, krok K-4) startuje po
-etapie 4.
+etapie 4, a etap 6 (autonomia zdobywana na danych) po etapie 5.
 
 | Krok | Repo | Sesja w katalogu |
 |---|---|---|
@@ -21,6 +21,7 @@ etapie 4.
 | etap 3 | pdi (+ ShipScope, tf, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
 | etap 4 | pdi | `/Users/x/WebstormProjects/pdi` |
 | etap 5 | pdi (+ nowe repo panelu Forge) | `/Users/x/WebstormProjects/pdi` |
+| etap 6 | pdi (+ ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` |
 
 GitHub Actions na tym koncie nie działa (płatności). Każde polecenie każe więc uruchomić bramki lokalnie i napisać
 o tym w PR.
@@ -627,4 +628,88 @@ Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy sr
 typecheck, tests and e2e, and for part B the Forge app's lint and tests, all in Actions. At the end, open the trace
 of the S5 change with me in the console (and in Jira, if part B is done). Commit, PRs, the Forge app's install,
 any Jira write scope and any new repo on my request.
+```
+
+## Etap 6 — pdi: autonomia zdobywana na danych
+
+Start dopiero po etapie 5 (konsola ma ślad i rejestr decyzji). Źródło: [plan automatyzacji i konsoli](plan-automatyzacja-i-konsola.md)
+§1, §3 (poziomy 0–3), decyzje DA1, DA2 i DA6, istniejące A3 (licznik akceptacji, `autonomy_report`) i A2
+(`autoClose` w ci_for_sdlc) oraz ekran „Autonomia” z makiety. Brakuje wykonania poziomów 2 i 1: okna weta, automatu
+z wpisem do rejestru, automatycznego powrotu do człowieka i ekranu w konsoli. Typ decyzji bez wykonawcy zostaje na
+poziomie 3. A4 (etapy flag według reguły) wchodzi tylko wtedy, gdy jest źródło metryk ochronnych (G5) i rozstrzygnięta
+DA6. Sesja w klonie pdi; zmiany w ci_for_sdlc, ShipScope i tf osobnymi PR-ami, po Twojej zgodzie.
+
+```text
+Implement stage 6: decision autonomy earned on data, from docs/plan-automatyzacja-i-konsola.md §1 ("Autonomia
+zdobywana na danych"), §3 (levels 0–3, autonomy.schema.json) and DA1/DA2, plus the console's Autonomia screen
+(design/konsola/Autonomia.dc.html), after stage 5 (console K-4). Answer me in Polish; code, commits and PR titles in
+English, Conventional Commits.
+
+Preconditions, check them first and stop if one is missing:
+- stage 5 is done: the console shows the trace and the decision registry in production;
+- A3 works on real data: `autonomy_report` (src/pdi/stats.py) gives per decision_type the unedited/measured counts
+  from the registry. Show me the current report; if no type has 30 measured decisions, say so (nothing can be lowered
+  yet, but the mechanism can still be built and tested);
+- docs/decyzje.md for DA2 (≥ 95% unedited in the last 30 of a type, lowering always a human decision) and DA6 (who
+  changes a flag stage).
+
+Goal: I open "Autonomia" in the console and see, per decision_type, its level, the measured acceptance, the DA2
+threshold and the history of level changes. When a type crosses the threshold, a level-change proposal lands in my
+inbox; I approve it with a button. From then on:
+- level 2: the decision appears in the inbox with a veto deadline and is applied by its executor when the window ends,
+  unless I stop it (`decision.vetoed`);
+- level 1: applied at once, recorded in the registry and the "Teraz" timeline (`decision.auto_applied`);
+- when the share of my edits or vetoes on a type rises above `raise_when`, the type goes back to level 3 by itself
+  and I am told why.
+Types listed as never below 3 (triage, scope.r1, release.go, outcome.assessment, review.sensitive, migration) cannot
+be lowered by any path, including a hand-edited policy.
+
+Today:
+- Contract 0.5.0+ has `autonomy.schema.json` (level, veto_window, rule, lower_when, raise_when) and the decision's
+  `automation` (`level`, `rule`, `veto_until`, `vetoed_by`) and `draft_edited`; check what the current contract
+  version in src/pdi/contract.py carries and what is still unused.
+- A3 (plan-a3-licznik-akceptacji.md): the counter and the lowering proposal as an inbox decision exist; nothing
+  executes level 2 or 1 yet.
+- A2 (ci_for_sdlc): `finding.auto_close` already has its own `autoClose: off | suggest | apply` policy there and
+  sends `decision.recorded` to pdi. Two switches for one type must not disagree.
+- Executors: only some types have one today. `flag.stage_advance` and `flag.removal_pr` (A4) wait on DA6 and on a
+  guard-metrics source (gap G5); `review.light` (A7) and `dependency.update` are not built. A type without an executor
+  stays at level 3 whatever its numbers say.
+
+1. Decisions first, before any plan or code. Show me the recommendation for each, wait for my answer, then record
+   them in docs/decyzje.md and the plan's §2 table:
+   a. Where the policy lives and who may change it (pdi service, per tenant; a change only through an approved
+      decision, audited), and how ci_for_sdlc's `autoClose` follows it (pdi as the source, ci_for_sdlc reads it).
+   b. The veto timer: which process applies a level-2 decision at the deadline, what happens if it is down at that
+      moment (late apply or back to the inbox), and the default window per type.
+   c. `raise_when`: the measure (edits, vetoes, reverts) and window, and whether the return to level 3 is automatic
+      (plan §7 says yes) or proposed.
+   d. Which types this stage actually enables (only those with a working executor), and whether A4 is in: only if a
+      guard-metrics source exists (G5) and DA6 is decided; otherwise `flag.stage_advance` stays at 3 and A4 is a
+      later stage.
+2. Then a plan in docs/ (plan-etap6-autonomia.md): the policy model and its API, the executor interface per type,
+   the timer, the events, the Autonomia screen with every state (not enough data, below threshold, proposal pending,
+   level 2 with a running window, returned to 3), tests, open questions. Wait for my OK.
+3. Implement only what the plan approves, TDD (red test first), small PRs: the policy and its change-by-decision, the
+   level-2 timer and veto, level-1 apply with the registry and timeline entries, the automatic return, the Autonomia
+   screen, then the ci_for_sdlc `autoClose` link and any executor (separate PRs in their repos, after my OK).
+4. Docs: README, design/konsola/README.md (Autonomia live), plan-automatyzacja-i-konsola.md §8 (state of the levels,
+   A3, A4), docs/przebieg-na-sobie-s5.md (what may now happen without a click, and where it shows).
+
+Tests:
+- a type below 30 measured decisions or below 95% is never proposed for lowering; at 95% of the last 30 it is,
+  once;
+- no level change without an approved decision; a never-below-3 type refuses every path to a lower level;
+- level 2: applied after the window, not applied after a veto, a veto after the deadline is refused clearly, a timer
+  missed while down follows decision 1b, a second run never applies twice;
+- level 1: applied once, recorded in the registry and the timeline;
+- the automatic return to level 3 when `raise_when` is crossed, with the reason in the inbox;
+- a type without an executor stays at 3; ci_for_sdlc's `autoClose` and pdi's policy cannot disagree;
+- tenancy as in stages 4–5; the Autonomia screen's states, keyboard use and accessible names (WCAG AA); no secret in
+  logs, URLs or the client bundle.
+
+Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy src) plus the service's and console's
+lint, typecheck, tests and e2e, all in Actions. At the end, show me the Autonomia screen with the real report and walk
+one level-2 decision in a test tenant with me: the inbox entry with its deadline, a veto, then one applied after the
+window. Commit, PRs, any policy change on the real tenant and changes in other repos on my request.
 ```
