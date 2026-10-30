@@ -1,4 +1,4 @@
-# Polecenia startowe: L1–L5 i etapy 2–9 planu `sdlc up`
+# Polecenia startowe: L1–L5 i etapy 2–10 planu `sdlc up`
 
 **Data:** 2026-10-30 · **Źródło:** [plan `sdlc up`](plan-sdlc-lokalnie.md) §2 (Z1–Z5) i §4, decyzje DL1–DL3
 ([decyzje](decyzje.md)) · **Stan przed startem:** pdi `9ec4e66`, ShipScope 0.2.64, ci_for_sdlc 0.1.34
@@ -10,7 +10,8 @@ próbnym. Etap 3 (produkcja, §7 planu) startuje po etapie 2, a etap 4 (usługa 
 i konsola, krok K-2) po etapie 3. Etap 5 (graf śladu, rejestr decyzji i panel w Jirze, krok K-4) startuje po
 etapie 4, a etap 6 (autonomia zdobywana na danych) po etapie 5.
 Etap 7 (etapy flag według reguły i metryki ochronne) startuje po etapie 6, a etap 8 (uproszczone review
-i lustro Jira ↔ repo) po etapie 7. Etap 9 (incydenty i aplikacja Slacka) startuje po etapie 8.
+i lustro Jira ↔ repo) po etapie 7. Etap 9 (incydenty i aplikacja Slacka) startuje po etapie 8,
+a etap 10 (rozmowa w konsoli, krok K-3) po etapie 9.
 
 | Krok | Repo | Sesja w katalogu |
 |---|---|---|
@@ -27,6 +28,7 @@ i lustro Jira ↔ repo) po etapie 7. Etap 9 (incydenty i aplikacja Slacka) start
 | etap 7 | pdi (+ ShipScope, tf, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
 | etap 8 | pdi (+ tf, ci_for_sdlc, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
 | etap 9 | pdi (+ ShipScope, tf, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
+| etap 10 | pdi (+ ci_for_sdlc, ShipScope) | `/Users/x/WebstormProjects/pdi` |
 
 GitHub Actions na tym koncie nie działa (płatności). Każde polecenie każe więc uruchomić bramki lokalnie i napisać
 o tym w PR.
@@ -963,4 +965,82 @@ Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy sr
 checks and each touched repo's own gates, all in Actions. At the end, walk with me one test incident matched to the
 S5 change (trace, timeline, impact review) and one decision recorded from a Slack thread. Commit, PRs, the incident
 tool's setup, installing the Slack app, any consent setting and changes in other repos on my request.
+```
+
+## Etap 10 — pdi: rozmowa w konsoli (K-3)
+
+Start dopiero po etapie 9 (konsola, skrzynka, rejestr, ślad i autonomia działają na produkcji). Źródło: [plan
+automatyzacji i konsoli](plan-automatyzacja-i-konsola.md) §5.3 (K-3 zależy od K-1 i K-2; budować dopiero, gdy K-1
+pokaże, że rozmowa jest głównym sposobem pracy), DA5, ryzyko ukrytych poleceń w treści z Jiry i Confluence, trzy
+serwery MCP z K-1 i panel rozmowy ze szkicem decyzji z makiety „Main”. Z K-3 konsola jest kompletna (K-1–K-4).
+Polecenie zaczyna od sprawdzenia dowodu z K-1 i zatrzymuje się bez niego. Sesja w klonie pdi; zmiany w ci_for_sdlc
+i ShipScope (ich serwery MCP) osobnymi PR-ami, po Twojej zgodzie. Rozmowa wyjaśnia, porównuje i szkicuje, ale nigdy
+nie zatwierdza (DA5).
+
+```text
+Implement stage 10: console step K-3 from docs/plan-automatyzacja-i-konsola.md §5.3 — a chat panel in the console
+with the same MCP tools as K-1, whose decision cards land in the inbox — after stage 9. Answer me in Polish; code,
+commits and PR titles in English, Conventional Commits.
+
+Preconditions, check them first and stop if one is missing:
+- the plan's condition for K-3: evidence that K-1 made chat the main way of working. Ask me for it (how often
+  decisions were drafted or made through Claude with the three MCP servers versus the console and Jira since stage
+  4; the registry's `source.kind`/`drafted_by` can show part of it). If the answer is no, stop and say so;
+- stages 4–9 run in production: console (inbox, timeline, trace, registry, Autonomia), decisions by button only (DA5);
+- the three K-1 servers: pdi's MCP server (Python), ci_for_sdlc `packages/mcp` and ShipScope `adapters/mcp`, both
+  read-only (`SHIPSCOPE_TOKEN` `shps_…`, `CI_SDLC_TOKEN`).
+
+Goal: next to the inbox, a chat panel (as in design/konsola/Main.dc.html) where I ask about my work ("co blokuje
+CHG-7?", "co się stanie, jeśli przesuniemy PAY-142 do R2?") and get answers with links to their sources, using the
+same tools as K-1, scoped to my tenant and my permissions. When I ask for a decision or a change, the chat produces a
+decision card (draft with recommendation, evidence, consequences) that lands in the inbox as `decision.proposed`
+with `drafted_by` set and `source.kind: console`; I approve, edit or reject it there with a button. The chat has no
+tool that approves, decides, merges, writes to Jira or changes a flag or an autonomy level.
+
+Today:
+- K-1 runs locally as stdio servers in Claude Code and Claude Desktop; the console (stages 4–9) has no chat.
+- The plan's risks: text from Jira, Confluence, Slack threads, incidents and PRs may hide instructions; tools of the
+  chat must not have approval rights (plan §7). A5 already checks that quotes exist verbatim in the source text.
+- The contract has `drafted_by`, `draft_edited` and `source.kind: console` (stage 6's acceptance counter reads them,
+  so chat drafts count toward autonomy like any other).
+- No model, budget or data-retention rule exists for a hosted chat; check the current Claude models and pricing in
+  the docs, not from memory.
+
+1. Decisions first, before any plan or code. Show me the recommendation for each, wait for my answer, then record
+   them in docs/decyzje.md and the plan's §2 table:
+   a. How the console reaches the tools: the three MCP servers run as remote (HTTP) servers next to the service, or
+      the service calls the same APIs directly; one tool definition per capability, shared with K-1, not copied.
+   b. The model and its call path (Claude API from the pdi service, with tool use), the per-tenant budget and limits,
+      and where the API key lives (the hosting's secrets, never in the browser).
+   c. What is stored: conversation text, tool results, for how long, who can read it; and whether the model provider
+      may see Jira/Confluence/Slack text (the organisation's consent, as in stage 9).
+   d. The tool set: read tools only plus one "draft decision" tool that writes to the inbox as a proposal; anything
+      else out.
+2. Then a plan in docs/ (plan-etap10-rozmowa.md): the architecture, the tool set and its permissions per user, the
+   card flow into the inbox, prompt-injection defences (source text as data, tool results labelled, no approval
+   tool), the panel's states (thinking, tool running, source unreachable, budget reached, card created), cost
+   tracking per tenant, tests, open questions. Wait for my OK.
+3. Implement only what the plan approves, TDD (red test first), small PRs: the remote tools (or the shared tool
+   layer), the chat endpoint with streaming, the draft-decision tool, the panel, budget and limits, then the
+   production deploy after my OK. Changes to ci_for_sdlc or ShipScope MCP servers in their repos after my OK.
+4. Docs: README, design/konsola/README.md (chat live), plan-automatyzacja-i-konsola.md §8 (K-3 state),
+   docs/przebieg-na-sobie-s5.md (asking and drafting in the console).
+
+Tests:
+- the chat's tool list has no approving or writing tool except "draft decision"; a request to approve, merge, write to
+  Jira or change a flag gets a card or a refusal, never the action;
+- a card lands in the inbox as a proposal with `drafted_by` and `source.kind: console`, and only my button decides;
+  edits are recorded as `draft_edited` so stage 6 counts them;
+- injected instructions in Jira, Confluence, Slack, incident or PR text (fixtures) do not change what tools are called
+  or produce a decision; quotes in a card exist verbatim in their source;
+- tenancy: the chat only sees the signed-in user's tenant and what that user may see; unauthenticated refused;
+- budget: a tenant over its limit is refused clearly; costs recorded per tenant; no API key, token or secret in logs,
+  URLs, the client bundle or the conversation;
+- the panel's states, keyboard use and accessible names (WCAG AA); e2e: question → answer with sources → card →
+  approve in the inbox → entry in the registry.
+
+Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy src) plus the service's and console's
+lint, typecheck, tests and e2e, and the touched repos' own gates, all in Actions. At the end, with me: ask the chat
+what blocks the S5 change, then have it draft one decision and approve it in the inbox. Commit, PRs, the model's API
+key setup, production deploy and changes in other repos on my request.
 ```
