@@ -286,8 +286,8 @@ Fazy F0–F5 są zrobione; zostają rozszerzenia, kroki zależne od innych prac 
 | Edytor mapy historyjek (G1.6), propozycje AI (G2.3, wstrzymane D-G23) | pdi, ci_for_sdlc | wynik pilota |
 
 **Do sprawdzenia na prawdziwej pracy**
-- Przebieg na sobie: jedna zmiana sprintdecka od PRB do oceny skutku ([scenariusz S5](przebieg-na-sobie-s5.md), status
-  „do wykonania”).
+- Cały workflow lokalnie na repo próbnym ([plan `sdlc up`](plan-sdlc-lokalnie.md), L1–L5), potem przebieg na sobie:
+  jedna zmiana sprintdecka od PRB do oceny skutku ([scenariusz S5](przebieg-na-sobie-s5.md), etap 2).
 - Pilot na prawdziwym backlogu ([plan G1/G2](plan-g1-g2.md) §4.8, §5.9); rozstrzyga D-G23.
 - Prognozy G3 zbierają historię od ShipScope 0.2.60; pierwsze liczby po kilku dostarczonych zmianach.
 
