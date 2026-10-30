@@ -2,6 +2,9 @@
 
 Wersja 2 · 2026-10-30 · Status: **scenariusz do wykonania** · Zastępuje wersję z 2026-10-26 (pdi #31)
 
+> **Odłożone 2026-10-30:** najpierw [cały workflow lokalnie (`sdlc up`)](plan-sdlc-lokalnie.md) na repo próbnym;
+> ten scenariusz to etap 2, prawdziwe wdrożenie i użytkownicy na sprintdecku.
+
 Cel: przeprowadzić jedną prawdziwą zmianę od zgłoszenia do oceny skutku przez pdi, tf, ci_for_sdlc i ShipScope.
 Wynikiem jest dziennik przebiegu (§7). Przy każdym kroku zapisujesz, czy zadziałał sam, czy trzeba go było popchnąć
 ręcznie, czy się zepsuł. Polecenia sprawdziłem w kodzie na stanie main z 2026-10-30:
