@@ -1,4 +1,4 @@
-# Polecenia startowe: L1–L5 i etapy 2–6 planu `sdlc up`
+# Polecenia startowe: L1–L5 i etapy 2–7 planu `sdlc up`
 
 **Data:** 2026-10-30 · **Źródło:** [plan `sdlc up`](plan-sdlc-lokalnie.md) §2 (Z1–Z5) i §4, decyzje DL1–DL3
 ([decyzje](decyzje.md)) · **Stan przed startem:** pdi `9ec4e66`, ShipScope 0.2.64, ci_for_sdlc 0.1.34
@@ -9,6 +9,7 @@ po merge'u L4. Etap 2 (scenariusz S5 na sprintdecku) startuje po L5 i udanym prz
 próbnym. Etap 3 (produkcja, §7 planu) startuje po etapie 2, a etap 4 (usługa pdi
 i konsola, krok K-2) po etapie 3. Etap 5 (graf śladu, rejestr decyzji i panel w Jirze, krok K-4) startuje po
 etapie 4, a etap 6 (autonomia zdobywana na danych) po etapie 5.
+Etap 7 (etapy flag według reguły i metryki ochronne) startuje po etapie 6.
 
 | Krok | Repo | Sesja w katalogu |
 |---|---|---|
@@ -22,6 +23,7 @@ etapie 4, a etap 6 (autonomia zdobywana na danych) po etapie 5.
 | etap 4 | pdi | `/Users/x/WebstormProjects/pdi` |
 | etap 5 | pdi (+ nowe repo panelu Forge) | `/Users/x/WebstormProjects/pdi` |
 | etap 6 | pdi (+ ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` |
+| etap 7 | pdi (+ ShipScope, tf, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
 
 GitHub Actions na tym koncie nie działa (płatności). Każde polecenie każe więc uruchomić bramki lokalnie i napisać
 o tym w PR.
@@ -712,4 +714,86 @@ Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy sr
 lint, typecheck, tests and e2e, all in Actions. At the end, show me the Autonomia screen with the real report and walk
 one level-2 decision in a test tenant with me: the inbox entry with its deadline, a veto, then one applied after the
 window. Commit, PRs, any policy change on the real tenant and changes in other repos on my request.
+```
+
+## Etap 7 — pdi (+ ShipScope, tf): etapy flag według reguły (A4) i metryki ochronne (G5)
+
+Start dopiero po etapie 6 (poziomy 2 i 1, okno weta i automatyczny powrót do człowieka działają). Źródło: [plan
+automatyzacji i konsoli](plan-automatyzacja-i-konsola.md) (A4, DA6, ryzyko „etap flagi bez wiarygodnych metryk”),
+[plan G1/G2](plan-g1-g2.md) (`release.stage_changed`, G1.5) i [plan jednego flow](plan-jeden-flow-sdlc.md) (G5 —
+narzędzie analityki produktu, wybór właściciela). Jako punkt wyjścia dla G5 polecenie bierze to, co istnieje po S5:
+zdarzenia w sprintdecku za flagą `analytics_events` (Supabase) i `metric_watch.py` w tf, i każe porównać je
+z zewnętrznym narzędziem. Sesja w klonie pdi; zmiany w ShipScope, tf i sprintdecku osobnymi PR-ami, po Twojej zgodzie.
+ShipScope nadal tylko obserwuje flagi (ADR-001, ADR-003). Etap zmienia wykonawca z DA6.
+
+```text
+Implement stage 7: A4 "flags by rule" from docs/plan-automatyzacja-i-konsola.md §4 (flag.stage_advance,
+flag.removal_pr, rollback proposal at level 1) together with its blocker, gap G5 (a guard-metrics source;
+docs/plan-jeden-flow-sdlc.md), on the autonomy mechanism from stage 6. Answer me in Polish; code, commits and PR
+titles in English, Conventional Commits.
+
+Preconditions, check them first and stop if one is missing:
+- stage 6 is done: levels 2 and 1, the veto timer, `decision.auto_applied`/`decision.vetoed` and the automatic return
+  to level 3 work in production, and the Autonomia screen is live (docs/plan-etap6-autonomia.md);
+- ShipScope sends `release.stage_changed` and `feature.released` to the hosted pdi (G1.5), and sprintdeck has a
+  `release.yaml` with flag stages and `min_days` from the S5 change;
+- docs/decyzje.md for DA6 (who changes a flag stage; ShipScope only observes) and ShipScope's ADR-001/ADR-003.
+
+Goal: for a flag in a change's release.yaml:
+- when its exit criteria are met (stage reached, `min_days` passed, guard metrics within limits), pdi gets a
+  `decision.proposed` of type `flag.stage_advance` with the evidence (stage, days, each guard metric with its value,
+  limit and window); at level 3 I approve it with a button, at level 2 it is applied after the veto window; the DA6
+  executor changes the stage and ShipScope sees the new state on its own;
+- when a guard metric crosses its limit during a stage, a rollback proposal comes at level 1 (applied at once,
+  recorded, shown in "Teraz"), as the plan says;
+- when a flag has been at 100% longer than X days, Talos (tf) opens a PR removing the flag from code
+  (`flag.removal_pr`); merging it stays mine.
+Nothing advances when a guard metric is missing, stale or unreadable: that is "criteria not met", with the reason.
+
+Today:
+- G5 waits on a tool choice by the owner (plan-jeden-flow-sdlc.md, kontekst-rozmowy.md). After S5, sprintdeck has
+  product events behind the flag `analytics_events` in Supabase, scripts/metrics.sql and tf's metric_watch.py with a
+  ShipScope service token; check what they measure and whether they can serve as guard metrics per flag stage.
+- ShipScope knows each flag's state per service and environment, its freshness and the release plan's stages and
+  `min_days` (`flagPlanStatus()`, `releasePlanModel()`); it never changes flags (ADR-001/ADR-003).
+- The plan's risk table: without reliable guard metrics `flag.stage_advance` stays at level 3.
+- Flag changes today: sprintdeck's flags live in config/flags.{env}.json (code), so a stage change is a PR to that
+  file through tf, unless DA6 picks a provider adapter.
+
+1. Decisions first, before any plan or code. Show me the recommendation for each, wait for my answer, then record
+   them in docs/decyzje.md and the plans' tables:
+   a. G5: the guard-metrics source. Compare the S5 setup (Supabase + metric_watch.py) with an external product
+      analytics tool on cost, latency, per-flag-stage cohorts and who owns it; say which metrics are guards (errors,
+      activation, key action) and how a limit and a window are declared per flag (release.yaml or elsewhere; contract
+      change if so).
+   b. DA6: the executor of a stage change for sprintdeck (PR to config/flags.{env}.json through tf, merged by whom;
+      or a provider adapter), and for a rollback at level 1 (it must be fast: a PR that waits for review is not).
+   c. Who detects "exit criteria met": ShipScope (it has flag state and the plan) emitting an event, or pdi from
+      ShipScope's API; one detector only.
+   d. The removal threshold X days and the flag types that are never removed automatically.
+2. Then a plan in docs/ (plan-etap7-flagi.md): the guard-metrics source and its contract, the detector, the
+   executors, the events and decisions with their evidence, how stage 6's levels apply (start at 3 for every flag
+   type), the failure cases (metric missing or stale, executor fails, ShipScope state stale, two proposals for one
+   flag), rollback, tests, open questions. Wait for my OK.
+3. Implement only what the plan approves, TDD (red test first), small PRs, each in its repo after my OK: the
+   guard-metrics source, the detector, pdi's decisions and evidence, the stage executor, the rollback path, Talos's
+   removal PR.
+4. Docs: README, plan-automatyzacja-i-konsola.md §8 (A4), plan-jeden-flow-sdlc.md (G5 state),
+   docs/przebieg-na-sobie-s5.md (the flag's stages now advance by rule; where to see why), ShipScope and tf docs for
+   their parts.
+
+Tests:
+- criteria met only when every condition holds; a missing, stale or unreadable metric blocks with its reason;
+- one proposal per flag and stage; a second detection does not duplicate it;
+- level 3 needs my button, level 2 is applied after the window unless vetoed, both through the DA6 executor only;
+- a guard breach proposes and applies a rollback once, recorded with its evidence;
+- the removal PR opens once after X days at 100%, never for an excluded flag, and is never merged by the automation;
+- ShipScope never writes a flag; an executor failure leaves the decision open with the error, never half-applied;
+- tenancy as before; no secret or token in logs, URLs, events or PR bodies.
+
+Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy src), the service's and console's
+checks, and each touched repo's own gates, all in Actions. At the end, walk with me one stage advance of the S5
+flag on sprintdeck at level 3: the proposal with its evidence, my approval, the executor's change, ShipScope showing
+the new stage. Commit, PRs, any flag change on production, the analytics tool's setup and changes in other repos
+on my request.
 ```
