@@ -1,11 +1,12 @@
-# Polecenia startowe: L1–L5 planu `sdlc up`
+# Polecenia startowe: L1–L5 i etap 2 planu `sdlc up`
 
 **Data:** 2026-10-30 · **Źródło:** [plan `sdlc up`](plan-sdlc-lokalnie.md) §2 (Z1–Z5) i §4, decyzje DL1–DL3
 ([decyzje](decyzje.md)) · **Stan przed startem:** pdi `9ec4e66`, ShipScope 0.2.64, ci_for_sdlc 0.1.34
 
 L1, L2 i L3 są niezależne. Każdy idzie w osobnej sesji Claude Code w swoim repo. Polecenie wklejasz jako pierwszą
 wiadomość sesji. L4 (`sdlc` w `pdi/stack/`) startuje dopiero po merge'u wszystkich trzech, a L5 (repo próbne)
-po merge'u L4.
+po merge'u L4. Etap 2 (scenariusz S5 na sprintdecku) startuje po L5 i udanym przebiegu §5 na repo
+próbnym.
 
 | Krok | Repo | Sesja w katalogu |
 |---|---|---|
@@ -14,6 +15,7 @@ po merge'u L4.
 | L3 | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` |
 | L4 | pdi | `/Users/x/WebstormProjects/pdi` |
 | L5 | pdi (+ nowe repo `sdlc-sandbox`) | `/Users/x/WebstormProjects/pdi` |
+| etap 2 | pdi (+ sprintdeck) | `/Users/x/WebstormProjects/pdi` |
 
 GitHub Actions na tym koncie nie działa (płatności). Każde polecenie każe więc uruchomić bramki lokalnie i napisać
 o tym w PR.
@@ -326,4 +328,80 @@ Gates: uv run pytest, uv run ruff check src tests, uv run ruff format --check sr
 `npm test` in the template. GitHub Actions do not run on this account right now: run the gates locally and say so in
 the PR. At the end, run `sdlc up` and `sdlc sandbox sdlc-proba` with me and walk §5 step 1. The rest of §5 I run
 myself with docs/przebieg-lokalny.md. Commit, PR and the new repo on my request.
+```
+
+## Etap 2 — pdi + sprintdeck: scenariusz S5 na prawdziwym wdrożeniu
+
+Start dopiero po merge'u L5 i udanym przebiegu §5 na repo próbnym. Sesja w klonie pdi. Sprintdeck zmieniają tylko
+PR-y faz tf, a poza tym tylko po Twojej zgodzie. Tunel nie jest potrzebny: Vercel zakłada GitHub Deployments
+w sprintdecku, a lokalny ShipScope pobiera je co minutę.
+
+```text
+Implement stage 2 of docs/plan-sdlc-lokalnie.md (line 4 "wraca jako etap 2, po L5"; §6 rows "prawdziwe wdrożenie"
+and "skutek u prawdziwych użytkowników"): scenario S5 (docs/przebieg-na-sobie-s5.md) on dbqm45/sprintdeck, run on the
+local stack from L4/L5 instead of the manual setup. Decisions DL2–DL5 in docs/decyzje.md apply. Answer me in Polish;
+code, commits and PR titles in English, Conventional Commits.
+
+Precondition: L5 is merged (`sdlc sandbox` exists) and the §5 local run passed on the trial repo (docs/przebieg-lokalny.md).
+Check main and ask me about the run. If either is missing, stop and tell me.
+
+Goal: with `uv run sdlc up` running on my Mac, one command attaches sprintdeck to the stack, and the S5 change
+("minimalna analityka produktowa" behind the flag `analytics_events`) goes from report to impact review on the real
+Vercel + Supabase deployment, with real users. Nobody copies a secret, token or address by hand, and there is no tunnel.
+
+Today:
+- S5 version 2 (2026-10-30) has prep steps P0–P10. L4 replaced P2, P5 (Connect), P7 and the receiver part of P6.
+  L5 showed P8 (tf in a product repo) on the template. P4 (tunnel) existed only because GitHub and the production
+  ShipScope had to reach pdi. Locally, ShipScope polls GitHub every minute and sends to pdi on 127.0.0.1.
+- ShipScope sees deployments only through GitHub Deployments. Vercel's GitHub integration creates them on sprintdeck
+  (`Production` for main, `Preview` for PRs). `sdlc deploy` must not be used here. Check the environment names Vercel
+  writes and how ShipScope maps them to its environments and to config/flags.{env}.json (`test`, `prod`).
+- `sdlc sandbox` (src/pdi/stack/cli.py, `track()` via ShipScope's `server/scripts/local-pdi.js track`) creates a repo
+  from a template, then tracks it, sets the flags source, sets PDI_DISPATCH_CHECKOUT and `[deploy] repo`, and restarts
+  the receiver. For an existing repo only the part after creation applies.
+- S5 step 13 judges impact with an activation query in sprintdeck's scripts/metrics.sql, run by hand in Supabase.
+  metric_watch.py needs a second ShipScope service token ("tf metric-watch", P5.5 and P8), which today is copied by hand.
+- GitHub Actions do not run on this account (billing). Phases run locally through PDI_DISPATCH=local. change-check and
+  metric-watch run by hand.
+
+1. Plan first in docs/ (plan-etap2-sprintdeck.md: what S5 steps remain, what `sdlc` replaces, the new command, tests,
+   open questions) before code; TDD for the pdi part (red test first). Read sprintdeck (clone it read-only) for:
+   - whether tf is already installed and at which version (S5 P8);
+   - whether config/flags.*.json, .claude/pdi-metrics.json and scripts/metrics.sql exist;
+   - its Vercel config.
+   Say which of these the S5 change itself must add (as slices) and which must exist before the run.
+2. `sdlc attach <owner/name> [--path <clone>]` in src/pdi/stack/, idempotent: clone or pull into the folder from
+   ~/.sdlc/config.toml, track in ShipScope with the flags source, set PDI_DISPATCH_CHECKOUT and `[deploy] repo`,
+   restart pdi-receiver, print what changed and end with "gotowe". Share the code with `sandbox` (sandbox = create +
+   attach); do not duplicate it. A second attach of another repo switches the checkout and says so.
+   `sdlc status` shows the attached repo and whether its deployments come from GitHub Deployments (Vercel) or
+   `sdlc deploy`. `sdlc deploy` refuses on a repo whose deployments come from Vercel, unless `--force`.
+3. The metric-watch token without copying: if ShipScope's local-pdi.js can mint a service token the way `connect`
+   does, propose the smallest ShipScope change (separate PR in dbqm45/evdt-service-shipscope, after my OK) and have
+   `sdlc` keep it in ~/.sdlc/env. Otherwise say in the plan that metric_watch stays manual in stage 2.
+4. Rewrite docs/przebieg-na-sobie-s5.md as version 3:
+   - prep is `sdlc up` + `sdlc attach dbqm45/sprintdeck` + the browser steps that remain (ShipScope GitHub App access
+     to sprintdeck, Vercel check);
+   - drop the tunnel, ~/.pdi.env, `claude mcp add -e` and the `faza` function, or say why each one stays;
+   - steps 1–14 with the expected result and where to look, as in docs/przebieg-lokalny.md;
+   - §6 known gaps updated;
+   - an empty §7 journal.
+   Keep the S5 change, its gates and the 30-day impact window. Note where the trial run's shortcuts (`review_by` tomorrow,
+   `min_days: 0`) must not be used.
+5. Docs: the README `sdlc` section (`attach`), plan-sdlc-lokalnie.md §6 and §9 (stage 2 state).
+
+Tests (tests/test_stack.py, injected runner, HTTP client and home dir; no real gh, git, network or processes):
+- the clone and pull calls, and reuse of an existing clone;
+- the ShipScope track call with the flags source;
+- PDI_DISPATCH_CHECKOUT and `[deploy] repo` written without touching other values;
+- switching from the trial repo to sprintdeck;
+- `sandbox` still passes its tests through the shared code;
+- `deploy` refused on a Vercel repo without `--force`;
+- no secret in argv, logs or output;
+- a second run changes nothing.
+
+Gates: uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src. GitHub
+Actions do not run on this account right now: run the gates locally and say so in the PR. At the end, run
+`sdlc attach dbqm45/sprintdeck` with me and walk S5 version 3 through step 3 (triage → CHG-1 dispatched). The rest I
+run myself, filling the §7 journal. Commit, PR and any ShipScope or sprintdeck change on my request.
 ```
