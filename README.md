@@ -167,6 +167,53 @@ intake zgłoszeń to F3. Plan: [`docs/plan-f5-powiadomienia.md`](docs/plan-f5-po
   `problem.accepted` w `outbox/` i uruchamia w tf fazę `intent` (wejścia `source` i `problem`); persona tf pisze
   `intent.md`, otwiera PR i prosi o B1. Plan: [`docs/plan-f3-pdi.md`](docs/plan-f3-pdi.md).
 
+## Cały stos lokalnie: `sdlc` (L4)
+
+Do rozwoju i prób: ShipScope, pdi-receiver i ci_for_sdlc na jednym komputerze, bez tunelu, płatności Actions i
+przepisywania sekretów (decyzje DL2, DL3; plan: [`docs/plan-l4-sdlc.md`](docs/plan-l4-sdlc.md)).
+
+**Wymagania:** Docker, `gh` (zalogowany: `gh auth login`), `claude`, Node z `npm`, `uv` oraz klony pdi, ShipScope
+(`evdt-service-shipscope`) i ci_for_sdlc obok siebie. ShipScope musi mieć `server/scripts/local-pdi.js`.
+
+```bash
+uv run sdlc up          # startuje i łączy wszystko; kończy się linią „gotowe”
+uv run sdlc status      # procesy, ShipScope ↔ pdi, ci_for_sdlc → pdi, sekrety (tylko ustawione/brak), skrzynka
+uv run sdlc deploy prod # GitHub Deployment HEAD main repo próbnego (też: test; --repo właściciel/nazwa)
+uv run sdlc open        # ShipScope i formularz zgłoszeń w przeglądarce
+uv run sdlc down        # zatrzymuje procesy i Postgresa; dane zostają
+uv run sdlc check       # ponownie: gotowość zmian CHG z repo produktu do pdi (ci_for_sdlc --send-to-pdi)
+uv run sdlc reset       # usuwa dane stosu po wpisaniu „usuń”
+```
+
+Pierwsze `sdlc up`:
+- pyta raz o ścieżki klonów, rejestru decyzji i (opcjonalnie) repo produktu dla faz tf;
+- prosi o jedno kliknięcie, które zakłada aplikację GitHub ShipScope;
+- prosi o zalogowanie się w ShipScope i utworzenie przestrzeni.
+
+Resztę robi sam:
+- generuje sekrety;
+- startuje ShipScope (`npm run dev`: Postgres w Dockerze, web i worker) i `pdi-receiver` w tle;
+- łączy ShipScope z pdi bez przeglądarki (`local-pdi.js connect` i `test` w trybie lokalnym ShipScope);
+- wysyła gotowość zmian z ci_for_sdlc;
+- rejestruje serwery MCP `pdi` i `shipscope` w Claude Code.
+
+Kolejne `sdlc up` startuje tylko to, co nie działa.
+
+Pliki w `~/.sdlc` (katalog 700):
+
+| Plik | Co zawiera |
+|---|---|
+| `config.toml` | ścieżki klonów i opcjonalnie `[deploy] repo` |
+| `env` (600) | `PDI_TF_SIGNING_SECRET`, `PDI_CI_FOR_SDLC_SIGNING_SECRET`, `PDI_FORM_TOKEN`, `PDI_EVENTS_URL`, `PDI_DISPATCH=local`, `PDI_PHASE_BUDGET_USD=3` i po połączeniu trzy `PDI_SHIPSCOPE_*`; wygenerowane raz, nigdy nadpisywane |
+| `logs/` | logi ShipScope i odbiornika |
+| `run/` | pliki pid i wynik ostatniego sprawdzenia ci_for_sdlc |
+| `ci-data/` | `CI_DATA_DIR` CLI ci_for_sdlc |
+
+Sekrety trafiają do procesów tylko przez środowisko, nie przez argv. W Claude Code (`~/.claude.json`) jest zapisana
+tylko komenda `uv run --directory <pdi> sdlc mcp pdi|shipscope`, która przy starcie czyta `~/.sdlc/env`, więc
+żadnej wartości tam nie ma. Klucz `TOKEN_ENCRYPTION_KEY` ShipScope zostaje w jego `server/.env`, gdzie zapisuje go
+`npm run dev`.
+
 ## Kierunek (od 2026-10-23)
 
 - [`docs/15-jedna-platforma.md`](docs/15-jedna-platforma.md) — **propozycja: jeden produkt dla ludzi** zamiast czterech aplikacji: menu według pytań (Now, Problems, Work, Product, Releases, …), proces zamiast Jiry jako źródło, katalog funkcjonalności z przełącznikami per środowisko; backend łączony stopniowo, tf zawsze osobno. Makieta: [`design/platforma/`](design/platforma/README.md).

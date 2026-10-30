@@ -17,6 +17,7 @@ pdi-stats = "pdi.stats:main"
 pdi-receiver = "pdi.receiver:main"
 pdi-impact-review = "pdi.impact:main"
 pdi-forecast = "pdi.forecast:main"
+sdlc = "pdi.stack.cli:main"
 
 [build-system]
 requires = ["hatchling"]
