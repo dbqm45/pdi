@@ -56,8 +56,8 @@ trybami albo dodatkowymi opcjami, domyślne zachowanie się nie zmienia.
 - **Co:** przy `PUBLIC_BASE_URL` na `http://localhost:*` albo `http://127.0.0.1:*` `checkUrl()` przyjmuje adres
   odbiornika pdi na localhost (`http`, dowolny port) dla subskrypcji zdarzeń, pingu i Connect. Poza tym trybem
   reguły się nie zmieniają, a log przy starcie mówi, że tryb lokalny jest włączony (jak `SHIPSCOPE_MOCK_DATA`).
-- **Też:** `npm run dev` generuje `TOKEN_ENCRYPTION_KEY`, jeśli go brak (bez niego Connect odmawia), i przyjmuje
-  `SYNC_INTERVAL_MINUTES` od 1.
+- **Też:** `npm run dev` generuje `TOKEN_ENCRYPTION_KEY`, jeśli go brak (bez niego Connect odmawia).
+  `SYNC_INTERVAL_MINUTES` już dziś przyjmuje wartości od 1.
 - **Testy:** `server/test/safe-fetch.test.js` (localhost odrzucony bez trybu, przyjęty w trybie, prywatne adresy
   poza localhost dalej odrzucone), `server/test/dev.test.js` (klucz generowany raz, nie nadpisywany).
 - **Gotowe, gdy:** lokalny ShipScope łączy się z `http://127.0.0.1:8787` bez tunelu, a Test pokazuje `connected`.
@@ -190,9 +190,9 @@ konfiguracji.
 
 | # | Pytanie | Rekomendacja |
 |---|---|---|
-| DL1 | Czy pdi może uruchamiać fazy u siebie? | tak, tylko w `PDI_DISPATCH=local` (rozwój, demo); na produkcji Actions zgodnie z R4 |
-| DL2 | Procesy na hoście czy wszystko w Docker Compose? | procesy na hoście, w Dockerze tylko Postgres: wszystko jest na localhost (bez wyjątków adresów poza L1), persony korzystają z logowania Claude i `gh` na hoście |
-| DL3 | Gdzie mieszka `sdlc`? | `pdi/stack/` (pdi już jest orkiestratorem); osobne repo dopiero, gdy pojawi się produkcyjny deploy całości |
+| DL1 | Czy pdi może uruchamiać fazy u siebie? | **przyjęte 2026-10-30** ([decyzje](decyzje.md)): tak, tylko w `PDI_DISPATCH=local` (rozwój, demo); na produkcji Actions zgodnie z R4 |
+| DL2 | Procesy na hoście czy wszystko w Docker Compose? | **przyjęte 2026-10-30**: procesy na hoście, w Dockerze tylko Postgres: wszystko jest na localhost (bez wyjątków adresów poza L1), persony korzystają z logowania Claude i `gh` na hoście |
+| DL3 | Gdzie mieszka `sdlc`? | **przyjęte 2026-10-30**: `pdi/stack/` (pdi już jest orkiestratorem); osobne repo dopiero, gdy pojawi się produkcyjny deploy całości |
 | DL4 | Aplikacja repo próbnego | statyczna strona w Node bez zależności: najmniej do psucia, flagi w JSON |
 | DL5 | Budżet przebiegu | `PDI_PHASE_BUDGET_USD=3` na fazę w repo próbnym; koszt każdej fazy w dzienniku |
 
@@ -206,4 +206,5 @@ konfiguracji.
 | L4 | pdi | L1, L2, L3, DL2, DL3 | do zrobienia |
 | L5 | nowe repo `sdlc-sandbox` + pdi | L4, DL4 | do zrobienia |
 
-L1, L2 i L3 są niezależne i mogą iść równolegle w trzech sesjach.
+L1, L2 i L3 są niezależne i mogą iść równolegle w trzech sesjach. Polecenia startowe:
+[`polecenia-startowe-sdlc-lokalnie.md`](polecenia-startowe-sdlc-lokalnie.md).
