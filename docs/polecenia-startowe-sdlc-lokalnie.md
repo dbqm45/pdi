@@ -1,4 +1,4 @@
-# Polecenia startowe: L1–L5 i etapy 2–16 planu `sdlc up`
+# Polecenia startowe: L1–L5 i etapy 2–17 planu `sdlc up`
 
 **Data:** 2026-10-30 · **Źródło:** [plan `sdlc up`](plan-sdlc-lokalnie.md) §2 (Z1–Z5) i §4, decyzje DL1–DL3
 ([decyzje](decyzje.md)) · **Stan przed startem:** pdi `9ec4e66`, ShipScope 0.2.64, ci_for_sdlc 0.1.34
@@ -15,7 +15,7 @@ a etap 10 (rozmowa w konsoli, krok K-3) po etapie 9. Etap 11 (zaległe kroki G1/
 (jedno wejście dla ludzi i miary przepływu) po etapie 11. Etap 13 (przełącznik funkcjonalności i pierwsze łączenie
 backendów) startuje po etapie 12, a etap 14 (kolejne moduły łączenia backendów, powtarzany) po etapie 13.
 Etap 15 (pilotaż z design partnerami) startuje po etapach 13–14. Etap 16 (utrzymanie i niezawodność platformy)
-startuje po etapie 15.
+startuje po etapie 15, a etap 17 (cennik i rozliczenia) po etapie 16.
 
 | Krok | Repo | Sesja w katalogu |
 |---|---|---|
@@ -39,6 +39,7 @@ startuje po etapie 15.
 | etap 14 | pdi (+ ShipScope, ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` |
 | etap 15 | pdi (+ repo, w których pilotaż odsłoni luki) | `/Users/x/WebstormProjects/pdi` |
 | etap 16 | pdi (+ ShipScope, ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` |
+| etap 17 | pdi (+ ShipScope, ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` |
 
 GitHub Actions na tym koncie nie działa (płatności). Każde polecenie każe więc uruchomić bramki lokalnie i napisać
 o tym w PR.
@@ -1520,4 +1521,81 @@ Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy sr
 checks and each touched repo's own gates, all in Actions. At the end, with me: one restore test on a copy, one key
 rotation on a test workspace, and one alert fired end to end. Commit, PRs, any change to hosting, alerting or on-call
 settings, any rotation on production, and changes in other repos on my request.
+```
+
+## Etap 17 — pdi: cennik i rozliczenia platformy
+
+Start dopiero po etapie 16 (pilotaż ma wyniki, a widok kosztów na tenanta działa). Żaden plan nie opisuje cennika;
+[dokument 15](15-jedna-platforma.md) §1 wymienia go tylko jako warstwę wspólną od razu. Dlatego polecenie zaczyna od
+dokumentu decyzyjnego opartego na dowodach z pilotażu (etap 15: za co partnerzy cenią platformę, miary G7),
+rzeczywistych kosztach z etapu 16 (koszt na tenanta: wywołania modelu, obliczenia, przechowywanie) i świeżym badaniu
+cen konkurencji (analiza z 2026-10-19 dotyczyła starej propozycji wartości). Kod obejmuje dopiero zatwierdzony model:
+plany, limity, uprawnienia i integrację z dostawcą płatności. Sesja w klonie pdi; zmiany w ShipScope i ci_for_sdlc
+(limity w ich silnikach) osobnymi PR-ami, po Twojej zgodzie. Sprawy prawne i podatkowe (regulamin, faktury, VAT)
+polecenie tylko wypisuje jako pytania do Ciebie i doradcy. Żadna płatność ani zmiana planu prawdziwego klienta nie
+dzieje się bez Ciebie.
+
+```text
+Implement stage 17: pricing and billing for the platform (docs/15-jedna-platforma.md §1: name, menu, UI, sign-in,
+workspace and pricing are one from the start), after stage 16. No plan describes pricing yet: write the decision
+document first, from the pilot's evidence, the real costs and fresh market research; code only the approved model.
+Answer me in Polish; code, commits and PR titles in English, Conventional Commits; pdi docs in Polish.
+
+Preconditions, check them first and stop if one is missing:
+- stage 15's pilot has results: the go/no-go against its criteria, the weekly evidence reports, and what partners
+  said they would pay for (ask me for anything not in docs/plan-etap15-pilotaz.md). Without results, stop: pricing
+  without evidence is a guess;
+- stage 16's cost view per service and per tenant (model calls, compute, storage) for at least one full month;
+- the old market notes are for the earlier scope: docs/10-analiza-konkurencji.md and
+  docs/research/20261019-konkurencja/ (e.g. one enterprise price); do not reuse them as current prices.
+
+Goal: a recorded pricing model (who pays, for what unit, which plans, what each includes, the free or trial tier,
+limits and what happens at a limit), its margin against the real cost per tenant, and, once approved, the platform
+enforcing it: plans and entitlements per workspace, usage counted from the data the platform already has, limits
+that degrade one tenant clearly without touching others, a billing portal through the chosen payment provider, and
+an admin view of plan, usage and invoices. Pilot partners move to a plan only by an explicit, recorded choice.
+
+Today:
+- No plans, entitlements or payments exist. Stage 10 may have a model budget per tenant; stage 16 has cost limits and
+  a cost view; ShipScope has per-workspace settings and per-token rate limits; ci_for_sdlc has its own SaaS mode.
+- The platform's value as the pilot measured it (G7 measures, decisions, hand-offs removed) is the basis for the unit.
+- Prices of comparable tools change often; check them in primary sources with dates, not from memory.
+
+1. Research and decisions first, before any code. Show me the recommendation for each, wait for my answer, then
+   record them in docs/decyzje.md:
+   a. Market: current prices of the closest tools (by category from doc 10, plus AI coding and delivery platforms),
+      each with its source and date; what they charge for (seats, projects, usage).
+   b. The unit and plans: per seat, per workspace, per repo, per change delivered, usage-based for model calls, or a
+      mix; the plans and limits; the trial or free tier; how pilot partners transition.
+   c. Margin: the price against stage 16's cost per tenant, the model-call share, and the limits that keep a plan
+      profitable.
+   d. Payments: the provider (and why), what we store (only its customer and subscription ids, never card data),
+      webhooks and their signature, failed payments and grace period, cancellation and data deletion (stage 15's
+      rule). Legal and tax questions (terms, invoices, VAT, consumer vs business) listed for me and an adviser, not
+      decided by you.
+2. Then a plan in docs/ (plan-etap17-cennik.md): the model, the entitlements per plan, how usage is counted from
+   existing data, limit behaviour per engine, the provider integration, the admin and customer views, migration of
+   existing workspaces (pilot partners, my own), failure cases (provider down, webhook replay, plan change mid-period,
+   usage counted twice), tests, open questions. Wait for my OK.
+3. Implement only what the plan approves, TDD (red test first), small PRs, each in its repo after my OK: entitlements
+   and plans, usage counting, limits per engine, the provider integration in its test mode, the views, then live mode
+   only on my request.
+4. Docs: README (plans), docs/15-jedna-platforma.md (pricing state), the pilot plan (transition), outreach materials if
+   they mention terms, and runbooks for billing incidents (stage 16's format).
+
+Tests:
+- each plan's entitlements are enforced in every engine; a limit degrades only that tenant, with a clear message and
+  no data loss;
+- usage counted once from the source data (a replayed event or retried job does not count twice), and matches the
+  cost view for the same period;
+- provider webhooks: signature checked, idempotent on event id, out-of-order events handled, unknown events ignored
+  safely; failed payment → grace period → limited mode as decided;
+- no card data stored; no provider key, customer secret or payment detail in logs, URLs, events or client bundles;
+- a plan change mid-period and a cancellation behave as decided, and deletion follows stage 15's rule;
+- tenancy as before; admin views only for the workspace's admins.
+
+Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy src) plus the service's and console's
+checks and each touched repo's own gates, all in Actions. At the end, with me: one full cycle in the provider's test
+mode (trial → plan → usage → limit → upgrade → cancellation). Commit, PRs, prices published anywhere, the provider
+account and live mode, any charge, any change to a real customer's plan, and changes in other repos on my request.
 ```
