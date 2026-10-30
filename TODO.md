@@ -113,3 +113,28 @@ i link do PR, bez skrótu treści.
   z powrotem, a tf przed następną fazą porównuje go z bieżącym artefaktem (pozycja w `tf/docs/todo.md`).
 - [ ] UI zatwierdzenia pokazuje skrót i datę artefaktu; zgoda na nieaktualną wersję jest odrzucana z komunikatem
   „artefakt zmienił się po wysłaniu prośby”. TDD: test zgody na zmieniony artefakt.
+
+## Propozycja do G7 „miary przepływu”: wskaźniki wyprzedzające w parze z opóźnionymi (zapisane 2026-10-30)
+
+Źródło: artykuł „SDD Factory Dashboard: The Leading and Lagging Indicators That Actually Matter” (J. Wąsowski,
+2026-08-12). Kokpit pokazujący tylko aktywność (liczbę wdrożeń, PR) pozostaje zielony aż do zatoru. Według artykułu
+najlepiej udokumentowanym sygnałem wyprzedzającym przy kodzie od agentów jest kolejka czekająca na przegląd człowieka
+(liczby z artykułu [niezweryfikowane]). pdi ma już dane do takiej kolejki: każda pozycja `inbox/` i
+`changes/<CHG>.yaml` niesie historię bramek.
+- [ ] Miara kolejki bramek z istniejących plików skrzynki i zmian, bez nowego źródła danych:
+  - liczba pozycji czekających na decyzję;
+  - wiek najstarszej pozycji;
+  - mediana i p90 czasu od `gate.requested` do `gate.decided`, w podziale na bramki B1–B5.
+
+  Najpierw test na plikach w katalogu tymczasowym.
+- [ ] Para z wskaźnikiem opóźnionym z ShipScope: rollbacki i hotfiksy na wydanie (CFR) oraz nowe PRB po wydaniu
+  (defekty u użytkownika). Rosnąca kolejka przy rosnącym CFR to sygnał zatoru przeglądu, a nie „więcej pracy”.
+- [ ] Dryf specyfikacji jako drugi wskaźnik wyprzedzający: sygnał z ci_for_sdlc (rozjazd definicji ze stanem) albo
+  z `plan_drift.py` w tf. Do ustalenia, kto go emituje jako zdarzenie kontraktu.
+- [ ] Zasady:
+  - miary liczone dla systemu i zmiany, nigdy dla osoby;
+  - każda miara prędkości ma obok miarę jakości;
+  - eksport przez API usług (pozycja F5: rollbacki, dryf, czas realizacji) w trzech widokach o różnej częstotliwości:
+    tydzień (zespół), miesiąc, kwartał.
+
+  Rozstrzygnięcie G7 zapisać jako decyzję w rejestrze.
