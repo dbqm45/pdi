@@ -6,6 +6,7 @@ import os
 import stat
 from collections.abc import Mapping
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -39,6 +40,7 @@ class World:
         (self.projects / "ci_for_sdlc/node_modules").mkdir()
         self.missing: set[str] = set()
         self.answers: dict[tuple[str, ...], list[tuple[int, str, str]]] = {}
+        self.hooks: dict[tuple[str, ...], Any] = {}
         self.runs: list[tuple[list[str], Path | None, dict[str, str], str | None]] = []
         self.spawned: list[tuple[str, list[str], dict[str, str]]] = []
         self.alive_pids: set[int] = set()
@@ -67,6 +69,9 @@ class World:
 
     def run(self, argv: list[str], cwd: Path | None, env: Mapping[str, str], stdin: str | None) -> tuple[int, str, str]:
         self.runs.append((argv, cwd, dict(env), stdin))
+        for prefix, hook in self.hooks.items():
+            if tuple(argv[: len(prefix)]) == prefix:
+                hook(argv, cwd, env, stdin)
         for prefix, queue in self.answers.items():
             if tuple(argv[: len(prefix)]) == prefix:
                 return queue.pop(0) if len(queue) > 1 else queue[0]
@@ -511,3 +516,120 @@ def test_real_helpers_keep_mode_and_pid_files(tmp_path: Path) -> None:
     assert home.load_config(root / "config.toml") == config
     assert isinstance(home.load_config(root / "config.toml"), home.Config)
     assert home.load_config(root / "brak.toml") is None
+
+
+# --- sandbox (L5) ---
+
+TRACKED = {"workspace": {"id": "t1", "name": "Lokalnie"}, "repo": {"repoId": 9, "fullName": "dbqm45/sdlc-proba"}}
+FLAGS_CONFIG = {"file": "config/flags.{env}.json", "valuePath": "enabled", "rolloutPath": "rollout"}
+
+
+def sandbox(world: World, *args: str) -> int:
+    return cli.main(["sandbox", "sdlc-proba", *args], ctx=world.ctx())
+
+
+def prepare_sandbox(world: World, *, exists: bool) -> None:
+    world.answer(("gh", "api", "user", "--jq", ".login"), 0, "dbqm45\n")
+    world.answer(("gh", "repo", "view", "dbqm45/sdlc-proba"), 0 if exists else 1, "", "" if exists else "not found")
+    world.answer(
+        ("node", "server/scripts/local-pdi.js", "track"),
+        0,
+        json.dumps({**TRACKED, "flagSource": {"id": "s1", "created": True}}),
+    )
+
+    def created(argv: list[str], cwd: Path | None, env: Mapping[str, str], stdin: str | None) -> tuple[int, str, str]:
+        (world.projects / "sdlc-proba" / ".git").mkdir(parents=True, exist_ok=True)
+        return 0, "", ""
+
+    world.hooks[("gh", "repo", "create")] = created
+    world.hooks[("gh", "repo", "clone")] = created
+
+
+def test_sandbox_creates_the_repo_from_the_template_tracks_it_and_sets_the_checkout(world: World) -> None:
+    assert up(world) == 0
+    prepare_sandbox(world, exists=False)
+    env_before = env_file(world)
+    first = len(world.runs)
+    receivers = [name for name, _, _ in world.spawned].count("pdi-receiver")
+
+    assert sandbox(world) == 0
+
+    calls = [(argv, cwd) for argv, cwd, _, _ in world.runs[first:]]
+    create = next(c for c in calls if c[0][:3] == ["gh", "repo", "create"])
+    assert create == (
+        ["gh", "repo", "create", "dbqm45/sdlc-proba", "--template", "dbqm45/sdlc-sandbox", "--private", "--clone"],
+        world.projects,
+    )
+    track = next(c for c in calls if c[0][:3] == ["node", "server/scripts/local-pdi.js", "track"])
+    assert track[0][3:5] == ["--repo", "dbqm45/sdlc-proba"]
+    assert json.loads(track[0][6]) == FLAGS_CONFIG and track[0][5] == "--flags"
+    assert track[1] == world.projects / "evdt-service-shipscope"
+    config = home.load_config(world.home / ".sdlc/config.toml")
+    assert config is not None
+    assert (config.checkout, config.deploy_repo) == (world.projects / "sdlc-proba", "dbqm45/sdlc-proba")
+    assert (config.pdi, config.shipscope, config.registry) == (
+        world.projects / "pdi",
+        world.projects / "evdt-service-shipscope",
+        world.home / "pdi-decisions",
+    )
+    assert env_file(world) == env_before, "~/.sdlc/env nietknięty"
+    assert [name for name, _, _ in world.spawned].count("pdi-receiver") == receivers + 1
+    assert world.spawned[-1][2]["PDI_DISPATCH_CHECKOUT"] == str(world.projects / "sdlc-proba")
+    text = world.text()
+    assert "https://github.com/dbqm45/sdlc-proba" in text and str(world.projects / "sdlc-proba") in text
+    assert "sdlc open" in text and text.rstrip().endswith("gotowe")
+    secrets = [v for k, v in env_before.items() if k in home.SECRET_KEYS]
+    for value in secrets:
+        assert value not in world.argv_text() + text
+
+
+def test_sandbox_reuses_an_existing_repo_and_a_second_run_changes_nothing(world: World) -> None:
+    assert up(world) == 0
+    prepare_sandbox(world, exists=True)
+
+    assert sandbox(world) == 0
+    first = len(world.runs)
+    spawned = len(world.spawned)
+    config = (world.home / ".sdlc/config.toml").read_text(encoding="utf-8")
+
+    assert sandbox(world) == 0
+
+    calls = [argv for argv, _, _, _ in world.runs[first:]]
+    assert not any(c[:3] == ["gh", "repo", "create"] for c in calls)
+    assert ["git", "-C", str(world.projects / "sdlc-proba"), "pull", "--ff-only"] in calls
+    assert len(world.spawned) == spawned, "bez restartu odbiornika, gdy repo produktu się nie zmieniło"
+    assert (world.home / ".sdlc/config.toml").read_text(encoding="utf-8") == config
+
+
+def test_sandbox_clones_an_existing_repo_that_is_not_here_yet(world: World) -> None:
+    assert up(world) == 0
+    prepare_sandbox(world, exists=True)
+
+    assert sandbox(world, "--owner", "dbqm45") == 0
+
+    calls = [(argv, cwd) for argv, cwd, _, _ in world.runs]
+    assert (["gh", "repo", "clone", "dbqm45/sdlc-proba", str(world.projects / "sdlc-proba")], None) in calls
+    assert not any(argv[:3] == ["gh", "api", "user"] for argv, _ in calls), "--owner bez pytania GitHuba"
+
+
+def test_sandbox_waits_for_the_github_app_installation(world: World) -> None:
+    assert up(world) == 0
+    prepare_sandbox(world, exists=True)
+    world.answers[("node", "server/scripts/local-pdi.js", "track")] = [
+        (5, "", "Install the ShipScope GitHub App on dbqm45"),
+        (5, "", "Install the ShipScope GitHub App on dbqm45"),
+        (0, json.dumps({**TRACKED, "flagSource": {"id": "s1", "created": True}}), ""),
+    ]
+    world.typed = ["", ""]
+
+    assert sandbox(world) == 0
+
+    text = world.text()
+    assert text.count("Settings → GitHub") == 1, "kliknięcia raz"
+    assert "Enter" in text
+    assert len([r for r in world.runs if r[0][:3] == ["node", "server/scripts/local-pdi.js", "track"]]) == 3
+
+
+def test_sandbox_needs_sdlc_up_first(world: World) -> None:
+    assert sandbox(world) == 1
+    assert "sdlc up" in world.text()

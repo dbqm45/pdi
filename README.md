@@ -183,7 +183,17 @@ uv run sdlc open        # ShipScope i formularz zgłoszeń w przeglądarce
 uv run sdlc down        # zatrzymuje procesy i Postgresa; dane zostają
 uv run sdlc check       # ponownie: gotowość zmian CHG z repo produktu do pdi (ci_for_sdlc --send-to-pdi)
 uv run sdlc reset       # usuwa dane stosu po wpisaniu „usuń”
+uv run sdlc sandbox sdlc-proba   # repo próbne z szablonu dbqm45/sdlc-sandbox (L5)
 ```
+
+`sdlc sandbox <nazwa> [--owner <login>]` (L5, plan: [`docs/plan-l5-sandbox.md`](docs/plan-l5-sandbox.md)) zakłada z
+szablonu `dbqm45/sdlc-sandbox` prywatne repo na Twoim koncie (albo używa istniejącego) i robi resztę:
+- klonuje je obok pozostałych klonów;
+- śledzi je w ShipScope razem ze źródłem flag `config/flags.{env}.json` (`local-pdi.js track`; za pierwszym razem prosi
+  o instalację aplikacji GitHub ShipScope w przeglądarce);
+- ustawia je jako repo faz tf (`checkout` i `[deploy] repo` w `config.toml`).
+
+Cały przebieg na nim, krok po kroku z oczekiwanymi wynikami: [`docs/przebieg-lokalny.md`](docs/przebieg-lokalny.md).
 
 Pierwsze `sdlc up`:
 - pyta raz o ścieżki klonów, rejestru decyzji i (opcjonalnie) repo produktu dla faz tf;

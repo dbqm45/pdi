@@ -193,8 +193,8 @@ konfiguracji.
 | DL1 | Czy pdi może uruchamiać fazy u siebie? | **przyjęte 2026-10-30** ([decyzje](decyzje.md)): tak, tylko w `PDI_DISPATCH=local` (rozwój, demo); na produkcji Actions zgodnie z R4 |
 | DL2 | Procesy na hoście czy wszystko w Docker Compose? | **przyjęte 2026-10-30**: procesy na hoście, w Dockerze tylko Postgres: wszystko jest na localhost (bez wyjątków adresów poza L1), persony korzystają z logowania Claude i `gh` na hoście |
 | DL3 | Gdzie mieszka `sdlc`? | **przyjęte 2026-10-30**: `pdi/stack/` (pdi już jest orkiestratorem); osobne repo dopiero, gdy pojawi się produkcyjny deploy całości |
-| DL4 | Aplikacja repo próbnego | statyczna strona w Node bez zależności: najmniej do psucia, flagi w JSON |
-| DL5 | Budżet przebiegu | `PDI_PHASE_BUDGET_USD=3` na fazę w repo próbnym; koszt każdej fazy w dzienniku |
+| DL4 | Aplikacja repo próbnego | **przyjęte 2026-10-30** ([decyzje](decyzje.md)): statyczna strona w Node bez zależności, flagi w JSON |
+| DL5 | Budżet przebiegu | **przyjęte 2026-10-30**: `PDI_PHASE_BUDGET_USD=3` na fazę w repo próbnym; koszt każdej fazy w logu |
 
 ## 9. Kolejność i stan
 
@@ -204,7 +204,7 @@ konfiguracji.
 | L2 | pdi | DL1 | zrobione ([plan L2](plan-l2-dispatch-lokalny.md), pdi #59) |
 | L3 | ci_for_sdlc | — | zrobione (ci_for_sdlc #102) |
 | L4 | pdi | L1, L2, L3, DL2, DL3 | zrobione ([plan L4](plan-l4-sdlc.md); w ShipScope `server/scripts/local-pdi.js`) |
-| L5 | nowe repo `sdlc-sandbox` + pdi | L4, DL4 | do zrobienia |
+| L5 | nowe repo `sdlc-sandbox` + pdi | L4, DL4 | zrobione ([plan L5](plan-l5-sandbox.md), [przebieg](przebieg-lokalny.md)); w ShipScope `local-pdi.js track` |
 
 L1, L2 i L3 są niezależne i mogą iść równolegle w trzech sesjach. Polecenia startowe L1–L5:
 [`polecenia-startowe-sdlc-lokalnie.md`](polecenia-startowe-sdlc-lokalnie.md).
