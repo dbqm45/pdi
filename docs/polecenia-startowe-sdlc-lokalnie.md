@@ -1,4 +1,4 @@
-# Polecenia startowe: L1–L5 i etapy 2–12 planu `sdlc up`
+# Polecenia startowe: L1–L5 i etapy 2–13 planu `sdlc up`
 
 **Data:** 2026-10-30 · **Źródło:** [plan `sdlc up`](plan-sdlc-lokalnie.md) §2 (Z1–Z5) i §4, decyzje DL1–DL3
 ([decyzje](decyzje.md)) · **Stan przed startem:** pdi `9ec4e66`, ShipScope 0.2.64, ci_for_sdlc 0.1.34
@@ -12,7 +12,8 @@ etapie 4, a etap 6 (autonomia zdobywana na danych) po etapie 5.
 Etap 7 (etapy flag według reguły i metryki ochronne) startuje po etapie 6, a etap 8 (uproszczone review
 i lustro Jira ↔ repo) po etapie 7. Etap 9 (incydenty i aplikacja Slacka) startuje po etapie 8,
 a etap 10 (rozmowa w konsoli, krok K-3) po etapie 9. Etap 11 (zaległe kroki G1/G2) startuje po etapie 10, a etap 12
-(jedno wejście dla ludzi i miary przepływu) po etapie 11.
+(jedno wejście dla ludzi i miary przepływu) po etapie 11. Etap 13 (przełącznik funkcjonalności i pierwsze łączenie
+backendów) startuje po etapie 12.
 
 | Krok | Repo | Sesja w katalogu |
 |---|---|---|
@@ -32,6 +33,7 @@ a etap 10 (rozmowa w konsoli, krok K-3) po etapie 9. Etap 11 (zaległe kroki G1/
 | etap 10 | pdi (+ ci_for_sdlc, ShipScope) | `/Users/x/WebstormProjects/pdi` |
 | etap 11 | pdi (+ ci_for_sdlc, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
 | etap 12 | pdi (+ ShipScope, ci_for_sdlc, tf) | `/Users/x/WebstormProjects/pdi` |
+| etap 13 | pdi (+ ShipScope, tf) | `/Users/x/WebstormProjects/pdi` |
 
 GitHub Actions na tym koncie nie działa (płatności). Każde polecenie każe więc uruchomić bramki lokalnie i napisać
 o tym w PR.
@@ -1203,4 +1205,91 @@ Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy sr
 lint, typecheck, tests and e2e, and each touched repo's own gates, all in Actions. At the end, walk the shell with me:
 sign in once, go from "Now" to the S5 change in "Work", its release in "Releases", and its numbers in "Outcomes".
 Commit, PRs, the product name, any change to existing users' workspaces and changes in other repos on my request.
+```
+
+## Etap 13 — pdi (+ ShipScope, tf): przełącznik funkcjonalności i pierwsze łączenie backendów
+
+Start dopiero po etapie 12 (powłoka i sekcje tylko do odczytu działają, G6, G7 i P1 rozstrzygnięte). Źródło:
+[dokument 15](15-jedna-platforma.md) §3 (funkcjonalność jako trwały byt, dwa rodzaje flag), §4 (przełącznik
+funkcjonalności), §6 kroki 5–6 i §7 (otwarte pytania), ADR-001 i ADR-003 w ShipScope, DA6 z wykonawcami z etapu 7
+i poziomy autonomii z etapu 6. Część A: jeden przełącznik na funkcjonalność i środowisko, plan przełączenia (BE przed
+FE przy włączaniu, odwrotnie przy wyłączaniu), najpierw na sucho, potem pierwszy wykonawca zapisu. Część B: plan
+łączenia backendów i pierwszy moduł (pdi z warstwą pdi w ShipScope). Dokument 15 §4 mówi wprost, że przełącznik
+zmienia zasadę „ShipScope tylko obserwuje” i wymaga nowego ADR, więc polecenie zaczyna od ADR-004. Sesja w klonie pdi;
+ADR-004 i zmiany w ShipScope osobnymi PR-ami w jego repo, po Twojej zgodzie. Włączenie na PROD zawsze jest decyzją
+człowieka, a ekran pokazuje to, co odczytano, nie to, co zlecono.
+
+```text
+Implement stage 13: steps 5–6 of docs/15-jedna-platforma.md §6 — the feature switch from §4 (one switch per feature
+and environment, a switch plan, dry run first, then the first write executor) and the first backend merge (pdi with
+ShipScope's pdi layer) — after stage 12. Answer me in Polish; code, commits and PR titles in English, Conventional
+Commits.
+
+Preconditions, check them first and stop if one is missing:
+- stage 12 is done: G6, G7, P1 and P2 are recorded in docs/decyzje.md, the shell runs with read-only sections, and
+  the feature catalogue (doc 15 §3: `feature` in the intent header, domain → feature → parts per service) exists in
+  the contract, or stage 12 left it for this stage (then it is part of step 2 below);
+- stage 7's DA6 executors (stage change by PR to the flags file through tf, or a provider adapter) and stage 6's
+  autonomy levels work in production;
+- ShipScope's ADR-001 and ADR-003 ("ShipScope only observes"), and doc 15 §4's note that the switch changes this
+  rule and needs a new ADR; doc 15 §7's open questions (where flags live in the services, whether
+  evdt-shipscope-flags stays the flag backend, whether PROD always goes through a pdi decision).
+
+Goal:
+A. On the Product screen, one switch per feature and environment. Using it creates a switch plan: on = BE parts
+   first, then FE; off = the reverse; each step names its service, flag, kind (release flag or permanent switch) and
+   executor. A step whose code is not deployed on that environment makes the switch inactive with the reason. The
+   plan runs dry first (what would change, nothing written), then for real: TEST and QA through autonomy level 1–2,
+   PROD as an inbox decision at level 3. The screen shows what ShipScope read back, not what was ordered; a mismatch
+   is visible and stops the plan.
+B. A written plan for merging backends module by module, starting with pdi and ShipScope's pdi layer (doc 15 §1:
+   most integration code is between them: service tokens, signed events, connection checks), and only its first
+   module done in this stage, after my OK.
+
+Today:
+- Flags are per service: config/flags.{env}.json in sprintdeck (code flags, changed by PR through tf), endpoints and
+  pushed sources in ShipScope; stage 7 added executors for stage changes of release flags.
+- Doc 15 §3: a release flag belongs to a change and goes after full release; a permanent switch steers a feature for
+  good. §4: the first runtime candidate executor is evdt-shipscope-flags (environments, services, order, log).
+- ShipScope reads flags and confirms state; with ADR-001/003 it never writes them.
+- pdi and ShipScope's pdi layer talk through a service token, signed events and connection pings (ShipScope's
+  lib/pdi-connection.js, pdi's receiver).
+
+1. Decisions first, before any plan or code. Show me the recommendation for each, wait for my answer, then record
+   them in docs/decyzje.md, the plans' tables and, for ShipScope, an ADR-004 draft:
+   a. ADR-004: who writes flag state (executors only, ShipScope stays a reader and confirms from its read), and what
+      that changes in ADR-001/003; the PR to ShipScope only after my OK.
+   b. The executors per flag kind: code flags (PR through tf, enters with the deploy), runtime flags (provider adapter;
+      evdt-shipscope-flags or another), and what a switch does for a feature whose parts use different kinds.
+   c. The switch plan's rules: order (BE → FE, reverse for off), the "code deployed" check per part, timeouts between
+      steps, what a partial failure does (stop and propose rollback of done steps, never leave it half on silently).
+   d. Levels: TEST/QA at 1 or 2, PROD always 3 (or doc 15 §7's alternative: roles and a log); the decision type
+      (`flag.stage_advance` as doc 15 says, or a new `feature.switch`, a contract change).
+   e. Part B: the first module to merge and the target (into the pdi service, or a shared module both call), what is
+      removed (tokens, signatures, pings between them), migration of existing connections, rollback.
+2. Then a plan in docs/ (plan-etap13-przelacznik.md): the catalogue and switch model, the plan and its dry run, the
+   executors, confirmation from ShipScope's read, the failure cases (executor down, read-back mismatch, deploy rolled
+   back mid-plan, two switches at once), the part B merge plan, tests, open questions. Wait for my OK.
+3. Implement only what the plan approves, TDD (red test first), small PRs, each in its repo after my OK: the contract
+   change if any, the switch plan with dry run, the Product screen's switch, the first write executor, the
+   confirmation from ShipScope, then part B's first module.
+4. Docs: README, docs/15-jedna-platforma.md (§4 and §6 state, §7 answers), design/platforma/README.md (Product live),
+   plan-jeden-flow-sdlc.md, ShipScope's ADR-004 and README for its part, docs/przebieg-na-sobie-s5.md (turning the S5
+   feature on for users).
+
+Tests:
+- the plan orders BE before FE for on and the reverse for off; a part without deployed code makes the switch
+  inactive with the reason; the dry run writes nothing;
+- TEST/QA at the agreed level, PROD only after my button; every step through its executor only;
+- a step failure stops the plan and proposes a rollback of done steps; never half on without a visible state;
+- the screen shows ShipScope's read-back; a mismatch is shown and stops the next step;
+- one plan per feature and environment at a time; a second switch is refused clearly;
+- part B: the merged module keeps the contract's behaviour (existing pdi and ShipScope tests pass unchanged or are
+  replaced one for one), existing connections migrate, rollback restores the previous path;
+- tenancy as before; no secret or token in logs, URLs, events, PR bodies or the client bundle.
+
+Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy src) plus the service's and console's
+checks and each touched repo's own gates, all in Actions. At the end, with me: a dry run of the S5 feature's switch
+on TEST, then a real switch on TEST, then the PROD decision in the inbox (I decide whether to approve). Commit, PRs,
+ADR-004, any real switch on QA or PROD, migration of existing connections and changes in other repos on my request.
 ```
