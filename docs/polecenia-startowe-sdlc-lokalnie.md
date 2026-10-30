@@ -1,4 +1,4 @@
-# Polecenia startowe: L1–L5 i etapy 2–10 planu `sdlc up`
+# Polecenia startowe: L1–L5 i etapy 2–11 planu `sdlc up`
 
 **Data:** 2026-10-30 · **Źródło:** [plan `sdlc up`](plan-sdlc-lokalnie.md) §2 (Z1–Z5) i §4, decyzje DL1–DL3
 ([decyzje](decyzje.md)) · **Stan przed startem:** pdi `9ec4e66`, ShipScope 0.2.64, ci_for_sdlc 0.1.34
@@ -11,7 +11,7 @@ i konsola, krok K-2) po etapie 3. Etap 5 (graf śladu, rejestr decyzji i panel w
 etapie 4, a etap 6 (autonomia zdobywana na danych) po etapie 5.
 Etap 7 (etapy flag według reguły i metryki ochronne) startuje po etapie 6, a etap 8 (uproszczone review
 i lustro Jira ↔ repo) po etapie 7. Etap 9 (incydenty i aplikacja Slacka) startuje po etapie 8,
-a etap 10 (rozmowa w konsoli, krok K-3) po etapie 9.
+a etap 10 (rozmowa w konsoli, krok K-3) po etapie 9. Etap 11 (zaległe kroki G1/G2) startuje po etapie 10.
 
 | Krok | Repo | Sesja w katalogu |
 |---|---|---|
@@ -29,6 +29,7 @@ a etap 10 (rozmowa w konsoli, krok K-3) po etapie 9.
 | etap 8 | pdi (+ tf, ci_for_sdlc, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
 | etap 9 | pdi (+ ShipScope, tf, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
 | etap 10 | pdi (+ ci_for_sdlc, ShipScope) | `/Users/x/WebstormProjects/pdi` |
+| etap 11 | pdi (+ ci_for_sdlc, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
 
 GitHub Actions na tym koncie nie działa (płatności). Każde polecenie każe więc uruchomić bramki lokalnie i napisać
 o tym w PR.
@@ -1043,4 +1044,78 @@ Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy sr
 lint, typecheck, tests and e2e, and the touched repos' own gates, all in Actions. At the end, with me: ask the chat
 what blocks the S5 change, then have it draft one decision and approve it in the inbox. Commit, PRs, the model's API
 key setup, production deploy and changes in other repos on my request.
+```
+
+## Etap 11 — ci_for_sdlc (+ pdi, sprintdeck): zaległe kroki G1/G2 (G2.3, G1.6, G2.6)
+
+Start dopiero po etapie 10. Źródło: [plan G1/G2](plan-g1-g2.md) §10 i decyzje D-G23, DG3, DG7, D-E1. Wszystkie trzy
+kroki są w planie warunkowe: G2.3 wstrzymała D-G23 do rozstrzygnięcia po pilocie reguł G2.2 i G1.2, G1.6 jest
+„warunkowo, po pilocie”, a G2.6 czeka na MVP pokoi z importem z Jiry (D-E1 zmieniła rolę sprintdecka na konsensus co do
+zrozumienia i ryzyka). Polecenie najpierw zbiera wynik pilota i rozstrzyga, które kroki wracają, i uwzględnia, co
+zmieniły etapy 5, 8 i 10 (panel w Jirze, lustro, rozmowa w konsoli mogą częściowo zastąpić G2.3). Sesja w klonie pdi
+(plan, decyzje, kontrakt); kod G2.3 w ci_for_sdlc, G1.6 w konsoli pdi, G2.6 w sprintdecku i ci_for_sdlc, każdy
+osobnym PR-em w swoim repo, po Twojej zgodzie. Propozycja AI nigdy nie zmienia gotowości bez człowieka.
+
+```text
+Implement stage 11: the remaining steps of docs/plan-g1-g2.md — G2.3 (AI proposals: story split and AC rewrite),
+G1.6 (story-map editor) and G2.6 (estimation signal from a sprintdeck room) — after stage 10. Each is conditional in
+the plan; decide which come back before any code. Answer me in Polish; code, commits and PR titles in English,
+Conventional Commits.
+
+Preconditions, check them first and stop if one is missing:
+- stage 10 is done (or stopped at its K-1 check, which is fine), and stages 5 and 8 state what exists: the Jira panel
+  (G2.5) and the Jira ↔ repo mirror with its DG3 write step;
+- the pilot of rules G2.2 and G1.2 on a real backlog (plan-g1-g2.md §4.8, §5.9, §11 point 2). Ask me for its result:
+  whether POs asked for a ready split, and the share of stories fixed after the rules' questions. Without a pilot
+  result, stop: D-G23 and G1.6 depend on it;
+- docs/decyzje.md: D-G23 (G2.3 on hold until the pilot; comes back if POs ask for a split or few stories get fixed
+  after questions, dropped if POs fix them themselves), DG3, DG7, D-E1 (sprintdeck's role: consensus on understanding
+  and risk, not effort; people vote only when the automation flags doubt).
+
+Goal: for each of the three steps, a recorded decision (back, dropped, or replaced by something already built), and
+for those that come back, the step done as the plan describes, adjusted to what stages 4–10 built:
+- G2.3 (ci_for_sdlc): a separate "story shape reviewer" AI call with a proposal schema (`split` or `rewrite_ac`),
+  proposals without a quote dropped, a "Proponowany podział" card with "Kopiuj jako tekst Jiry" and "Zatwierdź",
+  approval recorded as a decision in pdi; a proposal never changes readiness without a human. If the console chat
+  (stage 10) or the Jira panel (stage 5) already gives POs a split on request, say whether G2.3 is still needed.
+- G1.6 (pdi console): a story-map editor for release lines, only if the pilot shows teams need a visual map; it
+  edits the same source as today (release.yaml in repo mode, Jira lines otherwise; through the stage 8 mirror),
+  never a second copy.
+- G2.6 (sprintdeck + ci_for_sdlc): a room shows the story's shape state before voting; a "dwa obozy" or "szeroki
+  rozrzut" result offers "Zgłoś niejasność", which creates a question in ci_for_sdlc with a new finding origin `team`
+  (next to `rule`, `ai`, `drift`). Per D-E1 this uses the understanding and risk decks, not effort points.
+
+Today:
+- plan-g1-g2.md §10: G2.3 on hold (#62, ci_for_sdlc docs/BACKLOG-DEFERRED.md), G1.6 conditional, G2.6 waiting:
+  sprintdeck has rooms, the "Risk" deck (S6) and limits (S3) (#4–#11), but no import from Jira.
+- The contract has fixtures for story shape (`pdi/contract/fixtures/story-shape`); a new finding origin or proposal
+  kind may need a contract change.
+- After stages 5, 8 and 10: a Jira panel, a repo → Jira mirror and a console chat that drafts decisions exist (check
+  which are live).
+
+1. Decisions first, before any plan or code. Show me the recommendation for each, wait for my answer, then record
+   them in docs/decyzje.md (D-G23 updated) and plan-g1-g2.md §10:
+   a. G2.3: back or dropped, from the pilot result and the D-G23 rule; if back, whether it lives in ci_for_sdlc as
+      planned or as a tool of the console chat; the model, cost per call and the noise limit.
+   b. G1.6: build or drop, from the pilot; if built, where (console) and how it writes (the one source per mode).
+   c. G2.6: whether sprintdeck's Jira import is in this stage or a precondition; the exact vote patterns that offer
+      "Zgłoś niejasność"; the `team` origin in the contract.
+2. Then a plan in docs/ (plan-etap11-g1-g2.md) for the steps that come back: changes per repo, contract changes,
+   screens and their states, tests, open questions. Wait for my OK.
+3. Implement only what the plan approves, TDD (red test first), small PRs, each in its repo after my OK.
+4. Docs: plan-g1-g2.md (§10 and header status), docs/decyzje.md, the touched repos' README/ROADMAP/BACKLOG-DEFERRED,
+   docs/przebieg-na-sobie-s5.md if the flow changes.
+
+Tests (for the steps that come back):
+- G2.3: a proposal without a quote that exists in the story is dropped; proposals never change readiness; approval
+  creates one decision in pdi; the AI contract test pins the schema; Jira text handled as data, never instructions;
+- G1.6: editing a line writes to the one source for the mode and nowhere else; a conflicting edit from the other side
+  is refused clearly; keyboard use and accessible names (WCAG AA);
+- G2.6: only the agreed vote patterns offer the button; one question per room and story; the finding carries origin
+  `team` and a link to the room; no vote data beyond what the plan allows leaves sprintdeck;
+- tenancy as before; no secret or token in logs, URLs or client bundles.
+
+Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy src) and each touched repo's own gates,
+all in Actions. At the end, show me each recorded decision, and for each step that came back walk it once with me on
+a real story. Commit, PRs, contract changes and changes in other repos on my request.
 ```
