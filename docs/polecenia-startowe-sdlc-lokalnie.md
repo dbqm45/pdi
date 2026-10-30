@@ -1,4 +1,4 @@
-# Polecenia startowe: L1–L5 i etapy 2–7 planu `sdlc up`
+# Polecenia startowe: L1–L5 i etapy 2–8 planu `sdlc up`
 
 **Data:** 2026-10-30 · **Źródło:** [plan `sdlc up`](plan-sdlc-lokalnie.md) §2 (Z1–Z5) i §4, decyzje DL1–DL3
 ([decyzje](decyzje.md)) · **Stan przed startem:** pdi `9ec4e66`, ShipScope 0.2.64, ci_for_sdlc 0.1.34
@@ -9,7 +9,8 @@ po merge'u L4. Etap 2 (scenariusz S5 na sprintdecku) startuje po L5 i udanym prz
 próbnym. Etap 3 (produkcja, §7 planu) startuje po etapie 2, a etap 4 (usługa pdi
 i konsola, krok K-2) po etapie 3. Etap 5 (graf śladu, rejestr decyzji i panel w Jirze, krok K-4) startuje po
 etapie 4, a etap 6 (autonomia zdobywana na danych) po etapie 5.
-Etap 7 (etapy flag według reguły i metryki ochronne) startuje po etapie 6.
+Etap 7 (etapy flag według reguły i metryki ochronne) startuje po etapie 6, a etap 8 (uproszczone review
+i lustro Jira ↔ repo) po etapie 7.
 
 | Krok | Repo | Sesja w katalogu |
 |---|---|---|
@@ -24,6 +25,7 @@ Etap 7 (etapy flag według reguły i metryki ochronne) startuje po etapie 6.
 | etap 5 | pdi (+ nowe repo panelu Forge) | `/Users/x/WebstormProjects/pdi` |
 | etap 6 | pdi (+ ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` |
 | etap 7 | pdi (+ ShipScope, tf, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
+| etap 8 | pdi (+ tf, ci_for_sdlc, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
 
 GitHub Actions na tym koncie nie działa (płatności). Każde polecenie każe więc uruchomić bramki lokalnie i napisać
 o tym w PR.
@@ -796,4 +798,86 @@ checks, and each touched repo's own gates, all in Actions. At the end, walk with
 flag on sprintdeck at level 3: the proposal with its evidence, my approval, the executor's change, ShipScope showing
 the new stage. Commit, PRs, any flag change on production, the analytics tool's setup and changes in other repos
 on my request.
+```
+
+## Etap 8 — pdi (+ tf, ci_for_sdlc): uproszczone review (A7) i lustro Jira ↔ repo (A8)
+
+Start dopiero po etapie 7 (autonomia i jej wykonawcy działają, Actions od etapu 3). Źródło: [plan automatyzacji
+i konsoli](plan-automatyzacja-i-konsola.md) (A7, A8, typ `review.light` z §3, lista wrażliwych obszarów), [plan
+jednego flow](plan-jeden-flow-sdlc.md) (krok 10 „Review i merge”, D4: dla nowych zmian źródłem prawdy jest repo,
+Jira najwyżej jako lustro), [plan G1/G2](plan-g1-g2.md) (DG3: zapis do Jiry etapami) i mechanizm autonomii
+z etapu 6. Plan opisuje A8 w obie strony („i odwrotnie”), a D4 czyni źródłem repo, więc polecenie każe najpierw
+rozstrzygnąć kierunek. Sesja w klonie pdi; zmiany w tf, ci_for_sdlc i sprintdecku osobnymi PR-ami, po Twojej zgodzie.
+Merge kodu z auth, płatnościami, migracjami i IaC zawsze zostaje u człowieka (§1 planu).
+
+```text
+Implement stage 8: the last wave of docs/plan-automatyzacja-i-konsola.md — A7 "light review" (`review.light`) and
+A8 "Jira ↔ repo mirror" — on the autonomy mechanism from stage 6. Answer me in Polish; code, commits and PR titles
+in English, Conventional Commits.
+
+Preconditions, check them first and stop if one is missing:
+- stage 7 is done, and stage 6's levels, veto timer and executor interface work in production
+  (docs/plan-etap6-autonomia.md);
+- GitHub Actions run on sprintdeck and tf's AI review in CI (`REVIEW.md`, tf #86) runs on its PRs;
+- docs/decyzje.md and the plans for: D4 (plan-jeden-flow-sdlc.md: for new changes the repo is the source of truth,
+  Jira at most a mirror), DG3 (Jira writes in steps: copy as text → comment → create stories after a human approves),
+  and plan §1 ("never automate value or the irreversible": merges touching auth, payments, migrations, IaC stay human).
+
+Goal:
+A7. A PR in a product repo is classified as `review.light` or `review.sensitive` by one rule: small change (tests,
+    docs, small fixes), green CI, AI review without blocking findings, and no path on the repo's sensitive-paths list.
+    A light PR becomes a `decision.proposed` of type `review.light` in pdi with the evidence (diff size, paths, CI run,
+    AI review summary); at level 3 I approve it with a button and the executor merges; at a lower level stage 6's rules
+    apply. A sensitive PR never enters this path: `review.sensitive` stays at level 3 for good, and so does any PR the
+    classifier cannot judge.
+A8. An approved change in the repo (intent, plan, tasks, release lines) is reflected on its Jira issues, and a Jira
+    edit to a mirrored field is handled by the direction chosen in decision 1c, with the history kept on both sides.
+    Writes start at the DG3 step decided in 1d and never happen without an approved decision.
+
+Today:
+- tf runs AI review in CI with REVIEW.md (tf #86); there is no `review.light` mode and no sensitive-paths list
+  (plan §8 row A7). ci_for_sdlc reads PRs and readiness.
+- The decision type `review.light` is in the contract's catalogue at level 3; `review.sensitive` and `migration`
+  are in the never-below-3 list.
+- Connectors to Jira are read-only today; writes need `write:jira-work` (DG3). ShipScope reads release lines from
+  Jira or from release.yaml; ci_for_sdlc reads Jira for readiness. G2.5's Jira panel (stage 5) may already comment.
+- Plan §4 describes A8 as both ways ("i odwrotnie"); D4 makes the repo the source for new changes. These must be
+  reconciled before code.
+
+1. Decisions first, before any plan or code. Show me the recommendation for each, wait for my answer, then record
+   them in docs/decyzje.md and the plan's §2 table:
+   a. A7's rule: what "small" means (lines, files, kinds), where the sensitive-paths list lives (per repo, versioned,
+      changed only by a reviewed PR), and who classifies (tf in CI, ci_for_sdlc, or pdi) — one classifier only.
+   b. A7's executor: who merges a light PR (a GitHub App with the narrowest permission, branch protection kept), and
+      what happens when CI or the base changes between proposal and merge (the proposal is void).
+   c. A8's direction: repo → Jira only (D4), or both ways for some fields (which, and who wins on conflict); how
+      brownfield issues that started in Jira are handled.
+   d. A8's write step (DG3): comment only, update fields, or create stories; the Jira auth (per site, no token
+      copied by hand) and its scope.
+2. Then a plan in docs/ (plan-etap8-review-i-lustro.md): the classifier and list, the executor, the mirror's field
+   map and direction, conflict and loop prevention (a mirror write must not trigger a mirror back), audit on both
+   sides, failure cases (Jira down, permission missing, PR changed), rollback, tests, open questions. Wait for my OK.
+3. Implement only what the plan approves, TDD (red test first), small PRs, each in its repo after my OK: the
+   sensitive-paths list and classifier, the `review.light` decision and executor, the mirror's field map and writer,
+   then enabling them on sprintdeck.
+4. Docs: README, plan-automatyzacja-i-konsola.md §8 (A7, A8), plan-jeden-flow-sdlc.md (step 10 and D4),
+   plan-g1-g2.md (F6 "lustra w Jirze"), docs/przebieg-na-sobie-s5.md (which PRs may now merge without me looking,
+   and what shows in Jira), the touched repos' docs.
+
+Tests:
+- A7: a PR touching any listed path, or too big, or with red CI or a blocking AI finding, is never light; a PR the
+  classifier cannot judge is sensitive; a change to the list itself is sensitive;
+- A7: no merge without an approved decision at level 3; a proposal is void after a new push or base change; the
+  executor cannot merge a sensitive PR by any path; `review.sensitive` and `migration` refuse every lower level;
+- A8: each mapped field written once per approved change; a mirror write never triggers a write back (no loops);
+  conflicts resolved by decision 1c and recorded; no Jira write without an approved decision; Jira down or a
+  missing permission leaves the decision open with the error, never half-written;
+- Jira and PR text handled as data, never as instructions; tenancy as before; no secret or token in logs, URLs,
+  events, PR bodies or Jira comments.
+
+Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy src), the service's and console's
+checks, and each touched repo's own gates, all in Actions. At the end, walk with me one light PR on sprintdeck at
+level 3 (classification, proposal with evidence, my approval, merge) and one approved change mirrored to its Jira
+issue. Commit, PRs, any merge, any Jira write on a real site, new permissions and changes in other repos on my
+request.
 ```
