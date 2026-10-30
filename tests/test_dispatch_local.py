@@ -197,11 +197,11 @@ def test_delivery_opens_no_pr_and_requests_no_gate(checkout: Path, tmp_path: Pat
 def test_source_and_problem_reach_phase_run_through_env(checkout: Path, tmp_path: Path) -> None:
     run = FakeRun()
 
-    execute(spec(checkout, tmp_path, phase="intent", source="PRB-1"), run, env={"PDI_PROBLEM": PROBLEM, "X": "1"})
+    execute(spec(checkout, tmp_path, phase="intent", source="PRB-1"), run, env={"PDI_PROBLEM": PROBLEM, "PATH": "/bin"})
 
     phase_run = run.calls.index(["python3", f"{S}/phase_run.py", "run", "--change", "CHG-12", "--phase", "intent"])
     env = run.envs[phase_run]
-    assert (env["PDI_SOURCE"], env["PDI_PROBLEM"], env["X"]) == ("PRB-1", PROBLEM, "1")
+    assert (env["PDI_SOURCE"], env["PDI_PROBLEM"], env["PATH"]) == ("PRB-1", PROBLEM, "/bin")
 
 
 @pytest.mark.parametrize(
@@ -536,17 +536,96 @@ def test_each_step_gets_only_its_own_secret_and_problem(checkout: Path, tmp_path
         "PDI_TF_SIGNING_SECRET": "tf-sekret",
         "PDI_EVENTS_URL": "http://127.0.0.1:8787",
         "PDI_PROBLEM": PROBLEM,
-        "X": "1",
+        "PATH": "/bin",
     }
 
     result, _ = execute(spec(checkout, tmp_path, phase="intent", gate="triage", source="PRB-1"), run, env=env)
 
     assert result["status"] == "done"
     for argv, step_env in zip(run.calls, run.envs, strict=True):
-        assert step_env["X"] == "1", argv
+        assert step_env["PATH"] == "/bin", argv
         is_gate = argv[2:4] == ["gate", "request"]
         assert ("PDI_TF_SIGNING_SECRET" in step_env, "PDI_EVENTS_URL" in step_env) == (is_gate, is_gate), argv
         reads_problem = argv[1:2] == [f"{S}/phase_run.py"] and argv[2] in ("prompt", "run")
         assert ("PDI_PROBLEM" in step_env, "PDI_SOURCE" in step_env) == (reads_problem, reads_problem), argv
     gate_env = run.envs[-1]
     assert (gate_env["PDI_TF_SIGNING_SECRET"], gate_env["PDI_EVENTS_URL"]) == ("tf-sekret", "http://127.0.0.1:8787")
+
+
+def test_steps_get_only_the_variables_their_tools_need(checkout: Path, tmp_path: Path) -> None:
+    """Nie całe środowisko pdi: zmienne systemowe dla każdego kroku, logowanie gh tylko dla push i PR, logowanie
+    Claude tylko dla persony; inne zmienne (klucze chmury, bazy danych) do żadnego kroku nie trafiają."""
+    run = FakeRun({"gh pr view": (0, PR)})
+    env = {
+        "PATH": "/bin",
+        "HOME": "/home/x",
+        "LANG": "pl_PL.UTF-8",
+        "LC_ALL": "pl_PL.UTF-8",
+        "HTTPS_PROXY": "http://proxy:3128",
+        "SSH_AUTH_SOCK": "/run/agent.sock",
+        "GIT_AUTHOR_NAME": "Ja",
+        "GH_TOKEN": "gho_token_gh",
+        "ANTHROPIC_API_KEY": "sk-ant-klucz",
+        "CLAUDE_CONFIG_DIR": "/home/x/.claude",
+        "PDI_CLAUDE_BIN": "/opt/claude",
+        "PDI_SHIPSCOPE_URL": "http://localhost:3000",
+        "AWS_SECRET_ACCESS_KEY": "aws-sekret",
+        "DATABASE_URL": "postgres://prod",
+        "SKLEP_API_KEY": "sklep-klucz",
+    }
+
+    result, _ = execute(spec(checkout, tmp_path, phase="requirements"), run, env=env)
+
+    assert result["status"] == "done"
+    system = {"PATH", "HOME", "LANG", "LC_ALL", "HTTPS_PROXY", "SSH_AUTH_SOCK", "GIT_AUTHOR_NAME"}
+    for argv, step_env in zip(run.calls, run.envs, strict=True):
+        assert system <= set(step_env), argv
+        for name in ("AWS_SECRET_ACCESS_KEY", "DATABASE_URL", "SKLEP_API_KEY", "PDI_SHIPSCOPE_URL"):
+            assert name not in step_env, (name, argv)
+        github = argv[0] == "gh" or argv[:2] in (
+            ["git", "fetch"],
+            ["git", "pull"],
+            ["git", "ls-remote"],
+            ["git", "push"],
+        )
+        assert ("GH_TOKEN" in step_env) == github, argv
+        persona = argv[2:3] == ["run"]
+        for name in ("ANTHROPIC_API_KEY", "CLAUDE_CONFIG_DIR", "PDI_CLAUDE_BIN"):
+            assert (name in step_env) == persona, (name, argv)
+
+
+def test_bedrock_or_vertex_credentials_go_to_the_persona_only_when_switched_on(checkout: Path, tmp_path: Path) -> None:
+    base = {
+        "PATH": "/bin",
+        "AWS_PROFILE": "dev",
+        "AWS_REGION": "eu-central-1",
+        "GOOGLE_APPLICATION_CREDENTIALS": "/k.json",
+    }
+
+    def persona_env(env: dict[str, str]) -> dict[str, str]:
+        run = FakeRun()
+        execute(spec(checkout, tmp_path, phase="delivery", gate="approve-for-implementation"), run, env=env)
+        return run.envs[run.calls.index(next(c for c in run.calls if c[2:3] == ["run"]))]
+
+    assert "AWS_PROFILE" not in persona_env(base)
+    bedrock = persona_env({**base, "CLAUDE_CODE_USE_BEDROCK": "1"})
+    assert (bedrock["AWS_PROFILE"], bedrock["AWS_REGION"]) == ("dev", "eu-central-1")
+    assert "GOOGLE_APPLICATION_CREDENTIALS" not in bedrock
+    vertex = persona_env({**base, "CLAUDE_CODE_USE_VERTEX": "1"})
+    assert vertex["GOOGLE_APPLICATION_CREDENTIALS"] == "/k.json" and "AWS_PROFILE" not in vertex
+
+
+def test_named_variables_can_be_passed_to_every_step(checkout: Path, tmp_path: Path) -> None:
+    run = FakeRun()
+    env = {
+        "PATH": "/bin",
+        "SKLEP_TEST_DB": "postgres://test",
+        "INNE": "x",
+        "PDI_DISPATCH_ENV_PASS": "SKLEP_TEST_DB, BRAK",
+    }
+
+    execute(spec(checkout, tmp_path), run, env=env)
+
+    for step_env in run.envs:
+        assert step_env.get("SKLEP_TEST_DB") == "postgres://test"
+        assert "INNE" not in step_env and "BRAK" not in step_env and "PDI_DISPATCH_ENV_PASS" not in step_env

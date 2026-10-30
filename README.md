@@ -62,10 +62,19 @@ wynik obok. Stan zmiany ma `dispatch: {mode: local, status: running | done | fai
 | `PDI_DISPATCH_REF` | gałąź bazowa, domyślnie `main` |
 | `PDI_PHASE_BUDGET_USD` | limit kosztu fazy (`--budget-usd`) |
 | `PDI_EVENTS_URL`, `PDI_TF_SIGNING_SECRET` | dla `gate request` z przebiegu, np. `http://127.0.0.1:8787` i sekret odbiornika |
+| `PDI_DISPATCH_ENV_PASS` | opcjonalnie: nazwy zmiennych (po przecinku), które każdy krok ma dostać mimo zawężenia, np. adres testowej bazy produktu |
 
 `PDI_DISPATCH_REPO` i `PDI_GITHUB_TOKEN` nie są w tym trybie potrzebne: `git` i `gh` korzystają z logowania na
 komputerze, a persony z zalogowanego Claude Code. Przebieg nie dostaje tokenów ani sekretów pdi poza
-`PDI_TF_SIGNING_SECRET`. Ten sekret, razem z `PDI_EVENTS_URL`, widzi tylko krok `gate request`, a nie persona fazy. pdi nie zapisuje w logu ani w stanie tokenów i treści zgłoszenia. Na produkcji fazy
+`PDI_TF_SIGNING_SECRET`. Ten sekret, razem z `PDI_EVENTS_URL`, widzi tylko krok `gate request`, a nie persona fazy.
+Pozostałe zmienne z powłoki pdi też są zawężone do tego, czego potrzebuje narzędzie danego kroku:
+- każdy krok: zmienne systemowe (`PATH`, `HOME`, język i `LC_*`, proxy i certyfikaty, `SSH_AUTH_SOCK`, `GIT_*`);
+- `git fetch`, `pull`, `ls-remote`, `push` i `gh`: logowanie GitHuba (`GH_TOKEN`, `GITHUB_TOKEN`, `GH_HOST`, …);
+- `phase_run.py run` (persona): `ANTHROPIC_*`, `CLAUDE_*` i `PDI_CLAUDE_BIN`; dane AWS albo Google tylko przy
+  `CLAUDE_CODE_USE_BEDROCK` albo `CLAUDE_CODE_USE_VERTEX`.
+
+Inne klucze (chmura, bazy danych, API) do kroków nie trafiają; potrzebne przepuszczasz przez `PDI_DISPATCH_ENV_PASS`.
+pdi nie zapisuje w logu ani w stanie tokenów i treści zgłoszenia. Na produkcji fazy
 dalej idą przez GitHub Actions (R4) — `PDI_DISPATCH` zostaje nieustawione.
 
 Decyzja na bramce `approve-for-implementation` trafia też do ci_for_sdlc: podpisane `gate.decided` na

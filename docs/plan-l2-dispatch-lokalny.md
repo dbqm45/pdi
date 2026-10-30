@@ -67,7 +67,12 @@ polecenia i to, co same wypisują; pdi nie dopisuje tokenów ani treści zgłosz
 tylko swoje, jak w `sdlc-phase.yml`:
 - `PDI_TF_SIGNING_SECRET` i `PDI_EVENTS_URL` ma tylko `gate request`, więc persona fazy nie podpisze zdarzenia dla
   pdi;
-- `PDI_SOURCE` i `PDI_PROBLEM` mają tylko `phase_run.py prompt` i `run`.
+- `PDI_SOURCE` i `PDI_PROBLEM` mają tylko `phase_run.py prompt` i `run`;
+- reszta środowiska jest zawężona (poprawka po L2): każdy krok dostaje zmienne systemowe (`PATH`, `HOME`, język i
+  `LC_*`, proxy i certyfikaty, `SSH_AUTH_SOCK`, `GIT_*`), kroki git łączące się z GitHubem i `gh` dostają `GH_*` i
+  `GITHUB_TOKEN`, a persona `ANTHROPIC_*`, `CLAUDE_*` i `PDI_CLAUDE_BIN`, z danymi AWS albo Google tylko przy
+  `CLAUDE_CODE_USE_BEDROCK` albo `CLAUDE_CODE_USE_VERTEX`;
+- inne zmienne nie trafiają do żadnego kroku, chyba że użytkownik wymieni je w `PDI_DISPATCH_ENV_PASS`.
 
 ## Konfiguracja
 

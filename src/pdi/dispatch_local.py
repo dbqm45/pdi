@@ -46,6 +46,20 @@ KEPT_SECRETS = ("PDI_TF_SIGNING_SECRET",)
 # ją czytają (`phase_run.py prompt` i `run`). Persona fazy nie może więc sama podpisać zdarzenia dla pdi.
 GATE_ENV = ("PDI_TF_SIGNING_SECRET", "PDI_EVENTS_URL")
 PROBLEM_ENV = ("PDI_SOURCE", "PDI_PROBLEM")
+# Reszty środowiska pdi kroki nie dostają: tylko zmienne systemowe, a logowanie narzędzi tam, gdzie narzędzie działa.
+# Inne klucze z powłoki (chmura, bazy danych, API) do persony nie trafiają; świadomie przepuszcza się je przez
+# PDI_DISPATCH_ENV_PASS (nazwy po przecinku), do każdego kroku.
+SYSTEM_ENV = (
+    "PATH", "HOME", "USER", "LOGNAME", "SHELL", "LANG", "LANGUAGE", "TERM", "TMPDIR", "TZ", "SSH_AUTH_SOCK",
+    "XDG_CONFIG_HOME", "XDG_CACHE_HOME", "XDG_DATA_HOME", "XDG_RUNTIME_DIR", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY",
+    "http_proxy", "https_proxy", "no_proxy", "SSL_CERT_FILE", "SSL_CERT_DIR", "NODE_EXTRA_CA_CERTS",
+)  # fmt: skip
+SYSTEM_PREFIXES = ("LC_", "GIT_")
+GITHUB_ENV = ("GH_TOKEN", "GITHUB_TOKEN", "GH_HOST", "GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN", "GH_CONFIG_DIR")
+CLAUDE_PREFIXES = ("ANTHROPIC_", "CLAUDE_")
+# Claude Code przez Bedrock albo Vertex: dane chmury tylko z włączonym przełącznikiem.
+CLOUD_PREFIXES = {"CLAUDE_CODE_USE_BEDROCK": ("AWS_",), "CLAUDE_CODE_USE_VERTEX": ("GOOGLE_", "CLOUD_ML_", "GCLOUD_")}
+EXTRA_ENV_NAMES = "PDI_DISPATCH_ENV_PASS"  # noqa: S105 — nazwa zmiennej, nie hasło
 
 _PREFIXES = contract.settings()["prefixes"]
 _CHANGE = re.compile(rf"^{_PREFIXES['change']}-[0-9]{{1,9}}$")
@@ -306,9 +320,17 @@ def execute(spec: dict[str, Any], *, run: Run, env: Mapping[str, str], log: Call
     cwd = Path(spec["checkout"])
     change, phase, ref = spec["change"], spec["phase"], spec["ref"]
     branch = f"pdi/{change}-{phase}"
-    base = {k: v for k, v in env.items() if k not in (*GATE_ENV, *PROBLEM_ENV)}
+    passed = {name.strip() for name in (env.get(EXTRA_ENV_NAMES) or "").split(",") if name.strip()}
+    base = {k: v for k, v in env.items() if k in SYSTEM_ENV or k.startswith(SYSTEM_PREFIXES) or k in passed}
     gate_env = {k: env[k] for k in GATE_ENV if k in env}
+    github_env = {k: env[k] for k in GITHUB_ENV if k in env}
     problem_env = {"PDI_SOURCE": spec.get("source") or "", "PDI_PROBLEM": env.get("PDI_PROBLEM") or ""}
+    cloud = tuple(p for switch, prefixes in CLOUD_PREFIXES.items() if env.get(switch) for p in prefixes)
+    claude_env = {
+        k: v
+        for k, v in env.items()
+        if k.startswith(CLAUDE_PREFIXES) or k == "PDI_CLAUDE_BIN" or (cloud and k.startswith(cloud))
+    }
 
     def step(
         name: str,
@@ -333,11 +355,13 @@ def execute(spec: dict[str, Any], *, run: Run, env: Mapping[str, str], log: Call
         _, dirty = step("checkout", ["git", "status", "--porcelain"])
         if dirty.strip():
             raise _StepFailed("checkout", "Klon ma niezatwierdzone zmiany — zatwierdź je albo odłóż i ponów.")
-        step("checkout", ["git", "fetch", "origin"])
+        step("checkout", ["git", "fetch", "origin"], extra=github_env)
         step("checkout", ["git", "switch", ref])
-        step("checkout", ["git", "pull", "--ff-only", "origin", ref])
+        step("checkout", ["git", "pull", "--ff-only", "origin", ref], extra=github_env)
 
-        code, _ = step("branch", ["git", "ls-remote", "--exit-code", "--heads", "origin", branch], ok=(0, 2))
+        code, _ = step(
+            "branch", ["git", "ls-remote", "--exit-code", "--heads", "origin", branch], ok=(0, 2), extra=github_env
+        )
         if code == 0:  # poprawki trafiają do tego samego PR
             step("branch", ["git", "switch", "-C", branch, f"origin/{branch}"])
         else:
@@ -366,7 +390,7 @@ def execute(spec: dict[str, Any], *, run: Run, env: Mapping[str, str], log: Call
             args += ["--rework", "--gate", spec["gate"], "--decision", spec["decision"]]
         if spec.get("budget_usd"):
             args += ["--budget-usd", spec["budget_usd"]]
-        step("run", script("phase_run.py", "run", *args), extra=problem_env)
+        step("run", script("phase_run.py", "run", *args), extra={**problem_env, **claude_env})
 
         if phase == "delivery":
             return {"status": "done"}
@@ -374,11 +398,11 @@ def execute(spec: dict[str, Any], *, run: Run, env: Mapping[str, str], log: Call
         code, _ = step("commit", ["git", "diff", "--cached", "--quiet"], ok=(0, 1))
         if code == 1:
             step("commit", ["git", "commit", "-m", f"docs({change}): faza {phase} (pdi)", "-m", f"Change: {change}"])
-        step("push", ["git", "push", "-u", "origin", branch])
-        code, out = step("pr", ["gh", "pr", "view", branch, "--json", "url", "-q", ".url"], ok=(0, 1))
+        step("push", ["git", "push", "-u", "origin", branch], extra=github_env)
+        code, out = step("pr", ["gh", "pr", "view", branch, "--json", "url", "-q", ".url"], ok=(0, 1), extra=github_env)
         url = _url(out) if code == 0 else None
         if not url:
-            _, out = step("pr", ["gh", "pr", "create", "--fill", "--head", branch])
+            _, out = step("pr", ["gh", "pr", "create", "--fill", "--head", branch], extra=github_env)
             url = _url(out)
         if not url:
             raise _StepFailed("pr", "Krok pr: gh nie podał adresu PR — szczegóły w logu.")
