@@ -42,6 +42,10 @@ STALE_SECONDS = 3 * 60 * 60
 LOCK_STALE_SECONDS = 60
 # Sekret odbiornika potrzebny do `phase_run.py gate request`; pozostałe tokeny i sekrety pdi nie idą do przebiegu.
 KEPT_SECRETS = ("PDI_TF_SIGNING_SECRET",)
+# Jak w sdlc-phase.yml: sekret i adres odbiornika ma tylko krok `gate request`, a treść zgłoszenia tylko kroki, które
+# ją czytają (`phase_run.py prompt` i `run`). Persona fazy nie może więc sama podpisać zdarzenia dla pdi.
+GATE_ENV = ("PDI_TF_SIGNING_SECRET", "PDI_EVENTS_URL")
+PROBLEM_ENV = ("PDI_SOURCE", "PDI_PROBLEM")
 
 _PREFIXES = contract.settings()["prefixes"]
 _CHANGE = re.compile(rf"^{_PREFIXES['change']}-[0-9]{{1,9}}$")
@@ -302,11 +306,20 @@ def execute(spec: dict[str, Any], *, run: Run, env: Mapping[str, str], log: Call
     cwd = Path(spec["checkout"])
     change, phase, ref = spec["change"], spec["phase"], spec["ref"]
     branch = f"pdi/{change}-{phase}"
-    env = {**env, "PDI_SOURCE": spec.get("source") or ""}
+    base = {k: v for k, v in env.items() if k not in (*GATE_ENV, *PROBLEM_ENV)}
+    gate_env = {k: env[k] for k in GATE_ENV if k in env}
+    problem_env = {"PDI_SOURCE": spec.get("source") or "", "PDI_PROBLEM": env.get("PDI_PROBLEM") or ""}
 
-    def step(name: str, argv: list[str], *, ok: tuple[int, ...] = (0,), quiet: bool = False) -> tuple[int, str]:
+    def step(
+        name: str,
+        argv: list[str],
+        *,
+        ok: tuple[int, ...] = (0,),
+        quiet: bool = False,
+        extra: Mapping[str, str] | None = None,
+    ) -> tuple[int, str]:
         log("$ " + shlex.join(argv))
-        code, out = run(argv, cwd, env)
+        code, out = run(argv, cwd, {**base, **(extra or {})})
         if out.strip() and not (quiet and code in ok):
             log(out.rstrip("\n"))
         if code not in ok:
@@ -338,7 +351,12 @@ def execute(spec: dict[str, Any], *, run: Run, env: Mapping[str, str], log: Call
             step("change", script("decision_record.py", "change", "new", change, *args))
 
         # Wynik `prompt` zawiera treść zgłoszenia — do logu trafia tylko przy błędzie (komunikat sprawdzenia).
-        step("prompt", script("phase_run.py", "prompt", "--change", change, "--phase", phase), quiet=True)
+        step(
+            "prompt",
+            script("phase_run.py", "prompt", "--change", change, "--phase", phase),
+            quiet=True,
+            extra=problem_env,
+        )
         if spec.get("decision"):
             gate_args = ["--gate", spec["gate"], "--outcome", spec["outcome"], "--id", spec["decision"]]
             step("decision", script("decision_record.py", "decision", "gate", change, *gate_args))
@@ -348,7 +366,7 @@ def execute(spec: dict[str, Any], *, run: Run, env: Mapping[str, str], log: Call
             args += ["--rework", "--gate", spec["gate"], "--decision", spec["decision"]]
         if spec.get("budget_usd"):
             args += ["--budget-usd", spec["budget_usd"]]
-        step("run", script("phase_run.py", "run", *args))
+        step("run", script("phase_run.py", "run", *args), extra=problem_env)
 
         if phase == "delivery":
             return {"status": "done"}
@@ -364,7 +382,8 @@ def execute(spec: dict[str, Any], *, run: Run, env: Mapping[str, str], log: Call
             url = _url(out)
         if not url:
             raise _StepFailed("pr", "Krok pr: gh nie podał adresu PR — szczegóły w logu.")
-        step("gate", script("phase_run.py", "gate", "request", "--change", change, "--phase", phase, "--url", url))
+        gate_args = ["--change", change, "--phase", phase, "--url", url]
+        step("gate", script("phase_run.py", "gate", "request", *gate_args), extra=gate_env)
         return {"status": "done", "pr": url}
     except _StepFailed as e:
         log(f"# błąd: {e.error}")
