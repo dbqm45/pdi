@@ -527,3 +527,26 @@ def test_config_without_mode_is_todays(monkeypatch: pytest.MonkeyPatch) -> None:
     cfg = DispatchConfig.from_env()
 
     assert (cfg.mode, cfg.checkout, cfg.local) == (None, None, False)
+
+
+def test_each_step_gets_only_its_own_secret_and_problem(checkout: Path, tmp_path: Path) -> None:
+    """Jak w sdlc-phase.yml: sekret tf i adres odbiornika ma tylko `gate request`, treść zgłoszenia tylko persona."""
+    run = FakeRun()
+    env = {
+        "PDI_TF_SIGNING_SECRET": "tf-sekret",
+        "PDI_EVENTS_URL": "http://127.0.0.1:8787",
+        "PDI_PROBLEM": PROBLEM,
+        "X": "1",
+    }
+
+    result, _ = execute(spec(checkout, tmp_path, phase="intent", gate="triage", source="PRB-1"), run, env=env)
+
+    assert result["status"] == "done"
+    for argv, step_env in zip(run.calls, run.envs, strict=True):
+        assert step_env["X"] == "1", argv
+        is_gate = argv[2:4] == ["gate", "request"]
+        assert ("PDI_TF_SIGNING_SECRET" in step_env, "PDI_EVENTS_URL" in step_env) == (is_gate, is_gate), argv
+        reads_problem = argv[1:2] == [f"{S}/phase_run.py"] and argv[2] in ("prompt", "run")
+        assert ("PDI_PROBLEM" in step_env, "PDI_SOURCE" in step_env) == (reads_problem, reads_problem), argv
+    gate_env = run.envs[-1]
+    assert (gate_env["PDI_TF_SIGNING_SECRET"], gate_env["PDI_EVENTS_URL"]) == ("tf-sekret", "http://127.0.0.1:8787")

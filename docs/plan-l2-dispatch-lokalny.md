@@ -63,7 +63,11 @@ Przebieg zatrzymuje się na pierwszym nieudanym kroku i zapisuje jego nazwę.
 
 Log: `$PDI_REGISTRY_PATH/runs/<CHG>-<faza>-<RRRRMMDDTHHMMSSZ>.log`, wynik obok: `….result.json`. W logu są
 polecenia i to, co same wypisują; pdi nie dopisuje tokenów ani treści zgłoszenia, a proces w tle nie dostaje
-`PDI_*_TOKEN` ani sekretów pdi poza `PDI_TF_SIGNING_SECRET` (potrzebnym do `gate request`).
+`PDI_*_TOKEN` ani sekretów pdi poza `PDI_TF_SIGNING_SECRET` (potrzebnym do `gate request`). Każdy krok dostaje z tego
+tylko swoje, jak w `sdlc-phase.yml`:
+- `PDI_TF_SIGNING_SECRET` i `PDI_EVENTS_URL` ma tylko `gate request`, więc persona fazy nie podpisze zdarzenia dla
+  pdi;
+- `PDI_SOURCE` i `PDI_PROBLEM` mają tylko `phase_run.py prompt` i `run`.
 
 ## Konfiguracja
 

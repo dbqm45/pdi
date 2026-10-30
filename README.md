@@ -64,8 +64,8 @@ wynik obok. Stan zmiany ma `dispatch: {mode: local, status: running | done | fai
 | `PDI_EVENTS_URL`, `PDI_TF_SIGNING_SECRET` | dla `gate request` z przebiegu, np. `http://127.0.0.1:8787` i sekret odbiornika |
 
 `PDI_DISPATCH_REPO` i `PDI_GITHUB_TOKEN` nie są w tym trybie potrzebne: `git` i `gh` korzystają z logowania na
-komputerze, a persony z zalogowanego Claude Code. Przebieg nie dostaje tokenów ani sekretów pdi (poza
-`PDI_TF_SIGNING_SECRET`), a pdi nie zapisuje w logu ani w stanie tokenów i treści zgłoszenia. Na produkcji fazy
+komputerze, a persony z zalogowanego Claude Code. Przebieg nie dostaje tokenów ani sekretów pdi poza
+`PDI_TF_SIGNING_SECRET`. Ten sekret, razem z `PDI_EVENTS_URL`, widzi tylko krok `gate request`, a nie persona fazy. pdi nie zapisuje w logu ani w stanie tokenów i treści zgłoszenia. Na produkcji fazy
 dalej idą przez GitHub Actions (R4) — `PDI_DISPATCH` zostaje nieustawione.
 
 Decyzja na bramce `approve-for-implementation` trafia też do ci_for_sdlc: podpisane `gate.decided` na
