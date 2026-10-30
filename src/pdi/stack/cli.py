@@ -653,6 +653,10 @@ def _spawn(name: str, argv: list[str], cwd: Path, env: Mapping[str, str], log: P
 
 
 def _alive(pid: int) -> bool:
+    # Własne dziecko, które już się skończyło, jest zombie, dopóki go nie odbierzemy; kill(pid, 0) widzi je jako żywe.
+    with contextlib.suppress(ChildProcessError):
+        if os.waitpid(pid, os.WNOHANG)[0] == pid:
+            return False
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
@@ -664,15 +668,21 @@ def _alive(pid: int) -> bool:
 
 def _kill(pid: int) -> None:
     """SIGTERM całej grupy procesów (`npm run dev` zatrzymuje wtedy web i worker), po 10 s SIGKILL."""
+    if not _alive(pid):
+        return
     try:
         os.killpg(pid, signal.SIGTERM)
     except ProcessLookupError:
         return
+    except PermissionError:  # macOS: grupa z samym zombie
+        if not _alive(pid):
+            return
+        raise
     for _ in range(50):
         time.sleep(0.2)
         if not _alive(pid):
             return
-    with contextlib.suppress(ProcessLookupError):
+    with contextlib.suppress(ProcessLookupError, PermissionError):
         os.killpg(pid, signal.SIGKILL)
 
 
