@@ -262,6 +262,8 @@ Mapa ekosystemu wskazała luki, których fazy F0–F6 nie pokrywały. Stan na 20
 | G5 dane o użyciu, G8 incydenty | czekają na wybór narzędzia (analityka produktu; PagerDuty, Opsgenie, …) | |
 | G6, G7 (jedno wejście dla ludzi, miary przepływu) | decyzje architektoniczne do podjęcia | |
 
+Polecenia startowe: G5 → etap 7, G8 → etap 9, G6 i G7 → etap 12 ([`polecenia-startowe-sdlc-lokalnie.md`](polecenia-startowe-sdlc-lokalnie.md)).
+
 Automatyzacja decyzji (poziomy autonomii, licznik akceptacji, zamykanie pytań z cytatem) idzie według
 [planu automatyzacji i konsoli](plan-automatyzacja-i-konsola.md), §8.
 

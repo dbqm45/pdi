@@ -152,3 +152,6 @@ Stan na 2026-10-27, sprawdzony na gałęziach `main` wszystkich repozytoriów.
 | K-2 skrzynka i oś zdarzeń w UI | do zrobienia | | skrzynka i graf śladu są w pdi po stronie danych; brakuje interfejsu |
 | K-3 rozmowa w konsoli | do zrobienia | | |
 | K-4 graf śladu i panel w Jirze | do zrobienia | | makieta ekranów: [`design/konsola/`](../design/konsola/README.md) |
+
+Polecenia startowe dla kroków „do zrobienia”: K-2 → etap 4, K-4 → etap 5, poziomy autonomii → etap 6, A4 → etap 7,
+A7 i A8 → etap 8, aplikacja Slacka do A5 → etap 9, K-3 → etap 10 ([`polecenia-startowe-sdlc-lokalnie.md`](polecenia-startowe-sdlc-lokalnie.md)).
