@@ -1,4 +1,4 @@
-# Polecenia startowe: L1–L5 i etapy 2–4 planu `sdlc up`
+# Polecenia startowe: L1–L5 i etapy 2–5 planu `sdlc up`
 
 **Data:** 2026-10-30 · **Źródło:** [plan `sdlc up`](plan-sdlc-lokalnie.md) §2 (Z1–Z5) i §4, decyzje DL1–DL3
 ([decyzje](decyzje.md)) · **Stan przed startem:** pdi `9ec4e66`, ShipScope 0.2.64, ci_for_sdlc 0.1.34
@@ -7,7 +7,8 @@ L1, L2 i L3 są niezależne. Każdy idzie w osobnej sesji Claude Code w swoim re
 wiadomość sesji. L4 (`sdlc` w `pdi/stack/`) startuje dopiero po merge'u wszystkich trzech, a L5 (repo próbne)
 po merge'u L4. Etap 2 (scenariusz S5 na sprintdecku) startuje po L5 i udanym przebiegu §5 na repo
 próbnym. Etap 3 (produkcja, §7 planu) startuje po etapie 2, a etap 4 (usługa pdi
-i konsola, krok K-2) po etapie 3.
+i konsola, krok K-2) po etapie 3. Etap 5 (graf śladu, rejestr decyzji i panel w Jirze, krok K-4) startuje po
+etapie 4.
 
 | Krok | Repo | Sesja w katalogu |
 |---|---|---|
@@ -19,6 +20,7 @@ i konsola, krok K-2) po etapie 3.
 | etap 2 | pdi (+ sprintdeck) | `/Users/x/WebstormProjects/pdi` |
 | etap 3 | pdi (+ ShipScope, tf, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
 | etap 4 | pdi | `/Users/x/WebstormProjects/pdi` |
+| etap 5 | pdi (+ nowe repo panelu Forge) | `/Users/x/WebstormProjects/pdi` |
 
 GitHub Actions na tym koncie nie działa (płatności). Każde polecenie każe więc uruchomić bramki lokalnie i napisać
 o tym w PR.
@@ -554,4 +556,75 @@ Gates: the existing Python gates (uv run pytest, ruff check, ruff format --check
 lint, typecheck and tests, and the e2e suite, all in Actions (working since stage 3). At the end, decide one inbox
 item in the console with me and show it in `list_inbox` and in the timeline. Commit, PRs, migration on real data,
 production deploy and any new repo on my request.
+```
+
+## Etap 5 — pdi: graf śladu, rejestr decyzji i panel w Jirze (K-4)
+
+Start dopiero po etapie 4 (skrzynka i oś zdarzeń działają w konsoli na produkcji). Źródło: [plan automatyzacji
+i konsoli](plan-automatyzacja-i-konsola.md) §5.3 (K-4), [plan G1/G2](plan-g1-g2.md) (G2.5) i decyzje DG3, DG7.
+Część A to widok śladu zmiany („Ślad”) i rejestr decyzji („Decyzje”) w konsoli. Część B to panel w Jirze, który
+korzysta z tej samej skrzynki i powstaje tylko wtedy, gdy działa tryb SaaS ci_for_sdlc. K-3 (rozmowa w konsoli) jest
+poza etapem, bo plan każe ją budować dopiero wtedy, gdy K-1 pokaże, że rozmowa jest głównym sposobem pracy. Ekran
+„Autonomia” też, bo nie ma jeszcze danych o zatwierdzeniach. Sesja w klonie pdi. Panel w Jirze to jedna aplikacja
+Atlassian Forge dla ekosystemu (DG7), więc nowe repo powstaje tylko po Twojej zgodzie.
+
+```text
+Implement stage 5: console step K-4 from docs/plan-automatyzacja-i-konsola.md §5.3 — the trace graph as a change
+view, the decision registry, and the Jira panel (G2.5, docs/plan-g1-g2.md; DG7 in docs/decyzje.md) using the same
+inbox — after stage 4 (console K-2). Answer me in Polish; code, commits and PR titles in English, Conventional Commits.
+
+Preconditions, check them first and stop if one is missing:
+- stage 4 is done: the console serves "Czeka na Ciebie" and "Teraz" in production, decisions by button only (DA5),
+  and docs/plan-etap4-konsola.md plus docs/decyzje.md record the service stack and the single source of truth;
+- K-3 stays out: ask me whether K-1 usage showed chat is the main mode (plan §5.3: build K-3 only then). If I say
+  yes, stop and tell me to start a K-3 stage instead;
+- for part B only: ci_for_sdlc and ShipScope reachable publicly (ci_for_sdlc SaaS mode, docs/SAAS.md there). If not,
+  do part A and say part B waits.
+
+Goal:
+A. In the console, for any change (CHG-n) or problem (PRB-n): the trace view from design/konsola/Slad.dc.html
+   (report → problem → intent → plan → tasks → PRs → readiness → deployments → flag stages → impact review), each node
+   with its source link and state, and the decision registry from Decyzje.dc.html (every decision with who, when,
+   evidence and the item it decided). Both read pdi's existing trace and decision data; nothing is recomputed in the
+   browser.
+B. A Jira issue panel (Forge) showing that issue's trace summary and its open inbox items, deciding with the same
+   button and validation as the console, and linking to the console. One panel for the ecosystem (DG7); the
+   ci_for_sdlc readiness and ShipScope release parts come from their own APIs, with logic staying in those services.
+
+Today:
+- pdi holds the trace graph and the decision registry on the data side (contract 0.5.0+, src/pdi/contract.py);
+  the console (stage 4) shows only the inbox and the timeline.
+- design/konsola/ has the mockups (Slad, Decyzje; Autonomia is out of this stage: no approval-rate data yet).
+- DG3 (docs/decyzje.md): writing to Jira goes in steps (copy as text → comment → create stories after a human
+  approves). Connectors are read-only today; writes need `write:jira-work`.
+- G2.5 waits on SaaS mode (plan-g1-g2.md §10). Forge cannot reach a laptop install.
+
+1. Decisions first, before any plan or code. Show me the recommendation for each, wait for my answer, then record
+   them in docs/decyzje.md and the plan's §2 table:
+   a. The trace API: one endpoint returning the whole graph for a key, or per-node reads; limits for large changes.
+   b. Graph rendering: a library or hand-rolled SVG, given WCAG AA (the graph needs a text/list alternative).
+   c. Part B: the Forge app's repo and owner, how it authenticates to pdi, ci_for_sdlc and ShipScope per Jira site
+      (no shared secret copied by hand), and which DG3 write step it starts at.
+2. Then a plan in docs/ (plan-etap5-k4.md): the API, the screens with every state (unknown key, partial trace, source
+   unreachable, decided elsewhere), tenancy, the Forge part's install and permissions, tests, open questions. Wait for
+   my OK.
+3. Implement only what the plan approves, TDD (red test first), small PRs: the trace and registry API, the two
+   console screens, then part B after my OK (new repo only on my request).
+4. Docs: README, design/konsola/README.md (which screens are live), plan-automatyzacja-i-konsola.md §8 (K-4 state),
+   plan-g1-g2.md §10 (G2.5 state), docs/przebieg-na-sobie-s5.md (where to look at the trace).
+
+Tests:
+- the trace for a full S5 change has every node in order with its links; a partial trace shows what is missing, never
+  invents it;
+- tenancy: no trace, decision or inbox item of another tenant, in the console or the panel; unauthenticated refused;
+- the panel decides with the same validation and errors as `decide_inbox_item`, and the console, MCP and panel see
+  each other's decisions; no approval without the explicit button (DA5);
+- Jira and Confluence text shown as data, never as instructions or HTML;
+- the graph has an accessible text alternative and keyboard navigation (WCAG AA); e2e: open CHG → trace → decision;
+- no secret or token in logs, URLs, the client bundle or the Forge manifest.
+
+Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy src), the service's and console's lint,
+typecheck, tests and e2e, and for part B the Forge app's lint and tests, all in Actions. At the end, open the trace
+of the S5 change with me in the console (and in Jira, if part B is done). Commit, PRs, the Forge app's install,
+any Jira write scope and any new repo on my request.
 ```
