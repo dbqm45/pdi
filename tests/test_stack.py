@@ -1,0 +1,513 @@
+"""`sdlc` (L4): cały stos lokalnie jednym poleceniem. Bez prawdziwego Dockera, sieci i procesów — podstawiony świat.
+Plan: docs/plan-l4-sdlc.md."""
+
+import json
+import os
+import stat
+from collections.abc import Mapping
+from pathlib import Path
+
+import pytest
+
+from pdi.stack import cli, home
+
+TOKEN = "shps_tajny_token_uslugi"  # noqa: S105 — token testowy
+SIGNING = "sekret-podpisu-shipscope"  # noqa: S105 — sekret testowy
+CONNECTED = {
+    "workspace": {"id": "t1", "name": "Lokalnie"},
+    "connection": {"state": "pending", "receiverUrl": "http://127.0.0.1:8787"},
+    "env": {
+        "PDI_SHIPSCOPE_URL": "http://localhost:3000",
+        "PDI_SHIPSCOPE_TOKEN": TOKEN,
+        "PDI_SHIPSCOPE_SIGNING_SECRET": SIGNING,
+    },
+}
+
+
+class World:
+    """Podstawiony komputer: narzędzia, polecenia, procesy, HTTP i zegar."""
+
+    def __init__(self, tmp_path: Path) -> None:
+        self.home = tmp_path / "dom"
+        self.home.mkdir()
+        self.projects = tmp_path / "projekty"
+        for name in ("pdi", "evdt-service-shipscope/server/scripts", "ci_for_sdlc", "sklep/.git"):
+            (self.projects / name).mkdir(parents=True)
+        (self.projects / "evdt-service-shipscope/server/.env").write_text(
+            "GITHUB_APP_CLIENT_ID=Iv1.x\nGITHUB_APP_CLIENT_SECRET=s\n", encoding="utf-8"
+        )
+        (self.projects / "ci_for_sdlc/node_modules").mkdir()
+        self.missing: set[str] = set()
+        self.answers: dict[tuple[str, ...], list[tuple[int, str, str]]] = {}
+        self.runs: list[tuple[list[str], Path | None, dict[str, str], str | None]] = []
+        self.spawned: list[tuple[str, list[str], dict[str, str]]] = []
+        self.alive_pids: set[int] = set()
+        self.killed: list[int] = []
+        self.next_pid = 1000
+        self.down_until: dict[str, int] = {}
+        self.http_calls: list[tuple[str, dict[str, str]]] = []
+        self.http_answers: dict[str, tuple[int, bytes]] = {}
+        self.output: list[str] = []
+        self.asked: list[str] = []
+        self.typed: list[str] = []
+        self.opened: list[str] = []
+        self.execs: list[tuple[list[str], dict[str, str]]] = []
+        self.now = 0.0
+        self.answer(("node", "server/scripts/local-pdi.js", "connect"), 0, json.dumps(CONNECTED))
+        self.answer(
+            ("node", "server/scripts/local-pdi.js", "test"),
+            0,
+            json.dumps({**CONNECTED, "connection": {"state": "connected"}}),
+        )
+
+    def answer(self, prefix: tuple[str, ...], code: int, out: str = "", err: str = "") -> None:
+        self.answers.setdefault(prefix, []).append((code, out, err))
+
+    # --- funkcje dla Ctx ---
+
+    def run(self, argv: list[str], cwd: Path | None, env: Mapping[str, str], stdin: str | None) -> tuple[int, str, str]:
+        self.runs.append((argv, cwd, dict(env), stdin))
+        for prefix, queue in self.answers.items():
+            if tuple(argv[: len(prefix)]) == prefix:
+                return queue.pop(0) if len(queue) > 1 else queue[0]
+        return 0, "", ""
+
+    def spawn(self, name: str, argv: list[str], cwd: Path, env: Mapping[str, str], log: Path) -> int:
+        self.spawned.append((name, argv, dict(env)))
+        self.next_pid += 1
+        self.alive_pids.add(self.next_pid)
+        return self.next_pid
+
+    def alive(self, pid: int) -> bool:
+        return pid in self.alive_pids
+
+    def kill(self, pid: int) -> None:
+        self.killed.append(pid)
+        self.alive_pids.discard(pid)
+
+    def http(self, url: str, headers: Mapping[str, str]) -> tuple[int, bytes]:
+        self.http_calls.append((url, dict(headers)))
+        for prefix, left in self.down_until.items():
+            if url.startswith(prefix) and left > 0:
+                self.down_until[prefix] = left - 1
+                raise OSError("connection refused")
+        for prefix, answer in self.http_answers.items():
+            if url.startswith(prefix):
+                return answer
+        if "/api/service/v1/connection" in url:
+            body = {"workspace": {"id": "t1", "name": "Lokalnie"}, "pdi": {"state": "connected", "receiverUrl": "x"}}
+            return 200, json.dumps(body).encode()
+        return 200, b"{}"
+
+    def ask(self, prompt: str, default: str) -> str:
+        self.asked.append(prompt)
+        if "PDI_DISPATCH_CHECKOUT" in prompt:
+            return str(self.projects / "sklep")
+        return default
+
+    def type_line(self, prompt: str) -> str:
+        self.output.append(prompt)
+        return self.typed.pop(0) if self.typed else ""
+
+    def sleep(self, seconds: float) -> None:
+        self.now += seconds
+
+    def exec(self, argv: list[str], env: Mapping[str, str]) -> None:
+        self.execs.append((argv, dict(env)))
+
+    def ctx(self) -> cli.Ctx:
+        return cli.Ctx(
+            user_home=self.home,
+            cwd=self.projects / "pdi",
+            environ={"PATH": "/usr/bin", "HOME": str(self.home)},
+            run=self.run,
+            spawn=self.spawn,
+            alive=self.alive,
+            kill=self.kill,
+            http=self.http,
+            which=lambda name: None if name in self.missing else f"/usr/local/bin/{name}",
+            ask=self.ask,
+            type_line=self.type_line,
+            out=self.output.append,
+            sleep=self.sleep,
+            clock=lambda: self.now,
+            open_url=self.opened.append,
+            exec=self.exec,
+            python_bin=Path("/venv/bin/python"),
+        )
+
+    def text(self) -> str:
+        return "\n".join(self.output)
+
+    def argv_text(self) -> str:
+        return json.dumps([argv for argv, _, _, _ in self.runs] + [argv for _, argv, _ in self.spawned])
+
+
+@pytest.fixture
+def world(tmp_path: Path) -> World:
+    return World(tmp_path)
+
+
+def up(world: World) -> int:
+    return cli.main(["up"], ctx=world.ctx())
+
+
+def env_file(world: World) -> dict[str, str]:
+    return home.read_env(world.home / ".sdlc" / "env")
+
+
+# --- ~/.sdlc/env ---
+
+
+def test_env_is_generated_once_private_and_never_overwritten(tmp_path: Path) -> None:
+    root = tmp_path / ".sdlc"
+    env, created = home.ensure_env(root)
+
+    assert set(created) == {"PDI_TF_SIGNING_SECRET", "PDI_CI_FOR_SDLC_SIGNING_SECRET", "PDI_FORM_TOKEN"}
+    assert (env["PDI_EVENTS_URL"], env["PDI_DISPATCH"], env["PDI_PHASE_BUDGET_USD"]) == (
+        "http://127.0.0.1:8787",
+        "local",
+        "3",
+    )
+    assert len(env["PDI_TF_SIGNING_SECRET"]) >= 40
+    assert stat.S_IMODE((root / "env").stat().st_mode) == 0o600
+    assert stat.S_IMODE(root.stat().st_mode) == 0o700
+
+    home.write_env(root / "env", {**env, "PDI_PHASE_BUDGET_USD": "5"})
+    again, created_again = home.ensure_env(root)
+
+    assert created_again == []
+    assert again == {**env, "PDI_PHASE_BUDGET_USD": "5"}
+    assert not list(root.glob("env.*")), "zapis atomowy nie zostawia plików tymczasowych"
+
+
+# --- up ---
+
+
+def test_missing_tools_are_listed_with_one_install_command_each(world: World) -> None:
+    world.missing = {"docker", "claude"}
+    world.answer(("gh", "auth", "status"), 1, "", "not logged in")
+
+    assert up(world) == 1
+
+    text = world.text()
+    assert "docker" in text and "brew install --cask docker" in text
+    assert "npm install -g @anthropic-ai/claude-code" in text
+    assert "gh auth login" in text
+    assert world.spawned == []
+
+
+def test_first_up_asks_for_the_paths_once_then_starts_everything_in_order(world: World) -> None:
+    world.down_until = {"http://localhost:3000/health": 3, "http://127.0.0.1:8787/": 2}
+
+    assert up(world) == 0
+
+    assert len(world.asked) == 5, "pdi, ShipScope, ci_for_sdlc, rejestr, repo produktu"
+    config = home.load_config(world.home / ".sdlc" / "config.toml")
+    assert config is not None
+    assert (config.shipscope, config.checkout) == (world.projects / "evdt-service-shipscope", world.projects / "sklep")
+    names = [name for name, _, _ in world.spawned]
+    assert names == ["shipscope", "pdi-receiver", "pdi-receiver"], "odbiornik restartowany po połączeniu"
+    shipscope_argv = world.spawned[0][1]
+    assert shipscope_argv == ["node", "server/scripts/dev.js"]
+    assert world.spawned[0][2]["SYNC_INTERVAL_MINUTES"] == "1"
+    assert world.spawned[1][1] == ["uv", "run", "--directory", str(world.projects / "pdi"), "pdi-receiver"]
+    assert world.text().rstrip().endswith("gotowe")
+    assert "http://localhost:3000" in world.text() and "http://127.0.0.1:8787" in world.text()
+
+
+def test_the_connection_waits_for_a_workspace_and_writes_the_three_variables(world: World) -> None:
+    world.answers[("node", "server/scripts/local-pdi.js", "connect")] = [
+        (3, "", "no workspace yet"),
+        (3, "", "no workspace yet"),
+        (0, json.dumps(CONNECTED), ""),
+    ]
+
+    assert up(world) == 0
+
+    env = env_file(world)
+    assert (env["PDI_SHIPSCOPE_URL"], env["PDI_SHIPSCOPE_TOKEN"], env["PDI_SHIPSCOPE_SIGNING_SECRET"]) == (
+        "http://localhost:3000",
+        TOKEN,
+        SIGNING,
+    )
+    assert world.text().count("utwórz przestrzeń") == 1, "prośba o logowanie raz, nie przy każdej próbie"
+    connects = [r for r in world.runs if r[0][:3] == ["node", "server/scripts/local-pdi.js", "connect"]]
+    assert connects[0][0][3:] == ["--receiver", "http://127.0.0.1:8787"]
+    restarted = world.spawned[-1]
+    assert (restarted[0], restarted[2]["PDI_SHIPSCOPE_TOKEN"]) == ("pdi-receiver", TOKEN)
+    tests = [r for r in world.runs if r[0][:3] == ["node", "server/scripts/local-pdi.js", "test"]]
+    assert len(tests) == 1
+    assert "connected" in world.text()
+
+
+def test_already_connected_without_variables_is_replaced(world: World) -> None:
+    world.answers[("node", "server/scripts/local-pdi.js", "connect")] = [
+        (4, "", "already connected"),
+        (0, json.dumps(CONNECTED), ""),
+    ]
+
+    assert up(world) == 0
+
+    connects = [r[0] for r in world.runs if r[0][:3] == ["node", "server/scripts/local-pdi.js", "connect"]]
+    assert connects[-1][-1] == "--replace"
+    assert env_file(world)["PDI_SHIPSCOPE_TOKEN"] == TOKEN
+
+
+def test_second_up_starts_nothing_that_runs_and_changes_nothing(world: World) -> None:
+    assert up(world) == 0
+    spawned, asked = len(world.spawned), len(world.asked)
+    before = env_file(world)
+    world.output.clear()
+
+    assert up(world) == 0
+
+    assert len(world.spawned) == spawned
+    assert len(world.asked) == asked
+    assert env_file(world) == before
+    assert not [r for r in world.runs[-20:] if r[0][:3] == ["node", "server/scripts/local-pdi.js", "connect"]][1:]
+    assert world.text().rstrip().endswith("gotowe")
+
+
+def test_a_dead_service_is_started_again(world: World) -> None:
+    assert up(world) == 0
+    receiver_pid = int((world.home / ".sdlc/run/pdi-receiver.pid").read_text(encoding="utf-8"))
+    world.alive_pids.discard(receiver_pid)
+
+    assert up(world) == 0
+
+    assert [name for name, _, _ in world.spawned][-1] == "pdi-receiver"
+
+
+def test_a_service_that_never_answers_stops_up_with_its_log(world: World) -> None:
+    world.down_until = {"http://127.0.0.1:8787/": 10_000}
+
+    assert up(world) == 1
+
+    assert "pdi-receiver" in world.text() and "pdi-receiver.log" in world.text()
+    assert "gotowe" not in world.text()
+
+
+def test_ci_for_sdlc_sends_readiness_with_its_secret_in_the_environment(world: World) -> None:
+    assert up(world) == 0
+
+    (argv, cwd, env, _) = next(r for r in world.runs if r[0][:3] == ["npm", "run", "analyze"])
+    assert argv == ["npm", "run", "analyze", "--", "--repo", str(world.projects / "sklep"), "--send-to-pdi"]
+    assert cwd == world.projects / "ci_for_sdlc"
+    secrets = env_file(world)
+    assert env["PDI_SIGNING_SECRET"] == secrets["PDI_CI_FOR_SDLC_SIGNING_SECRET"]
+    assert (env["PDI_EVENTS_URL"], env["CI_DATA_DIR"]) == ("http://127.0.0.1:8787", str(world.home / ".sdlc/ci-data"))
+
+
+def test_mcp_servers_are_registered_without_any_value(world: World) -> None:
+    assert up(world) == 0
+
+    claude = [r[0] for r in world.runs if r[0][0] == "claude"]
+    pdi_dir = str(world.projects / "pdi")
+    assert claude == [
+        ["claude", "mcp", "remove", "--scope", "user", "pdi"],
+        [
+            "claude",
+            "mcp",
+            "add",
+            "--scope",
+            "user",
+            "pdi",
+            "--",
+            "uv",
+            "run",
+            "--directory",
+            pdi_dir,
+            "sdlc",
+            "mcp",
+            "pdi",
+        ],
+        ["claude", "mcp", "remove", "--scope", "user", "shipscope"],
+        [
+            "claude",
+            "mcp",
+            "add",
+            "--scope",
+            "user",
+            "shipscope",
+            "--",
+            "uv",
+            "run",
+            "--directory",
+            pdi_dir,
+            "sdlc",
+            "mcp",
+            "shipscope",
+        ],  # fmt: skip
+    ]
+
+
+def test_sdlc_mcp_starts_the_servers_with_the_variables_from_env(world: World) -> None:
+    assert up(world) == 0
+
+    cli.main(["mcp", "pdi"], ctx=world.ctx())
+    cli.main(["mcp", "shipscope"], ctx=world.ctx())
+
+    (pdi_argv, pdi_env), (ss_argv, ss_env) = world.execs
+    assert pdi_argv == ["/venv/bin/pdi-mcp"]
+    assert (pdi_env["PDI_SHIPSCOPE_TOKEN"], pdi_env["PDI_DISPATCH"], pdi_env["PDI_REGISTRY_PATH"]) == (
+        TOKEN,
+        "local",
+        str(world.home / "pdi-decisions"),
+    )
+    assert pdi_env["PDI_DISPATCH_CHECKOUT"] == str(world.projects / "sklep")
+    assert ss_argv == ["node", str(world.projects / "evdt-service-shipscope/adapters/mcp/shipscope-mcp.js")]
+    assert (ss_env["SHIPSCOPE_URL"], ss_env["SHIPSCOPE_TOKEN"]) == ("http://localhost:3000", TOKEN)
+
+
+def test_no_secret_in_argv_or_output(world: World) -> None:
+    assert up(world) == 0
+    cli.main(["status"], ctx=world.ctx())
+    cli.main(["open"], ctx=world.ctx())
+
+    secrets = [v for k, v in env_file(world).items() if k in home.SECRET_KEYS]
+    assert len(secrets) == 5
+    seen = world.argv_text() + world.text()
+    for value in secrets:
+        assert value not in seen
+
+
+# --- deploy ---
+
+
+@pytest.mark.parametrize(("target", "environment"), [("prod", "production"), ("test", "test")])
+def test_deploy_creates_a_github_deployment_and_a_success_status(world: World, target: str, environment: str) -> None:
+    assert up(world) == 0
+    world.answer(("gh", "api", "repos/dbqm45/sklep/commits/main"), 0, "abc123def\n")
+    world.answer(("gh", "api", "-X", "POST", "repos/dbqm45/sklep/deployments", "--input", "-"), 0, '{"id": 77}')
+    first = len(world.runs)
+
+    assert cli.main(["deploy", target, "--repo", "dbqm45/sklep"], ctx=world.ctx()) == 0
+
+    calls = [(argv, stdin) for argv, _, _, stdin in world.runs[first:]]
+    assert calls[0] == (["gh", "api", "repos/dbqm45/sklep/commits/main", "--jq", ".sha"], None)
+    argv, stdin = calls[1]
+    assert argv == ["gh", "api", "-X", "POST", "repos/dbqm45/sklep/deployments", "--input", "-"]
+    assert json.loads(stdin or "") == {
+        "ref": "abc123def",
+        "environment": environment,
+        "auto_merge": False,
+        "required_contexts": [],
+        "description": "sdlc deploy",
+    }
+    argv, stdin = calls[2]
+    assert argv == ["gh", "api", "-X", "POST", "repos/dbqm45/sklep/deployments/77/statuses", "--input", "-"]
+    assert json.loads(stdin or "") == {"state": "success", "environment": environment}
+    assert "77" in world.text() and "abc123def" in world.text()
+
+
+def test_deploy_takes_the_repo_from_the_product_checkout(world: World) -> None:
+    assert up(world) == 0
+    world.answer(
+        ("git", "-C", str(world.projects / "sklep"), "remote", "get-url", "origin"),
+        0,
+        "git@github.com:dbqm45/sklep.git\n",
+    )
+    world.answer(("gh", "api", "-X", "POST"), 0, '{"id": 5}')
+    world.answer(("gh", "api", "repos/dbqm45/sklep/commits/main"), 0, "abc123def\n")
+
+    assert cli.main(["deploy", "prod"], ctx=world.ctx()) == 0
+
+    assert any(r[0][:3] == ["gh", "api", "repos/dbqm45/sklep/commits/main"] for r in world.runs)
+
+
+def test_deploy_refuses_an_unknown_target(world: World) -> None:
+    with pytest.raises(SystemExit):
+        cli.main(["deploy", "staging"], ctx=world.ctx())
+
+
+# --- status, open, down, reset ---
+
+
+def test_status_shows_processes_connections_and_ci_delivery(world: World) -> None:
+    assert up(world) == 0
+    ci = world.home / ".sdlc/ci-data"
+    ci.mkdir(parents=True, exist_ok=True)
+    (ci / "pdi-state.json").write_text(json.dumps({"sent": {"CHG-1": "ready"}, "seen": []}), encoding="utf-8")
+    (ci / "pdi-outbox.json").write_text("[]", encoding="utf-8")
+    world.answer(("docker", "inspect"), 0, "true\n")
+    world.output.clear()
+
+    assert cli.main(["status"], ctx=world.ctx()) == 0
+
+    text = world.text()
+    assert "shipscope" in text and "pdi-receiver" in text and "Postgres" in text
+    assert "ShipScope ↔ pdi: connected" in text
+    assert "ci_for_sdlc → pdi: connected" in text
+    assert "PDI_SHIPSCOPE_TOKEN: ustawiony" in text
+
+
+def test_status_says_queued_for_undelivered_readiness(world: World) -> None:
+    assert up(world) == 0
+    ci = world.home / ".sdlc/ci-data"
+    ci.mkdir(parents=True, exist_ok=True)
+    (ci / "pdi-state.json").write_text(json.dumps({"sent": {}, "seen": []}), encoding="utf-8")
+    (ci / "pdi-outbox.json").write_text(json.dumps([{"attempts": 2, "nextAt": "x", "event": {}}]), encoding="utf-8")
+    world.output.clear()
+
+    cli.main(["status"], ctx=world.ctx())
+
+    assert "ci_for_sdlc → pdi: queued 1" in world.text()
+
+
+def test_open_opens_shipscope_and_the_form(world: World) -> None:
+    assert up(world) == 0
+
+    cli.main(["open"], ctx=world.ctx())
+
+    assert world.opened[0] == "http://localhost:3000/"
+    assert world.opened[1].startswith("http://127.0.0.1:8787/problems/new?t=")
+
+
+def test_down_stops_processes_and_postgres_but_keeps_the_volume(world: World) -> None:
+    assert up(world) == 0
+    pids = {int(p.read_text(encoding="utf-8")) for p in (world.home / ".sdlc/run").glob("*.pid")}
+
+    assert cli.main(["down"], ctx=world.ctx()) == 0
+
+    assert set(world.killed) >= pids
+    docker = [r[0] for r in world.runs if r[0][0] == "docker"]
+    assert ["docker", "stop", "shipscope-dev-pg"] in docker
+    assert not any("rm" in argv or "volume" in argv for argv in docker)
+
+
+def test_reset_needs_the_typed_word_and_keeps_config_and_secrets(world: World) -> None:
+    assert up(world) == 0
+    world.typed = ["nie"]
+    first = len(world.runs)
+
+    assert cli.main(["reset"], ctx=world.ctx()) == 1
+    assert not [r for r in world.runs[first:] if r[0][:2] == ["docker", "volume"]]
+    assert "PDI_SHIPSCOPE_TOKEN" in env_file(world)
+
+    world.typed = ["usuń"]
+    assert cli.main(["reset"], ctx=world.ctx()) == 0
+    docker = [r[0] for r in world.runs[first:] if r[0][0] == "docker"]
+    assert ["docker", "rm", "-f", "shipscope-dev-pg"] in docker
+    assert ["docker", "volume", "rm", "shipscope-dev-pg"] in docker
+    env = env_file(world)
+    assert "PDI_SHIPSCOPE_TOKEN" not in env and "PDI_TF_SIGNING_SECRET" in env
+    assert (world.home / ".sdlc/config.toml").is_file()
+
+
+def test_real_helpers_keep_mode_and_pid_files(tmp_path: Path) -> None:
+    root = tmp_path / ".sdlc"
+    home.write_env(root / "env", {"A": "1"})
+    assert os.stat(root / "env").st_mode & 0o077 == 0
+    assert home.read_env(root / "env") == {"A": "1"}
+    config = home.Config(
+        pdi=tmp_path / "pdi",
+        shipscope=tmp_path / "ss",
+        ci_for_sdlc=tmp_path / "ci",
+        registry=tmp_path / "rej",
+        checkout=None,
+    )
+    home.save_config(root / "config.toml", config)
+    assert home.load_config(root / "config.toml") == config
+    assert isinstance(home.load_config(root / "config.toml"), home.Config)
+    assert home.load_config(root / "brak.toml") is None
