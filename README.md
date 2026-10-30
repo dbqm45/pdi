@@ -45,6 +45,29 @@ w nagłówkach `X-PDI-Timestamp`, `X-PDI-Event`, `X-PDI-Signature`. Szablon fazy
 `decision`, `rework` i `budget_usd` (`PDI_PHASE_BUDGET_USD`). Bez `PDI_DISPATCH_REPO` decyzje się zapisują, a faza
 jest oznaczona `skipped`. Ten sam `PDI_DISPATCH_*` musi być ustawiony dla serwera MCP, który zapisuje decyzje.
 
+**Tryb lokalny (tylko do rozwoju i prób, krok L2, decyzja DL1).** Przy `PDI_DISPATCH=local` pdi nie wysyła
+`workflow_dispatch`, tylko sam wykonuje kroki szablonu `sdlc-phase.yml` w lokalnym klonie repo produktu: czysty klon
+i świeży `main`, gałąź `pdi/<CHG>-<faza>` (istniejąca zdalna zostaje, więc poprawki trafiają do tego samego PR),
+dziennik zmiany ze zgłoszenia (faza `intent`), `phase_run.py prompt`, `decision_record.py decision gate`,
+`phase_run.py run`, a poza `delivery` commit, push, PR przez `gh` i `phase_run.py gate request`. Przebieg idzie w tle
+(wywołanie MCP odpowiada od razu), jeden naraz na zmianę; log w `$PDI_REGISTRY_PATH/runs/<CHG>-<faza>-<czas>.log`,
+wynik obok. Stan zmiany ma `dispatch: {mode: local, status: running | done | failed, log, pr?, step?, error?}`;
+`get_change` i `list_changes` go pokazują, `retry_dispatch` ponawia nieudany przebieg. Plan:
+[docs/plan-l2-dispatch-lokalny.md](docs/plan-l2-dispatch-lokalny.md).
+
+| Zmienna | Znaczenie |
+|---|---|
+| `PDI_DISPATCH=local` | fazy w lokalnym klonie; bez tej zmiennej — `workflow_dispatch` jak wyżej |
+| `PDI_DISPATCH_CHECKOUT` | bezwzględna ścieżka klonu repo produktu (repo git z `.claude/skills/pdi-decisions/scripts`, bez niezatwierdzonych zmian) |
+| `PDI_DISPATCH_REF` | gałąź bazowa, domyślnie `main` |
+| `PDI_PHASE_BUDGET_USD` | limit kosztu fazy (`--budget-usd`) |
+| `PDI_EVENTS_URL`, `PDI_TF_SIGNING_SECRET` | dla `gate request` z przebiegu, np. `http://127.0.0.1:8787` i sekret odbiornika |
+
+`PDI_DISPATCH_REPO` i `PDI_GITHUB_TOKEN` nie są w tym trybie potrzebne: `git` i `gh` korzystają z logowania na
+komputerze, a persony z zalogowanego Claude Code. Przebieg nie dostaje tokenów ani sekretów pdi (poza
+`PDI_TF_SIGNING_SECRET`), a pdi nie zapisuje w logu ani w stanie tokenów i treści zgłoszenia. Na produkcji fazy
+dalej idą przez GitHub Actions (R4) — `PDI_DISPATCH` zostaje nieustawione.
+
 Decyzja na bramce `approve-for-implementation` trafia też do ci_for_sdlc: podpisane `gate.decided` na
 `PDI_CI_FOR_SDLC_URL/api/webhooks/pdi` (sekret `PDI_CI_FOR_SDLC_SIGNING_SECRET`, ten sam, którym ci_for_sdlc podpisuje
 `readiness.changed`; tam `PDI_SIGNING_SECRET`). ci_for_sdlc zatwierdza wtedy historyjki zmiany (etykieta `change:CHG-n`)

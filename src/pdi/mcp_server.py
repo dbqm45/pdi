@@ -360,7 +360,11 @@ def build_server(
 
     @server.tool(annotations=_READ)
     def get_change(change: str) -> dict[str, Any]:
-        """Pełny stan przebiegu zmiany (np. CHG-12), z historią zdarzeń i decyzji."""
+        """Pełny stan przebiegu zmiany (np. CHG-12), z historią zdarzeń i decyzji.
+
+        dispatch to ostatnie uruchomienie fazy; przy PDI_DISPATCH=local: mode local, status running | done | failed,
+        log (ścieżka logu), pr (PR fazy), step i error (krok, na którym przebieg się zatrzymał).
+        """
         try:
             return open_inbox().changes.get(change)
         except ChangeNotFound as e:
@@ -524,7 +528,10 @@ def build_server(
 
     @server.tool(annotations=_WRITE)
     def retry_dispatch(change: str) -> dict[str, Any]:
-        """Ponawia nieudane uruchomienie fazy tf i wysyłkę decyzji do ci_for_sdlc (po poprawce ustawień)."""
+        """Ponawia nieudane uruchomienie fazy tf i wysyłkę decyzji do ci_for_sdlc (po poprawce ustawień).
+
+        Przy PDI_DISPATCH=local ponawia przebieg ze statusem failed; trwającego (running) nie ponawia.
+        """
         try:
             return open_inbox().retry_dispatch(change)
         except (ChangeNotFound, InvalidDecision) as e:

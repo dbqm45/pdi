@@ -21,7 +21,7 @@ from typing import Any, TypeAlias
 
 import yaml
 
-from pdi import contract
+from pdi import contract, dispatch_local
 from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig, Post, dispatch_phase
 from pdi.notify import ReporterNotifyConfig, notify_reporter
@@ -78,6 +78,8 @@ class ProblemStore:
         post: Post | None = None,
         dispatch: DispatchConfig | None = None,
         dispatch_post: Post | None = None,
+        local_spawn: dispatch_local.Spawn | None = None,
+        local_run: dispatch_local.Run | None = None,
     ) -> None:
         self.registry = registry
         self._dir = registry.root / "problems"
@@ -87,6 +89,8 @@ class ProblemStore:
         self._post = post
         self._dispatch = dispatch or DispatchConfig(repo=None)
         self._dispatch_post = dispatch_post
+        self._local_spawn = local_spawn
+        self._local_run = local_run
         self._prefix = contract.settings()["prefixes"]["problem"]
         self._change_prefix = contract.settings()["prefixes"]["change"]
 
@@ -211,6 +215,9 @@ class ProblemStore:
                 raise InvalidDecision("duplicate_of: klucz zgłoszenia, np. PRB-7.")
         updated = {**item, **{k: v for k, v in given.items() if v}, "status": outcome}
         self._check({**updated, "triage_decision": "DEC-1"}, InvalidDecision)  # zanim decyzja trafi do rejestru
+        busy = dispatch_local.running(self.registry.root / "runs", change) if self._dispatch.local and change else None
+        if outcome == "accepted" and busy is not None:
+            raise InvalidDecision(f"{change}: trwa poprzednia faza (log {busy}) — poczekaj na jej koniec.")
 
         links = {**(draft.get("links") or {}), "prb": problem_id}
         if change:
@@ -306,18 +313,7 @@ class ProblemStore:
         outbox.mkdir(parents=True, exist_ok=True)
         event_path = outbox / f"{event['id']}.json"
         event_path.write_text(json.dumps(event, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        fields = (
-            "title",
-            "kind",
-            "who",
-            "cannot",
-            "impact",
-            "workaround",
-            "frequency",
-            "proposed_solution",
-            "reported_at",
-        )
-        problem = json.dumps({k: item[k] for k in fields if item.get(k)}, ensure_ascii=False)
+        problem = self.phase_problem(item)
         sent = dispatch_phase(
             self._dispatch,
             change=change,
@@ -330,6 +326,9 @@ class ProblemStore:
             post=self._dispatch_post,
             source=item["id"],
             problem=problem,
+            runs_dir=self.registry.root / "runs",
+            spawn=self._local_spawn,
+            run=self._local_run,
         )
         state["dispatch"] = {
             **sent,
@@ -337,9 +336,25 @@ class ProblemStore:
             "outcome": "approved",
             "decision": decision,
             "source": item["id"],
-            "problem": problem,
         }
+        if not self._dispatch.local:  # lokalnie treść zgłoszenia nie trafia do stanu; ponowienie czyta ją ze zgłoszenia
+            state["dispatch"]["problem"] = problem
         return {"paths": [event_path, changes.save(state)], "dispatch": sent, "event": event}
+
+    def phase_problem(self, item: Problem) -> str:
+        """Treść zgłoszenia dla persony fazy intent (JSON z polami tekstowymi i dniem zgłoszenia)."""
+        fields = (
+            "title",
+            "kind",
+            "who",
+            "cannot",
+            "impact",
+            "workaround",
+            "frequency",
+            "proposed_solution",
+            "reported_at",
+        )
+        return json.dumps({k: item[k] for k in fields if item.get(k)}, ensure_ascii=False)
 
     def _next_change(self) -> str:
         """Kolejny wolny klucz zmiany ponad znane stany zmian i zgłoszenia."""

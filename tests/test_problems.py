@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import json
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -462,3 +463,42 @@ def test_triage_decision_gets_decision_type_triage(registry: Registry, make_draf
     decision = problems.triage("PRB-1", "rejected", make_draft(), rejection_reason="out_of_strategy")["decision"]
 
     assert decision["decision_type"] == "triage"
+
+
+def test_local_mode_accept_starts_intent_without_problem_text_in_state(
+    registry: Registry, make_draft: Any, tmp_path: Path
+) -> None:
+    from pdi.changes import ChangeStore
+    from pdi.dispatch import DispatchConfig
+    from pdi.inbox import Inbox
+    from tests.test_dispatch_local import FakeRun, FakeSpawn, make_checkout
+
+    repo = make_checkout(tmp_path)
+    failing = FakeRun()
+    failing.responses["python3 .claude/skills/pdi-decisions/scripts/phase_run.py run"] = (1, "budżet")
+    spawn = FakeSpawn(failing)
+    cfg = DispatchConfig(repo=None, mode="local", checkout=str(repo))
+    problems = ProblemStore(
+        registry, notify=NOTIFY, post=FakeHook(), dispatch=cfg, local_spawn=spawn, local_run=FakeRun()
+    )
+    problems.record(problem(proposed_solution="przycisk bulk update"))
+
+    result = problems.triage("PRB-1", "accepted", make_draft())
+
+    (spec,), (env,) = spawn.specs, spawn.envs
+    assert (spec["change"], spec["phase"], spec["gate"], spec["source"]) == ("CHG-1", "intent", "triage", "PRB-1")
+    assert spec["reported_at"] == "2026-10-23"
+    assert json.loads(env["PDI_PROBLEM"])["proposed_solution"] == "przycisk bulk update"
+    assert result["dispatch"]["mode"] == "local"
+    state = ChangeStore(registry).get("CHG-1")
+    assert (state["dispatch"]["status"], state["dispatch"]["step"]) == ("failed", "run")
+    assert "problem" not in state["dispatch"]
+    stored = (registry.root / "changes" / "CHG-1.yaml").read_text(encoding="utf-8")
+    log = Path(state["dispatch"]["log"]).read_text(encoding="utf-8")
+    assert "bulk update" not in stored + log
+
+    again = FakeSpawn()
+    Inbox(registry, dispatch=cfg, local_spawn=again, local_run=FakeRun()).retry_dispatch("CHG-1")
+
+    assert again.specs[0]["source"] == "PRB-1"
+    assert json.loads(again.envs[0]["PDI_PROBLEM"])["proposed_solution"] == "przycisk bulk update"
