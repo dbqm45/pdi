@@ -4,6 +4,7 @@ Plan: docs/plan-l4-sdlc.md."""
 import json
 import os
 import stat
+import time
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -633,3 +634,17 @@ def test_sandbox_waits_for_the_github_app_installation(world: World) -> None:
 def test_sandbox_needs_sdlc_up_first(world: World) -> None:
     assert sandbox(world) == 1
     assert "sdlc up" in world.text()
+
+
+def test_a_finished_child_is_not_alive_and_stopping_it_does_not_fail(tmp_path: Path) -> None:
+    """Proces startowany i zatrzymywany w tym samym `sdlc up` zostaje zombie, dopóki nikt go nie odbierze.
+
+    Na macOS `killpg` na grupę z samym zombie daje EPERM (sdlc up po połączeniu z ShipScope padał z PermissionError).
+    """
+    pid = cli._spawn("krotki", ["true"], tmp_path, dict(os.environ), tmp_path / "krotki.log")
+    for _ in range(50):
+        if not cli._alive(pid):
+            break
+        time.sleep(0.1)
+    assert cli._alive(pid) is False
+    cli._kill(pid)  # już odebrany: nic do zrobienia, bez wyjątku
