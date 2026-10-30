@@ -1,4 +1,4 @@
-# Polecenia startowe: L1–L5 i etapy 2–15 planu `sdlc up`
+# Polecenia startowe: L1–L5 i etapy 2–16 planu `sdlc up`
 
 **Data:** 2026-10-30 · **Źródło:** [plan `sdlc up`](plan-sdlc-lokalnie.md) §2 (Z1–Z5) i §4, decyzje DL1–DL3
 ([decyzje](decyzje.md)) · **Stan przed startem:** pdi `9ec4e66`, ShipScope 0.2.64, ci_for_sdlc 0.1.34
@@ -14,7 +14,8 @@ i lustro Jira ↔ repo) po etapie 7. Etap 9 (incydenty i aplikacja Slacka) start
 a etap 10 (rozmowa w konsoli, krok K-3) po etapie 9. Etap 11 (zaległe kroki G1/G2) startuje po etapie 10, a etap 12
 (jedno wejście dla ludzi i miary przepływu) po etapie 11. Etap 13 (przełącznik funkcjonalności i pierwsze łączenie
 backendów) startuje po etapie 12, a etap 14 (kolejne moduły łączenia backendów, powtarzany) po etapie 13.
-Etap 15 (pilotaż z design partnerami) startuje po etapach 13–14.
+Etap 15 (pilotaż z design partnerami) startuje po etapach 13–14. Etap 16 (utrzymanie i niezawodność platformy)
+startuje po etapie 15.
 
 | Krok | Repo | Sesja w katalogu |
 |---|---|---|
@@ -37,6 +38,7 @@ Etap 15 (pilotaż z design partnerami) startuje po etapach 13–14.
 | etap 13 | pdi (+ ShipScope, tf) | `/Users/x/WebstormProjects/pdi` |
 | etap 14 | pdi (+ ShipScope, ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` |
 | etap 15 | pdi (+ repo, w których pilotaż odsłoni luki) | `/Users/x/WebstormProjects/pdi` |
+| etap 16 | pdi (+ ShipScope, ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` |
 
 GitHub Actions na tym koncie nie działa (płatności). Każde polecenie każe więc uruchomić bramki lokalnie i napisać
 o tym w PR.
@@ -1444,4 +1446,78 @@ Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy sr
 all in Actions. At the end, walk the onboarding path with me on a fresh test workspace and repo, and show me the
 outreach materials ready to send. Commit, PRs, every message to a candidate, any agreement, any access to a partner's
 systems and changes in other repos on my request.
+```
+
+## Etap 16 — pdi (+ ShipScope, ci_for_sdlc): utrzymanie i niezawodność platformy
+
+Start dopiero po etapie 15 (pierwsi partnerzy polegają na platformie albo mają zacząć). Zakres: usługa pdi i konsola
+(etapy 4–10), powłoka (etap 12), połączone backendy (etapy 13–14) i ich styki z ci_for_sdlc i ShipScope. Wzorem jest
+to, co ShipScope ma już u siebie: `server/SLO.pl.md` (SLO, budżet błędów, alerty, publiczna strona `/status`),
+`server/KOPIE.pl.md` (kopie i kwartalny test odtworzenia `verify-restore`, tylko do odczytu), `server/SEKRETY.pl.md`
+(rotacja kluczy z pierścieniem kluczy), `/health/worker`, `/metrics` za tokenem i logi JSON bez sekretów. Polecenie
+każe przenieść te wzorce na całą platformę zamiast wymyślać je od nowa i zaczyna od decyzji, co obiecujemy partnerom
+i ile to może kosztować. Sesja w klonie pdi; zmiany w ShipScope i ci_for_sdlc osobnymi PR-ami w ich repo, po Twojej
+zgodzie. Ustawienia hostingu, alertów i dyżurów zmieniasz Ty albo dzieje się to na Twoje polecenie.
+
+```text
+Implement stage 16: operations and reliability for the whole platform — the pdi service and console (stages 4–10),
+the shell (stage 12), the merged backends (stages 13–14) and their links to ci_for_sdlc and ShipScope — after stage
+15. Reuse ShipScope's patterns instead of inventing new ones. Answer me in Polish; code, commits and PR titles in
+English, Conventional Commits; runbooks in Polish.
+
+Preconditions, check them first and stop if one is missing:
+- stage 15's state: whether partners are live or about to be, and what docs/plan-etap15-pilotaz.md promised them
+  (support model, response time, data deletion);
+- the hosting chosen in stage 3 (decision 1a) and how each service runs today (web, worker, scheduler, database);
+- ShipScope's operating docs as the pattern: server/SLO.pl.md (SLOs, error budget, alerts, public /status page),
+  server/KOPIE.pl.md (backups, restore, quarterly restore test with `npm run verify-restore`, read only,
+  `RESTORE_DATABASE_URL`), server/SEKRETY.pl.md (keys, first setup, rotation with a key ring), /health/worker,
+  /metrics behind a token, JSON logs through a logger that masks credentials.
+
+Goal: for every service of the platform:
+- written SLOs per user journey (sign in, see the inbox, decide, event received → shown, phase dispatched), an error
+  budget, and alerts on burn rate that reach a person, with a public status page for partners;
+- health endpoints that judge real work (queues drained, schedulers on time, last successful sync), metrics behind
+  a token, JSON logs with request and tenant ids and no secret or partner content;
+- backups with a tested restore (a scheduled, read-only restore check like ShipScope's), a stated RPO and RTO;
+- every secret listed with its owner, where it lives, how it rotates (a key ring, no downtime) and when it last did;
+- runbooks for the likely incidents (database down, worker stuck, webhook backlog, a partner's token revoked, model
+  provider down, cost spike), and a monthly cost view per service and per tenant.
+
+Today:
+- ShipScope has all of the above for itself; pdi's service, console and merged backends have whatever stages 3–14
+  built (check each: health, metrics, logs, backups, secrets).
+- Stage 9 may have brought an incident tool (G8); stage 10 a model budget per tenant; stage 12 the G7 measures.
+- Partners from stage 15 see outages directly; the platform now holds their data and sealed tokens.
+
+1. Decisions first, before any plan or code. Show me the recommendation for each, wait for my answer, then record
+   them in docs/decyzje.md:
+   a. The SLOs and their windows per journey, and what partners are told (status page, response time).
+   b. Alerting and on-call: where alerts go (the stage 9 tool, if any, or another), who is on call, quiet hours.
+   c. Backups: RPO/RTO, where copies live (one copy outside the hosting, as ShipScope's KOPIE says), the restore test
+      cadence, and partner data deletion at the end of a pilot (stage 15's 1d).
+   d. Costs: the budget per month, the per-tenant view (model calls, compute, storage), and the limits that stop a
+      runaway (tie to stage 10's budget if built).
+2. Then a plan in docs/ (plan-etap16-utrzymanie.md): a table of services × (health, metrics, logs, backups, secrets,
+   SLO, alerts, runbook) with today's state and the gap, the order of work, tests, open questions. Wait for my OK.
+3. Implement only what the plan approves, TDD (red test first), small PRs, each in its repo after my OK: health and
+   metrics, log fields and masking, the restore check, the secret inventory and rotation, the status page, the cost
+   view, then the runbooks (docs/ in Polish, as ShipScope's).
+4. Docs: README (operations section), the runbooks, docs/15-jedna-platforma.md (operations state), the pilot plan's
+   support section, and each touched engine's operating docs.
+
+Tests:
+- each health endpoint fails on the cases it is meant to catch (stalled scheduler, undrained queue, failing sync), on
+  fixtures, as ShipScope's /health/worker tests do;
+- metrics are refused without the token; log lines carry request and tenant ids and never a secret, token, flag value
+  or partner content (a test feeds secrets through every logger path);
+- the restore check is read only, refuses the production URL, and finds a planted mismatch;
+- rotation: data sealed with the old key opens after rotation, re-sealing finishes, no request fails meanwhile;
+- the status page computes each component from the same health judgment, with no script on the page;
+- cost limits stop work for one tenant without affecting others.
+
+Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy src) plus the service's and console's
+checks and each touched repo's own gates, all in Actions. At the end, with me: one restore test on a copy, one key
+rotation on a test workspace, and one alert fired end to end. Commit, PRs, any change to hosting, alerting or on-call
+settings, any rotation on production, and changes in other repos on my request.
 ```
