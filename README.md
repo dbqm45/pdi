@@ -14,6 +14,19 @@ G1–G8: tamże, §8.
 Praca z kodem: `uv sync`, potem `uv run pytest`, `uv run ruff check src tests`, `uv run ruff format --check src tests`,
 `uv run mypy src` (te same kroki w CI: `.github/workflows/ci.yml`). Walidacja na sobie: [`eval/dogfood/`](eval/dogfood/README.md). Kod: `src/pdi/`, kontrakt 0.10.0 (decyzja, zgłoszenie, zmiana, cięcie, plan wydania, zdarzenia, autonomia, eksport rekonstrukcji, ramki `design.md`): [`contract/`](contract/README.md), plan kroku: [`docs/plan-krok-1.md`](docs/plan-krok-1.md).
 
+## Lokalny stos jednym poleceniem: `sdlc` (L4)
+
+`sdlc up` stawia na localhost pdi-receiver, ShipScope (web i worker) i Postgresa w Dockerze, generuje sekrety do
+`~/.sdlc/env` (tryb 600), łączy ShipScope z pdi i rejestruje serwery MCP `pdi` i `shipscope` w Claude Code. Sekretów
+nikt nie przepisuje ręcznie, a `sdlc` nigdy ich nie wypisuje. Jednorazowo w przeglądarce trzeba założyć aplikację
+GitHub ShipScope i przestrzeń; `sdlc up` mówi, kiedy i co kliknąć. Pozostałe polecenia: `status`, `deploy
+<prod|test>`, `open`, `check`, `down` i `reset`. Szczegóły: [`docs/plan-l4-sdlc.md`](docs/plan-l4-sdlc.md).
+
+```bash
+uv run sdlc up       # pierwsze uruchomienie zadaje trzy pytania o ścieżki
+uv run sdlc status
+```
+
 ## Skrzynka bramek i orkiestracja (G1.5, F4)
 
 ShipScope wysyła podpisane zdarzenia kontraktu: `release.stage_changed` (flaga z planu wydania przeszła na PROD do

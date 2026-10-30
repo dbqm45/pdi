@@ -203,7 +203,7 @@ konfiguracji.
 | L1 | ShipScope | — | zrobione (ShipScope #125) |
 | L2 | pdi | DL1 | zrobione ([plan L2](plan-l2-dispatch-lokalny.md), pdi #59) |
 | L3 | ci_for_sdlc | — | zrobione (ci_for_sdlc #102) |
-| L4 | pdi | L1, L2, L3, DL2, DL3 | do zrobienia |
+| L4 | pdi | L1, L2, L3, DL2, DL3 | zrobione ([plan L4](plan-l4-sdlc.md)) |
 | L5 | nowe repo `sdlc-sandbox` + pdi | L4, DL4 | do zrobienia |
 
 L1, L2 i L3 są niezależne i mogą iść równolegle w trzech sesjach. Polecenia startowe L1–L5:
