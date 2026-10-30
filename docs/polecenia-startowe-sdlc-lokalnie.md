@@ -1,4 +1,4 @@
-# Polecenia startowe: L1–L5, etap 2 i etap 3 planu `sdlc up`
+# Polecenia startowe: L1–L5 i etapy 2–4 planu `sdlc up`
 
 **Data:** 2026-10-30 · **Źródło:** [plan `sdlc up`](plan-sdlc-lokalnie.md) §2 (Z1–Z5) i §4, decyzje DL1–DL3
 ([decyzje](decyzje.md)) · **Stan przed startem:** pdi `9ec4e66`, ShipScope 0.2.64, ci_for_sdlc 0.1.34
@@ -6,7 +6,8 @@
 L1, L2 i L3 są niezależne. Każdy idzie w osobnej sesji Claude Code w swoim repo. Polecenie wklejasz jako pierwszą
 wiadomość sesji. L4 (`sdlc` w `pdi/stack/`) startuje dopiero po merge'u wszystkich trzech, a L5 (repo próbne)
 po merge'u L4. Etap 2 (scenariusz S5 na sprintdecku) startuje po L5 i udanym przebiegu §5 na repo
-próbnym. Etap 3 (produkcja, §7 planu) startuje po etapie 2.
+próbnym. Etap 3 (produkcja, §7 planu) startuje po etapie 2, a etap 4 (usługa pdi
+i konsola, krok K-2) po etapie 3.
 
 | Krok | Repo | Sesja w katalogu |
 |---|---|---|
@@ -17,6 +18,7 @@ próbnym. Etap 3 (produkcja, §7 planu) startuje po etapie 2.
 | L5 | pdi (+ nowe repo `sdlc-sandbox`) | `/Users/x/WebstormProjects/pdi` |
 | etap 2 | pdi (+ sprintdeck) | `/Users/x/WebstormProjects/pdi` |
 | etap 3 | pdi (+ ShipScope, tf, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
+| etap 4 | pdi | `/Users/x/WebstormProjects/pdi` |
 
 GitHub Actions na tym koncie nie działa (płatności). Każde polecenie każe więc uruchomić bramki lokalnie i napisać
 o tym w PR.
@@ -479,4 +481,77 @@ Tests (pdi, injected runner, HTTP client and env; no real network, platforms or 
 Gates: uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src, plus the
 Actions checks once they run. At the end, walk S5 version 4 with me through step 3 (triage → phase intent started in
 sprintdeck's Actions). The rest I run myself. Commit, PRs, platform changes and any secret setting on my request.
+```
+
+## Etap 4 — pdi: usługa (DA4) i konsola, krok K-2
+
+Start dopiero po etapie 3 (hostowany pdi prowadzi S5 v4). Źródło: [plan automatyzacji i konsoli](plan-automatyzacja-i-konsola.md)
+§5.3 (K-2–K-4), decyzje DA3–DA5 i makieta w `design/konsola/`. Etap obejmuje tylko K-2: skrzynkę i oś zdarzeń
+w prawdziwym interfejsie, z decyzją podejmowaną przyciskiem. K-3 (rozmowa w konsoli) i K-4 (graf śladu i panel
+w Jirze) to kolejne etapy; plan każe budować K-3 dopiero wtedy, gdy K-1 pokaże, że rozmowa jest głównym sposobem
+pracy. Sesja w klonie pdi; usługa i konsola powstają w pdi (DA3), a osobne repo tylko po Twojej zgodzie.
+
+```text
+Implement stage 4: the pdi service (DA4) and the console step K-2 (inbox and event timeline in a real UI) from
+docs/plan-automatyzacja-i-konsola.md §5.3, after stage 3 (production, docs/plan-sdlc-lokalnie.md §7). Answer me in
+Polish; code, commits and PR titles in English, Conventional Commits.
+
+Preconditions, check them first and stop if one is missing:
+- stage 3 is done: hosted pdi runs S5 version 4 on sprintdeck, and docs/decyzje.md records how pdi is hosted (stage 3
+  decision 1a: Python receiver + file registry, or the DA4 service already started);
+- docs/decyzje.md and the plan's §2 table: DA3 (console lives in pdi), DA4 (stack), DA5 (no approval by chat text).
+
+Goal: I open the console's domain, sign in with GitHub, and see:
+- "Czeka na Ciebie": the same inbox items `list_inbox` returns;
+- "Teraz": the live event timeline from the receiver (problem.recorded, gate.decided, readiness.changed,
+  release.stage_changed, feature.released, phase runs and their cost);
+- per item: approve, reject or request changes with a button, with the same fields and validation as
+  `decide_inbox_item`.
+A decision made in the console is visible to the MCP `pdi` server at once, and the reverse. Nothing in the console
+approves by text alone (DA5).
+
+Today:
+- pdi is Python: CLI, receiver (src/pdi/receiver.py), MCP server, file registry under PDI_REGISTRY_PATH, contract
+  0.5.0+ (src/pdi/contract.py), inbox and trace on the data side ("skrzynka i graf śladu są w pdi po stronie danych;
+  brakuje interfejsu", plan §8 row K-2).
+- DA4 recommends TypeScript + Fastify + Postgres with ShipScope's patterns (GitHub App login, multi-tenant with RLS,
+  token encryption), with the MCP server staying in Python. DA4 is open.
+- The console mockup is in design/konsola/ (Main, Slad, Decyzje, Autonomia; preview link in its README). K-2 covers
+  only the inbox and the "Teraz" timeline from Main; Slad (K-4), the chat panel (K-3), Decyzje and Autonomia come later.
+- Local dev must keep working: `sdlc up` starts the stack on localhost (L4), and S5 versions 3 and 4 must still pass.
+
+1. Decisions first, before any plan or code. Show me the recommendation for each, wait for my answer, then record
+   them in docs/decyzje.md and the plan's §2 table:
+   a. DA4 itself, given what stage 3 chose: build the TS service now, or put the console on the Python service first.
+      Compare the cost of each for K-2 and for K-3/K-4, and where tenancy and login come from.
+   b. One source of truth: the registry moves to Postgres (migration of existing files, and how the Python MCP server
+      and CLI read it) or stays in files behind one API. No two writers to one record.
+   c. Live timeline: SSE, polling or websockets, with the hosting from stage 3.
+   d. Where the code lives (DA3 says pdi; a monorepo folder such as service/ and console/, or a separate repo).
+2. Then a plan in docs/ (plan-etap4-konsola.md): the API (inbox list, item, decide, events stream), auth and roles,
+   data migration and rollback, how `sdlc up` starts the service locally, the K-2 screens from the mockup with every
+   state (empty, loading, error, stale item, already decided elsewhere), tests, open questions. Wait for my OK.
+3. Implement only what the plan approves, TDD (red test first), small PRs:
+   - the service and its API, contract-validated against src/pdi/contract.py's schemas (generate or share them, do
+     not copy by hand);
+   - the data migration, idempotent, with a dry run;
+   - the console K-2 screens;
+   - `sdlc up`, `sdlc status` and the MCP server switched to the service;
+   - the production deploy per stage 3, after my OK.
+4. Docs: README, design/konsola/README.md (which screens are live), plan-automatyzacja-i-konsola.md §8 (K-2 state),
+   docs/przebieg-na-sobie-s5.md (decisions may now be made in the console).
+
+Tests:
+- the API: decide with the same validation and errors as `decide_inbox_item`; a second decide on a decided item is
+  refused with a clear message; no approval without an explicit action (DA5);
+- tenancy: one tenant never sees another's items (RLS or equivalent), unauthenticated calls refused;
+- the migration: every existing record readable after it, a second run changes nothing;
+- the MCP server and the console see each other's decisions;
+- console: the screens' states, keyboard use and accessible names (WCAG AA), e2e for list → decide → timeline entry;
+- no secret or token in logs, URLs or client bundles.
+
+Gates: the existing Python gates (uv run pytest, ruff check, ruff format --check, mypy src) plus the new service's
+lint, typecheck and tests, and the e2e suite, all in Actions (working since stage 3). At the end, decide one inbox
+item in the console with me and show it in `list_inbox` and in the timeline. Commit, PRs, migration on real data,
+production deploy and any new repo on my request.
 ```
