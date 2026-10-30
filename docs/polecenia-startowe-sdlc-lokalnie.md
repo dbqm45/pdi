@@ -1,4 +1,4 @@
-# Polecenia startowe: L1–L5 i etapy 2–11 planu `sdlc up`
+# Polecenia startowe: L1–L5 i etapy 2–12 planu `sdlc up`
 
 **Data:** 2026-10-30 · **Źródło:** [plan `sdlc up`](plan-sdlc-lokalnie.md) §2 (Z1–Z5) i §4, decyzje DL1–DL3
 ([decyzje](decyzje.md)) · **Stan przed startem:** pdi `9ec4e66`, ShipScope 0.2.64, ci_for_sdlc 0.1.34
@@ -11,7 +11,8 @@ i konsola, krok K-2) po etapie 3. Etap 5 (graf śladu, rejestr decyzji i panel w
 etapie 4, a etap 6 (autonomia zdobywana na danych) po etapie 5.
 Etap 7 (etapy flag według reguły i metryki ochronne) startuje po etapie 6, a etap 8 (uproszczone review
 i lustro Jira ↔ repo) po etapie 7. Etap 9 (incydenty i aplikacja Slacka) startuje po etapie 8,
-a etap 10 (rozmowa w konsoli, krok K-3) po etapie 9. Etap 11 (zaległe kroki G1/G2) startuje po etapie 10.
+a etap 10 (rozmowa w konsoli, krok K-3) po etapie 9. Etap 11 (zaległe kroki G1/G2) startuje po etapie 10, a etap 12
+(jedno wejście dla ludzi i miary przepływu) po etapie 11.
 
 | Krok | Repo | Sesja w katalogu |
 |---|---|---|
@@ -30,6 +31,7 @@ a etap 10 (rozmowa w konsoli, krok K-3) po etapie 9. Etap 11 (zaległe kroki G1/
 | etap 9 | pdi (+ ShipScope, tf, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
 | etap 10 | pdi (+ ci_for_sdlc, ShipScope) | `/Users/x/WebstormProjects/pdi` |
 | etap 11 | pdi (+ ci_for_sdlc, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
+| etap 12 | pdi (+ ShipScope, ci_for_sdlc, tf) | `/Users/x/WebstormProjects/pdi` |
 
 GitHub Actions na tym koncie nie działa (płatności). Każde polecenie każe więc uruchomić bramki lokalnie i napisać
 o tym w PR.
@@ -1118,4 +1120,87 @@ Tests (for the steps that come back):
 Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy src) and each touched repo's own gates,
 all in Actions. At the end, show me each recorded decision, and for each step that came back walk it once with me on
 a real story. Commit, PRs, contract changes and changes in other repos on my request.
+```
+
+## Etap 12 — pdi: jedno wejście dla ludzi (G6, P1) i miary przepływu (G7)
+
+Start dopiero po etapie 11 (konsola ma skrzynkę, oś zdarzeń, ślad, decyzje, autonomię i rozmowę). Źródło: [plan
+jednego flow](plan-jeden-flow-sdlc.md) (G6, G7, P1 i P2 do decyzji właściciela), [dokument 15](15-jedna-platforma.md)
+z makietą `design/platforma/` (menu według pytań, konsola pdi jako powłoka czytająca istniejące API, łączenie
+backendu moduł po module, tf zawsze osobno; kolejność w §6) i istniejące miary: API usług ShipScope (`/metrics`,
+`/flow`), kalibracja prognozy G3 i `control_band.py` w tf. G6, G7 i P1 to decyzje architektoniczne, więc etap
+zaczyna się od decyzji na piśmie, a kod obejmuje tylko kroki 1–4 z §6 dokumentu 15 (powłoka z ekranami tylko do
+odczytu); łączenie backendów zostaje na później. Sesja w klonie pdi; zmiany w ShipScope, ci_for_sdlc i tf osobnymi
+PR-ami, po Twojej zgodzie. Silniki zostają osobno: ShipScope i ci_for_sdlc działają też bez platformy, tf zawsze
+w repo klienta.
+
+```text
+Implement stage 12: gaps G6 (one entry point for people) and G7 (flow measures) from docs/plan-jeden-flow-sdlc.md,
+with P1 (one platform), following the proposal in docs/15-jedna-platforma.md (mockup: design/platforma/), after
+stage 11. Decisions on paper first; code only for its §6 steps 1–4 (decision, ADR check, contract, read-only shell).
+Answer me in Polish; code, commits and PR titles in English, Conventional Commits.
+
+Preconditions, check them first and stop if one is missing:
+- stage 11 is done, and the console from stages 4–10 runs in production (inbox, timeline, trace, decisions, Autonomia,
+  chat if built);
+- docs/15-jedna-platforma.md and design/platforma/ (README and preview link): the layers table (§1), the menu by
+  questions (§2: Now, Problems, Work, Product, Releases, Consistency, Outcomes, Decisions, Autonomy), the order (§6)
+  and the open questions (§7);
+- the measures that exist today: ShipScope's service API `GET /api/service/v1/metrics` (PROD per day: deployments,
+  failed, rollbacks, median lead time Done → PROD) and `GET /api/service/v1/flow` (first commit → first PROD, G3
+  step 1), pdi's forecast calibration (G3 step 2), tf's control_band.py, stage 6's acceptance counter and stage 9's
+  incidents if built.
+
+Goal:
+- one product for people: one sign-in and workspace, one menu by questions, the console as the shell; each section
+  reads the existing APIs (pdi, ci_for_sdlc, ShipScope's service API) read-only, with links into the engines where
+  an action lives there; ShipScope and ci_for_sdlc keep working on their own;
+- G7: one agreed set of flow measures in "Outcomes" (e.g. lead time report → PROD and intent → PROD, deployment
+  frequency, change failure rate, time to restore, forecast accuracy, share of decisions made by automation), each
+  with its definition, source, and the period it covers, computed in one place, not per screen.
+
+Today:
+- people use four apps with separate sign-ins (doc 15 intro); the console from stage 4 already signs in with GitHub;
+- G6, G7, P1 and P2 (Jira or repo) are open owner decisions (plan-jeden-flow-sdlc.md "Do decyzji właściciela");
+  doc 15 is a proposal, not a decision;
+- doc 15 §6 step 2 is an ADR-004 in ShipScope (flag state written by executors, ShipScope as dashboard); stage 7's DA6
+  may already have settled it — check before writing anything;
+- the "Product" section needs a feature catalogue in the contract (doc 15 §6 step 3: `feature` in the change header,
+  domain, parts per service), which does not exist yet.
+
+1. Decisions first, before any plan or code. Show me the recommendation for each, wait for my answer, then record
+   them in docs/decyzje.md and the plans' tables:
+   a. G6/P1: accept doc 15's model (one shell, engines stay separate, backends merge module by module later) or a
+      different one; the product name; what "one workspace" means across pdi tenants, ShipScope workspaces and
+      ci_for_sdlc projects (mapping, who creates it, what happens to existing ones).
+   b. One identity: GitHub sign-in as today, how the shell calls ci_for_sdlc and ShipScope for the signed-in user
+      (per-user tokens, a service token per workspace, or a shared session), without a secret copied by hand.
+   c. G7: the measure set, each definition (start and end event, what counts as failure, restore), the one place that
+      computes them, and how tf's control band and ShipScope's /metrics fit (reuse, not a second formula).
+   d. Scope of this stage: which menu sections ship read-only now, whether the feature catalogue (Product) is in this
+      stage or the next, and P2 (Jira or repo as the source of work) as the shell's default.
+2. Then a plan in docs/ (plan-etap12-platforma.md): the workspace mapping and identity, the menu and each section's
+   data source, the measures with definitions, the contract change if Product is in, what stays in each engine, the
+   failure cases (an engine down, a user without access in one engine, stale data), migration for existing users,
+   tests, open questions. Wait for my OK.
+3. Implement only what the plan approves, TDD (red test first), small PRs, each in its repo after my OK: the identity
+   and workspace mapping, the shell's menu and read-only sections, the measures in Outcomes, the feature catalogue if
+   approved. No backend merging in this stage.
+4. Docs: README, docs/15-jedna-platforma.md (status: decided, what is built), design/platforma/README.md (which
+   screens are live), plan-jeden-flow-sdlc.md (G6, G7, P1, P2 state), docs/przebieg-na-sobie-s5.md (one entry point).
+
+Tests:
+- one sign-in reaches every section; a user without access in one engine sees that section's clear refusal, never
+  another workspace's data; unauthenticated refused;
+- each section shows the same numbers as its engine's own UI or API for the same period;
+- each measure: its definition pinned by a test on fixed fixtures, computed in one place, with its source and period
+  shown; a missing source shows "no data", never zero;
+- an engine down degrades only its section; ShipScope and ci_for_sdlc still work alone;
+- menu, sections and charts: keyboard use and accessible names (WCAG AA); no secret or token in logs, URLs or the
+  client bundle.
+
+Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy src) plus the service's and console's
+lint, typecheck, tests and e2e, and each touched repo's own gates, all in Actions. At the end, walk the shell with me:
+sign in once, go from "Now" to the S5 change in "Work", its release in "Releases", and its numbers in "Outcomes".
+Commit, PRs, the product name, any change to existing users' workspaces and changes in other repos on my request.
 ```
