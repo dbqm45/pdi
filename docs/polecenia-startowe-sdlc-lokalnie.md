@@ -1,4 +1,4 @@
-# Polecenia startowe: L1–L5 i etapy 2–8 planu `sdlc up`
+# Polecenia startowe: L1–L5 i etapy 2–9 planu `sdlc up`
 
 **Data:** 2026-10-30 · **Źródło:** [plan `sdlc up`](plan-sdlc-lokalnie.md) §2 (Z1–Z5) i §4, decyzje DL1–DL3
 ([decyzje](decyzje.md)) · **Stan przed startem:** pdi `9ec4e66`, ShipScope 0.2.64, ci_for_sdlc 0.1.34
@@ -10,7 +10,7 @@ próbnym. Etap 3 (produkcja, §7 planu) startuje po etapie 2, a etap 4 (usługa 
 i konsola, krok K-2) po etapie 3. Etap 5 (graf śladu, rejestr decyzji i panel w Jirze, krok K-4) startuje po
 etapie 4, a etap 6 (autonomia zdobywana na danych) po etapie 5.
 Etap 7 (etapy flag według reguły i metryki ochronne) startuje po etapie 6, a etap 8 (uproszczone review
-i lustro Jira ↔ repo) po etapie 7.
+i lustro Jira ↔ repo) po etapie 7. Etap 9 (incydenty i aplikacja Slacka) startuje po etapie 8.
 
 | Krok | Repo | Sesja w katalogu |
 |---|---|---|
@@ -26,6 +26,7 @@ i lustro Jira ↔ repo) po etapie 7.
 | etap 6 | pdi (+ ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` |
 | etap 7 | pdi (+ ShipScope, tf, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
 | etap 8 | pdi (+ tf, ci_for_sdlc, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
+| etap 9 | pdi (+ ShipScope, tf, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
 
 GitHub Actions na tym koncie nie działa (płatności). Każde polecenie każe więc uruchomić bramki lokalnie i napisać
 o tym w PR.
@@ -880,4 +881,86 @@ checks, and each touched repo's own gates, all in Actions. At the end, walk with
 level 3 (classification, proposal with evidence, my approval, merge) and one approved change mirrored to its Jira
 issue. Commit, PRs, any merge, any Jira write on a real site, new permissions and changes in other repos on my
 request.
+```
+
+## Etap 9 — pdi: incydenty w pętli skutku (G8) i aplikacja Slacka (A5)
+
+Start dopiero po etapie 8 (usługa pdi hostowana od etapu 4, skrzynka, rejestr i autonomia działają). Źródło: [plan
+jednego flow](plan-jeden-flow-sdlc.md) (G8 czeka na wybór narzędzia: PagerDuty, Opsgenie, …), [plan
+A5](plan-a5-decyzje-z-rozmow.md) (wersja lokalna gotowa; aplikacja Slacka po DA4, tą samą ścieżką w skrzynce)
+i [dokument 14](14-pdi-standalone.md) (etap 3: skrót „Record decision” na wiadomości, zgoda organizacji na
+przetwarzanie treści wątku). Obie części dotyczą sygnałów spoza repo, które dziś przenosi się ręcznie; każda może pójść
+osobno, jeśli jedno z narzędzi nie jest wybrane. Sesja w klonie pdi; zmiany w ShipScope, tf i sprintdecku osobnymi
+PR-ami, po Twojej zgodzie. Ocena skutku i triaż zostają u człowieka (`outcome.assessment` i `triage` nigdy poniżej
+poziomu 3).
+
+```text
+Implement stage 9: gap G8 (incidents in the outcome loop; docs/plan-jeden-flow-sdlc.md) and the Slack app for A5
+(docs/plan-a5-decyzje-z-rozmow.md "Aplikacja Slacka dochodzi po DA4"; docs/14-pdi-standalone.md stage 3), both on the
+hosted pdi service from stage 4. Answer me in Polish; code, commits and PR titles in English, Conventional Commits.
+
+Preconditions, check them first and stop if one is missing:
+- stage 8 is done, and the pdi service, inbox, registry, timeline and autonomy run in production (stages 4–6);
+- A5's local version works: `propose_decisions_from_conversation` and `/decisions-from` produce drafts with verbatim
+  quotes checked against the text, each approved or rejected in the inbox (contract 0.10.0, `source.kind: meeting`);
+- the S5 impact review (step 13 in docs/przebieg-na-sobie-s5.md) and how `outcome.assessment` is decided today.
+Either part may go alone: if no incident tool is chosen, do part B and say A waits; if Slack is not allowed in the
+workspace, do part A and say B waits.
+
+Goal:
+A. G8: an incident in the chosen tool that touches a released change (by service, time window after a deployment or
+   flag stage, or an explicit link) shows up in pdi: as evidence on that change's trace and on its impact review
+   (`outcome.assessment` stays a human decision at level 3), in the "Teraz" timeline, and, when it is new work, as a
+   report that goes through triage like any other (A6 grouping applies). If stage 7's guard metrics exist, an open
+   incident on a flag's service blocks its stage advance with that reason.
+B. Slack: a "Record decision" message shortcut reads the thread, drafts `DEC-n` with verbatim quotes and a link to the
+   thread through the same path as A5's local version, and puts it in the inbox; nothing is recorded without my
+   button (DA5). Optionally, inbox items I can act on are announced in a chosen channel with a link to the console;
+   decisions are never made by a Slack reply.
+
+Today:
+- G8 waits on a tool choice by the owner (PagerDuty, Opsgenie, …; plan-jeden-flow-sdlc.md, kontekst-rozmowy.md).
+  pdi's impact review reads ShipScope's metrics and, after stage 7, guard metrics; incidents are not read anywhere.
+- A5 works locally only: a thread is pasted or read by Claude's Slack connector, then drafts go to the inbox.
+  docs/14-pdi-standalone.md lists for Slack: the app, a hosted pdi, and the organisation's consent to process thread
+  content (and the model provider's terms).
+- Thread and incident text is untrusted (plan risk: hidden instructions in Jira or Confluence text reaching the chat);
+  approval is only by button.
+
+1. Decisions first, before any plan or code. Show me the recommendation for each, wait for my answer, then record
+   them in docs/decyzje.md and the plans' tables:
+   a. G8's tool and how incidents reach pdi (its webhook to the pdi receiver, signed; or polling its API), how an
+      incident is matched to a change (service map, window, explicit link) and what an unmatched incident does.
+   b. Whether an incident creates a report automatically or only proposes one (triage stays human either way), and
+      whether an open incident blocks a flag stage advance (stage 7).
+   c. Slack app: distribution (one workspace or many), scopes (the narrowest that read one thread on request), how
+      its signing secret and bot token reach the pdi service without being copied by hand, and the consent and
+      retention of thread text (what is stored: quotes and link only, or more).
+   d. Channel announcements: on or off, which items, and how they avoid becoming a second inbox.
+2. Then a plan in docs/ (plan-etap9-incydenty-i-slack.md): the incident contract (event or source kind; a contract
+   change if needed), matching, the trace and impact-review evidence, the Slack shortcut flow, permissions and
+   consent, failure cases (tool down, duplicate incidents, thread deleted, user without access to the thread), tests,
+   open questions. Wait for my OK.
+3. Implement only what the plan approves, TDD (red test first), small PRs, each in its repo after my OK: the contract
+   change, the incident receiver and matching, the evidence on trace and impact review, the Slack app and shortcut,
+   the optional announcements.
+4. Docs: README, plan-jeden-flow-sdlc.md (G8 state), plan-a5-decyzje-z-rozmow.md (Slack app done), 14-pdi-standalone.md
+   (stage 3 state), plan-automatyzacja-i-konsola.md §8 (A5 row), docs/przebieg-na-sobie-s5.md (where incidents and
+   Slack decisions show).
+
+Tests:
+- an incident is accepted only with a valid signature (or from the polled API), stored once (idempotent on its id),
+  matched by decision 1a, and an unmatched one handled as decided; never a decision by itself;
+- impact review shows matched incidents as evidence and still needs my decision; an open incident blocks a flag
+  advance only if 1b says so, with the reason;
+- the Slack shortcut: request signature checked, only the thread it was invoked on is read, drafts carry verbatim
+  quotes that exist in the thread (a quote not in the text is dropped), nothing recorded without the inbox button;
+  a deleted thread or a user without access gives a clear refusal;
+- thread and incident text handled as data, never as instructions or HTML; tenancy as before; no secret, token or
+  thread text beyond what 1c allows in logs, URLs, events or the client bundle.
+
+Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy src) plus the service's and console's
+checks and each touched repo's own gates, all in Actions. At the end, walk with me one test incident matched to the
+S5 change (trace, timeline, impact review) and one decision recorded from a Slack thread. Commit, PRs, the incident
+tool's setup, installing the Slack app, any consent setting and changes in other repos on my request.
 ```
