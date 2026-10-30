@@ -45,6 +45,7 @@ class World:
         self.runs: list[tuple[list[str], Path | None, dict[str, str], str | None]] = []
         self.spawned: list[tuple[str, list[str], dict[str, str]]] = []
         self.alive_pids: set[int] = set()
+        self.busy_ports: set[int] = set()
         self.killed: list[int] = []
         self.next_pid = 1000
         self.down_until: dict[str, int] = {}
@@ -131,6 +132,7 @@ class World:
             alive=self.alive,
             kill=self.kill,
             http=self.http,
+            port_free=lambda host, port: port not in self.busy_ports,
             which=lambda name: None if name in self.missing else f"/usr/local/bin/{name}",
             ask=self.ask,
             type_line=self.type_line,
@@ -220,6 +222,36 @@ def test_first_up_asks_for_the_paths_once_then_starts_everything_in_order(world:
     assert world.spawned[1][1] == ["uv", "run", "--directory", str(world.projects / "pdi"), "pdi-receiver"]
     assert world.text().rstrip().endswith("gotowe")
     assert "http://localhost:3000" in world.text() and "http://127.0.0.1:8787" in world.text()
+
+
+def test_up_stops_when_a_process_it_did_not_start_holds_the_shipscope_port(world: World) -> None:
+    """Pozostałość po przerwanym `sdlc up` odpowiadała na /health, a nowy ShipScope kończył się „port in use”."""
+    world.busy_ports = {3000}
+
+    assert up(world) == 1
+
+    assert [name for name, _, _ in world.spawned] == []
+    text = world.text()
+    assert "port 3000" in text and "lsof -nP -iTCP:3000" in text
+    assert "gotowe" not in text
+
+
+def test_up_stops_when_a_foreign_process_holds_the_receiver_port(world: World) -> None:
+    world.busy_ports = {8787}
+
+    assert up(world) == 1
+
+    assert [name for name, _, _ in world.spawned] == ["shipscope"]
+    assert "port 8787" in world.text()
+
+
+def test_a_running_shipscope_started_by_sdlc_is_not_mistaken_for_a_foreign_one(world: World) -> None:
+    assert up(world) == 0
+    world.busy_ports = {3000, 8787}  # teraz zajmuje je nasz własny stos
+    world.output.clear()
+
+    assert up(world) == 0
+    assert world.text().rstrip().endswith("gotowe")
 
 
 def test_the_connection_waits_for_a_workspace_and_writes_the_three_variables(world: World) -> None:
@@ -648,3 +680,14 @@ def test_a_finished_child_is_not_alive_and_stopping_it_does_not_fail(tmp_path: P
         time.sleep(0.1)
     assert cli._alive(pid) is False
     cli._kill(pid)  # już odebrany: nic do zrobienia, bez wyjątku
+
+
+def test_port_free_sees_a_listening_socket() -> None:
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+        server.bind(("127.0.0.1", 0))
+        server.listen()
+        port = server.getsockname()[1]
+        assert cli._port_free("127.0.0.1", port) is False
+    assert cli._port_free("127.0.0.1", port) is True

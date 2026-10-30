@@ -16,10 +16,12 @@ import json
 import os
 import re
 import signal
+import socket
 import subprocess
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import webbrowser
 from collections.abc import Callable, Mapping
@@ -68,6 +70,7 @@ class Ctx:
     alive: Callable[[int], bool]
     kill: Callable[[int], None]
     http: Http
+    port_free: Callable[[str, int], bool]
     which: Callable[[str], str | None]
     ask: Callable[[str, str], str]
     type_line: Callable[[str], str]
@@ -182,10 +185,22 @@ def wait_for(ctx: Ctx, name: str, url: str, *, seconds: float, any_status: bool)
         ctx.sleep(POLL_SECONDS)
 
 
+def ensure_port_free(ctx: Ctx, name: str, url: str) -> None:
+    """Port usługi, której `sdlc` nie uruchomił, musi być wolny: inaczej /health odpowie obcy proces."""
+    parts = urllib.parse.urlsplit(url)
+    host, port = parts.hostname or "localhost", parts.port or 80
+    if not ctx.port_free(host, port):
+        raise Stop(
+            f"{name}: port {port} zajmuje inny proces, którego sdlc nie uruchomił (np. pozostałość po przerwanym "
+            f"sdlc up). Sprawdź: lsof -nP -iTCP:{port} -sTCP:LISTEN, zatrzymaj go i uruchom sdlc up ponownie."
+        )
+
+
 def ensure_shipscope(ctx: Ctx, config: home.Config) -> str:
     url = shipscope_url(config)
     if pid_of(ctx, "shipscope") is not None:
         return url
+    ensure_port_free(ctx, "ShipScope", url)
     first = not home.read_env(config.shipscope / "server/.env").get("GITHUB_APP_CLIENT_ID")
     if first:
         ctx.out(f"ShipScope: pierwsze uruchomienie — otwórz {url}/ i kliknij „Create the GitHub App” (raz).")
@@ -204,6 +219,7 @@ def ensure_shipscope(ctx: Ctx, config: home.Config) -> str:
 
 def start_receiver(ctx: Ctx, config: home.Config, secrets: Mapping[str, str]) -> None:
     argv = ["uv", "run", "--directory", str(config.pdi), "pdi-receiver"]
+    ensure_port_free(ctx, "pdi-receiver", RECEIVER_URL)
     start(ctx, "pdi-receiver", argv, config.pdi, pdi_env(ctx, config, secrets))
     wait_for(ctx, "pdi-receiver", f"{RECEIVER_URL}/", seconds=START_WAIT["pdi-receiver"], any_status=True)
 
@@ -616,6 +632,7 @@ def real_ctx() -> Ctx:
         alive=_alive,
         kill=_kill,
         http=_http,
+        port_free=_port_free,
         which=shutil.which,
         ask=_ask,
         type_line=input,
@@ -684,6 +701,12 @@ def _kill(pid: int) -> None:
             return
     with contextlib.suppress(ProcessLookupError, PermissionError):
         os.killpg(pid, signal.SIGKILL)
+
+
+def _port_free(host: str, port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.settimeout(0.5)
+        return probe.connect_ex((host, port)) != 0
 
 
 def _http(url: str, headers: Mapping[str, str]) -> tuple[int, bytes]:
