@@ -1,10 +1,11 @@
-# Polecenia startowe: L1–L4 planu `sdlc up`
+# Polecenia startowe: L1–L5 planu `sdlc up`
 
 **Data:** 2026-10-30 · **Źródło:** [plan `sdlc up`](plan-sdlc-lokalnie.md) §2 (Z1–Z5) i §4, decyzje DL1–DL3
 ([decyzje](decyzje.md)) · **Stan przed startem:** pdi `9ec4e66`, ShipScope 0.2.64, ci_for_sdlc 0.1.34
 
 L1, L2 i L3 są niezależne. Każdy idzie w osobnej sesji Claude Code w swoim repo. Polecenie wklejasz jako pierwszą
-wiadomość sesji. L4 (`sdlc` w `pdi/stack/`) startuje dopiero po merge'u wszystkich trzech, potem L5 (repo próbne).
+wiadomość sesji. L4 (`sdlc` w `pdi/stack/`) startuje dopiero po merge'u wszystkich trzech, a L5 (repo próbne)
+po merge'u L4.
 
 | Krok | Repo | Sesja w katalogu |
 |---|---|---|
@@ -12,6 +13,7 @@ wiadomość sesji. L4 (`sdlc` w `pdi/stack/`) startuje dopiero po merge'u wszyst
 | L2 | pdi | `/Users/x/WebstormProjects/pdi` |
 | L3 | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` |
 | L4 | pdi | `/Users/x/WebstormProjects/pdi` |
+| L5 | pdi (+ nowe repo `sdlc-sandbox`) | `/Users/x/WebstormProjects/pdi` |
 
 GitHub Actions na tym koncie nie działa (płatności). Każde polecenie każe więc uruchomić bramki lokalnie i napisać
 o tym w PR.
@@ -243,4 +245,85 @@ processes):
 
 Gates: uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src. GitHub
 Actions do not run on this account right now: run the gates locally and say so in the PR. Commit and PR on my request.
+```
+
+## L5 — pdi + nowe repo `sdlc-sandbox`: repo próbne
+
+Start dopiero po merge'u L4. Sesja w klonie pdi; repo-szablon zakłada ta sama sesja, po Twojej zgodzie.
+
+```text
+Implement step L5 of docs/plan-sdlc-lokalnie.md (§2 row Z5, §4 L5, §5 test run) in this repo, under DL2 and DL3
+(docs/decyzje.md). Answer me in Polish; code, commits and PR titles in English, Conventional Commits.
+
+Precondition: L4 is merged (`uv run sdlc up` ends with "gotowe", `uv run sdlc status` shows connected for
+ShipScope ↔ pdi and ci_for_sdlc → pdi, `sdlc deploy` works). Check this first. If it is missing, stop and tell me.
+
+Decisions first: DL4 (trial app: a static page in Node with no dependencies, flags in JSON) and DL5 (budget
+PDI_PHASE_BUDGET_USD=3 per phase, each phase's cost in the log) are open (plan §8, decyzje.md "Otwarte"). Show me the
+recommendation for each, wait for my answer, then record both in docs/decyzje.md and the plan's §8 table.
+
+Goal: `uv run sdlc sandbox <name>` gives me a private repo of my own, created from a template, cloned locally,
+tracked in ShipScope and set as pdi's PDI_DISPATCH_CHECKOUT. On it the whole §5 scenario passes in one day: report
+→ intent, requirements, architecture and design phases with gates → ci_for_sdlc readiness and approve-for-implementation
+→ talos slices → `sdlc deploy test|prod` → flag stages → impact review.
+
+Today:
+- The S5 run (docs/przebieg-na-sobie-s5.md) used sprintdeck, which needs Vercel and Supabase. Its step P8 shows how
+  tf goes into a product repo:
+  - `tf install --packs pack-it,pack-docs,pack-ux --language pl --commit-language en --yes --shared`;
+  - `tf add mode-pdi mode-talos`;
+  - `tf doctor`;
+  - the phase_run.py / metric_watch.py `workflow install` commands;
+  - ci_for_sdlc's docs/templates/change-check.yml.
+  P8 also set repo secrets and variables for Actions.
+- Steps 11–12 of S5 show the flags files `config/flags.{env}.json` (`test`, `prod`). ShipScope finds them under
+  Settings → Sources → Advanced sources and reads `rollout` stages from them at the deployed commit.
+- ShipScope reads deployments only from GitHub Deployments, which `sdlc deploy` creates (L4).
+- L4's docs/plan-l4-sdlc.md says which ShipScope API calls `sdlc` can make (Connect, Track repository) and which
+  steps need a signed-in admin. Read it before planning.
+
+1. Plan first in docs/ (plan-l5-sandbox.md: the template's files, the `sdlc sandbox` steps, tests, open questions)
+   before code; TDD for the pdi part (red test first).
+2. Template repo dbqm45/sdlc-sandbox (GitHub template repository, private). Build it in a local directory first and
+   show me the file list. Create the GitHub repo and push only after I say so. Contents:
+   a. The app per DL4:
+      - a static page served by a Node server with no dependencies;
+      - `npm test` using node:test;
+      - one visible behaviour behind a flag read from config/flags.{env}.json, in the shape ShipScope reads (check
+        ShipScope's flags reader, and mode-pdi's release.yaml rollout stages).
+   b. tf installed as in S5 P8 (team mode, pack-it, pack-ux, mode-pdi, mode-talos, `tf doctor` clean). Pin the tf
+      version in the README. Keep the workflow files tf installs, but note that the local run never needs them.
+   c. .claude/pdi-metrics.json in the format mode-pdi expects (find it in tf's mode-pdi). Use a metric the trial app
+      can produce without users, or say in the plan that impact is judged by hand.
+   d. docs/project/changes/ empty, ready for CHG-1.
+   e. A README with the one report to enter (small, one flag, two slices, finishable in a day) and the §5 steps.
+3. `sdlc sandbox <name> [--owner <login>]` in src/pdi/stack/, idempotent:
+   a. `gh repo create <owner>/<name> --template dbqm45/sdlc-sandbox --private --clone` into the folder from
+      ~/.sdlc/config.toml. If the repo exists, reuse it and only clone or pull.
+   b. Track the repo in ShipScope through its API and set its flags source to config/flags.{env}.json.
+      If a step needs the admin in the browser, print the exact clicks once and wait for Enter (as L4 does).
+   c. Set PDI_DISPATCH_CHECKOUT in ~/.sdlc/env and restart pdi-receiver.
+   d. Print the repo URL, the clone path and the first step of §5. End with "gotowe".
+4. Shorten time for the trial (§5 "Skrócenie czasu"):
+   - SYNC_INTERVAL_MINUTES=1 for ShipScope in `sdlc up`, if L4 did not set it;
+   - the README tells me `review_by` tomorrow in B1 and `min_days: 0` for flag stages.
+5. Docs:
+   - README `sdlc` section (`sandbox`);
+   - docs/plan-sdlc-lokalnie.md §9 (L5 state);
+   - a short docs/przebieg-lokalny.md: the §5 scenario as a checklist with the expected result of each step and where
+     to look (ShipScope screen, inbox, `sdlc status`).
+
+Tests (tests/test_stack.py or tests/test_sandbox.py, injected runner, HTTP client and home dir; no real gh, network or
+processes):
+- the exact `gh repo create` call, and reuse when the repo exists;
+- the ShipScope calls for tracking and the flags source;
+- PDI_DISPATCH_CHECKOUT written without touching other values;
+- no secret in argv, logs or output;
+- a second run changes nothing.
+In the template: `npm test` passes, and `tf doctor` is clean.
+
+Gates: uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src, plus
+`npm test` in the template. GitHub Actions do not run on this account right now: run the gates locally and say so in
+the PR. At the end, run `sdlc up` and `sdlc sandbox sdlc-proba` with me and walk §5 step 1. The rest of §5 I run
+myself with docs/przebieg-lokalny.md. Commit, PR and the new repo on my request.
 ```
