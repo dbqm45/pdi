@@ -1,4 +1,4 @@
-# Polecenia startowe: L1–L5 i etap 2 planu `sdlc up`
+# Polecenia startowe: L1–L5, etap 2 i etap 3 planu `sdlc up`
 
 **Data:** 2026-10-30 · **Źródło:** [plan `sdlc up`](plan-sdlc-lokalnie.md) §2 (Z1–Z5) i §4, decyzje DL1–DL3
 ([decyzje](decyzje.md)) · **Stan przed startem:** pdi `9ec4e66`, ShipScope 0.2.64, ci_for_sdlc 0.1.34
@@ -6,7 +6,7 @@
 L1, L2 i L3 są niezależne. Każdy idzie w osobnej sesji Claude Code w swoim repo. Polecenie wklejasz jako pierwszą
 wiadomość sesji. L4 (`sdlc` w `pdi/stack/`) startuje dopiero po merge'u wszystkich trzech, a L5 (repo próbne)
 po merge'u L4. Etap 2 (scenariusz S5 na sprintdecku) startuje po L5 i udanym przebiegu §5 na repo
-próbnym.
+próbnym. Etap 3 (produkcja, §7 planu) startuje po etapie 2.
 
 | Krok | Repo | Sesja w katalogu |
 |---|---|---|
@@ -16,6 +16,7 @@ próbnym.
 | L4 | pdi | `/Users/x/WebstormProjects/pdi` |
 | L5 | pdi (+ nowe repo `sdlc-sandbox`) | `/Users/x/WebstormProjects/pdi` |
 | etap 2 | pdi (+ sprintdeck) | `/Users/x/WebstormProjects/pdi` |
+| etap 3 | pdi (+ ShipScope, tf, sprintdeck) | `/Users/x/WebstormProjects/pdi` |
 
 GitHub Actions na tym koncie nie działa (płatności). Każde polecenie każe więc uruchomić bramki lokalnie i napisać
 o tym w PR.
@@ -404,4 +405,78 @@ Gates: uv run pytest, uv run ruff check src tests, uv run ruff format --check sr
 Actions do not run on this account right now: run the gates locally and say so in the PR. At the end, run
 `sdlc attach dbqm45/sprintdeck` with me and walk S5 version 3 through step 3 (triage → CHG-1 dispatched). The rest I
 run myself, filling the §7 journal. Commit, PR and any ShipScope or sprintdeck change on my request.
+```
+
+## Etap 3 — pdi (+ ShipScope, tf): z localhosta na produkcję
+
+Start dopiero po etapie 2 (wypełniony dziennik S5 v3, luki zapisane w pdi). Sesja w klonie pdi; zmiany w ShipScope,
+tf i sprintdecku osobnymi PR-ami, po Twojej zgodzie. Etap zależy od dwóch rzeczy spoza kodu: płatności GitHub
+Actions (na produkcji fazy idą przez Actions, R4) i decyzji DA4 (stack usługi pdi), dlatego najpierw sprawdza warunki
+i zbiera decyzje, a kod pisze dopiero według zatwierdzonego planu.
+
+```text
+Implement stage 3 of docs/plan-sdlc-lokalnie.md: §7 "Na produkcji" — the same flow as stage 2 (S5 on
+dbqm45/sprintdeck, docs/przebieg-na-sobie-s5.md version 3), but with hosted services instead of localhost and tf
+phases in GitHub Actions instead of PDI_DISPATCH=local. Answer me in Polish; code, commits and PR titles in English,
+Conventional Commits.
+
+Preconditions, check them first and stop if one is missing:
+- stage 2 is done: S5 version 3 has a filled §7 journal and its gaps are recorded in pdi (`record_problem`, channel
+  dogfooding). Ask me for the journal link;
+- GitHub Actions run on this account: `gh run list -R dbqm45/sprintdeck -L 3` shows jobs with steps (not 0-step
+  billing failures). If not, stop: production phases need Actions (R4, DL1).
+
+Goal: no process of the flow runs on my Mac. A report entered in the hosted pdi form goes through the phases with
+gates (phases in sprintdeck's Actions, `sdlc-phase.yml`), ci_for_sdlc readiness, delivery, Vercel deployments, flag
+stages and the impact review, with the production ShipScope and a hosted pdi. Secrets live only in the hosting
+platforms and in GitHub repo secrets; nobody copies them by hand between services, as in L4.
+
+Today:
+- Plan §7 maps local to production:
+  - localhost → domains (ShipScope on Render, pdi per DA4);
+  - ShipScope local mode (L1) → off by itself, because PUBLIC_BASE_URL is not localhost;
+  - PDI_DISPATCH=local → Actions (`sdlc-phase.yml`);
+  - `sdlc deploy` → the real pipeline (on sprintdeck, Vercel from stage 2).
+  Variable names and contracts do not change.
+- DA4 (docs/plan-automatyzacja-i-konsola.md) is open: recommendation TypeScript + Fastify + Postgres for the pdi
+  service, with the MCP server staying in Python. Today pdi is a Python CLI + receiver (src/pdi/receiver.py) +
+  MCP server over a file registry (PDI_REGISTRY_PATH); plan-f4-pdi.md says "orkiestrator najpierw jako CLI".
+- Plan §6 lists what local runs never tested: Actions phases, GitHub webhooks to ShipScope, URL and signature checks
+  on public addresses. These are the stage's risks.
+- `sdlc up` keeps everything in ~/.sdlc/env and connects ShipScope to pdi through local-pdi.js. In production,
+  Connect runs in ShipScope's UI and shows the three PDI_SHIPSCOPE_* values once.
+
+1. Decisions first, before any plan or code. Show me the recommendation for each, wait for my answer, then record
+   them in docs/decyzje.md:
+   a. How pdi is hosted for stage 3: the current Python receiver + registry as a service (smallest step; where;
+      where the registry lives and how it is backed up) versus starting the DA4 service now. Recommend one and say
+      what the other costs later.
+   b. Where pdi-impact-review, pdi-forecast and metric_watch run on a schedule (Actions cron in which repo, or the
+      host's scheduler).
+   c. How the PDI_SHIPSCOPE_* values from Connect reach pdi's hosting without being copied by hand (e.g. a one-time
+      `sdlc` step that reads them and writes them through the platform's CLI or API from stdin, never argv). If no
+      such path exists, say so and propose the least manual one.
+   d. The budget for production phases (DL5 was 3 USD per phase on the trial repo).
+2. Then a plan in docs/ (plan-etap3-produkcja.md): services and their domains, each variable from ~/.sdlc/env and where
+   it goes (platform env, GitHub secret, nowhere), the order of the switch, how to roll back to the local stack, tests,
+   open questions. Wait for my OK on the plan.
+3. Implement only what the plan approves, TDD for the pdi part (red test first). Likely pieces, each its own PR:
+   - pdi: deployable receiver (config from env only, health endpoint, public-address checks on, no local-mode
+     shortcuts) and, if 1c allows it, a `sdlc` command that pushes the env to the hosting and to GitHub secrets
+     without printing or passing secrets in argv;
+   - sprintdeck: `sdlc-phase.yml` and change-check enabled with repo secrets and variables (tf's files, not edited by
+     hand);
+   - ShipScope or tf: only if the plan finds a gap, as a separate PR in its repo after my OK.
+4. Docs: docs/przebieg-na-sobie-s5.md version 4 (production run: prep, steps 1–14, gaps, empty journal), the README
+   (production section), plan-sdlc-lokalnie.md §7 and §9 (stage 3 state).
+
+Tests (pdi, injected runner, HTTP client and env; no real network, platforms or GitHub):
+- the receiver refuses to start in production without required variables and names only the missing names;
+- local-mode shortcuts (loopback, PDI_DISPATCH=local) are off when the public URL is not localhost;
+- the env push sends secrets via stdin or API body, never argv, logs or output;
+- a second push changes nothing.
+
+Gates: uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src, plus the
+Actions checks once they run. At the end, walk S5 version 4 with me through step 3 (triage → phase intent started in
+sprintdeck's Actions). The rest I run myself. Commit, PRs, platform changes and any secret setting on my request.
 ```
