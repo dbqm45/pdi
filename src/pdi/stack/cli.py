@@ -683,24 +683,80 @@ def _alive(pid: int) -> bool:
     return True
 
 
+KILL_GRACE_SECONDS = 10.0
+
+
 def _kill(pid: int) -> None:
-    """SIGTERM całej grupy procesów (`npm run dev` zatrzymuje wtedy web i worker), po 10 s SIGKILL."""
+    """SIGTERM grupy procesów i wszystkich potomków, po KILL_GRACE_SECONDS SIGKILL tego, co jeszcze żyje.
+
+    Potomków zbiera się przed sygnałem: `npm run dev` w ShipScope startuje web i worker we własnych grupach
+    (detached) i kończy się po pół sekundy, nie czekając na nie, a osierocone dzieci nie są już jego potomkami (PRB-8).
+    """
     if not _alive(pid):
         return
+    tree = [pid, *_descendants(pid, _process_table())]
     try:
         os.killpg(pid, signal.SIGTERM)
     except ProcessLookupError:
-        return
+        pass
     except PermissionError:  # macOS: grupa z samym zombie
-        if not _alive(pid):
+        if not _alive(pid) and len(tree) == 1:
             return
-        raise
-    for _ in range(50):
+    for child in tree[1:]:
+        _signal(child, signal.SIGTERM)
+    deadline = time.monotonic() + KILL_GRACE_SECONDS
+    while time.monotonic() < deadline:
+        if not any(_running(p) for p in tree):
+            return
         time.sleep(0.2)
-        if not _alive(pid):
-            return
     with contextlib.suppress(ProcessLookupError, PermissionError):
         os.killpg(pid, signal.SIGKILL)
+    for child in tree[1:]:
+        _signal(child, signal.SIGKILL)
+
+
+def _running(pid: int) -> bool:
+    """Własne dziecko jak w _alive; cudzy proces (sierota przejęta przez init) — póki istnieje i nie jest zombie."""
+    if not _alive(pid):
+        return False
+    try:
+        done = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True, check=False)  # noqa: S603, S607
+    except OSError:
+        return True
+    state = done.stdout.strip()
+    return bool(state) and not state.startswith("Z")
+
+
+def _signal(pid: int, sig: signal.Signals) -> None:
+    with contextlib.suppress(ProcessLookupError, PermissionError):
+        os.kill(pid, sig)
+
+
+def _process_table() -> str:
+    """`pid ppid` każdego procesu (ps działa tak samo na Linuksie i macOS); pusty, gdy ps nie działa."""
+    try:
+        done = subprocess.run(["ps", "-A", "-o", "pid=", "-o", "ppid="], capture_output=True, text=True, check=False)  # noqa: S603, S607
+    except OSError:
+        return ""
+    return done.stdout if done.returncode == 0 else ""
+
+
+def _descendants(pid: int, table: str) -> list[int]:
+    """Potomkowie `pid` z tabeli `pid ppid`, wszerz (dzieci przed wnukami)."""
+    children: dict[int, list[int]] = {}
+    for line in table.splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+            children.setdefault(int(parts[1]), []).append(int(parts[0]))
+    found: list[int] = []
+    queue = list(children.get(pid, []))
+    while queue:
+        child = queue.pop(0)
+        if child in found or child == pid:
+            continue
+        found.append(child)
+        queue += children.get(child, [])
+    return found
 
 
 def _port_free(host: str, port: int) -> bool:

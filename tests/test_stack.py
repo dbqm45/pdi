@@ -4,6 +4,8 @@ Plan: docs/plan-l4-sdlc.md."""
 import json
 import os
 import stat
+import subprocess
+import sys
 import time
 from collections.abc import Mapping
 from pathlib import Path
@@ -680,6 +682,63 @@ def test_a_finished_child_is_not_alive_and_stopping_it_does_not_fail(tmp_path: P
         time.sleep(0.1)
     assert cli._alive(pid) is False
     cli._kill(pid)  # już odebrany: nic do zrobienia, bez wyjątku
+
+
+# Jak `npm run dev` w ShipScope: rodzic na SIGTERM kończy się od razu, a dziecko we własnej grupie procesów (detached)
+# zamyka się wolno albo wcale — po `sdlc down` zostawało sierotą (PRB-8).
+TREE = """
+import os, signal, subprocess, sys, time
+child = subprocess.Popen([sys.executable, "-c", CHILD], start_new_session=True)
+open(sys.argv[1], "w").write(str(child.pid))
+signal.signal(signal.SIGTERM, lambda *a: os._exit(0))
+while True:
+    time.sleep(0.1)
+"""
+CHILD = "import signal, time; signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(60)"
+
+
+def _gone(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return True
+    # Sierota odebrana przez init może przez chwilę być zombie — w `ps` ma stan Z.
+    state = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()
+    return not state or state.startswith("Z")
+
+
+def test_stopping_stops_children_in_their_own_process_group(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cli, "KILL_GRACE_SECONDS", 1.0)
+    child_file = tmp_path / "child.pid"
+    script = tmp_path / "tree.py"
+    script.write_text(f"CHILD = {CHILD!r}\n{TREE}", encoding="utf-8")
+    pid = cli._spawn(
+        "drzewo", [sys.executable, str(script), str(child_file)], tmp_path, dict(os.environ), tmp_path / "d.log"
+    )
+    for _ in range(100):
+        if child_file.is_file() and child_file.read_text():
+            break
+        time.sleep(0.05)
+    child = int(child_file.read_text())
+    assert cli._alive(pid) and not _gone(child)
+
+    started = time.monotonic()
+    cli._kill(pid)
+
+    for _ in range(50):
+        if _gone(child):
+            break
+        time.sleep(0.1)
+    assert cli._alive(pid) is False
+    assert _gone(child), "dziecko w osobnej grupie procesów zostało sierotą"
+    assert time.monotonic() - started < 5
+
+
+def test_descendants_come_from_the_process_table() -> None:
+    table = "  1     0\n 10     1\n 11    10\n 12    11\n 13    10\n 20     1\n bad line\n"
+
+    assert cli._descendants(10, table) == [11, 13, 12]
+    assert cli._descendants(99, table) == []
 
 
 def test_port_free_sees_a_listening_socket() -> None:
