@@ -325,3 +325,23 @@ async def test_decisions_from_conversation_through_tools(server: Any, registry: 
     assert decided["decision"]["source"]["kind"] == "slack"
     assert decided["decision"]["kind"] == "product"
     assert registry.get(decided["decision"]["id"])["draft_edited"] is False
+
+
+async def test_ai_draft_needs_draft_edited_and_triage_keeps_it(
+    server: Any, registry: Registry, make_draft: Draft, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("PDI_NOTIFY_URL", raising=False)
+    from tests.test_problems import problem
+
+    with pytest.raises(ToolError, match="draft_edited"):
+        await call(server, "record_decision", make_draft(draft_edited=None))
+    await call(server, "record_problem", problem())
+    args = {"problem_id": "PRB-1", "outcome": "accepted", "change": "CHG-12", **make_draft(draft_edited=True)}
+    triaged = await call(server, "triage_problem", args)
+
+    assert registry.get(triaged["decision"]["id"])["draft_edited"] is True
+
+
+def test_instructions_say_how_to_fill_drafted_by_and_draft_edited(server: Any) -> None:
+    assert "draft_edited" in server.instructions
+    assert "kto napisał tekst szkicu" in server.instructions

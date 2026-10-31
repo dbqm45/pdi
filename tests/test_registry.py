@@ -363,3 +363,29 @@ def test_autonomy_fields_survive_record_and_get(registry: Registry, make_draft: 
 
     got = registry.get("DEC-0001")
     assert (got["decision_type"], got["draft_edited"], got["automation"]["level"]) == ("flag.stage_advance", True, 2)
+
+
+# --- pomiar szkiców AI (DA2, PRB-21) ---
+
+
+def test_ai_draft_without_draft_edited_is_refused(registry: Registry, make_draft: Draft) -> None:
+    with pytest.raises(InvalidDecision, match="draft_edited"):
+        registry.record(make_draft(draft_edited=None))
+    with pytest.raises(InvalidDecision, match="draft_edited"):
+        registry.supersede("DEC-0001", make_draft(draft_edited=None))
+    assert registry.decisions() == []
+
+
+@pytest.mark.parametrize(
+    "fields",
+    [
+        {"draft_edited": False},
+        {"draft_edited": True},
+        {"drafted_by": "human"},
+        {"draft_edited": None, "automation": {"level": 0, "rule": "zielone CI i zgodny format"}},
+    ],
+)
+def test_measured_human_and_automation_decisions_are_recorded(
+    registry: Registry, make_draft: Draft, fields: dict[str, Any]
+) -> None:
+    assert registry.record(make_draft(**fields))["id"] == "DEC-0001"
