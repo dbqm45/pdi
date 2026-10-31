@@ -53,7 +53,7 @@ Skrócenie czasu:
 
 - [ ] Cięcia jako PR-y, a commity mają `Change: TSK-n` i `Flag: show_last_deployed`. W klonie `npm test` przechodzi.
   Merge po przeglądzie. Gałęzie `story/*` wypycha i PR-y otwiera pdi po przebiegu talosa (`get_change`:
-  `dispatch.prs`); cięcie zbudowane na poprzednim ma PR do niego. Bez gałęzi z commitami faza kończy się krokiem `cuts`.
+  `dispatch.prs`, w `get_trace` przy zadaniach); cięcie zbudowane na poprzednim ma PR do niego. Bez gałęzi z commitami faza kończy się krokiem `cuts`.
 - [ ] **SS** zakładka Changes (repo): CHG-1 z tytułem z intencji. Release plan: linia R1.
 
 ## 5. Wdrożenia

@@ -1,7 +1,8 @@
 """Graf śladu jednej zmiany (F5): PRB → CHG → bramki i decyzje → TSK → PR → wdrożenia → wydania → skutek.
 
-Tylko odczyt: składa to, co pdi już ma (rejestr decyzji, stan zmiany, skrzynka), i — gdy `live` — status wdrożeń z API
-usług ShipScope (`pdi.impact.read_item`). Luki (`gaps`) się pokazuje, nie naprawia. Plan: docs/plan-f5-graf-sladu.md.
+Tylko odczyt: składa to, co pdi już ma (rejestr decyzji, stan zmiany z PR-ami cięć, skrzynka z PR-ami faz), i — gdy
+`live` — status wdrożeń z API usług ShipScope (`pdi.impact.read_item`). Luki (`gaps`) się pokazuje, nie naprawia.
+Plan: docs/plan-f5-graf-sladu.md.
 """
 
 from __future__ import annotations
@@ -9,7 +10,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from pdi import impact
+from pdi import contract, impact, pr_state
 from pdi.changes import ChangeNotFound, ChangeStore
 from pdi.inbox import Inbox
 from pdi.registry import Registry
@@ -20,6 +21,9 @@ ENVIRONMENTS = ("test", "qa", "prod")
 MAX_LIVE_ITEMS = 20  # odczytów ShipScope na graf: zmiana i jej cięcia
 LABEL_LENGTH = 60
 _MERMAID_ID = re.compile(r"[^A-Za-z0-9]")
+# Gałąź cięcia talosa: story/tsk-12-opis → TSK-12 (dispatch_local, PRB-5).
+_TASK = contract.settings()["prefixes"]["task"]
+_CUT_BRANCH = re.compile(rf"^story/({_TASK.lower()}-[0-9]{{1,9}})(?![0-9])", re.IGNORECASE)
 
 
 class _Builder:
@@ -77,6 +81,14 @@ def trace(
         for key in keys:
             tasks.setdefault(key, None)
             g.edge(key, f"release:{line}", "released_in")
+    cut_prs = _cut_prs(state)
+    for cut in cut_prs:
+        match = _CUT_BRANCH.match(cut["branch"])
+        key = match.group(1).upper() if match else None
+        if key:
+            tasks.setdefault(key, None)
+        g.node(f"pr:{cut['pr']}", "pr", _pr_label(cut["pr"]), url=cut["pr"], data={"branch": cut["branch"]})
+        g.edge(key or change, f"pr:{cut['pr']}", "implemented_by")
     for key in tasks:
         g.node(key, "task", key)
         g.edge(change, key, "contains")
@@ -91,7 +103,11 @@ def trace(
     if not tasks:
         gaps.append("Brak cięć (TSK): ani decyzje (links.tsk), ani feature.released ich nie podały.")
     if "pr" not in kinds:
-        gaps.append("Brak PR: żadna decyzja o tej zmianie nie ma links.pr.")
+        gaps.append("Brak PR: ani bramki faz, ani cięcia, ani decyzje (links.pr) go nie podały.")
+    with_pr = {e["from"] for e in g.edges if e["kind"] == "implemented_by"}
+    without_pr = [key for key in tasks if key not in with_pr]
+    if cut_prs and without_pr:
+        gaps.append(f"Cięcia bez PR-a po fazie delivery: {', '.join(without_pr)}.")
     review = (state or {}).get("impact_review") or {}
     if (state or {}).get("releases", {}).get("R1") and review.get("status") != "decided":
         gaps.append(f"R1 wydane, ocena skutku jeszcze nie zamknięta (termin {review.get('due', '?')}).")
@@ -111,6 +127,9 @@ def _gates(g: _Builder, change: str, state: dict[str, Any] | None, items: list[d
             continue
         status = "requested" if item["status"] == "open" else item.get("outcome", item["status"])
         g.node(f"gate:{gate}", "gate", gate, status, url=item.get("url"))
+        if pr_state.is_pr_url(item.get("url")):  # PR fazy, o który prosi bramka
+            g.node(f"pr:{item['url']}", "pr", _pr_label(item["url"]), url=item["url"])
+            g.edge(f"gate:{gate}", f"pr:{item['url']}", "reviews")
         if item.get("decision"):
             g.edge(item["decision"], f"gate:{gate}", "decides")
     for gate, decision in approved.items():
@@ -142,6 +161,18 @@ def _decisions(g: _Builder, change: str, decisions: list[dict[str, Any]]) -> dic
             g.node(f"pr:{pr}", "pr", _pr_label(pr), url=url)
             g.edge(links["tsk"] if links.get("tsk") else change, f"pr:{pr}", "implemented_by")
     return tasks
+
+
+def _cut_prs(state: dict[str, Any] | None) -> list[dict[str, str]]:
+    """PR-y cięć `{branch, pr}` z historii przebiegów i z bieżącego `dispatch`, bez powtórzeń."""
+    entries = [*((state or {}).get("history") or []), (state or {}).get("dispatch") or {}]
+    found: dict[str, dict[str, str]] = {}
+    for entry in entries:
+        cuts = entry.get("cuts") if isinstance(entry, dict) else None
+        for cut in cuts if isinstance(cuts, list) else []:
+            if isinstance(cut, dict) and isinstance(cut.get("branch"), str) and pr_state.is_pr_url(cut.get("pr")):
+                found.setdefault(cut["pr"], {"branch": cut["branch"], "pr": cut["pr"]})
+    return list(found.values())
 
 
 def _releases(g: _Builder, change: str, state: dict[str, Any] | None) -> None:
