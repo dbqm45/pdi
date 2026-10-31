@@ -206,6 +206,9 @@ konfiguracji.
 | L4 | pdi | L1, L2, L3, DL2, DL3 | zrobione ([plan L4](plan-l4-sdlc.md); w ShipScope `server/scripts/local-pdi.js`) |
 | L5 | nowe repo `sdlc-sandbox` + pdi | L4, DL4 | zrobione ([plan L5](plan-l5-sandbox.md), [przebieg](przebieg-lokalny.md)); w ShipScope `local-pdi.js track` |
 
+Przebieg §5 na repo próbnym: **zaliczony 2026-10-31**, z obejściami; wynik i luki PRB-2…PRB-22 w
+[`przebieg-lokalny.md`](przebieg-lokalny.md#wynik-przebiegu-2026-10-31). Etap 2 może startować.
+
 L1, L2 i L3 są niezależne i mogą iść równolegle w trzech sesjach. Polecenia startowe L1–L5 oraz etapów 2
 (S5 na sprintdecku, §6) i 3 (produkcja, §7), a za nimi etapów 4–18 z innych planów:
 [`polecenia-startowe-sdlc-lokalnie.md`](polecenia-startowe-sdlc-lokalnie.md).
