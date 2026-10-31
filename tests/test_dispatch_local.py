@@ -221,7 +221,11 @@ def test_delivery_pushes_new_cut_branches_and_opens_a_pr_for_each(checkout: Path
 
     result = delivery(checkout, tmp_path, run)
 
-    assert result == {"status": "done", "prs": [cut_pr(TSK1), cut_pr(TSK2)]}
+    assert result == {
+        "status": "done",
+        "prs": [cut_pr(TSK1), cut_pr(TSK2)],
+        "cuts": [{"branch": TSK1, "pr": cut_pr(TSK1)}, {"branch": TSK2, "pr": cut_pr(TSK2)}],
+    }
     calls = [" ".join(c) for c in run.calls]
     persona = calls.index(f"python3 {S}/phase_run.py run --change CHG-12 --phase delivery")
     assert calls.index(REFS) < persona < calls.index(f"git push -u origin {TSK1}")
@@ -269,10 +273,16 @@ def test_settle_keeps_the_cut_prs(checkout: Path, tmp_path: Path) -> None:
     log = tmp_path / "runs" / "CHG-12-delivery.log"
     log.parent.mkdir()
     log.write_text("", encoding="utf-8")
-    dispatch_local.result_path(log).write_text(json.dumps({"status": "done", "prs": [PR]}), encoding="utf-8")
-    state = {"change": "CHG-12", "dispatch": {"mode": "local", "status": "running", "log": str(log)}, "history": []}
+    cuts = [{"branch": TSK1, "pr": PR}]
+    outcome = {"status": "done", "prs": [PR], "cuts": cuts}
+    dispatch_local.result_path(log).write_text(json.dumps(outcome), encoding="utf-8")
+    running = {"mode": "local", "status": "running", "log": str(log), "phase": "delivery"}
+    state = {"change": "CHG-12", "dispatch": running, "history": []}
 
-    assert dispatch_local.settle(state)["dispatch"]["prs"] == [PR]
+    settled = dispatch_local.settle(state)
+
+    assert (settled["dispatch"]["prs"], settled["dispatch"]["cuts"]) == ([PR], cuts)
+    assert settled["history"][-1] == {"at": None, "what": "dispatch.done", "phase": "delivery", "cuts": cuts}
 
 
 def test_source_and_problem_reach_phase_run_through_env(checkout: Path, tmp_path: Path) -> None:

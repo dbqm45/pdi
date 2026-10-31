@@ -206,10 +206,12 @@ def settle(state: dict[str, Any]) -> dict[str, Any]:
     else:
         outcome = {"status": "failed", "error": "Przebieg nie zostawił wyniku (przerwany?) — szczegóły w logu."}
     new = copy.deepcopy(state)
-    keep = ("status", "finished_at", "pr", "prs", "step", "error")
+    keep = ("status", "finished_at", "pr", "prs", "cuts", "step", "error")
     new["dispatch"] = {**dispatch, **{k: outcome[k] for k in keep if outcome.get(k)}}
     entry = {"at": outcome.get("finished_at") or dispatch.get("at"), "what": f"dispatch.{new['dispatch']['status']}"}
-    new.setdefault("history", []).append({**entry, "phase": dispatch.get("phase")})
+    # PR-y w historii zostają, gdy następne uruchomienie fazy nadpisze `dispatch` (ślad zmiany, PRB-5).
+    prs = {k: outcome[k] for k in ("pr", "cuts") if outcome.get(k)}
+    new.setdefault("history", []).append({**entry, "phase": dispatch.get("phase"), **prs})
     return new
 
 
@@ -425,7 +427,8 @@ def execute(spec: dict[str, Any], *, run: Run, env: Mapping[str, str], log: Call
         step("run", script("phase_run.py", "run", *args), extra={**problem_env, **claude_env})
 
         if phase == "delivery":
-            return {"status": "done", "prs": _publish_cuts(step, cuts_before, ref, github_env)}
+            cuts = _publish_cuts(step, cuts_before, ref, github_env)
+            return {"status": "done", "prs": [c["pr"] for c in cuts], "cuts": cuts}
         step("commit", ["git", "add", "-A"])
         code, _ = step("commit", ["git", "diff", "--cached", "--quiet"], ok=(0, 1))
         if code == 1:
@@ -454,8 +457,8 @@ def _cuts(step: Step) -> set[str]:
     return {b for b in out.split() if _CUT.match(b) and ".." not in b}
 
 
-def _publish_cuts(step: Step, before: set[str], ref: str, github_env: Mapping[str, str]) -> list[str]:
-    """Wypycha nowe gałęzie cięć z commitami ponad `ref` i otwiera dla każdej PR; zwraca adresy PR-ów."""
+def _publish_cuts(step: Step, before: set[str], ref: str, github_env: Mapping[str, str]) -> list[dict[str, str]]:
+    """Wypycha nowe gałęzie cięć z commitami ponad `ref` i otwiera dla każdej PR; zwraca `[{branch, pr}]`."""
     cuts = []
     for branch in sorted(_cuts(step) - before):
         _, count = step("cuts", ["git", "rev-list", "--count", f"{ref}..{branch}"], quiet=True)
@@ -484,7 +487,7 @@ def _publish_cuts(step: Step, before: set[str], ref: str, github_env: Mapping[st
             url = _url(out)
         if not url:
             raise _StepFailed("pr", f"Krok pr: gh nie podał adresu PR dla {branch} — szczegóły w logu.")
-        prs.append(url)
+        prs.append({"branch": branch, "pr": url})
     return prs
 
 

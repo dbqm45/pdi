@@ -88,6 +88,7 @@ def test_full_flow_gives_whole_trace(registry: Registry, make_draft: Any) -> Non
         "TSK-57",
         "TSK-58",
         "pr:https://github.com/dbqm45/sklep/pull/9",
+        "pr:https://github.com/dbqm45/sklep/pull/7",
         "env:test",
         "env:qa",
         "env:prod",
@@ -106,6 +107,7 @@ def test_full_flow_gives_whole_trace(registry: Registry, make_draft: Any) -> Non
         ("DEC-0001", "CHG-12", "about"),
         ("CHG-12", "TSK-57", "contains"),
         ("TSK-57", "pr:https://github.com/dbqm45/sklep/pull/9", "implemented_by"),
+        ("gate:B1", "pr:https://github.com/dbqm45/sklep/pull/7", "reviews"),
         ("CHG-12", "env:prod", "deployed_to"),
         ("TSK-58", "release:R1", "released_in"),
         ("CHG-12", "release:R1", "released"),
@@ -199,3 +201,49 @@ def test_mermaid_escapes_labels() -> None:
     assert "\nnowa" not in text
     assert "CHG_1 -->|implemented_by| pr_https___x_pull_1" in text
     assert "a" * 61 not in text
+
+
+# --- PR-y cięć z fazy delivery (PRB-5) ---
+
+CUT1 = "https://github.com/dbqm45/sklep/pull/11"
+CUT2 = "https://github.com/dbqm45/sklep/pull/12"
+
+
+def delivered(registry: Registry, *, cuts: list[dict[str, str]], also_running: bool = False) -> None:
+    """Zmiana po fazie delivery: wpis historii z cięciami, a `dispatch` nadpisany późniejszym uruchomieniem."""
+    inbox = Inbox(registry)
+    inbox.receive(gate_event())
+    state = inbox.changes.get("CHG-12")
+    state["history"].append({"at": "2026-10-31T18:00:00Z", "what": "dispatch.done", "phase": "delivery", "cuts": cuts})
+    state["release_tasks"] = {"R1": ["TSK-1", "TSK-2", "TSK-3"]}
+    if also_running:
+        state["dispatch"] = {"mode": "local", "status": "failed", "phase": "delivery", "cuts": [cuts[0]]}
+    inbox.changes.save(state)
+
+
+def test_cut_prs_from_delivery_link_to_their_tasks(registry: Registry) -> None:
+    cuts = [
+        {"branch": "story/tsk-1-fundament", "pr": CUT1},
+        {"branch": "story/TSK-2-data-wdrozenia", "pr": CUT2},
+        {"branch": "story/tsk-1-fundament", "pr": "http://example.com/not-a-pr"},
+    ]
+    delivered(registry, cuts=cuts, also_running=True)
+
+    graph = trace(registry, "CHG-12", live=False)
+
+    nodes = by_id(graph)
+    assert nodes[f"pr:{CUT1}"]["label"] == "PR #11"
+    assert nodes[f"pr:{CUT2}"]["data"] == {"branch": "story/TSK-2-data-wdrozenia"}
+    assert "pr:http://example.com/not-a-pr" not in nodes
+    assert {("TSK-1", f"pr:{CUT1}", "implemented_by"), ("TSK-2", f"pr:{CUT2}", "implemented_by")} <= edges(graph)
+    assert [n for n in nodes if n.startswith("pr:")].count(f"pr:{CUT1}") == 1
+    assert "Cięcia bez PR-a po fazie delivery: TSK-3." in graph["gaps"]
+    assert not any(g.startswith("Brak PR:") for g in graph["gaps"])
+
+
+def test_cut_branch_without_a_task_key_hangs_on_the_change(registry: Registry) -> None:
+    delivered(registry, cuts=[{"branch": "story/data-wdrozenia", "pr": CUT1}])
+
+    graph = trace(registry, "CHG-12", live=False)
+
+    assert ("CHG-12", f"pr:{CUT1}", "implemented_by") in edges(graph)

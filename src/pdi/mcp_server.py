@@ -383,7 +383,8 @@ def build_server(
 
         nodes (id, kind, label, status), edges (from, to, kind), gaps (luki do pokazania człowiekowi, nie do
         naprawiania) i mermaid (flowchart do wklejenia). live=true czyta status wdrożeń z ShipScope
-        (PDI_SHIPSCOPE_URL, PDI_SHIPSCOPE_TOKEN); live=false tylko z tego, co pdi ma.
+        (PDI_SHIPSCOPE_URL, PDI_SHIPSCOPE_TOKEN); live=false tylko z tego, co pdi ma. PR-y: faz (z bramek), cięć
+        z fazy delivery (gałąź story/tsk-n → TSK-n) i z links.pr decyzji.
         """
         try:
             return trace(open_registry(), change, shipscope=ShipScopeConfig.from_env(), live=live)
