@@ -20,8 +20,11 @@ def draft(**overrides: Any) -> dict[str, Any]:
         "kind": "product",
         "source": {"kind": "claude-cli", "excerpt": "ustalamy, że próg zostaje"},
         "drafted_by": "ai",
+        "draft_edited": False,
     }
     base.update(overrides)
+    if base["drafted_by"] != "ai" or base["draft_edited"] is None:  # None: szkic bez pola (pdi liczy je sam)
+        del base["draft_edited"]
     return base
 
 

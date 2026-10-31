@@ -152,7 +152,7 @@ def test_edited_statement_counts_as_edited_draft(inbox: Inbox, make_draft: Any) 
 
     decision = inbox.decide(
         item["id"],
-        make_draft(statement="Próg zostaje na 199 zł do 31 grudnia.", why=item["draft"]["why"]),
+        make_draft(statement="Próg zostaje na 199 zł do 31 grudnia.", why=item["draft"]["why"], draft_edited=None),
         outcome="approved",
     )["decision"]
 
@@ -210,7 +210,9 @@ def test_capture_stats(inbox: Inbox, make_draft: Any, registry: Registry) -> Non
     b = proposed(inbox, statement="Druga decyzja: próg 199 zł obowiązuje do końca kwartału.")
     c = proposed(inbox, statement="Trzecia: próg 199 zł.")
     approve(inbox, a, make_draft)
-    inbox.decide(b["id"], make_draft(statement="Poprawiona.", why=b["draft"]["why"]), outcome="approved")
+    inbox.decide(
+        b["id"], make_draft(statement="Poprawiona.", why=b["draft"]["why"], draft_edited=None), outcome="approved"
+    )
     inbox.decide(c["id"], make_draft(why="Nie decyzja."), outcome="rejected")
 
     assert summarize(registry)["captures"] == {"proposed": 3, "open": 0, "approved": 2, "edited": 1, "rejected": 1}

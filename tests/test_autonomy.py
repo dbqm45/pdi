@@ -1,5 +1,6 @@
 """A3: licznik akceptacji szkiców, rekomendacje poziomu autonomii i propozycje w skrzynce (plan-a3)."""
 
+import re
 from collections.abc import Callable
 from typing import Any
 
@@ -17,12 +18,13 @@ _seq = iter(range(1, 100_000))
 def decide_many(
     registry: Registry, make_draft: Draft, decision_type: str, edited: list[bool | None], **extra: Any
 ) -> None:
-    """Zapisuje decyzje danego typu ze szkicem AI; `None` = szkic AI bez informacji o poprawkach."""
+    """Zapisuje decyzje danego typu ze szkicem AI; `None` = starszy wpis szkicu AI bez informacji o poprawkach."""
     for flag in edited:
-        fields: dict[str, Any] = {"decision_type": decision_type, **extra}
-        if flag is not None:
-            fields["draft_edited"] = flag
-        registry.record(make_draft(statement=f"Decyzja {next(_seq)}.", **fields))
+        fields: dict[str, Any] = {"decision_type": decision_type, **extra, "draft_edited": bool(flag)}
+        decision = registry.record(make_draft(statement=f"Decyzja {next(_seq)}.", **fields))
+        if flag is None:  # rejestr sprzed PRB-21 przyjmował szkic AI bez draft_edited
+            path = registry._path(decision)
+            path.write_text(re.sub(r"(?m)^draft_edited: .*\n", "", path.read_text(encoding="utf-8")), encoding="utf-8")
 
 
 def row(report: list[dict[str, Any]], decision_type: str) -> dict[str, Any]:

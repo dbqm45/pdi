@@ -123,6 +123,12 @@ class Registry:
         return self._commit(new, touched, f"{new['id']}: zastępuje {old_id}")
 
     def _reject_registry_fields(self, draft: Decision) -> None:
+        # Bez draft_edited szkic AI nie wchodzi do pomiaru autonomii (DA2, PRB-21); automat szkicu nie ma.
+        if draft.get("drafted_by") == "ai" and "draft_edited" not in draft and "automation" not in draft:
+            raise InvalidDecision(
+                "drafted_by: ai wymaga draft_edited — false, gdy człowiek zatwierdził szkic bez zmian, true, gdy "
+                "cokolwiek w nim zmienił."
+            )
         set_by_registry = [f for f in REGISTRY_FIELDS if f in draft]
         if set_by_registry:
             raise InvalidDecision(
