@@ -70,6 +70,7 @@ def dispatch_phase(
     post: Post | None = None,
     source: str | None = None,
     problem: str | None = None,
+    decision_text: str | None = None,
     runs_dir: Path | None = None,
     spawn: dispatch_local.Spawn | None = None,
     run: dispatch_local.Run | None = None,
@@ -100,6 +101,7 @@ def dispatch_phase(
             at=at,
             source=source,
             problem=problem,
+            decision_text=decision_text,
             run=run,
             spawn=spawn,
         )

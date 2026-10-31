@@ -810,6 +810,8 @@ def test_local_mode_gate_decision_starts_a_background_phase_and_shows_its_pr(
     assert dispatch["log"].startswith(str(registry.root / "runs" / "CHG-12-requirements-"))
     (spec,) = spawn.specs
     assert (spec["phase"], spec["decision"], spec["budget_usd"]) == ("requirements", "DEC-0001", "3")
+    decided = registry.get("DEC-0001")
+    assert spec["decision_text"] == f"{decided['statement']} Dlaczego: {decided['why']}"
 
     from pdi import dispatch_local
 
@@ -880,3 +882,66 @@ def test_local_mode_without_checkout_fails_and_keeps_the_decision(registry: Regi
     assert result["change"]["dispatch"]["status"] == "failed"
     assert "PDI_DISPATCH_CHECKOUT" in result["change"]["dispatch"]["error"]
     assert spawn.specs == []
+
+
+# --- PR fazy przed zatwierdzeniem bramki (PRB-2) ---
+
+
+def pr_inbox(registry: Registry, state: dict[str, str]) -> tuple[Inbox, list[str]]:
+    asked: list[str] = []
+
+    def check(url: str) -> dict[str, str]:
+        asked.append(url)
+        return state
+
+    return Inbox(registry, pr_state=check), asked
+
+
+@pytest.mark.parametrize(("state", "fragment"), [("open", "otwarty"), ("closed", "bez merge")])
+def test_approving_a_gate_with_an_unmerged_pr_is_refused_before_recording(
+    registry: Registry, make_draft: Draft, state: str, fragment: str
+) -> None:
+    inbox, asked = pr_inbox(registry, {"state": state})
+    inbox.receive(gate_event())
+
+    with pytest.raises(InvalidDecision, match=fragment):
+        inbox.decide("evt-gate-1", make_draft(), outcome="approved")
+
+    assert asked == ["https://github.com/dbqm45/sklep/pull/7"]
+    assert registry.decisions() == []
+    assert inbox.get("evt-gate-1")["status"] == "open"
+
+
+def test_approving_a_gate_with_a_merged_pr_passes_without_warning(registry: Registry, make_draft: Draft) -> None:
+    inbox, _ = pr_inbox(registry, {"state": "merged"})
+    inbox.receive(gate_event())
+
+    result = inbox.decide("evt-gate-1", make_draft(), outcome="approved")
+
+    assert result["item"]["status"] == "decided"
+    assert "warning" not in result
+
+
+def test_unknown_pr_state_lets_the_decision_through_with_a_warning(registry: Registry, make_draft: Draft) -> None:
+    inbox, _ = pr_inbox(registry, {"state": "unknown", "reason": "gh pr view zakończone kodem 4"})
+    inbox.receive(gate_event())
+
+    result = inbox.decide("evt-gate-1", make_draft(), outcome="approved")
+
+    assert result["item"]["status"] == "decided"
+    assert "kodem 4" in result["warning"]
+
+
+@pytest.mark.parametrize(
+    ("outcome", "payload"),
+    [("changes_requested", {}), ("rejected", {}), ("approved", {"url": "https://ci.example.com/run/1"})],
+)
+def test_pr_state_is_not_asked_for_other_outcomes_or_non_pr_links(
+    registry: Registry, make_draft: Draft, outcome: str, payload: dict[str, str]
+) -> None:
+    inbox, asked = pr_inbox(registry, {"state": "open"})
+    inbox.receive(gate_event(**payload))
+
+    inbox.decide("evt-gate-1", make_draft(), outcome=outcome)
+
+    assert asked == []

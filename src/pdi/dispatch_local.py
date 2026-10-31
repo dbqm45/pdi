@@ -37,6 +37,14 @@ PHASES = ("intent", "requirements", "architecture", "design", "delivery")
 GATES = (*(g.name for g in flow.GATES), "triage")
 SCRIPTS = ".claude/skills/pdi-decisions/scripts"
 STEP_TIMEOUT_SECONDS = 2 * 60 * 60
+# Artefakt poprzedniej fazy, który musi być na `ref` przed startem fazy (PRB-2).
+PRIOR_ARTIFACT = {
+    "requirements": "intent.md",
+    "architecture": "requirements.md",
+    "design": "plan.md",
+    "delivery": "plan.md",
+}
+DECISION_TEXT_MAX = 2000
 # Log przebiegu zmienia się przy każdym kroku; bez zmian dłużej niż to — przebieg uznaje się za przerwany.
 STALE_SECONDS = 3 * 60 * 60
 LOCK_STALE_SECONDS = 60
@@ -95,6 +103,7 @@ def start(
     at: str,
     source: str | None = None,
     problem: str | None = None,
+    decision_text: str | None = None,
     run: Run | None = None,
     spawn: Spawn | None = None,
     environ: Mapping[str, str] | None = None,
@@ -126,6 +135,7 @@ def start(
             "gate": gate,
             "outcome": outcome,
             "decision": decision,
+            "decision_text": (decision_text or "")[:DECISION_TEXT_MAX] or None,
             "rework": rework,
             "budget_usd": budget_usd,
             "source": source,
@@ -358,6 +368,13 @@ def execute(spec: dict[str, Any], *, run: Run, env: Mapping[str, str], log: Call
         step("checkout", ["git", "fetch", "origin"], extra=github_env)
         step("checkout", ["git", "switch", ref])
         step("checkout", ["git", "pull", "--ff-only", "origin", ref], extra=github_env)
+        prior = PRIOR_ARTIFACT.get(phase)
+        if prior and not (cwd / "docs/project/changes" / change / prior).is_file():
+            raise _StepFailed(
+                "inputs",
+                f"Na {ref} nie ma docs/project/changes/{change}/{prior} — faza {phase} potrzebuje artefaktu "
+                "poprzedniej fazy. Zmerguj PR poprzedniej fazy i ponów (retry_dispatch).",
+            )
 
         code, _ = step(
             "branch", ["git", "ls-remote", "--exit-code", "--heads", "origin", branch], ok=(0, 2), extra=github_env
@@ -383,6 +400,13 @@ def execute(spec: dict[str, Any], *, run: Run, env: Mapping[str, str], log: Call
         )
         if spec.get("decision"):
             gate_args = ["--gate", spec["gate"], "--outcome", spec["outcome"], "--id", spec["decision"]]
+            if spec.get("decision_text"):
+                # Treść decyzji trafia do decisions.md tylko w tf, który zna `--why` (PRB-3).
+                code, usage = step(
+                    "decision", script("decision_record.py", "decision", "gate", "--help"), ok=(0, 2), quiet=True
+                )
+                if code == 0 and "--why" in usage:
+                    gate_args += ["--why", spec["decision_text"]]
             step("decision", script("decision_record.py", "decision", "gate", change, *gate_args))
 
         args = ["--change", change, "--phase", phase]

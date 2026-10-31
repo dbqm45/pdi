@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import time
 from collections.abc import Mapping
 from pathlib import Path
@@ -62,6 +63,10 @@ def make_checkout(tmp_path: Path) -> Path:
     repo = tmp_path / "sklep"
     (repo / ".git").mkdir(parents=True)
     (repo / S).mkdir(parents=True)
+    folder = repo / "docs/project/changes/CHG-12"
+    folder.mkdir(parents=True)
+    for name in ("intent.md", "requirements.md", "plan.md"):
+        (folder / name).write_text(f"# {name}\n", encoding="utf-8")
     return repo
 
 
@@ -96,6 +101,7 @@ def execute(s: dict[str, Any], run: FakeRun, env: dict[str, str] | None = None) 
 
 
 def test_intent_with_source_runs_the_workflow_steps_in_order(checkout: Path, tmp_path: Path) -> None:
+    shutil.rmtree(checkout / "docs")  # nowa zmiana: folderu jeszcze nie ma
     run = FakeRun()
     s = spec(
         checkout,
@@ -158,7 +164,7 @@ def test_intent_with_source_runs_the_workflow_steps_in_order(checkout: Path, tmp
 
 
 def test_existing_change_folder_skips_change_new(checkout: Path, tmp_path: Path) -> None:
-    (checkout / "docs/project/changes/CHG-12").mkdir(parents=True)
+    assert (checkout / "docs/project/changes/CHG-12").is_dir()
     run = FakeRun()
 
     execute(spec(checkout, tmp_path, phase="intent", source="PRB-1"), run)
@@ -629,3 +635,98 @@ def test_named_variables_can_be_passed_to_every_step(checkout: Path, tmp_path: P
     for step_env in run.envs:
         assert step_env.get("SKLEP_TEST_DB") == "postgres://test"
         assert "INNE" not in step_env and "BRAK" not in step_env and "PDI_DISPATCH_ENV_PASS" not in step_env
+
+
+# --- wejścia fazy (PRB-2) i treść decyzji (PRB-3) ---
+
+
+@pytest.mark.parametrize(
+    ("phase", "missing"),
+    [
+        ("requirements", "intent.md"),
+        ("architecture", "requirements.md"),
+        ("design", "plan.md"),
+        ("delivery", "plan.md"),
+    ],
+)
+def test_phase_without_the_previous_artifact_on_ref_fails_the_inputs_step(
+    checkout: Path, tmp_path: Path, phase: str, missing: str
+) -> None:
+    (checkout / "docs/project/changes/CHG-12" / missing).unlink()
+    run = FakeRun()
+
+    result, lines = execute(spec(checkout, tmp_path, phase=phase), run)
+
+    assert (result["status"], result["step"]) == ("failed", "inputs")
+    assert f"docs/project/changes/CHG-12/{missing}" in result["error"]
+    assert "Zmerguj PR" in result["error"]
+    assert not any(c[:2] == ["git", "switch"] and "-C" in c for c in run.calls)  # bez gałęzi fazy
+    assert lines[-1].startswith("# błąd:")
+
+
+def test_intent_needs_no_previous_artifact(checkout: Path, tmp_path: Path) -> None:
+    shutil.rmtree(checkout / "docs")
+    result, _ = execute(spec(checkout, tmp_path, phase="intent", gate="triage", source="PRB-3"), FakeRun())
+
+    assert result["status"] == "done"
+
+
+HELP = f"python3 {S}/decision_record.py decision gate --help"
+TEXT = "Bez zmian w config/build.json. Dlaczego: DEC-0003 to rozstrzyga."
+
+
+def decision_calls(run: FakeRun) -> list[list[str]]:
+    return [c for c in run.calls if c[1:4] == [f"{S}/decision_record.py", "decision", "gate"] and "--help" not in c]
+
+
+def test_decision_text_goes_to_tf_that_knows_why(checkout: Path, tmp_path: Path) -> None:
+    run = FakeRun({HELP: (0, "usage: ... [--why WHY]\n")})
+
+    result, lines = execute(spec(checkout, tmp_path, decision_text=TEXT), run)
+
+    assert result["status"] == "done"
+    (call,) = decision_calls(run)
+    assert call[-2:] == ["--why", TEXT]
+    assert "[--why WHY]" not in "\n".join(lines)  # pomoc nie zaśmieca logu
+
+
+@pytest.mark.parametrize("answer", [(0, "usage: ... [--by BY]"), (2, "error")])
+def test_decision_text_is_left_out_for_older_tf(checkout: Path, tmp_path: Path, answer: tuple[int, str]) -> None:
+    run = FakeRun({HELP: answer})
+
+    result, _ = execute(spec(checkout, tmp_path, decision_text=TEXT), run)
+
+    assert result["status"] == "done"
+    (call,) = decision_calls(run)
+    assert "--why" not in call
+
+
+def test_without_decision_text_tf_help_is_not_asked(checkout: Path, tmp_path: Path) -> None:
+    run = FakeRun()
+
+    execute(spec(checkout, tmp_path), run)
+
+    assert not any("--help" in c for c in run.calls)
+
+
+def test_start_passes_the_decision_text_in_the_spec(checkout: Path, tmp_path: Path) -> None:
+    spawn = FakeSpawn()
+    dispatch_local.start(
+        runs_dir=tmp_path / "runs",
+        checkout=str(checkout),
+        ref="main",
+        budget_usd=None,
+        change="CHG-12",
+        phase="requirements",
+        gate="B1",
+        outcome="approved",
+        decision="DEC-0001",
+        rework=False,
+        at=AT,
+        decision_text="x" * 5000,
+        run=FakeRun(),
+        spawn=spawn,
+        environ={},
+    )
+
+    assert spawn.specs[0]["decision_text"] == "x" * dispatch_local.DECISION_TEXT_MAX

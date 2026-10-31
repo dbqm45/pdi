@@ -25,6 +25,7 @@ from typing import Any, TypeAlias
 import yaml
 
 from pdi import autonomy, capture, contract, dispatch_local, flow, forecast, impact
+from pdi import pr_state as pr_state_mod
 from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig, Post, dispatch_phase
 from pdi.notify import NotifyConfig, ReporterNotifyConfig, notify_ci_for_sdlc
@@ -111,6 +112,7 @@ class Inbox:
         reporter_post: Post | None = None,
         local_spawn: dispatch_local.Spawn | None = None,
         local_run: dispatch_local.Run | None = None,
+        pr_state: pr_state_mod.Check | None = None,
     ) -> None:
         self.registry = registry
         self.changes = ChangeStore(registry)
@@ -124,6 +126,7 @@ class Inbox:
         self._shipscope_get = shipscope_get
         self._local_spawn = local_spawn
         self._local_run = local_run
+        self._pr_state = pr_state
         # Zgłaszający zmiany dostaje powiadomienie o jej wydaniu i ocenie skutku (F5).
         self.problems = ProblemStore(
             registry,
@@ -518,6 +521,7 @@ class Inbox:
                 raise InvalidDecision(str(e)) from e
             if planned:
                 self._refuse_if_running(item["change"])
+        pr_warning = self._check_pr(item) if item["kind"] == "gate" and outcome == "approved" else None
         tags = list(draft.get("tags") or [])
         tags += [t for t in _tags(item, gate, outcome) if t not in tags]
         extra: dict[str, Any] = {}
@@ -573,6 +577,7 @@ class Inbox:
             item["outcome"] = outcome
         self._write(item, overwrite=True)
         warning = self.registry.commit(touched, f"inbox {item_id}: zamknięta decyzją {decision['id']}")
+        warning = " ".join(w for w in (pr_warning, warning) if w) or None
         return {
             "item": item,
             "decision": decision,
@@ -696,6 +701,7 @@ class Inbox:
             post=self._post,
             source=run.get("source"),
             problem=run.get("problem"),
+            decision_text=self._decision_text(decision),
             runs_dir=self.registry.root / "runs",
             spawn=self._local_spawn,
             run=self._local_run,
@@ -703,6 +709,30 @@ class Inbox:
         kept = ("source",) if self._dispatch.local else ("source", "problem")
         extra = {k: run[k] for k in kept if run.get(k)}
         return {**result, "gate": gate, "outcome": outcome, "decision": decision, **extra}
+
+    def _decision_text(self, decision: str) -> str | None:
+        """Ustalenie i uzasadnienie decyzji z rejestru — dla `decisions.md` w repo produktu (PRB-3)."""
+        try:
+            d = self.registry.get(decision)
+        except DecisionNotFound:
+            return None
+        return f"{d['statement'].strip()} Dlaczego: {d['why'].strip()}"
+
+    def _check_pr(self, item: Item) -> str | None:
+        """Odmawia zatwierdzenia bramki z niezmergowanym PR-em fazy (PRB-2); stan nieznany daje ostrzeżenie."""
+        url = item.get("url")
+        if self._pr_state is None or not isinstance(url, str) or not pr_state_mod.is_pr_url(url):
+            return None
+        found = self._pr_state(url)
+        if found["state"] == "merged":
+            return None
+        if found["state"] in ("open", "closed"):
+            how = "jest otwarty" if found["state"] == "open" else "zamknięto bez merge'u"
+            raise InvalidDecision(
+                f"PR fazy {url} {how} — następna faza startuje od aktualnego main, więc najpierw zrób merge "
+                "i zatwierdź ponownie albo wybierz changes_requested."
+            )
+        return f"Nie sprawdzono, czy PR {url} jest zmergowany ({found.get('reason', 'brak powodu')}) — upewnij się sam."
 
     def _refuse_if_running(self, change: str) -> None:
         busy = dispatch_local.running(self.registry.root / "runs", change)
