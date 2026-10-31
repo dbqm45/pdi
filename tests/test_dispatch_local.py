@@ -21,7 +21,7 @@ PR = "https://github.com/dbqm45/sklep/pull/7"
 class FakeRun:
     """Podstawiony wykonawca: zapisuje polecenia, odpowiada według początku polecenia."""
 
-    def __init__(self, responses: dict[str, tuple[int, str]] | None = None) -> None:
+    def __init__(self, responses: dict[str, Any] | None = None) -> None:
         self.responses = {
             "git ls-remote": (2, ""),
             "git diff --cached --quiet": (1, ""),
@@ -39,7 +39,10 @@ class FakeRun:
         line = " ".join(argv)
         for prefix in sorted(self.responses, key=len, reverse=True):
             if line.startswith(prefix):
-                return self.responses[prefix]
+                answer = self.responses[prefix]
+                if isinstance(answer, list):  # kolejne odpowiedzi na to samo polecenie
+                    return answer.pop(0) if len(answer) > 1 else answer[0]
+                return answer
         return 0, ""
 
 
@@ -190,14 +193,86 @@ def test_rework_reuses_remote_branch_and_existing_pr(checkout: Path, tmp_path: P
     assert result["pr"] == PR
 
 
-def test_delivery_opens_no_pr_and_requests_no_gate(checkout: Path, tmp_path: Path) -> None:
-    run = FakeRun()
+TSK1 = "story/tsk-1-fundament"
+TSK2 = "story/tsk-2-data-wdrozenia"
+REFS = "git for-each-ref --format=%(refname:short) refs/heads/story/"
 
+
+def delivery(checkout: Path, tmp_path: Path, run: FakeRun) -> dict[str, Any]:
     result, _ = execute(spec(checkout, tmp_path, phase="delivery", gate="approve-for-implementation"), run)
+    return result
 
-    assert run.calls[-1] == ["python3", f"{S}/phase_run.py", "run", "--change", "CHG-12", "--phase", "delivery"]
-    assert result["status"] == "done"
-    assert "pr" not in result
+
+def cut_pr(branch: str) -> str:
+    return f"https://github.com/dbqm45/sklep/pull/{1 if branch == TSK1 else 2}"
+
+
+def test_delivery_pushes_new_cut_branches_and_opens_a_pr_for_each(checkout: Path, tmp_path: Path) -> None:
+    run = FakeRun(
+        {
+            REFS: [(0, "story/old\n"), (0, f"story/old\n{TSK1}\n{TSK2}\n")],
+            "git rev-list --count": (0, "2\n"),
+            f"git merge-base --is-ancestor {TSK1} {TSK2}": (0, ""),
+            "git merge-base --is-ancestor": (1, ""),
+            f"gh pr create --fill --head {TSK1}": (0, cut_pr(TSK1) + "\n"),
+            f"gh pr create --fill --head {TSK2}": (0, cut_pr(TSK2) + "\n"),
+        }
+    )
+
+    result = delivery(checkout, tmp_path, run)
+
+    assert result == {"status": "done", "prs": [cut_pr(TSK1), cut_pr(TSK2)]}
+    calls = [" ".join(c) for c in run.calls]
+    persona = calls.index(f"python3 {S}/phase_run.py run --change CHG-12 --phase delivery")
+    assert calls.index(REFS) < persona < calls.index(f"git push -u origin {TSK1}")
+    assert f"git push -u origin {TSK2}" in calls
+    assert "git push -u origin story/old" not in calls  # gałąź sprzed przebiegu zostaje
+    assert f"gh pr create --fill --head {TSK1} --base main" in calls
+    assert f"gh pr create --fill --head {TSK2} --base {TSK1}" in calls  # cięcie zbudowane na poprzednim
+    assert not any("phase_run.py gate" in c for c in calls)
+
+
+def test_delivery_reuses_an_existing_cut_pr(checkout: Path, tmp_path: Path) -> None:
+    run = FakeRun(
+        {
+            REFS: [(0, ""), (0, f"{TSK1}\n")],
+            "git rev-list --count": (0, "1"),
+            f"gh pr view {TSK1}": (0, cut_pr(TSK1)),
+        }
+    )
+
+    result = delivery(checkout, tmp_path, run)
+
+    assert result["prs"] == [cut_pr(TSK1)]
+    assert not any(c[:3] == ["gh", "pr", "create"] for c in run.calls)
+
+
+@pytest.mark.parametrize(
+    "after",
+    [
+        "",  # talos nie założył gałęzi
+        f"{TSK1}\n",  # gałąź bez commitów ponad main (rev-list 0)
+        "story/../main\nstory/-x\n",  # nazwy, których pdi nie wypycha
+    ],
+)
+def test_delivery_without_cut_commits_fails_the_cuts_step(checkout: Path, tmp_path: Path, after: str) -> None:
+    run = FakeRun({REFS: [(0, ""), (0, after)], "git rev-list --count": (0, "0")})
+
+    result = delivery(checkout, tmp_path, run)
+
+    assert (result["status"], result["step"]) == ("failed", "cuts")
+    assert "story/" in result["error"]
+    assert not any(c[:2] == ["git", "push"] for c in run.calls)
+
+
+def test_settle_keeps_the_cut_prs(checkout: Path, tmp_path: Path) -> None:
+    log = tmp_path / "runs" / "CHG-12-delivery.log"
+    log.parent.mkdir()
+    log.write_text("", encoding="utf-8")
+    dispatch_local.result_path(log).write_text(json.dumps({"status": "done", "prs": [PR]}), encoding="utf-8")
+    state = {"change": "CHG-12", "dispatch": {"mode": "local", "status": "running", "log": str(log)}, "history": []}
+
+    assert dispatch_local.settle(state)["dispatch"]["prs"] == [PR]
 
 
 def test_source_and_problem_reach_phase_run_through_env(checkout: Path, tmp_path: Path) -> None:

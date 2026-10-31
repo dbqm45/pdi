@@ -45,6 +45,9 @@ PRIOR_ARTIFACT = {
     "delivery": "plan.md",
 }
 DECISION_TEXT_MAX = 2000
+# Gałęzie cięć talosa (`talos-story-run`: story/<slug>); persona w trybie --print nie może ich wypchnąć (PRB-4).
+CUT_REFS = "refs/heads/story/"
+_CUT = re.compile(r"^story/[A-Za-z0-9_][A-Za-z0-9._/-]{0,199}$")
 # Log przebiegu zmienia się przy każdym kroku; bez zmian dłużej niż to — przebieg uznaje się za przerwany.
 STALE_SECONDS = 3 * 60 * 60
 LOCK_STALE_SECONDS = 60
@@ -203,7 +206,7 @@ def settle(state: dict[str, Any]) -> dict[str, Any]:
     else:
         outcome = {"status": "failed", "error": "Przebieg nie zostawił wyniku (przerwany?) — szczegóły w logu."}
     new = copy.deepcopy(state)
-    keep = ("status", "finished_at", "pr", "step", "error")
+    keep = ("status", "finished_at", "pr", "prs", "step", "error")
     new["dispatch"] = {**dispatch, **{k: outcome[k] for k in keep if outcome.get(k)}}
     entry = {"at": outcome.get("finished_at") or dispatch.get("at"), "what": f"dispatch.{new['dispatch']['status']}"}
     new.setdefault("history", []).append({**entry, "phase": dispatch.get("phase")})
@@ -326,7 +329,11 @@ def _spawn(spec: dict[str, Any], env: dict[str, str]) -> None:
 
 
 def execute(spec: dict[str, Any], *, run: Run, env: Mapping[str, str], log: Callable[[str], None]) -> dict[str, Any]:
-    """Kroki szablonu `sdlc-phase.yml`; wynik `{"status": done | failed, "step"?, "error"?, "pr"?}`."""
+    """Kroki szablonu `sdlc-phase.yml`; wynik `{"status": done | failed, "step"?, "error"?, "pr"?, "prs"?}`.
+
+    Po fazie `delivery` pdi wypycha gałęzie cięć talosa (`story/*`) i otwiera ich PR-y (`prs`), bo persona w trybie
+    --print nie ma zgody na `git push` ani `gh pr create`.
+    """
     cwd = Path(spec["checkout"])
     change, phase, ref = spec["change"], spec["phase"], spec["ref"]
     branch = f"pdi/{change}-{phase}"
@@ -409,6 +416,7 @@ def execute(spec: dict[str, Any], *, run: Run, env: Mapping[str, str], log: Call
                     gate_args += ["--why", spec["decision_text"]]
             step("decision", script("decision_record.py", "decision", "gate", change, *gate_args))
 
+        cuts_before = _cuts(step) if phase == "delivery" else set()
         args = ["--change", change, "--phase", phase]
         if spec.get("rework"):
             args += ["--rework", "--gate", spec["gate"], "--decision", spec["decision"]]
@@ -417,7 +425,7 @@ def execute(spec: dict[str, Any], *, run: Run, env: Mapping[str, str], log: Call
         step("run", script("phase_run.py", "run", *args), extra={**problem_env, **claude_env})
 
         if phase == "delivery":
-            return {"status": "done"}
+            return {"status": "done", "prs": _publish_cuts(step, cuts_before, ref, github_env)}
         step("commit", ["git", "add", "-A"])
         code, _ = step("commit", ["git", "diff", "--cached", "--quiet"], ok=(0, 1))
         if code == 1:
@@ -436,6 +444,48 @@ def execute(spec: dict[str, Any], *, run: Run, env: Mapping[str, str], log: Call
     except _StepFailed as e:
         log(f"# błąd: {e.error}")
         return {"status": "failed", "step": e.step, "error": e.error}
+
+
+Step = Callable[..., tuple[int, str]]
+
+
+def _cuts(step: Step) -> set[str]:
+    _, out = step("cuts", ["git", "for-each-ref", "--format=%(refname:short)", CUT_REFS], quiet=True)
+    return {b for b in out.split() if _CUT.match(b) and ".." not in b}
+
+
+def _publish_cuts(step: Step, before: set[str], ref: str, github_env: Mapping[str, str]) -> list[str]:
+    """Wypycha nowe gałęzie cięć z commitami ponad `ref` i otwiera dla każdej PR; zwraca adresy PR-ów."""
+    cuts = []
+    for branch in sorted(_cuts(step) - before):
+        _, count = step("cuts", ["git", "rev-list", "--count", f"{ref}..{branch}"], quiet=True)
+        if count.strip().isdigit() and int(count) > 0:
+            cuts.append(branch)
+    if not cuts:
+        raise _StepFailed(
+            "cuts",
+            f"Talos nie zostawił gałęzi story/* z commitami ponad {ref} — cięcia nie powstały; szczegóły w logu.",
+        )
+
+    def ancestor(a: str, b: str) -> bool:
+        return step("cuts", ["git", "merge-base", "--is-ancestor", a, b], ok=(0, 1), quiet=True)[0] == 0
+
+    for branch in cuts:
+        step("push", ["git", "push", "-u", "origin", branch], extra=github_env)
+    prs = []
+    for branch in cuts:
+        # Cięcie zbudowane na innym cięciu dostaje PR do niego (GitHub przestawi bazę po merge'u poprzedniego).
+        under = [o for o in cuts if o != branch and ancestor(o, branch)]
+        base = next((o for o in under if all(p == o or ancestor(p, o) for p in under)), ref)
+        code, out = step("pr", ["gh", "pr", "view", branch, "--json", "url", "-q", ".url"], ok=(0, 1), extra=github_env)
+        url = _url(out) if code == 0 else None
+        if not url:
+            _, out = step("pr", ["gh", "pr", "create", "--fill", "--head", branch, "--base", base], extra=github_env)
+            url = _url(out)
+        if not url:
+            raise _StepFailed("pr", f"Krok pr: gh nie podał adresu PR dla {branch} — szczegóły w logu.")
+        prs.append(url)
+    return prs
 
 
 def finish(spec: dict[str, Any], env: Mapping[str, str], *, run: Run) -> dict[str, Any]:
