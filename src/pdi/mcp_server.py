@@ -11,7 +11,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp_types import ToolAnnotations
 from typing_extensions import TypedDict  # pydantic na 3.11 wymaga TypedDict z typing_extensions
 
-from pdi import autonomy, forecast
+from pdi import autonomy, forecast, pr_state
 from pdi.changes import ChangeNotFound
 from pdi.dispatch import DispatchConfig
 from pdi.impact import ShipScopeConfig, read_connection
@@ -164,12 +164,14 @@ def build_server(
             raise ToolError(str(e)) from e
 
     def open_inbox() -> Inbox:
+        config = dispatch()
         return Inbox(
             open_registry(),
-            dispatch=dispatch(),
+            dispatch=config,
             notify=NotifyConfig.from_env(),
             shipscope=ShipScopeConfig.from_env(),
             reporters=ReporterNotifyConfig.from_env(),
+            pr_state=pr_state.checker(config),
         )
 
     def open_problems() -> ProblemStore:
@@ -318,7 +320,9 @@ def build_server(
         """Zamyka pozycję skrzynki decyzją w rejestrze; wywołuj po zatwierdzeniu szkicu przez człowieka.
 
         Bramka (kind gate) wymaga outcome: approved, changes_requested albo rejected; decyzja dostaje kind gate,
-        stan zmiany się przesuwa, a następna faza tf (albo poprawki tej samej) zostaje uruchomiona.
+        stan zmiany się przesuwa, a następna faza tf (albo poprawki tej samej) zostaje uruchomiona. approved z
+        niezmergowanym PR-em fazy (url pozycji) jest odrzucane — najpierw merge; gdy stanu PR-a nie da się sprawdzić,
+        decyzja przechodzi z ostrzeżeniem (warning). Ustalenie i uzasadnienie trafiają do decisions.md zmiany.
         Ocena skutku MVP (kind impact_review) wymaga outcome: met, not_met albo unknown — wynik potwierdzony przez
         człowieka, może różnić się od szkicu pdi (pole draft pozycji); decyzja dostaje kind product, zależność od
         decyzji o intencji i odczyt z ShipScope jako dowód. Problem z pasm kontrolnych tf (kind problem,

@@ -34,6 +34,9 @@ Skrócenie czasu:
 
 - [ ] **B1 (intent):** przejrzyj PR na GitHubie, zrób merge, potem **C** `decide_inbox_item` z `approved`,
   `success_metric` i `review_by` na jutro. Oczekiwane: faza `requirements` startuje sama (`get_change`).
+  Bez merge'u pdi odmawia `approved`; gdy nie może sprawdzić PR-a (`gh` niezalogowany), przepuszcza z ostrzeżeniem.
+  Faza bez artefaktu poprzedniej na `main` kończy się krokiem `inputs`. Ustalenie i uzasadnienie decyzji trafiają do
+  `decisions.md` zmiany, gdy tf w repo zna `decision gate --why`.
 - [ ] **B2 (requirements):** PR, merge, decyzja → faza `architecture`.
 - [ ] **B3 (architecture):** w PR jest `plan.md` i `release.yaml` z flagą (`owner`, `remove_by`, `rollout` z
   `min_days: 0`). Merge, decyzja → faza `design`.
