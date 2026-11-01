@@ -14,6 +14,7 @@ i stanu pdi nie dopisuje tokenów ani treści zgłoszenia (ta idzie do persony t
 
 from __future__ import annotations
 
+import contextlib
 import copy
 import json
 import os
@@ -23,7 +24,7 @@ import subprocess
 import sys
 import threading
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -31,12 +32,16 @@ from typing import Any
 from pdi import contract, flow
 
 Run = Callable[[list[str], Path, Mapping[str, str]], tuple[int, str]]
+# Jak Run, ale każdą linię wyjścia oddaje od razu (do logu), zanim krok się skończy (PRB-6).
+StreamRun = Callable[[list[str], Path, Mapping[str, str], Callable[[str], None]], tuple[int, str]]
 Spawn = Callable[[dict[str, Any], dict[str, str]], None]
 
 PHASES = ("intent", "requirements", "architecture", "design", "delivery")
 GATES = (*(g.name for g in flow.GATES), "triage")
 SCRIPTS = ".claude/skills/pdi-decisions/scripts"
 STEP_TIMEOUT_SECONDS = 2 * 60 * 60
+# Co tyle sekund długi krok zostawia w logu znak życia (persona pracuje bez wyjścia nawet kilkadziesiąt minut).
+HEARTBEAT_SECONDS = 60.0
 # Artefakt poprzedniej fazy, który musi być na `ref` przed startem fazy (PRB-2).
 PRIOR_ARTIFACT = {
     "requirements": "intent.md",
@@ -330,7 +335,14 @@ def _spawn(spec: dict[str, Any], env: dict[str, str]) -> None:
 # --- przebieg (w procesie w tle) ---
 
 
-def execute(spec: dict[str, Any], *, run: Run, env: Mapping[str, str], log: Callable[[str], None]) -> dict[str, Any]:
+def execute(
+    spec: dict[str, Any],
+    *,
+    run: Run,
+    env: Mapping[str, str],
+    log: Callable[[str], None],
+    stream: StreamRun | None = None,
+) -> dict[str, Any]:
     """Kroki szablonu `sdlc-phase.yml`; wynik `{"status": done | failed, "step"?, "error"?, "pr"?, "prs"?}`.
 
     Po fazie `delivery` pdi wypycha gałęzie cięć talosa (`story/*`) i otwiera ich PR-y (`prs`), bo persona w trybie
@@ -360,9 +372,14 @@ def execute(spec: dict[str, Any], *, run: Run, env: Mapping[str, str], log: Call
         extra: Mapping[str, str] | None = None,
     ) -> tuple[int, str]:
         log("$ " + shlex.join(argv))
-        code, out = run(argv, cwd, {**base, **(extra or {})})
-        if out.strip() and not (quiet and code in ok):
-            log(out.rstrip("\n"))
+        step_env = {**base, **(extra or {})}
+        with _heartbeat(name, log):
+            if stream is not None and not quiet:
+                code, out = stream(argv, cwd, step_env, log)
+            else:
+                code, out = run(argv, cwd, step_env)
+                if out.strip() and not (quiet and code in ok):
+                    log(out.rstrip("\n"))
         if code not in ok:
             raise _StepFailed(name, f"Krok {name}: `{shlex.join(argv)}` zakończone kodem {code} — szczegóły w logu.")
         return code, out
@@ -491,18 +508,41 @@ def _publish_cuts(step: Step, before: set[str], ref: str, github_env: Mapping[st
     return prs
 
 
+@contextlib.contextmanager
+def _heartbeat(name: str, log: Callable[[str], None]) -> Iterator[None]:
+    """Co HEARTBEAT_SECONDS wpis „krok … trwa N min”, dopóki krok trwa."""
+    done = threading.Event()
+    started = time.monotonic()
+
+    def beat() -> None:
+        while not done.wait(HEARTBEAT_SECONDS):
+            minutes = int((time.monotonic() - started) // 60)
+            log(f"# … krok {name} trwa {minutes} min")
+
+    thread = threading.Thread(target=beat, daemon=True)
+    thread.start()
+    try:
+        yield
+    finally:
+        done.set()
+        thread.join()
+
+
 def finish(spec: dict[str, Any], env: Mapping[str, str], *, run: Run) -> dict[str, Any]:
     """Wykonuje przebieg z logiem w `spec["log"]` i zapisuje wynik obok; zwraca wynik."""
     log_path = Path(spec["log"])
+    lock = threading.Lock()
     with log_path.open("a", encoding="utf-8") as f:
 
         def log(line: str) -> None:
-            f.write(line + "\n")
-            f.flush()
+            with lock:  # wpisy znaku życia przychodzą z innego wątku
+                f.write(line + "\n")
+                f.flush()
 
         log(f"# pdi: {spec['change']} faza {spec['phase']} w {spec['checkout']}")
         try:
-            result = execute(spec, run=run, env=env, log=log)
+            stream = _stream_run if run is _run else None
+            result = execute(spec, run=run, env=env, log=log, stream=stream)
         except Exception as e:  # noqa: BLE001 — każdy błąd programu kończy przebieg wynikiem, nie wiszącym `running`
             result = {"status": "failed", "step": "internal", "error": f"Błąd pdi: {type(e).__name__}."}
         log(f"# koniec: {result['status']}")
@@ -540,6 +580,42 @@ def _run(argv: list[str], cwd: Path, env: Mapping[str, str]) -> tuple[int, str]:
     except subprocess.TimeoutExpired:
         return 124, f"przekroczony czas kroku ({STEP_TIMEOUT_SECONDS} s)"
     return done.returncode, done.stdout or ""
+
+
+def _stream_run(argv: list[str], cwd: Path, env: Mapping[str, str], on_line: Callable[[str], None]) -> tuple[int, str]:
+    """Jak _run, ale każda linia wyjścia idzie do `on_line` od razu; po STEP_TIMEOUT_SECONDS proces jest zabijany."""
+    try:
+        process = subprocess.Popen(  # noqa: S603 — lista argumentów, bez powłoki
+            argv,
+            cwd=cwd,
+            env=dict(env),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+    except FileNotFoundError:
+        return 127, f"brak polecenia {argv[0]}"
+    lines: list[str] = []
+
+    def read() -> None:
+        assert process.stdout is not None  # noqa: S101 — stdout=PIPE
+        for line in process.stdout:
+            lines.append(line)
+            on_line(line.rstrip("\n"))
+
+    reader = threading.Thread(target=read, daemon=True)
+    reader.start()
+    try:
+        code = process.wait(timeout=STEP_TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait()
+        reader.join(timeout=5)
+        return 124, "".join(lines) + f"przekroczony czas kroku ({STEP_TIMEOUT_SECONDS} s)"
+    reader.join()
+    return code, "".join(lines)
 
 
 def main() -> None:

@@ -1,6 +1,7 @@
 import json
 import os
 import shutil
+import sys
 import time
 from collections.abc import Mapping
 from pathlib import Path
@@ -815,3 +816,66 @@ def test_start_passes_the_decision_text_in_the_spec(checkout: Path, tmp_path: Pa
     )
 
     assert spawn.specs[0]["decision_text"] == "x" * dispatch_local.DECISION_TEXT_MAX
+
+
+# --- log fazy na bieżąco (PRB-6) ---
+
+
+def test_steps_stream_their_output_into_the_log_except_quiet_ones(checkout: Path, tmp_path: Path) -> None:
+    streamed: list[list[str]] = []
+
+    def stream(argv: list[str], cwd: Path, env: Mapping[str, str], on_line: Any) -> tuple[int, str]:
+        streamed.append(argv)
+        on_line(f"na bieżąco: {argv[0]}")
+        return run(argv, cwd, env)
+
+    run = FakeRun()
+    lines: list[str] = []
+    result = dispatch_local.execute(spec(checkout, tmp_path), run=run, env={}, log=lines.append, stream=stream)
+
+    assert result["status"] == "done"
+    assert ["python3", f"{S}/phase_run.py", "run", "--change", "CHG-12", "--phase", "requirements"] in streamed
+    assert not any("prompt" in a for a in streamed), "wynik prompt (treść zgłoszenia) nie trafia do logu"
+    assert "na bieżąco: python3" in lines
+
+
+def test_a_long_step_leaves_a_sign_of_life_in_the_log(
+    checkout: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(dispatch_local, "HEARTBEAT_SECONDS", 0.05)
+    fake = FakeRun()
+
+    def slow(argv: list[str], cwd: Path, env: Mapping[str, str]) -> tuple[int, str]:
+        if "run" in argv and "phase_run.py" in argv[1]:
+            time.sleep(0.3)
+        return fake(argv, cwd, env)
+
+    lines: list[str] = []
+    dispatch_local.execute(spec(checkout, tmp_path), run=slow, env={}, log=lines.append)
+
+    alive = [line for line in lines if line.startswith("# … krok run trwa")]
+    assert alive, lines
+    assert lines.index(alive[0]) < lines.index("$ git add -A")
+
+
+def test_stream_run_passes_each_line_as_it_comes(tmp_path: Path) -> None:
+    got: list[str] = []
+    script = "import sys, time\nprint('jeden', flush=True)\ntime.sleep(0.2)\nprint('dwa')\nsys.exit(3)"
+
+    code, out = dispatch_local._stream_run([sys.executable, "-c", script], tmp_path, dict(os.environ), got.append)
+
+    assert (code, got, out) == (3, ["jeden", "dwa"], "jeden\ndwa\n")
+
+
+def test_stream_run_stops_a_step_past_its_time(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(dispatch_local, "STEP_TIMEOUT_SECONDS", 0.3)
+    got: list[str] = []
+    script = "import time\nprint('start', flush=True)\ntime.sleep(30)"
+
+    code, out = dispatch_local._stream_run([sys.executable, "-c", script], tmp_path, dict(os.environ), got.append)
+
+    assert code == 124 and "przekroczony czas" in out and got == ["start"]
+
+
+def test_stream_run_without_the_command(tmp_path: Path) -> None:
+    assert dispatch_local._stream_run(["nie-ma-takiego-polecenia"], tmp_path, {}, print)[0] == 127

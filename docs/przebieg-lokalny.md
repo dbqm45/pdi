@@ -28,7 +28,8 @@ Skrócenie czasu:
 - [ ] **C** „przejrzyj PRB-1 i przyjmij je” → `triage_problem` z `accepted`. Oczekiwane: DEC-1 i CHG-1, a w
   `get_change CHG-1` jest `dispatch: {mode: local, status: running}`.
 - [ ] Po kilku minutach `get_change CHG-1` pokazuje `dispatch.status: done` z `pr`, a w `list_inbox` jest bramka B1.
-  Przy błędzie: `dispatch.step` i log w `$PDI_REGISTRY_PATH/runs/`; po poprawce `retry_dispatch CHG-1`.
+  Przy błędzie: `dispatch.step` i log w `$PDI_REGISTRY_PATH/runs/`; po poprawce `retry_dispatch CHG-1`. Log rośnie
+  na bieżąco, a długi krok (persona) co minutę dopisuje „krok run trwa N min”.
 
 ## 2. Fazy z bramkami
 
