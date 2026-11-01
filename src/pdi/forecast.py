@@ -81,9 +81,13 @@ def compare(forecast: dict[str, Any], actual_days: float) -> dict[str, Any]:
 
 
 def calibration(states: Iterable[dict[str, Any]]) -> dict[str, Any]:
-    """Jak trafne były prognozy: liczba z wynikiem, mediana `ratio`, odsetek w przedziale i lista zmian."""
+    """Jak trafne były prognozy: liczba z wynikiem, mediana `ratio`, odsetek w przedziale i lista zmian.
+
+    `without_forecast`: zmiany z rzeczywistym czasem przepływu (`flow`), ale bez udanej prognozy.
+    """
     rows = []
-    for state in states:
+    states_list = list(states)
+    for state in states_list:
         f = state.get("forecast")
         if not isinstance(f, dict) or f.get("status") != "ok":
             continue
@@ -102,6 +106,14 @@ def calibration(states: Iterable[dict[str, Any]]) -> dict[str, Any]:
         )
     settled = [r for r in rows if r["actual_days"] is not None]
     ratios = [r["ratio"] for r in settled if r["ratio"] is not None]
+    # Dostarczone bez użytecznej prognozy: rzeczywisty czas jest, porównać nie ma z czym (PRB-22).
+    without = []
+    for state in states_list:
+        f = state.get("forecast")
+        measured = state.get("flow")
+        if isinstance(measured, dict) and not (isinstance(f, dict) and f.get("status") == "ok"):
+            status = f.get("status") if isinstance(f, dict) else None
+            without.append({"change": state["change"], "actual_days": measured.get("actual_days"), "forecast": status})
     return {
         "count": len(settled),
         "ratio_median": round(statistics.median(ratios), 2) if ratios else None,
@@ -109,6 +121,7 @@ def calibration(states: Iterable[dict[str, Any]]) -> dict[str, Any]:
         if settled
         else None,
         "changes": rows,
+        "without_forecast": without,
     }
 
 

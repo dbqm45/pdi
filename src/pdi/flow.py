@@ -135,6 +135,14 @@ def forecast_settled(state: State, actual: dict[str, Any], *, at: str) -> State:
     return new
 
 
+def flow_measured(state: State, actual_days: float, *, at: str) -> State:
+    """Zmiana dostarczona: rzeczywisty czas przepływu z ShipScope, z prognozą czy bez (PRB-22)."""
+    new = _copy(state)
+    new["flow"] = {"actual_days": actual_days, "measured_at": at}
+    new["history"].append({"at": at, "what": "flow.measured", "actual_days": actual_days})
+    return new
+
+
 def impact_scheduled(state: State, plan: dict[str, Any], *, at: str) -> State:
     """Ocena skutku MVP zaplanowana na `plan["due"]` (F5, `pdi.impact.due_date`)."""
     new = _copy(state)

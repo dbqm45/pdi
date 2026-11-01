@@ -293,7 +293,13 @@ async def test_forecast_through_tools(
     report = await call(server, "forecast_report", {})
 
     assert made["status"] == "failed" and "PDI_SHIPSCOPE_URL" in made["error"]
-    assert report == {"count": 0, "ratio_median": None, "within_range_share": None, "changes": []}
+    assert report == {
+        "count": 0,
+        "ratio_median": None,
+        "within_range_share": None,
+        "changes": [],
+        "without_forecast": [],
+    }
     with pytest.raises(ToolError, match="list_changes"):
         await server.call_tool("forecast_change", {"change": "CHG-404"})
 

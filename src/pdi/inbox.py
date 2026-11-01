@@ -606,13 +606,11 @@ class Inbox:
             if new is state:
                 continue
             touched.append(self.changes.save(new))
-            changed.append(
-                {
-                    "change": new["change"],
-                    "forecast": new["forecast"]["status"],
-                    "actual": new["forecast"].get("actual"),
-                }
-            )
+            made = new.get("forecast") or {}
+            entry = {"change": new["change"], "forecast": made.get("status"), "actual": made.get("actual")}
+            if "flow" in new and "flow" not in state:
+                entry["flow_days"] = new["flow"]["actual_days"]
+            changed.append(entry)
         if touched:
             self.registry.commit(touched, f"prognozy: {', '.join(c['change'] for c in changed)}")
         return changed
@@ -632,16 +630,25 @@ class Inbox:
         return flow.forecast_made(state, made, at=at)
 
     def _settle(self, state: flow.State, today: date, at: str) -> flow.State:
-        """Stan z wynikiem prognozy, z ponowioną nieudaną prognozą albo ten sam obiekt, gdy nic się nie zmieniło."""
-        made = state.get("forecast")
-        if not self._shipscope.url or not isinstance(made, dict) or "actual" in made:
+        """Stan z wynikiem prognozy i rzeczywistym czasem przepływu, z ponowioną nieudaną prognozą albo ten sam obiekt.
+
+        Rzeczywisty czas przepływu (`flow`) dostaje każda wydana zmiana, także bez prognozy albo z nieudaną (PRB-22).
+        """
+        if not self._shipscope.url:
             return state
-        if made["status"] != "ok":
-            # Po pierwszym wydaniu prognoza byłaby już częściowo wynikiem — zostaje nieudana; zamkniętej zmiany też nie
-            # prognozuje się od nowa.
-            retry = state["status"] == "open" and not state.get("releases")
-            return self._forecast(state, today, at) if retry else state
-        start = max(date.fromisoformat(made["made_at"][:10]), today - timedelta(days=impact.MAX_WINDOW_DAYS - 1))
+        raw = state.get("forecast")
+        made: dict[str, Any] | None = raw if isinstance(raw, dict) else None
+        # Nieudana prognoza: ponowiona, dopóki zmiana jest otwarta i niewydana. Po pierwszym wydaniu byłaby już
+        # częściowo wynikiem — zostaje nieudana; zamkniętej zmiany też nie prognozuje się od nowa.
+        if made is not None and made["status"] != "ok" and state["status"] == "open" and not state.get("releases"):
+            return self._forecast(state, today, at)
+        forecast_open = made is not None and made["status"] == "ok" and "actual" not in made
+        flow_open = "flow" not in state and bool(state.get("releases"))
+        if not forecast_open and not flow_open:
+            return state
+        history_at = [h.get("at") for h in state.get("history") or [] if isinstance(h, dict) and h.get("at")]
+        since = str(made["made_at"] if made else (history_at[0] if history_at else _iso(self.registry.now())))
+        start = max(date.fromisoformat(since[:10]), today - timedelta(days=impact.MAX_WINDOW_DAYS - 1))
         history, _ = forecast.read_flow(self._shipscope, min(start, today), today, get=self._shipscope_get)
         delivered = next(
             (c for c in (history or {}).get("changes", []) if isinstance(c, dict) and c.get("key") == state["change"]),
@@ -650,7 +657,13 @@ class Inbox:
         days = (delivered or {}).get("flowDays")
         if not isinstance(days, int | float) or isinstance(days, bool):
             return state
-        return flow.forecast_settled(state, forecast.compare(made, float(days)), at=at)
+        new = state
+        if forecast_open:
+            assert made is not None  # noqa: S101 — zawężenie typu
+            new = flow.forecast_settled(new, forecast.compare(made, float(days)), at=at)
+        if "flow" not in new:
+            new = flow.flow_measured(new, float(days), at=at)
+        return new
 
     def retry_dispatch(self, change: str) -> dict[str, Any]:
         """Ponawia nieudane albo pominięte uruchomienie fazy i nieudaną wysyłkę decyzji do ci_for_sdlc."""
