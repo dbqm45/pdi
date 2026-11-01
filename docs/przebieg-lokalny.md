@@ -80,7 +80,8 @@ Skrócenie czasu:
 
 ## Gdy coś nie działa
 
-- `uv run sdlc status`: procesy, połączenia, ostatnie wpisy odbiornika, skrzynka.
+- `uv run sdlc status`: procesy, połączenia, ostatnie wpisy odbiornika, skrzynka; przy ci_for_sdlc → pdi wysłana
+  gotowość, kolejka z ostatnim błędem, zdarzenia odrzucone przez pdi i ostatnie `sdlc check`.
 - Logi: `~/.sdlc/logs/` (ShipScope, odbiornik), `$PDI_REGISTRY_PATH/runs/` (fazy tf).
 - `uv run sdlc down` / `uv run sdlc up` restartuje stos; dane zostają.
 

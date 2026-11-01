@@ -809,3 +809,62 @@ def test_up_goes_on_when_the_analysis_does_not_run(world: World) -> None:
 
     assert up(world) == 0
     assert "kodem 3" in world.text() and "gotowe" in world.text()
+
+
+# --- stan powiadomień ci_for_sdlc → pdi w sdlc status (PRB-10) ---
+
+
+def ci_status(world: World, *, state: Any, outbox: Any) -> str:
+    assert up(world) == 0
+    ci = world.home / ".sdlc/ci-data"
+    ci.mkdir(parents=True, exist_ok=True)
+    (ci / "pdi-state.json").write_text(json.dumps(state), encoding="utf-8")
+    (ci / "pdi-outbox.json").write_text(json.dumps(outbox), encoding="utf-8")
+    world.output.clear()
+    assert cli.main(["status"], ctx=world.ctx()) == 0
+    return world.text()
+
+
+def event(change: str, kind: str = "readiness.changed") -> dict[str, Any]:
+    return {"type": kind, "payload": {"change": change}}
+
+
+def test_status_lists_the_readiness_already_sent(world: World) -> None:
+    text = ci_status(world, state={"sent": {"CHG-1": "ready", "CHG-2": "not_ready"}, "seen": []}, outbox=[])
+
+    assert "ci_for_sdlc → pdi: connected" in text
+    assert "  wysłana gotowość: CHG-1 ready, CHG-2 not_ready" in text
+    assert "  ostatnie sdlc check: kod 0" in text
+
+
+def test_status_shows_why_events_wait_and_when_they_retry(world: World) -> None:
+    queued = [
+        {"attempts": 3, "nextAt": "2026-11-01T10:05:00Z", "lastError": "connection refused", "event": event("CHG-1")}
+    ]
+
+    text = ci_status(world, state={"sent": {"CHG-1": "ready"}, "seen": []}, outbox=queued)
+
+    assert "ci_for_sdlc → pdi: queued 1" in text
+    assert (
+        "  w kolejce: readiness.changed CHG-1 — prób 3, następna 2026-11-01T10:05:00Z, błąd: connection refused" in text
+    )
+
+
+def test_status_does_not_call_refused_events_connected(world: World) -> None:
+    refused = [{"attempts": 1, "nextAt": "x", "failed": "unknown change CHG-9", "event": event("CHG-9")}]
+
+    text = ci_status(world, state={"sent": {"CHG-9": "ready"}, "seen": []}, outbox=refused)
+
+    assert "ci_for_sdlc → pdi: refused 1" in text
+    assert "  odrzucone przez pdi (bez ponowień): readiness.changed CHG-9 — unknown change CHG-9" in text
+    assert "connected" not in text.split("ci_for_sdlc → pdi:")[1].splitlines()[0]
+
+
+def test_status_shortens_long_errors_and_lists_at_most_five(world: World) -> None:
+    queued = [{"attempts": 1, "nextAt": "x", "lastError": "x" * 500, "event": event(f"CHG-{n}")} for n in range(8)]
+
+    text = ci_status(world, state={"sent": {}, "seen": []}, outbox=queued)
+
+    lines = [line for line in text.splitlines() if line.startswith("  w kolejce:")]
+    assert len(lines) == 5 and all(len(line) < 260 for line in lines)
+    assert "  … i 3 więcej" in text

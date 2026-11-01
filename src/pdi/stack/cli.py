@@ -291,7 +291,10 @@ def ci_check(ctx: Ctx, config: home.Config, secrets: Mapping[str, str]) -> int:
     argv = ["npm", "run", "analyze", "--", "--repo", str(checkout), "--send-to-pdi"]
     code, out, err = ctx.run(argv, config.ci_for_sdlc, env, None)
     (ctx.root / "run").mkdir(parents=True, exist_ok=True)
-    (ctx.root / "run" / "ci-check.json").write_text(json.dumps({"code": code}) + "\n", encoding="utf-8")
+    checked_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    (ctx.root / "run" / "ci-check.json").write_text(
+        json.dumps({"code": code, "at": checked_at}) + "\n", encoding="utf-8"
+    )
     if code == 2:
         raise Stop(f"ci_for_sdlc → pdi: {_first_line(err) or 'brak konfiguracji pdi'}")
     if code not in (0, 1):  # analiza się nie wykonała; `sdlc up` idzie dalej, `sdlc check` kończy się kodem 1
@@ -379,7 +382,10 @@ def cmd_status(ctx: Ctx) -> int:
     code, out, _ = ctx.run(["docker", "inspect", "-f", "{{.State.Running}}", PG_CONTAINER], None, ctx.environ, None)
     ctx.out(f"Postgres ({PG_CONTAINER}): {'działa' if code == 0 and out.strip() == 'true' else 'nie działa'}")
     ctx.out(f"ShipScope ↔ pdi: {shipscope_link(ctx, secrets)}")
-    ctx.out(f"ci_for_sdlc → pdi: {ci_link(ctx)}")
+    summary, details = ci_link(ctx)
+    ctx.out(f"ci_for_sdlc → pdi: {summary}")
+    for line in details:
+        ctx.out(f"  {line}")
     for key in home.SECRET_KEYS:
         ctx.out(f"{key}: {'ustawiony' if secrets.get(key) else 'brak'}")
     log = ctx.root / "logs" / "pdi-receiver.log"
@@ -409,7 +415,16 @@ def shipscope_link(ctx: Ctx, secrets: Mapping[str, str]) -> str:
     return str(value["state"])
 
 
-def ci_link(ctx: Ctx) -> str:
+CI_SHOWN = 5
+CI_ERROR_CHARS = 120
+
+
+def ci_link(ctx: Ctx) -> tuple[str, list[str]]:
+    """Stan powiadomień ci_for_sdlc → pdi: jedno słowo i szczegóły (PRB-10).
+
+    Z plików ci_for_sdlc w ~/.sdlc/ci-data: wysłana gotowość (pdi-state.json), kolejka z ostatnim błędem i
+    zdarzenia odrzucone przez pdi (pdi-outbox.json, `failed`: nie są ponawiane), oraz ostatnie `sdlc check`.
+    """
     data = ctx.root / "ci-data"
     try:
         state = json.loads((data / "pdi-state.json").read_text(encoding="utf-8"))
@@ -419,14 +434,57 @@ def ci_link(ctx: Ctx) -> str:
         outbox = json.loads((data / "pdi-outbox.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
         outbox = []
-    waiting = [e for e in outbox if isinstance(e, dict) and not e.get("failed")] if isinstance(outbox, list) else []
-    if waiting:
-        return f"queued {len(waiting)}"
-    if isinstance(state, dict) and state.get("sent"):
-        return "connected"
-    if (ctx.root / "run" / "ci-check.json").is_file():
-        return "configured (sprawdzenie przeszło, brak zmian CHG do wysłania)"
-    return "not run (uv run sdlc check)"
+    entries = [e for e in outbox if isinstance(e, dict)] if isinstance(outbox, list) else []
+    refused = [e for e in entries if e.get("failed")]
+    waiting = [e for e in entries if not e.get("failed")]
+    sent = state.get("sent") if isinstance(state, dict) else None
+    sent = sent if isinstance(sent, dict) else {}
+
+    details: list[str] = []
+    if sent:
+        details.append("wysłana gotowość: " + ", ".join(f"{k} {v}" for k, v in sorted(sent.items())))
+    for entry in waiting[:CI_SHOWN]:
+        error = f", błąd: {_short(entry.get('lastError'))}" if entry.get("lastError") else ""
+        attempts, next_at = entry.get("attempts", 0), entry.get("nextAt", "?")
+        details.append(f"w kolejce: {_event_name(entry)} — prób {attempts}, następna {next_at}{error}")
+    if len(waiting) > CI_SHOWN:
+        details.append(f"… i {len(waiting) - CI_SHOWN} więcej")
+    for entry in refused[:CI_SHOWN]:
+        details.append(f"odrzucone przez pdi (bez ponowień): {_event_name(entry)} — {_short(entry.get('failed'))}")
+    if len(refused) > CI_SHOWN:
+        details.append(f"… i {len(refused) - CI_SHOWN} więcej odrzuconych")
+    try:
+        last = json.loads((ctx.root / "run" / "ci-check.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        last = None
+    if isinstance(last, dict) and "code" in last:
+        details.append(f"ostatnie sdlc check: kod {last['code']}" + (f" ({last['at']})" if last.get("at") else ""))
+
+    if refused:
+        summary = f"refused {len(refused)}" + (f", queued {len(waiting)}" if waiting else "")
+    elif waiting:
+        summary = f"queued {len(waiting)}"
+    elif sent:
+        summary = "connected"
+    elif last is not None:
+        summary = "configured (sprawdzenie przeszło, brak zmian CHG do wysłania)"
+    else:
+        summary = "not run (uv run sdlc check)"
+    return summary, details
+
+
+def _event_name(entry: Mapping[str, Any]) -> str:
+    raw_event = entry.get("event")
+    event: dict[str, Any] = raw_event if isinstance(raw_event, dict) else {}
+    raw_payload = event.get("payload")
+    payload: dict[str, Any] = raw_payload if isinstance(raw_payload, dict) else {}
+    what = payload.get("change") or payload.get("ref") or ""
+    return " ".join(str(x) for x in (event.get("type") or "zdarzenie", what) if x)
+
+
+def _short(text: Any) -> str:
+    one = " ".join(str(text).split())
+    return one if len(one) <= CI_ERROR_CHARS else one[: CI_ERROR_CHARS - 1] + "…"
 
 
 def cmd_check(ctx: Ctx) -> int:
