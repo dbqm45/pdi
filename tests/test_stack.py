@@ -750,3 +750,62 @@ def test_port_free_sees_a_listening_socket() -> None:
         port = server.getsockname()[1]
         assert cli._port_free("127.0.0.1", port) is False
     assert cli._port_free("127.0.0.1", port) is True
+
+
+# --- sdlc check mówi, co sprawdził i dlaczego nic nie wysłał (PRB-7) ---
+
+ANALYZE = ("npm", "run", "analyze")
+SENT = "\npdi: http://127.0.0.1:8787\n  pdi readiness.changed CHG-1 ready delivered\n"
+
+
+def check(world: World) -> int:
+    return cli.main(["check"], ctx=world.ctx())
+
+
+def checked(world: World, *, code: int, out: str, err: str = "", changes: bool = True) -> int:
+    assert up(world) == 0
+    world.output.clear()
+    if changes:
+        (world.projects / "sklep/docs/project/changes/CHG-1").mkdir(parents=True)
+    world.answer(("git", "-C", str(world.projects / "sklep"), "rev-parse"), 0, "main\n")
+    world.answers[ANALYZE] = [(code, out, err)]
+    return check(world)
+
+
+def test_check_names_the_checkout_and_branch_it_analysed(world: World) -> None:
+    assert checked(world, code=0, out=SENT) == 0
+
+    text = world.text()
+    assert f"ci_for_sdlc: analiza {world.projects / 'sklep'} (main)" in text
+    assert "ci_for_sdlc: pdi readiness.changed CHG-1 ready delivered" in text
+
+
+def test_check_without_changes_on_the_checkout_says_why_nothing_was_sent(world: World) -> None:
+    assert checked(world, code=0, out="\npdi: http://127.0.0.1:8787\n", changes=False) == 0
+
+    text = world.text()
+    assert "nic nie wysłano do pdi" in text
+    assert "docs/project/changes" in text and "git pull" in text
+
+
+def test_check_with_only_unchanged_readiness_says_so(world: World) -> None:
+    out = "\npdi: http://127.0.0.1:8787\n  pdi readiness.changed CHG-1 not_ready unchanged\n"
+
+    assert checked(world, code=1, out=out, err="\n✗ Quality gate failed: CHG-1\n") == 0
+
+    text = world.text()
+    assert "unchanged" in text and "bez zmian od ostatniej wysyłki" in text
+    assert "Quality gate failed: CHG-1" in text
+
+
+def test_check_reports_an_analysis_that_did_not_run(world: World) -> None:
+    assert checked(world, code=3, out="", err="Error: Cannot find module tsx\n") == 1
+
+    assert "kodem 3" in world.text() and "Cannot find module tsx" in world.text()
+
+
+def test_up_goes_on_when_the_analysis_does_not_run(world: World) -> None:
+    world.answer(ANALYZE, 3, "", "Error: Cannot find module tsx\n")
+
+    assert up(world) == 0
+    assert "kodem 3" in world.text() and "gotowe" in world.text()

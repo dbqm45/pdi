@@ -284,15 +284,41 @@ def ci_check(ctx: Ctx, config: home.Config, secrets: Mapping[str, str]) -> int:
         "PDI_SIGNING_SECRET": secrets["PDI_CI_FOR_SDLC_SIGNING_SECRET"],
         "CI_DATA_DIR": str(data),
     }
-    argv = ["npm", "run", "analyze", "--", "--repo", str(config.checkout), "--send-to-pdi"]
+    checkout = config.checkout
+    _, head, _ = ctx.run(["git", "-C", str(checkout), "rev-parse", "--abbrev-ref", "HEAD"], None, ctx.environ, None)
+    branch = head.strip()
+    ctx.out(f"ci_for_sdlc: analiza {checkout}" + (f" ({branch})" if branch else ""))
+    argv = ["npm", "run", "analyze", "--", "--repo", str(checkout), "--send-to-pdi"]
     code, out, err = ctx.run(argv, config.ci_for_sdlc, env, None)
     (ctx.root / "run").mkdir(parents=True, exist_ok=True)
     (ctx.root / "run" / "ci-check.json").write_text(json.dumps({"code": code}) + "\n", encoding="utf-8")
     if code == 2:
         raise Stop(f"ci_for_sdlc → pdi: {_first_line(err) or 'brak konfiguracji pdi'}")
+    if code not in (0, 1):  # analiza się nie wykonała; `sdlc up` idzie dalej, `sdlc check` kończy się kodem 1
+        why = _first_line(err) or _first_line(out) or "bez opisu"
+        ctx.out(f"✗ ci_for_sdlc: analiza zakończona kodem {code}: {why}")
+        return code
+    sent = []
     for line in out.splitlines():
         if line.strip().startswith("pdi"):
             ctx.out(f"ci_for_sdlc: {line.strip()}")
+            if line.strip().startswith("pdi readiness.changed"):
+                sent.append(line.strip())
+    for line in err.splitlines():  # kod 1: bramka jakości nie przeszła — pdi i tak dostaje stan gotowości
+        if line.strip().startswith("✗"):
+            ctx.out(f"ci_for_sdlc: {line.strip()}")
+    # Bez żadnej linii readiness.changed check milczał (PRB-7): mówimy, dlaczego pdi nic nie dostał.
+    changes = checkout / "docs" / "project" / "changes"
+    where = f"{checkout}" + (f" na {branch}" if branch else "")
+    if not sent and not (changes.is_dir() and any(p.is_dir() for p in changes.iterdir())):
+        ctx.out(
+            f"ci_for_sdlc: nic nie wysłano do pdi — w {where} nie ma zmian w docs/project/changes "
+            "(nieaktualny klon? git pull, albo zmiany są jeszcze tylko w PR-ach faz)."
+        )
+    elif not sent:
+        ctx.out("ci_for_sdlc: nic nie wysłano do pdi — analiza nie podała gotowości żadnej zmiany (wynik wyżej).")
+    elif all(line.endswith(" unchanged") for line in sent):
+        ctx.out("ci_for_sdlc: gotowość bez zmian od ostatniej wysyłki — pdi ma już te stany.")
     return code
 
 
@@ -407,8 +433,8 @@ def cmd_check(ctx: Ctx) -> int:
     config = home.load_config(ctx.root / "config.toml")
     if config is None:
         raise Stop("Najpierw: uv run sdlc up")
-    ci_check(ctx, config, home.read_env(ctx.root / "env"))
-    return 0
+    code = ci_check(ctx, config, home.read_env(ctx.root / "env"))
+    return 0 if code in (0, 1) else 1
 
 
 def cmd_deploy(ctx: Ctx, target: str, repo: str | None) -> int:

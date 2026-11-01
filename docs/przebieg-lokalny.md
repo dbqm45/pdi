@@ -44,8 +44,9 @@ Skrócenie czasu:
 
 ## 3. Gotowość i zatwierdzenie do budowy
 
-- [ ] **T** `uv run sdlc check` → `pdi readiness.changed CHG-1 ready delivered`. `sdlc status`: ci_for_sdlc → pdi
-  `connected`.
+- [ ] **T** `uv run sdlc check` → `pdi readiness.changed CHG-1 ready delivered`. `check` podaje klon i gałąź, które
+  analizował; gdy nic nie poszło do pdi, mówi dlaczego (brak zmian w klonie, gotowość bez zmian). `sdlc status`:
+  ci_for_sdlc → pdi `connected`.
 - [ ] **C** `list_inbox` → „Approve for implementation” (z prognozą). Decyzja `approved` → faza `delivery` startuje
   sama.
 
