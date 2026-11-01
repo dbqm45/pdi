@@ -111,7 +111,30 @@ def test_calibration_over_settled_forecasts() -> None:
 
 
 def test_calibration_without_results() -> None:
-    assert calibration([]) == {"count": 0, "ratio_median": None, "within_range_share": None, "changes": []}
+    assert calibration([]) == {
+        "count": 0,
+        "ratio_median": None,
+        "within_range_share": None,
+        "changes": [],
+        "without_forecast": [],
+    }
+
+
+def test_calibration_lists_delivered_changes_without_a_usable_forecast() -> None:
+    states = [
+        {"change": "CHG-1", "forecast": {"status": "failed", "error": "brak historii"}, "flow": {"actual_days": 2.5}},
+        {"change": "CHG-2", "flow": {"actual_days": 4.0}},
+        {"change": "CHG-3", "forecast": {"status": "ok", "expected_days": 2.0}, "flow": {"actual_days": 3.0}},
+        {"change": "CHG-4", "forecast": {"status": "failed"}},
+    ]
+
+    report = calibration(states)
+
+    assert report["without_forecast"] == [
+        {"change": "CHG-1", "actual_days": 2.5, "forecast": "failed"},
+        {"change": "CHG-2", "actual_days": 4.0, "forecast": None},
+    ]
+    assert report["count"] == 0, "bez prognozy nie ma czego kalibrować"
 
 
 # --- odczyt z ShipScope ---
@@ -294,3 +317,50 @@ def test_failed_forecast_of_a_closed_change_is_not_retried(registry: Any, make_d
     routes["/changes"] = (200, CHANGES)
 
     assert inbox.settle_forecasts() == []
+
+
+# --- rzeczywisty czas przepływu także bez prognozy (PRB-22) ---
+
+
+def test_delivered_change_with_a_failed_forecast_keeps_its_flow_time(registry: Any, make_draft: Any) -> None:
+    from pdi.inbox import Inbox
+    from tests.test_inbox import released_event
+
+    routes: dict[str, tuple[int, Any]] = {"/changes": (500, {}), "/flow": (200, HISTORY)}
+    inbox = Inbox(registry, shipscope=SHIPSCOPE, shipscope_get=FakeShipScope(routes))
+    approve(inbox, make_draft)
+    inbox.receive(released_event())
+    routes["/flow"] = (200, DELIVERED)
+
+    settled = inbox.settle_forecasts(today=date(2026, 10, 30))
+
+    state = inbox.changes.get("CHG-12")
+    assert state["forecast"]["status"] == "failed" and "actual" not in state["forecast"]
+    assert state["flow"] == {"actual_days": 7.5, "measured_at": "2026-10-23T09:30:00Z"}
+    assert state["history"][-1] == {"at": "2026-10-23T09:30:00Z", "what": "flow.measured", "actual_days": 7.5}
+    assert settled == [{"change": "CHG-12", "forecast": "failed", "actual": None, "flow_days": 7.5}]
+    assert inbox.settle_forecasts(today=date(2026, 10, 30)) == []  # zmierzone raz
+
+
+def test_delivered_change_without_any_forecast_keeps_its_flow_time(registry: Any, make_draft: Any) -> None:
+    from pdi.inbox import Inbox
+    from tests.test_inbox import released_event
+
+    approve(Inbox(registry), make_draft)  # bez ShipScope przy baseline: prognozy nie ma
+    inbox = Inbox(registry, shipscope=SHIPSCOPE, shipscope_get=FakeShipScope({"/flow": (200, DELIVERED)}))
+    inbox.receive(released_event())
+
+    state = inbox.changes.get("CHG-12")
+    assert "forecast" not in state
+    assert state["flow"]["actual_days"] == 7.5
+    assert calibration([state])["without_forecast"] == [{"change": "CHG-12", "actual_days": 7.5, "forecast": None}]
+
+
+def test_undelivered_change_without_forecast_is_not_read(registry: Any, make_draft: Any) -> None:
+    from pdi.inbox import Inbox
+
+    approve(Inbox(registry), make_draft)
+    shipscope = FakeShipScope({"/flow": (200, DELIVERED)})
+
+    assert Inbox(registry, shipscope=SHIPSCOPE, shipscope_get=shipscope).settle_forecasts() == []
+    assert shipscope.calls == [], "bez wydania nie ma czego mierzyć — bez zapytań do ShipScope"

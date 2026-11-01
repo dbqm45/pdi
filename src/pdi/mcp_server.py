@@ -562,7 +562,8 @@ def build_server(
     @server.tool(annotations=_READ)
     def forecast_report() -> dict[str, Any]:
         """Kalibracja prognoz (G3): ile zmian ma prognozę i wynik, mediana ratio (rzeczywiste / prognozowane dni),
-        odsetek wyników w przedziale prognozy i lista zmian z prognozą."""
+        odsetek wyników w przedziale prognozy i lista zmian z prognozą. without_forecast: zmiany dostarczone bez
+        udanej prognozy, z rzeczywistym czasem przepływu (actual_days) — dane do przyszłych prognoz."""
         return forecast.calibration(open_inbox().changes.all(status=None))
 
     @server.tool(annotations=_READ)
