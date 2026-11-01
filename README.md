@@ -191,6 +191,8 @@ uv run sdlc deploy prod # GitHub Deployment HEAD main repo próbnego (też: test
 uv run sdlc open        # ShipScope i formularz zgłoszeń w przeglądarce
 uv run sdlc down        # zatrzymuje procesy i Postgresa; dane zostają
 uv run sdlc check       # ponownie: gotowość zmian CHG z repo produktu do pdi (ci_for_sdlc --send-to-pdi)
+uv run sdlc impact-review # oceny skutku, których termin minął (pdi-impact-review ze zmiennymi z ~/.sdlc/env)
+uv run sdlc forecast    # wyniki prognoz i czas przepływu dostarczonych zmian (pdi-forecast, jak wyżej)
 uv run sdlc reset       # usuwa dane stosu po wpisaniu „usuń”
 uv run sdlc sandbox sdlc-proba   # repo próbne z szablonu dbqm45/sdlc-sandbox (L5)
 ```

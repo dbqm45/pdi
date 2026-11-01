@@ -33,6 +33,7 @@ sdlc open               # przeglądarka: ShipScope i formularz zgłoszenia; serw
 sdlc deploy prod        # GitHub Deployment bieżącego main repo próbnego (zamiast Vercela)
 sdlc status             # co działa, połączenia, ostatnie zdarzenia, skrzynka pdi
 sdlc down               # zatrzymuje procesy, dane zostają
+sdlc impact-review      # oceny skutku po terminie (pdi-impact-review ze zmiennymi z ~/.sdlc/env); sdlc forecast — prognozy
 ```
 
 Dalej cały przebieg idzie w czacie Claude, w repo próbnym: zgłoszenie, triaż, bramki, decyzje. Od człowieka zostają
@@ -136,7 +137,7 @@ trybami albo dodatkowymi opcjami, domyślne zachowanie się nie zmienia.
 7. `sdlc deploy test`, `sdlc deploy prod`. ShipScope pokazuje „Deployed (hidden)”.
 8. PR-y z etapami flagi (`min_days: 0`), po każdym `sdlc deploy prod`. ⚙️ `release.stage_changed` daje bramkę etapu
    w skrzynce, a `feature.released` z R1 planuje ocenę skutku.
-9. Następnego dnia `uv run pdi-impact-review` → ocena skutku w skrzynce → decyzja. Potem `get_trace`,
+9. Następnego dnia `uv run sdlc impact-review` → ocena skutku w skrzynce → decyzja. Potem `get_trace`,
    `autonomy_report`, `forecast_report`.
 
 Skrócenie czasu:

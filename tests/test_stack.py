@@ -868,3 +868,28 @@ def test_status_shortens_long_errors_and_lists_at_most_five(world: World) -> Non
     lines = [line for line in text.splitlines() if line.startswith("  w kolejce:")]
     assert len(lines) == 5 and all(len(line) < 260 for line in lines)
     assert "  … i 3 więcej" in text
+
+
+# --- przebiegi dzienne pdi z terminala, ze zmiennymi z ~/.sdlc/env (PRB-9) ---
+
+
+@pytest.mark.parametrize(("command", "script"), [("impact-review", "pdi-impact-review"), ("forecast", "pdi-forecast")])
+def test_daily_runs_get_the_same_variables_as_the_mcp_server(world: World, command: str, script: str) -> None:
+    assert up(world) == 0
+
+    assert cli.main([command], ctx=world.ctx()) == 0
+
+    ((argv, env),) = world.execs
+    assert argv == [f"/venv/bin/{script}"]
+    secrets = env_file(world)
+    assert (env["PDI_SHIPSCOPE_URL"], env["PDI_SHIPSCOPE_TOKEN"]) == (
+        secrets["PDI_SHIPSCOPE_URL"],
+        secrets["PDI_SHIPSCOPE_TOKEN"],
+    )
+    assert env["PDI_REGISTRY_PATH"] == str(world.home / "pdi-decisions")
+    assert TOKEN not in world.argv_text() + world.text()
+
+
+def test_daily_runs_need_sdlc_up_first(world: World) -> None:
+    assert cli.main(["impact-review"], ctx=world.ctx()) == 1
+    assert "sdlc up" in world.text()
