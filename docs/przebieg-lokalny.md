@@ -111,9 +111,12 @@ Luki według repozytorium:
 |---|---|
 | pdi | PRB-2 bramka bez merge'u PR-a fazy · PRB-3 odpowiedzi z bramek nie docierają do kolejnych faz · PRB-4 delivery kończy się bez PR-ów · PRB-5 ślad bez PR-ów zadań · PRB-6 log fazy bez bieżącego wyjścia · PRB-7 `sdlc check` milczy · PRB-8 `sdlc down` i osierocone procesy · PRB-9 `pdi-impact-review` w dokumentacji · PRB-10 `sdlc status` bez stanu powiadomień ci_for_sdlc · PRB-21 decyzje ze szkiców bez `drafted_by`/`draft_edited` · PRB-22 rzeczywisty czas przepływu bez prognozy nie jest zapisywany |
 | tf | PRB-11 błąd persony bez treści · PRB-12 dwie fazy tworzą `design.md` · PRB-13 dziennik projektu i numeracja `decisions.md` między gałęziami · PRB-14 odsyłacz do nieistniejącego `parked.md` |
-| ci_for_sdlc | PRB-16 brak decyzji dla ustaleń zmian z repo · PRB-17 każde ostrzeżenie daje `not_ready` |
+| ci_for_sdlc | PRB-16 brak decyzji dla ustaleń zmian z repo (**zrobione 2026-11-01**, ci_for_sdlc #107, tf #128: odpowiedź to wpis w `decisions.md` zmiany z polem `ustalenie`, `decision_record.py decision add --finding`) · PRB-17 każde ostrzeżenie daje `not_ready` (**zrobione 2026-11-01**, ci_for_sdlc #107: zmiana jest `not_ready` tylko przy blokującym ustaleniu) |
 | ShipScope | PRB-18 tytuły zadań z `plan.md` · PRB-19 brak przeliczenia zapisanych wdrożeń · PRB-20 status zmiany a flaga zadania |
 | sdlc-proba / proces | PRB-15 bez CI złamany plik flag dochodzi do PROD |
+
+Po PRB-16 i PRB-17 obejście z kroku 3 nie jest potrzebne: reguły DES-001 i STORY-001 można z powrotem włączyć
+w `~/.sdlc/ci-data/settings.json` (`policy.disabledRules`).
 
 Przed etapem 2 warto naprawić PRB-2, PRB-3, PRB-4, PRB-18 i PRB-21: na sprintdecku wymagałyby tych samych ręcznych
 napraw, a PRB-21 zostawia licznik autonomii (etap 6) bez danych.
