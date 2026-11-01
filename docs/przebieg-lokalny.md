@@ -73,8 +73,9 @@ Skrócenie czasu:
 
 ## 7. Ocena skutku (następnego dnia)
 
-- [ ] **T** `uv run pdi-impact-review` → w skrzynce jest ocena skutku MVP. Dane z ShipScope: wdrożenia i flaga.
-  Użytkowników w repo próbnym nie ma, więc skutek oceniasz ręcznie.
+- [ ] **T** `uv run sdlc impact-review` → w skrzynce jest ocena skutku MVP. Dane z ShipScope: wdrożenia i flaga.
+  Użytkowników w repo próbnym nie ma, więc skutek oceniasz ręcznie. Samo `uv run pdi-impact-review` nie ma zmiennych
+  z `~/.sdlc/env` (adresu i tokenu ShipScope); w czacie to samo robi narzędzie `open_due_impact_reviews`.
 - [ ] **C** `decide_inbox_item` dla oceny, potem `forecast_report` i `autonomy_report`.
 - [ ] Luki z przebiegu: **C** `record_problem` (kanał dogfooding).
 

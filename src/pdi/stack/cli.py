@@ -659,6 +659,18 @@ def cmd_mcp(ctx: Ctx, name: str) -> int:
     return 0
 
 
+DAILY_RUNS = {"impact-review": "pdi-impact-review", "forecast": "pdi-forecast"}
+
+
+def cmd_daily(ctx: Ctx, name: str) -> int:
+    """Przebieg dzienny pdi (ocena skutku, prognozy) ze zmiennymi z ~/.sdlc/env, jak serwer MCP pdi (PRB-9)."""
+    config = home.load_config(ctx.root / "config.toml")
+    if config is None:
+        raise Stop("Najpierw: uv run sdlc up")
+    ctx.exec([str(ctx.python_bin.parent / DAILY_RUNS[name])], pdi_env(ctx, config, home.read_env(ctx.root / "env")))
+    return 0
+
+
 # --- wejście ---
 
 
@@ -677,6 +689,8 @@ def main(argv: list[str] | None = None, *, ctx: Ctx | None = None) -> int:
     sandbox = sub.add_parser("sandbox", help="repo próbne z szablonu: utworzone, sklonowane, śledzone, repo faz tf")
     sandbox.add_argument("name")
     sandbox.add_argument("--owner", help="konto GitHub (domyślnie zalogowane w gh)")
+    sub.add_parser("impact-review", help="otwiera oceny skutku, których termin minął (pdi-impact-review)")
+    sub.add_parser("forecast", help="wyniki prognoz i czas przepływu dostarczonych zmian (pdi-forecast)")
     mcp = sub.add_parser("mcp", help="(dla Claude Code) serwer MCP ze zmiennymi z ~/.sdlc/env")
     mcp.add_argument("name", choices=("pdi", "shipscope"))
     args = parser.parse_args(argv)
@@ -694,6 +708,8 @@ def main(argv: list[str] | None = None, *, ctx: Ctx | None = None) -> int:
             return cmd_open(ctx)
         if args.command == "down":
             return cmd_down(ctx)
+        if args.command in DAILY_RUNS:
+            return cmd_daily(ctx, args.command)
         if args.command == "reset":
             return cmd_reset(ctx)
         if args.command == "sandbox":
