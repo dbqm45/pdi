@@ -1,16 +1,21 @@
-# Polecenia startowe: Z1 i Z2 planu „zespół jednoosobowy”
+# Polecenia startowe: Z1, Z2, Z8a i Z8c planu „zespół jednoosobowy”
 
-**Data:** 2026-11-02 · **Źródło:** [plan „zespół jednoosobowy”](plan-zespol-jednoosobowy.md) §8, decyzje DZ1–DZ5
+**Data:** 2026-11-02 · **Źródło:** [plan „zespół jednoosobowy”](plan-zespol-jednoosobowy.md) §8, §8.2, decyzje DZ1–DZ11
 ([decyzje](decyzje.md)) · **Stan przed startem:** pdi `e2cec98` (kontrakt 0.10.0), tf 5.55.0, ShipScope 0.2.67
 
 Każde polecenie wklejasz jako pierwszą wiadomość nowej sesji Claude Code w katalogu z tabeli. Kroki idą po kolei: Z1,
 potem Z2a, potem Z2b. Zgodnie z DZ5 Z1 idzie przed etapem 2, a Z2 przed etapem 3 ([etapy](polecenia-startowe-sdlc-lokalnie.md)).
+Z8a i Z8c (uprząż) też idą przed etapem 2, czyli przed pierwszym przebiegiem na prawdziwym kodzie sprintdecka; Z8a
+jest niezależny od Z1, a Z8c ma dwie części: najpierw Z8c-1 (ci_for_sdlc), potem Z8c-2 (tf).
 
 | Krok | Co | Startuje po | Repo | Sesja w katalogu | Stan |
 |---|---|---|---|---|---|
 | [Z1](#z1--pdi--tf-wszystkie-decyzje-zmiany-w-każdej-fazie-domknięcie-prb-3) | wszystkie decyzje zmiany w każdej fazie (domknięcie PRB-3) | — | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
 | [Z2a](#z2a--pdi-faza-discovery-i-bramka-b0-w-kontrakcie-i-przebiegu) | faza `discovery` i bramka B0 w kontrakcie i przebiegu | Z1 | pdi | `/Users/x/WebstormProjects/pdi` | do zrobienia |
 | [Z2b](#z2b--tf-wywiad-discovery-w-mode-pdi) | wywiad `/discovery` w mode-pdi; intencja z briefu | Z2a i tag kontraktu | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
+| [Z8a](#z8a--pdi--tf-fazy-w-kontenerze) | fazy w kontenerze (izolacja persony i talosa) | — | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
+| [Z8c-1](#z8c-1--ci_for_sdlc-wyniki-skanera-sarif-jako-ustalenia) | wyniki skanera (SARIF) jako ustalenia w ci_for_sdlc | — | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` | do zrobienia |
+| [Z8c-2](#z8c-2--tf-skaner-w-pętli-kawałka-talosa-i-w-ci) | skaner w pętli kawałka talosa i w CI | Z8c-1 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
 
 ## Z1 — pdi + tf: wszystkie decyzje zmiany w każdej fazie (domknięcie PRB-3)
 
@@ -140,3 +145,112 @@ docs/przebieg-lokalny.md (new section).
 Gates: the repo's checks (workspace.py check --packs pack-it, mode-pdi tests, skill evals if the skill is covered). GitHub
 Actions do not run on this account right now — run the gates locally and say so in the PR. Commit and PR on my request.
 ```
+
+## Z8a — pdi + tf: fazy w kontenerze
+
+```text
+Implement step Z8a of docs/plan-zespol-jednoosobowy.md (§8.2) in dbqm45/pdi, with the tf part in dbqm45/tf (attach it
+with push access), under decision DZ9 in docs/decyzje.md. Answer me in Polish; code, commits and PR titles in English.
+
+Goal: in local mode (PDI_DISPATCH=local) the persona and talos run inside a container that sees only the clone of the
+product repo. They cannot read the owner's home directory, ~/.sdlc/env, ~/.ssh, other repos or keys, and can reach
+only an allowlist of network hosts. Steps that need credentials (git push, gh pr create, phase_run.py gate request,
+pushing talos cut branches) stay outside the container, as today.
+
+Today: src/pdi/dispatch_local.py execute() runs the steps of sdlc-phase.yml on the host; step "run" is
+`phase_run.py run` (claude --print --agent <persona> --permission-mode acceptEdits), with a filtered environment
+(base, problem_env, claude_env) but full filesystem and network access. sdlc up (src/pdi/stack/) already requires
+Docker. In GitHub Actions (tf modes/mode-pdi/.../templates/sdlc-phase.yml) the runner is ephemeral, but the persona
+step still sees GITHUB_TOKEN through the checkout's credentials.
+
+1. Plan first in docs/plan-z8a-izolacja-faz.md (pdi): image, mounts, network, authentication of claude inside the
+   container, what stays on the host, tests. TDD.
+2. Image: built by `sdlc up` (or pulled, pinned by digest), with the claude CLI pinned to the version sdlc-phase.yml
+   uses, python3, node, git and the product's build tools when detectable; non-root user; no secrets baked in.
+3. Run step: `docker run --rm` with only the clone mounted read-write at its path (worktree-safe), no home mount,
+   read-only root filesystem where possible, a CPU/memory/time limit, and the environment of today's "run" step and
+   nothing else. Claude authentication: a token passed only to this container (ANTHROPIC_API_KEY or a long-lived
+   CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token`), never written into the log or the image.
+4. Network: an allowlist (Anthropic API, package registries the product uses, the semgrep rule registry for Z8c) through
+   an egress proxy container or an internal Docker network; Claude Code sandbox settings (allowed domains, denied
+   paths) as a second layer in the product repo's .claude/settings.json written by tf. A blocked host shows in the run
+   log with the step and the host.
+5. Configuration: PDI_DISPATCH_SANDBOX=docker (default once this lands) | none (explicit, logged as a warning at every
+   run). Without Docker, sdlc up and the dispatch refuse with a clear message instead of falling back silently.
+6. Actions (tf sdlc-phase.yml): checkout with persist-credentials: false before the persona step, GITHUB_TOKEN only in
+   the push/PR steps, the same Claude Code sandbox settings.
+7. Docs: README (local mode and its isolation), docs/plan-zespol-jednoosobowy.md §10, the local run checklist
+   (docs/przebieg-lokalny.md).
+
+Tests: the docker argv (mounts, no home, env, limits, network) for each phase with an injected runner; refusal without
+Docker; `none` mode warns; tokens never in the log; Actions template keeps credentials out of the persona step. Then a
+local run on dbqm45/sdlc-proba: the intent phase passes inside the container, and a persona told to read ~/.sdlc/env or
+call a host outside the allowlist fails visibly in the log. Record the result in docs/przebieg-lokalny.md.
+Gates: pdi — uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src; tf — the
+repo's checks. GitHub Actions do not run on this account right now — run the gates locally and say so in the PRs.
+Commit and PR on my request.
+```
+
+## Z8c-1 — ci_for_sdlc: wyniki skanera (SARIF) jako ustalenia
+
+```text
+Implement part 1 of step Z8c of the plan "one-person team" from dbqm45/pdi (main): docs/plan-zespol-jednoosobowy.md
+§8.2 (Z8c) and decision DZ11 in docs/decyzje.md (Semgrep with OWASP rules plus the package manager's dependency audit;
+both results as SARIF). Answer me in Polish; code, commits and PR title in English, Conventional Commits.
+
+Goal: the gate reads security scan results the way it reads JUnit XML today (G4, --tests): `npm run analyze -- --repo
+<path> --sarif <file or directory>` turns findings into findings of the items they touch, and a blocking one fails the
+gate and shows as an annotation on the file and line.
+
+1. Plan first in docs/ (SECURITY-SCAN-PLAN.md: files, order, rules, tests). TDD.
+2. Reader for SARIF 2.1.0 (results, rule ids, levels, locations), limits like the JUnit reader (size, count), a file
+   that cannot be read fails the gate (as for --tests: a scan that did not run is never "no findings").
+3. Mapping to items: a result on a file a change's slice touched (the slice's commits with `Change: TSK-n`, or the PR's
+   diff in CI) belongs to that slice; otherwise to the change. New rules: SEC-001 blocking (SARIF level error, or
+   warning with a CWE from the OWASP Top 10 list), SEC-002 warning (other warnings), SEC-003 info (notes). Policy
+   `actions` and `disabledRules` apply as for every rule.
+4. In GitHub Actions: annotations on the result's file and line, a table in the run summary. Docs: docs/REPO-CHANGES.md,
+   README, and docs/templates/change-check.yml with an optional scan step (semgrep scan --config p/owasp-top-ten --sarif
+   and the dependency audit converted to SARIF) and SARIF_REPORTS like TEST_REPORTS.
+5. The result for pdi: blocking security findings count as blocking for readiness (--send-to-pdi unchanged otherwise).
+
+Tests: SARIF reader (valid, malformed, too big), mapping by file to slice and change, SEC-001/002/003 levels and the
+OWASP CWE list, gate exit codes and annotations, the template line. Gates: npm test, npm run typecheck,
+npm run test:contract, npm run lint:commit. GitHub Actions do not run on this account right now — run the gates
+locally and say so in the PR. Commit and PR on my request.
+```
+
+## Z8c-2 — tf: skaner w pętli kawałka talosa i w CI
+
+```text
+Implement part 2 of step Z8c of the plan "one-person team" from dbqm45/pdi (main): docs/plan-zespol-jednoosobowy.md
+§8.2 (Z8c), decision DZ11 in docs/decyzje.md. Start when Z8c-1 (ci_for_sdlc --sarif) is merged. Answer me in Polish;
+code, commits and PR title in English, Conventional Commits.
+
+Goal: talos does not commit a slice with a blocking security finding, the same way it does not commit a red test, and
+the product repo's CI runs the same scan on every PR.
+
+Today: modes/mode-talos/skills/talos-story-run, section "Pętla kawałka": red test → smallest code → verification (plan
+command, tests, lint, types from CLAUDE.md; `BRAMKA K<n>: PASS | FAIL (…, próba k/2)`) → scope review → commit.
+Hooks (core/hooks): tdd_guard, scan_secrets, guard_bash, guard_paths; there is no vulnerability scan.
+
+1. Plan first in docs/plans/ (files, order, tests). TDD for the scripts.
+2. A scan script (stdlib Python, like the other mode scripts): semgrep on the slice's changed files with the OWASP rules
+   (and the product's own .semgrep.yml if present), the dependency audit only when a manifest or lock file changed
+   (npm audit / pip-audit, by detected stack), output SARIF into the run directory. A missing scanner is a clear FAIL
+   with the install command, never a silent pass.
+3. Verification step of the slice loop: the scan runs after tests; a blocking finding (ERROR, or WARNING with an OWASP
+   Top 10 CWE — the same rule as ci_for_sdlc SEC-001) is a FAIL of that attempt with the finding (rule, file, line)
+   fed back into the next attempt; after 2 attempts STOP like a red test. Findings below blocking go into the run report.
+4. CI: the sdlc-phase / change-check templates in mode-pdi run the scan on the PR and pass the SARIF to ci_for_sdlc
+   (`--sarif`, Z8c-1). Container allowlist for the semgrep rule registry is part of Z8a; note it in the docs.
+5. Docs: talos-story-run, mode-pdi GUIDE.md, CHANGELOG.
+
+Tests: the scan script (changed files only, manifests trigger the audit, SARIF written, missing scanner fails), the
+verdict rule (blocking vs not), the loop's FAIL and STOP path with an injected scanner, the template step. Then one
+talos slice on dbqm45/sdlc-proba with a deliberate SQL injection in the acceptance test's path: it fails, is fixed in the
+second attempt and only then committed; record it in pdi docs/przebieg-lokalny.md. Gates: the repo's checks (workspace.py
+check --packs pack-it, mode tests, skill evals if covered). GitHub Actions do not run on this account right now — run the
+gates locally and say so in the PR. Commit and PR on my request.
+```
+

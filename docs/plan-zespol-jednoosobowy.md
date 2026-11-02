@@ -1,6 +1,6 @@
 # Plan: zespół jednoosobowy — greenfield od wywiadu, brownfield od poznania projektu, wszystko w przeglądarce
 
-Data: 2026-11-02 · Status: **plan; decyzje DZ1–DZ5 przyjęte 2026-11-02**, otwarte DA4, DZ6–DZ8 (Z7) i DZ9–DZ11 (Z8) · Stan wyjściowy: pdi `d66b4bf`, tf 5.55.0,
+Data: 2026-11-02 · Status: **plan; decyzje DZ1–DZ5 przyjęte 2026-11-02**, DZ6–DZ11 przyjęte 2026-11-02, otwarte DA4 · Stan wyjściowy: pdi `d66b4bf`, tf 5.55.0,
 ShipScope 0.2.67, ci_for_sdlc 0.1.35+ · Powiązane: [plan `sdlc up`](plan-sdlc-lokalnie.md),
 [przebieg lokalny](przebieg-lokalny.md#wynik-przebiegu-2026-10-31), [etapy 2–18](polecenia-startowe-sdlc-lokalnie.md),
 [automatyzacja i konsola](plan-automatyzacja-i-konsola.md), [jedna platforma](15-jedna-platforma.md)
@@ -285,12 +285,12 @@ Na drabinie z materiału jesteśmy między L3 (agenci bez nadzoru, deterministyc
 | DZ4 | Na jakim repo sprawdzić brownfield? | **przyjęte**: sprintdeck albo ShipScope jako „obcy” projekt: mają dokumentację, standardy i historię |
 | DZ5 | Czy zmienić kolejność etapów 2–18? | **przyjęte**: Z1 przed etapem 2; Z2 i Z3 przed etapem 3; rozmowa (K-3) razem z konsolą (K-2) |
 | DA4 | Stos usługi pdi (otwarte od etapu 4) | do rozstrzygnięcia przed Z3 |
-| DZ6 | Co robi pętla przy niespełnionym celu albo `not_met`: wraca do fazy tej samej zmiany czy otwiera nowe zgłoszenie? | wraca do wskazanej fazy tej samej zmiany (z powodem i danymi), z limitem prób (np. 2), potem decyzja człowieka; nowe zgłoszenie tylko dla nowego problemu |
-| DZ7 | Kto ustala cele zmiany (`targets`) | architekt (tomasz) proponuje w planie, człowiek zatwierdza w B3; dla produktów AI progi ewaluacji obowiązkowe |
-| DZ8 | Czy governance blokuje wydanie | tak, tylko na B5 (autoryzacja PROD); wcześniej ostrzega |
-| DZ9 | Czym izolować fazy (Z8a) | kontener (Docker, jest już wymagany przez `sdlc up`) z montowanym tylko klonem repo i listą adresów sieci; sandbox Claude Code jako druga warstwa |
-| DZ10 | Osobna aplikacja GitHub dla agentów (Z8b) | tak, jedna na organizację, z uprawnieniami tylko do repo produktu (contents, pull requests); tokeny instalacji ważne do godziny |
-| DZ11 | Jaki skaner (Z8c) | Semgrep (reguły OWASP, działa lokalnie i w CI, bez konta) + skan zależności z menedżera pakietów (`npm audit`, `pip-audit`); CodeQL później, w Actions |
+| DZ6 | Co robi pętla przy niespełnionym celu albo `not_met`: wraca do fazy tej samej zmiany czy otwiera nowe zgłoszenie? | **przyjęte 2026-11-02**: wraca do wskazanej fazy tej samej zmiany (z powodem i danymi), z limitem prób (np. 2), potem decyzja człowieka; nowe zgłoszenie tylko dla nowego problemu |
+| DZ7 | Kto ustala cele zmiany (`targets`) | **przyjęte**: architekt (tomasz) proponuje w planie, człowiek zatwierdza w B3; dla produktów AI progi ewaluacji obowiązkowe |
+| DZ8 | Czy governance blokuje wydanie | **przyjęte**: tak, tylko na B5 (autoryzacja PROD); wcześniej ostrzega |
+| DZ9 | Czym izolować fazy (Z8a) | **przyjęte**: kontener (Docker, jest już wymagany przez `sdlc up`) z montowanym tylko klonem repo i listą adresów sieci; sandbox Claude Code jako druga warstwa |
+| DZ10 | Osobna aplikacja GitHub dla agentów (Z8b) | **przyjęte**: tak, jedna na organizację, z uprawnieniami tylko do repo produktu (contents, pull requests); tokeny instalacji ważne do godziny |
+| DZ11 | Jaki skaner (Z8c) | **przyjęte**: Semgrep (reguły OWASP, działa lokalnie i w CI, bez konta) + skan zależności z menedżera pakietów (`npm audit`, `pip-audit`); CodeQL później, w Actions |
 
 ## 10. Stan
 
@@ -302,5 +302,5 @@ Na drabinie z materiału jesteśmy między L3 (agenci bez nadzoru, deterministyc
 | Z4 | do zrobienia |
 | Z5 | do zrobienia, po DZ4 |
 | Z6 | do zrobienia, po DZ2 |
-| Z7 | do zrobienia, po DZ6–DZ8 (Z7a po Z3) |
-| Z8 | do zrobienia, po DZ9–DZ11 (Z8a i Z8c przed etapem 2) |
+| Z7 | do zrobienia (Z7a po Z3) |
+| Z8 | do zrobienia; Z8a i Z8c przed etapem 2, [polecenia startowe](polecenia-startowe-zespol.md) |
