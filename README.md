@@ -63,15 +63,37 @@ wynik obok. Stan zmiany ma `dispatch: {mode: local, status: running | done | fai
 | `PDI_PHASE_BUDGET_USD` | limit kosztu fazy (`--budget-usd`) |
 | `PDI_EVENTS_URL`, `PDI_TF_SIGNING_SECRET` | dla `gate request` z przebiegu, np. `http://127.0.0.1:8787` i sekret odbiornika |
 | `PDI_DISPATCH_ENV_PASS` | opcjonalnie: nazwy zmiennych (po przecinku), które każdy krok ma dostać mimo zawężenia, np. adres testowej bazy produktu |
+| `PDI_DISPATCH_SANDBOX` | `docker` (domyślnie) — krok `run` w kontenerze; `none` — jawnie bez izolacji, z ostrzeżeniem w logu każdego przebiegu |
+| `CLAUDE_CODE_OAUTH_TOKEN` albo `ANTHROPIC_API_KEY` | logowanie Claude w kontenerze (`claude setup-token` daje token na rok); tylko jedna z nich |
+| `PDI_DISPATCH_ALLOW_HOSTS` | opcjonalnie: dodatkowe hosty sieci kontenera (po przecinku, `*.domena` dozwolone) |
+| `PDI_DISPATCH_CPUS`, `PDI_DISPATCH_MEMORY` | limity kontenera, domyślnie `4` i `6g` |
+| `PDI_EGRESS_UPSTREAM` | opcjonalnie: proxy firmowe (`http://host:port`, osiągalne z sieci Dockera) za proxy wyjścia |
+
+**Izolacja persony (Z8a, decyzja DZ9).** Krok `run` (persona fazy, w `delivery` talos) działa w kontenerze Docker
+`pdi-phase`, który widzi tylko klon repo produktu, zamontowany pod tą samą ścieżką (przy worktree także wspólny
+katalog `.git`). Nie ma w nim katalogu domowego, `~/.sdlc/env`, `~/.ssh`, `~/.claude` ani innych repo. System plików
+jest tylko do odczytu (poza klonem i tmpfs `/tmp` oraz `/home/pdi`), kontener nie ma uprawnień jądra
+(`--cap-drop ALL`, `no-new-privileges`, własny profil seccomp) i ma limity CPU, pamięci, procesów i czasu. Sieć to
+wewnętrzna sieć Dockera z jednym wyjściem: proxy `pdi-egress` z listą hostów — `api.anthropic.com`, rejestry pakietów
+według plików w klonie, `semgrep.dev` i `PDI_DISPATCH_ALLOW_HOSTS`. Każda odmowa jest w logu przebiegu jako
+`# sieć: krok run — zablokowany host <host:port>`. Drugą warstwą jest sandbox Claude Code: ustawienia zarządzane w
+kontenerze (`/etc/claude-code/managed-settings.json`, tylko do odczytu, ustawienia z repo produktu ich nie poluzują)
+i te same w `--settings` (`PDI_CLAUDE_SETTINGS`). Polecenia Bash persony nie widzą tokenów. Kontener dostaje tylko
+środowisko dzisiejszego kroku `run`, a wartości (token Claude, treść zgłoszenia) idą przez środowisko procesu
+`docker`, nie przez argv, więc nie ma ich w logu. Kroki z poświadczeniami (`git fetch`/`push`, `gh`, cięcia talosa,
+`gate request`) zostają na komputerze. Obraz buduje `sdlc up` albo `uv run sdlc image [--force]`. Bez Dockera pdi
+odmawia startu fazy, zamiast po cichu działać bez izolacji. Plan: [docs/plan-z8a-izolacja-faz.md](docs/plan-z8a-izolacja-faz.md).
 
 `PDI_DISPATCH_REPO` i `PDI_GITHUB_TOKEN` nie są w tym trybie potrzebne: `git` i `gh` korzystają z logowania na
-komputerze, a persony z zalogowanego Claude Code. Przebieg nie dostaje tokenów ani sekretów pdi poza
+komputerze, a persona w kontenerze — z `CLAUDE_CODE_OAUTH_TOKEN` (albo `ANTHROPIC_API_KEY`) w `~/.sdlc/env`. Przebieg nie dostaje tokenów ani sekretów pdi poza
 `PDI_TF_SIGNING_SECRET`. Ten sekret, razem z `PDI_EVENTS_URL`, widzi tylko krok `gate request`, a nie persona fazy.
 Pozostałe zmienne z powłoki pdi też są zawężone do tego, czego potrzebuje narzędzie danego kroku:
 - każdy krok: zmienne systemowe (`PATH`, `HOME`, język i `LC_*`, proxy i certyfikaty, `SSH_AUTH_SOCK`, `GIT_*`);
 - `git fetch`, `pull`, `ls-remote`, `push` i `gh`: logowanie GitHuba (`GH_TOKEN`, `GITHUB_TOKEN`, `GH_HOST`, …);
 - `phase_run.py run` (persona): `ANTHROPIC_*`, `CLAUDE_*` i `PDI_CLAUDE_BIN`; dane AWS albo Google tylko przy
-  `CLAUDE_CODE_USE_BEDROCK` albo `CLAUDE_CODE_USE_VERTEX`.
+  `CLAUDE_CODE_USE_BEDROCK` albo `CLAUDE_CODE_USE_VERTEX`. W kontenerze bez ścieżek i gniazd hosta (`PATH`, `HOME`,
+  `TMPDIR`, `SSH_AUTH_SOCK`, `XDG_*`, proxy hosta, `PDI_CLAUDE_BIN`), za to z tożsamością git z klonu
+  (`GIT_AUTHOR_*`, `GIT_COMMITTER_*`) dla commitów talosa.
 
 Inne klucze (chmura, bazy danych, API) do kroków nie trafiają; potrzebne przepuszczasz przez `PDI_DISPATCH_ENV_PASS`.
 pdi nie zapisuje w logu ani w stanie tokenów i treści zgłoszenia. Na produkcji fazy
@@ -216,6 +238,8 @@ Resztę robi sam:
 - startuje ShipScope (`npm run dev`: Postgres w Dockerze, web i worker) i `pdi-receiver` w tle;
 - łączy ShipScope z pdi bez przeglądarki (`local-pdi.js connect` i `test` w trybie lokalnym ShipScope);
 - wysyła gotowość zmian z ci_for_sdlc;
+- sprawdza Dockera i buduje obraz kontenera faz `pdi-phase` (Z8a; pierwszy raz kilka minut), a gdy w `~/.sdlc/env`
+  nie ma tokenu Claude, mówi, jak go dodać (`claude setup-token`);
 - rejestruje serwery MCP `pdi` i `shipscope` w Claude Code.
 
 Kolejne `sdlc up` startuje tylko to, co nie działa.

@@ -785,6 +785,12 @@ def test_explicit_decision_type_and_draft_edited_are_kept(inbox: Inbox, make_dra
 # --- PDI_DISPATCH=local (L2) ---
 
 
+@pytest.fixture(autouse=True)
+def _host_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Krok `run` na hoście (jawnie bez kontenera); kontener fazy (Z8a) — tests/test_phase_sandbox.py."""
+    monkeypatch.setenv("PDI_DISPATCH_SANDBOX", "none")
+
+
 def local_inbox(registry: Registry, checkout: Path, spawn: Any) -> Inbox:
     from tests.test_dispatch_local import FakeRun
 
