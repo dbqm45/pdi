@@ -1,6 +1,6 @@
 # Plan: zespół jednoosobowy — greenfield od wywiadu, brownfield od poznania projektu, wszystko w przeglądarce
 
-Data: 2026-11-02 · Status: **plan; decyzje DZ1–DZ5 przyjęte 2026-11-02**, DZ1–DZ13 przyjęte, otwarte DA4 · Kolejność całości: §0 · Stan wyjściowy: pdi `d66b4bf`, tf 5.55.0,
+Data: 2026-11-02 · Status: **plan; decyzje DZ1–DZ5 przyjęte 2026-11-02**, DZ1–DZ14 przyjęte, otwarte DA4 · Kolejność całości: §0 · Stan wyjściowy: pdi `d66b4bf`, tf 5.55.0,
 ShipScope 0.2.67, ci_for_sdlc 0.1.35+ · Powiązane: [plan `sdlc up`](plan-sdlc-lokalnie.md),
 [przebieg lokalny](przebieg-lokalny.md#wynik-przebiegu-2026-10-31), [etapy 2–18](polecenia-startowe-sdlc-lokalnie.md),
 [automatyzacja i konsola](plan-automatyzacja-i-konsola.md), [jedna platforma](15-jedna-platforma.md)
@@ -21,7 +21,8 @@ równolegle. „Bramka” to warunek przejścia do następnej grupy.
 | A4 | Z7b-1 — cele zmiany (`targets`): proponowane w planie, zatwierdzane w B3, sprawdzane przed B4; razem z N4 (pokrycie i testy mutacyjne na zmienionym kodzie) | pdi + tf + ci_for_sdlc | Z1, Z8c-1 | [jest](polecenia-startowe-zespol.md) (Z7b-1a, Z7b-1b) |
 | A5 | N2 — pętla budujący–recenzent na PR i samonaprawa CI | pdi + tf | Z8a, N1 | [jest](polecenia-startowe-zespol.md) |
 | A6 | **Bramka:** ponowny przebieg lokalny na `sdlc-proba` w kontenerze, z jedną zmianą od zgłoszenia do oceny skutku; bez obejść z przebiegu 2026-10-31 | — | A1–A5 | lista: [przebieg lokalny](przebieg-lokalny.md) |
-| A7 | **Etap 2** — scenariusz S5 na sprintdecku (prawdziwy kod i wdrożenie) | pdi + sprintdeck | A6 | [jest](polecenia-startowe-sdlc-lokalnie.md#etap-2--pdi--sprintdeck-scenariusz-s5-na-prawdziwym-wdrożeniu) |
+| A7 | Z3-lokalnie — konsola w przeglądarce na Macu (DZ14): `sdlc up` uruchamia ją obok stosu; tablica zmian w trzech pasach, ślad zmiany z krokami, postęp fazy na żywo z `run.progress` (pasek, bieżąca czynność, czas, koszt), skrzynka z przyciskami decyzji; bez usługi, rozmowy i powiadomień (zostają w Z3, B5) | pdi + tf | A6 | [jest](polecenia-startowe-zespol.md#z3-lokalnie--pdi--tf-konsola-w-przeglądarce-na-macu) |
+| A8 | **Etap 2** — scenariusz S5 na sprintdecku (prawdziwy kod i wdrożenie) | pdi + sprintdeck | A7 | [jest](polecenia-startowe-sdlc-lokalnie.md#etap-2--pdi--sprintdeck-scenariusz-s5-na-prawdziwym-wdrożeniu) |
 
 **B. Przed produkcją (przed etapem 3)**
 
@@ -31,7 +32,7 @@ równolegle. „Bramka” to warunek przejścia do następnej grupy.
 | B2 | Z2b — wywiad `/discovery` w mode-pdi | tf | Z2a i tag kontraktu | jest |
 | B3 | Z7b-2 — pętla ulepszeń: ocena skutku `not_met` albo wybicie metryki otwiera zmianę ponownie od wymagań albo architektury, z danymi z produkcji jako wejściem (DZ6: najwyżej 2 próby, potem człowiek) · Z7c + Z8d — pas governance (blokuje B5) i pakiet dowodów · Z8b — tożsamość agentów | pdi + tf + ci_for_sdlc | Z1 | do przygotowania |
 | B4 | **Decyzja DA4** — stos usługi pdi | — | — | decyzja właściciela |
-| B5 | Z3 — usługa pdi, konsola na żywo i rozmowa (dawne etapy 4 i 10), razem z Z7a (trzy pasy) i N11 (karta decyzji przy bramce) | pdi + tf | DA4, Z2 | do przygotowania |
+| B5 | Z3 — usługa pdi: konsola z A7 jako usługa, rozmowa w konsoli (dawne etapy 4 i 10) i sygnał „czeka na Ciebie”, razem z N11 (karta decyzji przy bramce) | pdi + tf | DA4, Z2, A7 | do przygotowania |
 | B6 | **Etap 3** — z localhosta na produkcję | pdi + ShipScope + tf + sprintdeck | B1–B5, działające Actions | [jest](polecenia-startowe-sdlc-lokalnie.md#etap-3--pdi--shipscope-tf-z-localhosta-na-produkcję) |
 
 **C. Greenfield i brownfield**
@@ -205,6 +206,8 @@ wzorować (§9).
 | Sygnał „czeka na Ciebie” | brak | powiadomienie w przeglądarce, opcjonalnie na telefon | Z3 |
 | Opóźnienia | ShipScope sprawdza zdarzenia co 5 min; lokalnie bez webhooków GitHuba | na produkcji webhooki; lokalnie krótszy `eventsTick` | Z3 |
 
+**Najpierw lokalnie (DZ14):** konsola, postęp na żywo i przyciski decyzji powstają jako Z3-lokalnie (§0, A7), zanim zapadnie DA4: lokalny proces obok stosu `sdlc up`, tylko na `127.0.0.1`, czyta to samo co narzędzia MCP (rejestr, skrzynka, logi przebiegów) i wygląda jak makieta `design/konsola/v2-klikalna/` (trzy pasy, Z7a). Etap 2 na sprintdecku oglądasz już w przeglądarce. Z3 w B5 przenosi tę konsolę do usługi i dokłada rozmowę, wywiad i powiadomienia; wiersze „Kanał do przeglądarki”, „Rozmowa” i „Sygnał” zostają w Z3.
+
 ## 6. Jak to działa
 
 ```
@@ -250,8 +253,8 @@ z uzasadnieniem i źródłem. Każda kolejna faza dostaje w wejściu decyzje, kt
 | Z8 | **Uprząż i dowody** (§8.2): izolacja faz, tożsamość agentów, skaner bezpieczeństwa w pętli talosa i w CI, pakiet dowodów zmiany, miary wartości, uprząż ucząca się z PRB | tf + pdi (+ ci_for_sdlc, ShipScope) | Z1 | patrz §8.2, Z8a–Z8f |
 | Z9 | **Pętle jakości i kontekst** (§8.3): przegląd drugim modelem, pętla budujący–recenzent i samonaprawa CI, jeden skrypt weryfikacji, cele pokrycia i testy mutacyjne, evale przebiegu, kontekst przycięty do fazy, wznawianie pracy, makiety HTML, wzorce i testy charakteryzujące w brownfield, łańcuch dostaw, karta decyzji przy bramce | tf + pdi (+ ci_for_sdlc) | Z1, Z8c | patrz §8.3, N1–N11 |
 
-Kolejność: Z1 → Z2 (w czacie Claude, bez nowej usługi) → Z3 → Z4 i Z5 równolegle → Z6. Z7: Z7b i Z7c mogą iść
-razem z Z1–Z2 (nie zależą od konsoli), Z7a razem z Z3, Z7d przy pierwszym produkcie, który jest aplikacją AI. Z8: Z8a i Z8c
+Kolejność: Z1 → Z3-lokalnie (konsola na Macu, DZ14) → Z2 (w czacie Claude, bez nowej usługi) → Z3 → Z4 i Z5 równolegle → Z6. Z7: Z7b i Z7c mogą iść
+razem z Z1–Z2 (nie zależą od konsoli), Z7a razem z Z3-lokalnie (trzy pasy w konsoli), Z7d przy pierwszym produkcie, który jest aplikacją AI. Z8: Z8a i Z8c
 przed kolejnym przebiegiem z prawdziwym kodem (etap 2 na sprintdecku), Z8b przed etapem 3 (produkcja), Z8d razem z Z7c, Z8e
 z etapem 12 (G7), Z8f po każdym przebiegu. Z9: N1, N2 i N5 przed etapem 2; N9 razem z Z5;
 pozostałe razem z krokami, do których są przypięte (§8.3).

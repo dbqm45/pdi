@@ -1,6 +1,6 @@
 # Polecenia startowe planu „zespół jednoosobowy”: grupa A i Z2
 
-**Data:** 2026-11-02 · **Źródło:** [plan „zespół jednoosobowy”](plan-zespol-jednoosobowy.md) §8, §8.2, decyzje DZ1–DZ11
+**Data:** 2026-11-02 · **Źródło:** [plan „zespół jednoosobowy”](plan-zespol-jednoosobowy.md) §8, §8.2, decyzje DZ1–DZ14
 ([decyzje](decyzje.md)) · **Stan przed startem:** pdi `e2cec98` (kontrakt 0.10.0), tf 5.55.0, ShipScope 0.2.67
 
 Każde polecenie wklejasz jako pierwszą wiadomość nowej sesji Claude Code w katalogu z tabeli. Kroki idą po kolei: Z1,
@@ -10,17 +10,18 @@ jest niezależny od Z1, a Z8c ma dwie części: najpierw Z8c-1 (ci_for_sdlc), po
 
 | Krok | Co | Startuje po | Repo | Sesja w katalogu | Stan |
 |---|---|---|---|---|---|
-| [Z1](#z1--pdi--tf-wszystkie-decyzje-zmiany-w-każdej-fazie-domknięcie-prb-3) | wszystkie decyzje zmiany w każdej fazie (domknięcie PRB-3) | — | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
+| [Z1](#z1--pdi--tf-wszystkie-decyzje-zmiany-w-każdej-fazie-domknięcie-prb-3) | wszystkie decyzje zmiany w każdej fazie (domknięcie PRB-3) | — | pdi + tf | `/Users/x/WebstormProjects/pdi` | zrobione (pdi #110, tf #135, #136) |
 | [Z2a](#z2a--pdi-faza-discovery-i-bramka-b0-w-kontrakcie-i-przebiegu) | faza `discovery` i bramka B0 w kontrakcie i przebiegu | Z1 | pdi | `/Users/x/WebstormProjects/pdi` | do zrobienia |
 | [Z2b](#z2b--tf-wywiad-discovery-w-mode-pdi) | wywiad `/discovery` w mode-pdi; intencja z briefu | Z2a i tag kontraktu | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
-| [Z8a](#z8a--pdi--tf-fazy-w-kontenerze) | fazy w kontenerze (izolacja persony i talosa) | — | pdi + tf | `/Users/x/WebstormProjects/pdi` | w PR (2026-11-02), [plan](plan-z8a-izolacja-faz.md) |
-| [Z8c-1](#z8c-1--ci_for_sdlc-wyniki-skanera-sarif-jako-ustalenia) | wyniki skanera (SARIF) jako ustalenia w ci_for_sdlc | — | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` | do zrobienia |
+| [Z8a](#z8a--pdi--tf-fazy-w-kontenerze) | fazy w kontenerze (izolacja persony i talosa) | — | pdi + tf | `/Users/x/WebstormProjects/pdi` | zrobione (pdi #111, tf 5.56.0), [plan](plan-z8a-izolacja-faz.md) |
+| [Z8c-1](#z8c-1--ci_for_sdlc-wyniki-skanera-sarif-jako-ustalenia) | wyniki skanera (SARIF) jako ustalenia w ci_for_sdlc | — | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` | zrobione (ci_for_sdlc #109) |
 | [Z8c-2](#z8c-2--tf-skaner-w-pętli-kawałka-talosa-i-w-ci) | skaner w pętli kawałka talosa i w CI | Z8c-1 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [N1](#n1--tf-przegląd-drugim-modelem) | przegląd drugim modelem (wymagania, plan, uwagi z review) | Z1 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [N5](#n5--tf-evale-przebiegu) | evale przebiegu na 20 prawdziwych zadaniach | Z1 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [Z7b-1a](#z7b-1a--pdi--tf-cele-zmiany-w-kontrakcie-i-planie) | cele zmiany (`targets`) w kontrakcie i planie, B3 | Z1 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
 | [Z7b-1b](#z7b-1b--ci_for_sdlc-sprawdzanie-celów-zmiany) | sprawdzanie celów (pokrycie, testy mutacyjne) w ci_for_sdlc | Z7b-1a, Z8c-1 | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` | do zrobienia |
 | [N2](#n2--pdi--tf-pętla-budujący-recenzent-na-pr-i-samonaprawa-ci) | pętla budujący–recenzent na PR i samonaprawa CI | Z8a, N1 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
+| [Z3-lokalnie](#z3-lokalnie--pdi--tf-konsola-w-przeglądarce-na-macu) | konsola w przeglądarce na Macu: trzy pasy, ślad, postęp na żywo, decyzje przyciskami (DZ14) | A6 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
 
 ## Z1 — pdi + tf: wszystkie decyzje zmiany w każdej fazie (domknięcie PRB-3)
 
@@ -424,3 +425,61 @@ and PR on my request.
 Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
+
+## Z3-lokalnie — pdi + tf: konsola w przeglądarce na Macu
+
+Decyzja DZ14. Startuje po A6 (ponowny przebieg na `sdlc-proba`), przed etapem 2. Sesja w klonie pdi; część tf
+osobnym PR-em. Wygląd: `design/konsola/v2-klikalna/` (trzy pasy).
+
+```text
+Implement Z3-lokalnie of docs/plan-zespol-jednoosobowy.md (§0 row A7, §5, decision DZ14 in docs/decyzje.md) in
+dbqm45/pdi, with the tf part in dbqm45/tf (attach it with push access). Answer me in Polish; code, commits and PR titles
+in English.
+
+Goal: on my Mac I follow and drive a whole change in the browser instead of the Claude console: I see where each change
+is (the three lanes), its steps, what runs in the background right now with a live progress indicator, and I decide at
+gates with buttons. No production service yet (that is Z3 after DA4), no chat, no notifications.
+
+Read first: docs/plan-zespol-jednoosobowy.md §0, §5, §8.1 (Z7a, the three lanes) and §6; design/konsola/README.md and the
+clickable mock-ups in design/konsola/v2-klikalna/ (Main = board in three lanes, Slad = change trace with steps,
+Decyzje = decision register, Autonomia); contract/README.md and contract/event.schema.json (`run.progress`);
+src/pdi/stack/cli.py (`sdlc up/down/status/open`), src/pdi/receiver.py and src/pdi/form.py (the existing HTML pages
+without scripts), src/pdi/dispatch_local.py (phase runs: runs/<CHG>-<phase>-<time>.log and .result.json),
+src/pdi/inbox.py, src/pdi/trace.py, src/pdi/changes.py, src/pdi/mcp_server.py (what the MCP tools read and how
+decide_inbox_item decides); in tf mode-pdi `phase_run.py` (how the persona is started: `claude --print
+--output-format json`).
+
+1. Plan first in docs/plan-z3-lokalnie.md: files, order, tests, sources with dates, what stays for Z3. TDD.
+2. tf (live progress): run the persona with streaming output (`--output-format stream-json`; check in the official
+   Claude Code docs which flags it needs with --print, e.g. --verbose, and what each event carries) and turn the stream
+   into progress lines: phase, step, status as in `run.progress` (started / in_progress / waiting_gate / done / failed),
+   elapsed time, cost so far, the last action in plain words ("czyta plik X", "uruchamia testy", "pisze PR"). Write
+   them as JSON lines next to the run log (e.g. runs/<…>.progress.jsonl) so pdi can tail them; the final result and
+   the existing log stay as they are. Never write prompt text, file contents or secrets into progress lines.
+3. pdi (console): a local web console started by `sdlc up` (stopped by `sdlc down`, shown by `sdlc status` and opened by
+   `sdlc open`), bound to 127.0.0.1 only, with a per-start token in the URL (as the problem form). Prefer the standard
+   library as the receiver does, unless the plan shows a reason; threaded server, Server-Sent Events for live updates.
+   Pages, following the v2 mock-ups:
+   a. Board: every change in its lane and step (lane 1 Zaprojektuj i zbuduj, lane 2 Oceń i wydaj, lane 3 Wdróż,
+      obserwuj, ulepszaj), "waiting for you" highlighted, a running phase with a live progress bar.
+   b. Change trace: the steps of one change with state, decisions, PRs, deployments and flag stages (what get_trace
+      gives); the running phase shows its progress lines live and links the run log.
+   c. Inbox: gate items with the draft and buttons (approve / reject / with a note). A button decision goes through the
+      same code path as decide_inbox_item (one implementation), records who decided and that it came from the console;
+      a decision on a stale item (state changed meanwhile) is refused with a message.
+   d. Decision register and autonomy report as read-only pages.
+   Security: every value escaped, no inline scripts, a Content-Security-Policy, POSTs only with the token and a same-
+   origin check, nothing listens outside 127.0.0.1, no secret ever reaches a page.
+4. Docs: README, docs/przebieg-lokalny.md (the next run can be followed in the console), integrations/claude-code/README.md,
+   tf mode-pdi GUIDE.md.
+
+Tests: stream-json to progress lines (from recorded sample streams, including a failed run and a run waiting at a gate),
+the console's read model (lane and step of a change from registry states), SSE updates when a progress file grows,
+button decisions (same result as decide_inbox_item, refused without token, refused for a stale item), escaping and CSP,
+`sdlc up/down/status` with the console. Then one run on dbqm45/sdlc-proba followed only in the console: from intake to the
+first gate, a decision by button, and the next phase visible live.
+Gates: pdi — uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src; tf — the
+repo's checks. GitHub Actions do not run on this account right now — run the gates locally and say so in the PRs. Commit
+and PR on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
+```
