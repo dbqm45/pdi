@@ -274,9 +274,6 @@ Na drabinie z materiału jesteśmy między L3 (agenci bez nadzoru, deterministyc
 | Z8e | **Miary wartości:** odsetek PR-ów agentów przyjętych bez poprawek, usterki po wydaniu na zmianę, czas od intencji do PROD; bez liczby linii i liczby PR-ów | uzupełnia licznik autonomii (mierzy szkice decyzji, nie kod) | pdi + ShipScope | `pdi-stats` i konsola pokazują trzy miary dla ostatnich zmian |
 | Z8f | **Uprząż ucząca się:** każde PRB z przebiegu z kategorii „uprząż” daje szkic zmiany reguły, skilla albo hooka w tf (wzór: `10x-lesson`, `10x-rule-review`); człowiek zatwierdza w skrzynce pdi, a zmiana idzie PR-em do tf z evalem | poziom L5 z materiału, ale pod nadzorem; materiał już jest (PRB-2…22 z jednego przebiegu) | pdi + tf | po kolejnym przebiegu co najmniej jedno PRB „uprzęży” kończy się zmianą w tf z evalem, zatwierdzoną w skrzynce |
 
-**Czego nie przejmujemy:** kodu jako jednorazowego produktu regenerowanego ze specyfikacji (przy brownfield i prawdziwych
-użytkownikach zostajemy przy przyrostowych cięciach z PR-ami) ani konkretnych produktów jednego dostawcy (Entra Agent
-ID, Azure Policy, Sentinel): bierzemy zasady — tożsamość agenta, krótkie tokeny, polityki jako kod, logi audytu.
 
 ## 9. Decyzje do podjęcia
 
