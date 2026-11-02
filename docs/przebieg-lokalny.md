@@ -86,6 +86,19 @@ Skrócenie czasu:
 - [ ] Cięcia jako PR-y, a commity mają `Change: TSK-n` i `Flag: show_last_deployed`. W klonie `npm test` przechodzi.
   Merge po przeglądzie. Gałęzie `story/*` wypycha i PR-y otwiera pdi po przebiegu talosa (`get_change`:
   `dispatch.prs`, w `get_trace` przy zadaniach); cięcie zbudowane na poprzednim ma PR do niego. Bez gałęzi z commitami faza kończy się krokiem `cuts`.
+- [ ] **Z8c-2 — skan bezpieczeństwa w pętli kawałka (tf #138: mode-talos 1.2.0, mode-pdi 0.7.0):** w repo
+  próbnym karencja wersji 7 dni (`.npmrc` `min-release-age=7`, `package-lock.json` w gicie) i `semgrep` w obrazie
+  fazy; bez tego `security_scan.py cooldown` albo `scan` kończy się FAIL z linią do dodania lub poleceniem instalacji
+  (`pipx install semgrep`), nigdy cichym PASS. Kawałek z celowym SQL injection na ścieżce testu akceptacyjnego:
+  próba 1 → `BRAMKA K<n>: FAIL (skan bezpieczeństwa: …, próba 1/2)` z regułą i `plik:linia` (CWE-89), próba 2
+  poprawia zapytanie → `PASS`, i dopiero wtedy commit. W katalogu przebiegu `security/K<n>/`: `semgrep.sarif`,
+  `verdict.json`, `feedback.md`, `summary.md`; ustalenia poniżej progu w sekcji „Bezpieczeństwo” raportu. Gdy obie
+  próby są czerwone: blok `STOP — K<n> (skan bezpieczeństwa)` i brak commitu. PR cięcia: `change-check.yml` uruchamia
+  ten sam skan, a ci_for_sdlc dostaje SARIF (`--sarif`, SEC-001). Reguły `p/owasp-top-ten` pobiera się z
+  `semgrep.dev` (host na liście dozwolonych kontenera, Z8a); bez dostępu ustaw `TALOS_SEMGREP_CONFIG` na plik reguł
+  w repo. Stan 2026-11-02: sprawdzone lokalnie na repo roboczym (semgrep 1.183.0: próba 1 FAIL CWE-89, próba 2 STOP,
+  pliki w katalogu przebiegu), na `sdlc-proba` jeszcze nie; pobranie rejestru bez logowania niesprawdzone
+  (`semgrep.dev` 403 z sandboxa).
 - [ ] **SS** zakładka Changes (repo): CHG-1 z tytułem z intencji. Release plan: linia R1.
 
 ## 5. Wdrożenia
