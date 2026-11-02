@@ -63,6 +63,7 @@ at B3 or design-review. Record the result in docs/przebieg-lokalny.md.
 Gates: pdi — uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src;
 tf — the repo's own checks (workspace.py check --packs pack-it and the mode-pdi tests). GitHub Actions do not run on
 this account right now — run the gates locally and say so in the PRs. Commit and PR on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
 ## Z2a — pdi: faza `discovery` i bramka B0 w kontrakcie i przebiegu
@@ -103,6 +104,7 @@ intent), triage with and without start_with, the discovery inbox item and its cl
 dispatches intent in local and Actions mode, autonomy type of B0 protected.
 Gates: uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src. GitHub Actions
 do not run on this account right now — run the gates locally and say so in the PR. Commit and PR on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
 ## Z2b — tf: wywiad `/discovery` w mode-pdi
@@ -144,6 +146,7 @@ dbqm45/sdlc-proba (a small idea) through brief, B0 and the intent PR; record wha
 docs/przebieg-lokalny.md (new section).
 Gates: the repo's checks (workspace.py check --packs pack-it, mode-pdi tests, skill evals if the skill is covered). GitHub
 Actions do not run on this account right now — run the gates locally and say so in the PR. Commit and PR on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
 ## Z8a — pdi + tf: fazy w kontenerze
@@ -170,10 +173,13 @@ step still sees GITHUB_TOKEN through the checkout's credentials.
 3. Run step: `docker run --rm` with only the clone mounted read-write at its path (worktree-safe), no home mount,
    read-only root filesystem where possible, a CPU/memory/time limit, and the environment of today's "run" step and
    nothing else. Claude authentication: a token passed only to this container (ANTHROPIC_API_KEY or a long-lived
-   CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token`), never written into the log or the image.
+   CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token`; set only one of the two, they conflict), never written into the log
+   or the image. Handle the reported first-run issue where the token is ignored until onboarding is marked complete
+   (`hasCompletedOnboarding` in ~/.claude.json inside the container); confirm it against the current docs.
 4. Network: an allowlist (Anthropic API, package registries the product uses, the semgrep rule registry for Z8c) through
-   an egress proxy container or an internal Docker network; Claude Code sandbox settings (allowed domains, denied
-   paths) as a second layer in the product repo's .claude/settings.json written by tf. A blocked host shows in the run
+   an egress proxy container or an internal Docker network; Claude Code sandbox settings (network.allowedDomains,
+   filesystem.denyRead, sandbox.failIfUnavailable: true) as a second layer, passed by pdi with --settings (settings in
+   the product repo cannot loosen restrictions, and the repo is not trusted). A blocked host shows in the run
    log with the step and the host.
 5. Configuration: PDI_DISPATCH_SANDBOX=docker (default once this lands) | none (explicit, logged as a warning at every
    run). Without Docker, sdlc up and the dispatch refuse with a clear message instead of falling back silently.
@@ -189,6 +195,7 @@ call a host outside the allowlist fails visibly in the log. Record the result in
 Gates: pdi — uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src; tf — the
 repo's checks. GitHub Actions do not run on this account right now — run the gates locally and say so in the PRs.
 Commit and PR on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
 ## Z8c-1 — ci_for_sdlc: wyniki skanera (SARIF) jako ustalenia
@@ -218,6 +225,7 @@ Tests: SARIF reader (valid, malformed, too big), mapping by file to slice and ch
 OWASP CWE list, gate exit codes and annotations, the template line. Gates: npm test, npm run typecheck,
 npm run test:contract, npm run lint:commit. GitHub Actions do not run on this account right now — run the gates
 locally and say so in the PR. Commit and PR on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
 ## Z8c-2 — tf: skaner w pętli kawałka talosa i w CI
@@ -238,7 +246,14 @@ Hooks (core/hooks): tdd_guard, scan_secrets, guard_bash, guard_paths; there is n
 2. A scan script (stdlib Python, like the other mode scripts): semgrep on the slice's changed files with the OWASP rules
    (and the product's own .semgrep.yml if present), the dependency audit only when a manifest or lock file changed
    (npm audit / pip-audit, by detected stack), output SARIF into the run directory. A missing scanner is a clear FAIL
-   with the install command, never a silent pass.
+   with the install command, never a silent pass. Check on a clean install, without a Semgrep login, whether the
+   p/owasp-top-ten registry rules download; if not, vendor the rules into the mode and pin their version.
+2a. One verification script (N3 of the plan): the product's single command for format, lint, types, tests and this scan,
+   named in the first line of the product's CLAUDE.md and used unchanged by talos and by CI.
+2b. Dependency cooldown (N10): set the package manager's minimum release age to 7 days in the product (npm
+   min-release-age, pnpm minimumReleaseAge in minutes, Yarn npmMinimalAgeGate, uv exclude-newer), lock files committed;
+   adding a version younger than that stops the slice with an explanation. Mind the known pnpm 11 issue with
+   Dependabot and --frozen-lockfile.
 3. Verification step of the slice loop: the scan runs after tests; a blocking finding (ERROR, or WARNING with an OWASP
    Top 10 CWE — the same rule as ci_for_sdlc SEC-001) is a FAIL of that attempt with the finding (rule, file, line)
    fed back into the next attempt; after 2 attempts STOP like a red test. Findings below blocking go into the run report.
@@ -252,5 +267,6 @@ talos slice on dbqm45/sdlc-proba with a deliberate SQL injection in the acceptan
 second attempt and only then committed; record it in pdi docs/przebieg-lokalny.md. Gates: the repo's checks (workspace.py
 check --packs pack-it, mode tests, skill evals if covered). GitHub Actions do not run on this account right now — run the
 gates locally and say so in the PR. Commit and PR on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
