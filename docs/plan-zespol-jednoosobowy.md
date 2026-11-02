@@ -1,9 +1,56 @@
 # Plan: zespół jednoosobowy — greenfield od wywiadu, brownfield od poznania projektu, wszystko w przeglądarce
 
-Data: 2026-11-02 · Status: **plan; decyzje DZ1–DZ5 przyjęte 2026-11-02**, DZ6–DZ11 przyjęte 2026-11-02, otwarte DA4 i DZ12–DZ13 (Z9) · Stan wyjściowy: pdi `d66b4bf`, tf 5.55.0,
+Data: 2026-11-02 · Status: **plan; decyzje DZ1–DZ5 przyjęte 2026-11-02**, DZ1–DZ13 przyjęte, otwarte DA4 · Kolejność całości: §0 · Stan wyjściowy: pdi `d66b4bf`, tf 5.55.0,
 ShipScope 0.2.67, ci_for_sdlc 0.1.35+ · Powiązane: [plan `sdlc up`](plan-sdlc-lokalnie.md),
 [przebieg lokalny](przebieg-lokalny.md#wynik-przebiegu-2026-10-31), [etapy 2–18](polecenia-startowe-sdlc-lokalnie.md),
 [automatyzacja i konsola](plan-automatyzacja-i-konsola.md), [jedna platforma](15-jedna-platforma.md)
+
+## 0. Kolejność całości (stan 2026-11-02)
+
+Jedna lista od teraz do końca planu: kroki Z1–Z9 i N1–N11 z tego planu oraz etapy 2–18 z
+[poleceń startowych](polecenia-startowe-sdlc-lokalnie.md), po zmianie kolejności z DZ5. Kroki w jednym wierszu mogą iść
+równolegle. „Bramka” to warunek przejścia do następnej grupy.
+
+**A. Przed prawdziwym kodem (przed etapem 2)**
+
+| # | Krok | Repo | Po czym | Polecenie startowe |
+|---|---|---|---|---|
+| A1 | Z1 — wszystkie decyzje zmiany w każdej fazie · Z8a — fazy w kontenerze · Z8c-1 — SARIF w ci_for_sdlc | pdi + tf · pdi + tf · ci_for_sdlc | — | [jest](polecenia-startowe-zespol.md) |
+| A2 | Z8c-2 — skaner w pętli talosa i w CI, razem z N3 (jeden skrypt weryfikacji) i N10 (łańcuch dostaw) | tf | Z8c-1 | jest (Z8c-2; N3 i N10 do dopisania) |
+| A3 | N1 — przegląd drugim modelem · N5 — evale przebiegu (20 zadań) | tf | Z1 | do przygotowania |
+| A4 | N2 — pętla budujący–recenzent na PR i samonaprawa CI | pdi + tf | Z8a, N1 | do przygotowania |
+| A5 | **Bramka:** ponowny przebieg lokalny na `sdlc-proba` w kontenerze, z jedną zmianą od zgłoszenia do oceny skutku; bez obejść z przebiegu 2026-10-31 | — | A1–A4 | lista: [przebieg lokalny](przebieg-lokalny.md) |
+| A6 | **Etap 2** — scenariusz S5 na sprintdecku (prawdziwy kod i wdrożenie) | pdi + sprintdeck | A5 | [jest](polecenia-startowe-sdlc-lokalnie.md#etap-2--pdi--sprintdeck-scenariusz-s5-na-prawdziwym-wdrożeniu) |
+
+**B. Przed produkcją (przed etapem 3)**
+
+| # | Krok | Repo | Po czym | Polecenie startowe |
+|---|---|---|---|---|
+| B1 | Z2a — faza `discovery` i bramka B0 | pdi | Z1 | [jest](polecenia-startowe-zespol.md) |
+| B2 | Z2b — wywiad `/discovery` w mode-pdi | tf | Z2a i tag kontraktu | jest |
+| B3 | Z7b + N4 — cele zmiany, krótka pętla do wskazanej fazy, pokrycie i testy mutacyjne · Z7c + Z8d — pas governance (blokuje B5) i pakiet dowodów · Z8b — tożsamość agentów | pdi + tf + ci_for_sdlc | Z1 | do przygotowania |
+| B4 | **Decyzja DA4** — stos usługi pdi | — | — | decyzja właściciela |
+| B5 | Z3 — usługa pdi, konsola na żywo i rozmowa (dawne etapy 4 i 10), razem z Z7a (trzy pasy) i N11 (karta decyzji przy bramce) | pdi + tf | DA4, Z2 | do przygotowania |
+| B6 | **Etap 3** — z localhosta na produkcję | pdi + ShipScope + tf + sprintdeck | B1–B5, działające Actions | [jest](polecenia-startowe-sdlc-lokalnie.md#etap-3--pdi--shipscope-tf-z-localhosta-na-produkcję) |
+
+**C. Greenfield i brownfield**
+
+| # | Krok | Repo | Po czym | Polecenie startowe |
+|---|---|---|---|---|
+| C1 | Z4 — greenfield do końca: wybór stosu, bootstrap repo z tf (z N3), lista kroków infrastruktury | tf + pdi | Z2 | do przygotowania |
+| C2 | Z5 — onboarding brownfield z N9 (wzorce, testy charakteryzujące, uruchamialność) i N6 (mapa projektu z kodu) | tf + pdi + ci_for_sdlc | Z1 | do przygotowania |
+| C3 | Z6 — Slack, potem Teams i Miro jako źródła wiedzy | pdi | Z5 | do przygotowania |
+| C4 | N7 — wznawianie przerwanej fazy · N8 — makiety HTML w fazie design | pdi + tf | Z8a | do przygotowania |
+
+**D. Dalsze etapy (bez zmian, po kolei)**
+
+Etap 5 (graf śladu, rejestr decyzji, panel w Jirze) → etap 6 (autonomia na danych) → etap 7 (etapy flag według reguły,
+metryki ochronne) → etap 8 (uproszczone review, lustro Jira) → etap 9 (incydenty, aplikacja Slacka) → etap 11 (zaległe
+kroki G1/G2) → etap 12 (jedno wejście, miary przepływu; razem z Z8e) → etapy 13–14 (łączenie backendów) → etap 15
+(pilotaż) → etap 16 (utrzymanie) → etap 17 (cennik) → etap 18 (przegląd na dowodach). Etapy 4 i 10 weszły do Z3.
+
+**Na bieżąco:** Z8f — po każdym przebiegu PRB dotyczące uprzęży zamieniają się w zmiany w tf z evalem. Z7d — przy
+pierwszym produkcie, który sam jest aplikacją AI.
 
 ## Skrót: co już mamy i czego brakuje
 
@@ -317,8 +364,8 @@ zamiast liczby PR-ów. Poniżej mechanizmy, których w planie brakowało.
 | DZ9 | Czym izolować fazy (Z8a) | **przyjęte**: kontener (Docker, jest już wymagany przez `sdlc up`) z montowanym tylko klonem repo i listą adresów sieci; sandbox Claude Code jako druga warstwa |
 | DZ10 | Osobna aplikacja GitHub dla agentów (Z8b) | **przyjęte**: tak, jedna na organizację, z uprawnieniami tylko do repo produktu (contents, pull requests); tokeny instalacji ważne do godziny |
 | DZ11 | Jaki skaner (Z8c) | **przyjęte**: Semgrep (reguły OWASP, działa lokalnie i w CI, bez konta) + skan zależności z menedżera pakietów (`npm audit`, `pip-audit`); CodeQL później, w Actions |
-| DZ12 | Drugi model w N1: od tego samego dostawcy czy innego? | inny dostawca (osobny klucz API, koszt w budżecie fazy); bez klucza — inny model Claude z osobnym promptem recenzenta, oznaczony w wyniku |
-| DZ13 | Ile zadań w evalach przebiegu (N5) i jaki budżet | start: 20 zadań z repo próbnego i sprintdecka, budżet na jedno uruchomienie ustalony w tf; rozbudowa do ok. 200 po pierwszych wynikach |
+| DZ12 | Drugi model w N1: od tego samego dostawcy czy innego? | **przyjęte 2026-11-02**: inny dostawca (osobny klucz API, koszt w budżecie fazy); bez klucza — inny model Claude z osobnym promptem recenzenta, oznaczony w wyniku |
+| DZ13 | Ile zadań w evalach przebiegu (N5) i jaki budżet | **przyjęte**: start: 20 zadań z repo próbnego i sprintdecka, budżet na jedno uruchomienie ustalony w tf; rozbudowa do ok. 200 po pierwszych wynikach |
 
 ## 10. Stan
 
@@ -332,4 +379,4 @@ zamiast liczby PR-ów. Poniżej mechanizmy, których w planie brakowało.
 | Z6 | do zrobienia, po DZ2 |
 | Z7 | do zrobienia (Z7a po Z3) |
 | Z8 | do zrobienia; Z8a i Z8c przed etapem 2, [polecenia startowe](polecenia-startowe-zespol.md) |
-| Z9 | do zrobienia, po DZ12–DZ13; N1, N2 i N5 przed etapem 2 |
+| Z9 | do zrobienia; N1, N2 i N5 przed etapem 2 |
