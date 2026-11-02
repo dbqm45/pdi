@@ -522,3 +522,17 @@ def test_settings_and_seccomp_files_sit_next_to_the_log_without_secrets(checkout
     argv, _ = run.phase_call()
     assert f"seccomp={seccomp}" in argv
     assert f"type=bind,src={settings},dst=/etc/claude-code/managed-settings.json,readonly" in argv
+
+
+def test_docker_commands_get_path_and_home_to_find_docker_and_its_context(tmp_path: Path) -> None:
+    """Na Macu `docker` jest w /usr/local/bin, a kontekst Docker Desktop w ~/.docker — bez PATH i HOME go nie ma."""
+    env = {"PATH": "/usr/local/bin:/usr/bin", "HOME": "/Users/ala", "DOCKER_CONTEXT": "desktop-linux", "GH_TOKEN": GH}
+    run = FakeRun()
+    assert phase_sandbox.docker_problem(run, tmp_path, env) is None
+    repo = make_checkout(tmp_path)
+    phase_sandbox.ensure_image(repo, run=run, env=env)
+
+    for call_env in run.envs:
+        assert call_env["PATH"] == "/usr/local/bin:/usr/bin" and call_env["HOME"] == "/Users/ala"
+        assert call_env["DOCKER_CONTEXT"] == "desktop-linux"
+        assert "GH_TOKEN" not in call_env
