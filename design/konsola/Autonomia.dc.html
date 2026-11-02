@@ -34,6 +34,11 @@ a{color:#2846B5}a:hover{color:#1B3285}
 .bar-ok{background:#17663A}
 .bar-low{background:#9AA7B8}
 .bar-thr{position:absolute;top:-2px;bottom:-2px;width:2px;background:#15202B;left:114px}
+.lane-tag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:500;padding:1px 8px 1px 2px;border-radius:999px;white-space:nowrap}
+.lane-tag .n{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;color:#FFFFFF;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10px}
+.lt-1{background:#EAF0FB;color:#1E3A8A}.lt-1 .n{background:#2846B5}
+.lt-2{background:#F3EEF9;color:#4A2F75}.lt-2 .n{background:#5A3A8C}
+.lt-3{background:#E6F3EA;color:#145A33}.lt-3 .n{background:#17663A}
 </style>
 </helmet>
 <div style="width: 100%; min-height: 1180px; box-sizing: border-box; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #15202B; background: #F4F6F9; display: flex; flex-direction: column">
@@ -88,10 +93,11 @@ a{color:#2846B5}a:hover{color:#1B3285}
           <span style="font-size: 12px; color: #5B6878">pasek: odsetek szkiców AI bez zmian · kreska: próg 95%</span>
         </div>
         <div style="overflow-x: auto">
-          <table style="border-collapse: collapse; width: 100%; min-width: 820px; font-size: 13px">
+          <table style="border-collapse: collapse; width: 100%; min-width: 960px; font-size: 13px">
             <thead>
               <tr>
                 <th class="th">Typ</th>
+                <th class="th">Pas</th>
                 <th class="th">Poziom</th>
                 <th class="th">Decyzje (30)</th>
                 <th class="th">Bez zmian</th>
@@ -108,6 +114,7 @@ a{color:#2846B5}a:hover{color:#1B3285}
                       <span style="font-size: 12px; color: #39465A">{{t.desc}}</span>
                     </span>
                   </td>
+                  <td class="td"><span class="lane-tag {{t.laneCls}}"><span class="n">{{t.lane}}</span>{{t.laneName}}</span></td>
                   <td class="td"><span class="lvl {{t.lvlCls}}">{{t.level}}</span></td>
                   <td class="td" style="font-variant-numeric: tabular-nums">{{t.count}}</td>
                   <td class="td">
@@ -135,7 +142,7 @@ a{color:#2846B5}a:hover{color:#1B3285}
             <li style="display: flex; gap: 10px; align-items: flex-start; border: 1px solid #EEF1F5; border-radius: 8px; padding: 8px 10px">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="flex: none; margin-top: 2px"><rect x="3" y="7" width="10" height="7" rx="1.5" stroke="#445163" stroke-width="1.4"></rect><path d="M5.5 7V5a2.5 2.5 0 015 0v2" stroke="#445163" stroke-width="1.4"></path></svg>
               <span style="display: flex; flex-direction: column; gap: 2px">
-                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">{{k.key}}</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">{{k.key}}</span><span class="lane-tag {{k.laneCls}}"><span class="n">{{k.lane}}</span>pas {{k.lane}}</span></span>
                 <span style="font-size: 12px; color: #39465A">{{k.desc}}</span>
               </span>
             </li>
@@ -219,28 +226,30 @@ class Component extends DCLogic {
       stay: ['st-wait', 'zostaje: poniżej progu'],
       back: ['st-block', 'wraca do poziomu 3']
     };
-    const t = (key, desc, level, count, rate, rule, e) => ({
+    const LN = { 1: ['lt-1', 'Zaprojektuj i zbuduj'], 2: ['lt-2', 'Oceń i wydaj'], 3: ['lt-3', 'Wdróż, obserwuj, ulepszaj'] };
+    const t = (key, desc, level, count, rate, rule, e, lane) => ({
+      lane, laneCls: LN[lane][0], laneName: LN[lane][1],
       key, desc, level, lvlCls: 'lvl-' + level, count, rate: rate + '%',
       width: Math.round(rate * 1.2) + 'px', barCls: rate >= 95 ? 'bar-ok' : 'bar-low',
       rule, evalCls: E[e][0], eval: E[e][1]
     });
     return {
       types: [
-        t('finding.auto_close', 'Zamknięcie pytania odpowiedzią ze źródła, z cytatem', 3, 34, 97, 'Cytat ze źródła aktualnego w chwili analizy', 'ready'),
-        t('ac.format_rewrite', 'Przepisanie AC na GWT bez zmiany treści', 3, 41, 98, 'Tylko format; zmiana sensu → człowiek', 'ready'),
-        t('dependency.update', 'Aktualizacja zależności patch/minor', 2, 52, 100, 'Zielone CI; wersje major → człowiek', 'active'),
-        t('review.light', 'Review małej zmiany (testy, dokumentacja)', 2, 38, 87, 'Zielone CI i AI review, poza wrażliwymi ścieżkami', 'back'),
-        t('flag.stage_advance', 'Kolejny etap flagi według release.yaml', 3, 6, 100, 'Kryteria wyjścia i min. czas spełnione, metryki ochronne w normie', 'few'),
-        t('flag.removal_pr', 'PR usuwający flagę po pełnym wdrożeniu', 3, 2, 100, 'Flaga na 100% dłużej niż 14 dni', 'few'),
-        t('gate.B2', 'Bramka B2: historyjki i AC', 3, 24, 71, 'Lint kształtu bez problemów', 'stay')
+        t('finding.auto_close', 'Zamknięcie pytania odpowiedzią ze źródła, z cytatem', 3, 34, 97, 'Cytat ze źródła aktualnego w chwili analizy', 'ready', 1),
+        t('ac.format_rewrite', 'Przepisanie AC na GWT bez zmiany treści', 3, 41, 98, 'Tylko format; zmiana sensu → człowiek', 'ready', 1),
+        t('dependency.update', 'Aktualizacja zależności patch/minor', 2, 52, 100, 'Zielone CI; wersje major → człowiek', 'active', 1),
+        t('review.light', 'Review małej zmiany (testy, dokumentacja)', 2, 38, 87, 'Zielone CI i AI review, poza wrażliwymi ścieżkami', 'back', 2),
+        t('flag.stage_advance', 'Kolejny etap flagi według release.yaml', 3, 6, 100, 'Kryteria wyjścia i min. czas spełnione, metryki ochronne w normie', 'few', 3),
+        t('flag.removal_pr', 'PR usuwający flagę po pełnym wdrożeniu', 3, 2, 100, 'Flaga na 100% dłużej niż 14 dni', 'few', 3),
+        t('gate.B2', 'Bramka B2: historyjki i AC', 3, 24, 71, 'Lint kształtu bez problemów', 'stay', 1)
       ],
       locked: [
-        { key: 'triage', desc: 'Czy w ogóle to robimy' },
-        { key: 'scope.r1', desc: 'Zakres MVP' },
-        { key: 'release.go', desc: 'Wydanie zmiany na PROD' },
-        { key: 'outcome.assessment', desc: 'Ocena, czy zmiana przyniosła efekt' },
-        { key: 'review.sensitive', desc: 'Review: auth, płatności, IaC' },
-        { key: 'migration', desc: 'Migracje danych' }
+        { key: 'triage', lane: 1, laneCls: 'lt-1', desc: 'Czy w ogóle to robimy' },
+        { key: 'scope.r1', lane: 1, laneCls: 'lt-1', desc: 'Zakres MVP' },
+        { key: 'release.go', lane: 2, laneCls: 'lt-2', desc: 'Wydanie zmiany na PROD' },
+        { key: 'outcome.assessment', lane: 3, laneCls: 'lt-3', desc: 'Ocena, czy zmiana przyniosła efekt' },
+        { key: 'review.sensitive', lane: 2, laneCls: 'lt-2', desc: 'Review: auth, płatności, IaC' },
+        { key: 'migration', lane: 2, laneCls: 'lt-2', desc: 'Migracje danych' }
       ],
       auto: [
         { level: 2, lvlCls: 'lvl-2', text: 'Aktualizacja vitest 3.2.3 → 3.2.4 scalona po oknie weta.', meta: 'dependency.update · DEC-44 · 25.10 12:00' },

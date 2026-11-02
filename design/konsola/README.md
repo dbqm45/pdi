@@ -27,24 +27,29 @@ Ekrany wyrenderowane do PDF (szerokość 1440 px, jedna strona na ekran), do otw
 | [`pdf/3-decyzje.pdf`](pdf/3-decyzje.pdf) | Rejestr decyzji |
 | [`pdf/4-autonomia.pdf`](pdf/4-autonomia.pdf) | Autonomia |
 
-PDF-y powstały ze stanu plików `.dc.html` z 2026-10-25. Po zmianie makiety trzeba je wygenerować ponownie.
+PDF-y powstały ze stanu plików `.dc.html` z 2026-11-02 (wersja z trzema pasami). Po zmianie makiety trzeba je wygenerować ponownie.
 
 Pliki `.dc.html` to format edytora Design w Claude: wymagają jego środowiska (`support.js`) i nie otwierają się
 poprawnie jako zwykłe strony. Źródłem prawdy jest podgląd pod linkiem wyżej; ten katalog to kopia do historii
 i przeglądu w PR-ach.
 
-## Wersja klikalna v1 (do otwarcia w przeglądarce)
+## Wersje klikalne (do otwarcia w przeglądarce)
 
-[`v1-klikalna/`](v1-klikalna/index.html): te same cztery ekrany co wyżej, stan z 2026-11-02, jako zwykłe strony HTML.
+- [`v2-klikalna/`](v2-klikalna/index.html): **aktualna**, z trzema pasami (stan z 2026-11-02, po akceptacji propozycji niżej).
+- [`v1-klikalna/`](v1-klikalna/index.html): wersja sprzed pasów, zachowana do porównania.
+
+Oba katalogi to te same cztery ekrany jako zwykłe strony HTML.
 Otwierasz `v1-klikalna/index.html` (albo `Main.html`) w przeglądarce, bez edytora i bez internetu poza czcionkami
 Google. Nawigacja między ekranami działa jak w podglądzie (Tablica, Ślad zmiany, Decyzje, Autonomia). Pliki powstały
 przez wyrenderowanie `.dc.html` i zapisanie gotowego HTML bez skryptów; makieta nie ma innej logiki niż linki, więc
 nic nie ginie.
 
-## Propozycja: trzy pasy
+## Trzy pasy (wprowadzone 2026-11-02)
 
-[`pasy-propozycja/`](pasy-propozycja/): podgląd zmian (Z7a planu [zespół jednoosobowy](../../docs/plan-zespol-jednoosobowy.md)),
-jeszcze nie w makiecie powyżej.
+Z7a planu [zespół jednoosobowy](../../docs/plan-zespol-jednoosobowy.md). Pasy są w makiecie powyżej i w `v2-klikalna/`:
+tablica grupuje kolumny faz w pasy, ślad zmiany pokazuje pasy nad etapami i „Pas N z 3 · teraz · dalej” w nagłówku,
+rejestr decyzji i autonomia mają etykietę pasa przy każdej decyzji i typie decyzji. W [`pasy-propozycja/`](pasy-propozycja/)
+zostało porównanie przed i po.
 
 | Plik | Co pokazuje |
 |---|---|
