@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="pl"><head><style>
+    .sc-placeholder{background:color-mix(in srgb,currentColor 8%,transparent);
+      border:1px solid color-mix(in srgb,currentColor 50%,transparent);
+      border-radius:2px;box-sizing:border-box;overflow:hidden}
+    @keyframes sc-shine{0%{background-position:100% 50%}100%{background-position:0% 50%}}
+    html.sc-dc-streaming .sc-placeholder,
+    html.sc-dc-streaming .sc-interp.sc-missing{position:relative;
+      background:color-mix(in srgb,currentColor 5%,transparent);
+      border-color:transparent}
+    html.sc-dc-streaming .sc-placeholder::before,
+    html.sc-dc-streaming .sc-interp.sc-missing::before{content:'';
+      position:absolute;inset:0;pointer-events:none;
+      background:linear-gradient(90deg,rgba(217,119,87,0) 25%,rgba(247,225,211,.95) 37%,rgba(217,119,87,0) 63%);
+      background-size:400% 100%;animation:sc-shine 1.4s ease infinite}
+    html.sc-dc-streaming .sc-placeholder:nth-child(n+9 of .sc-placeholder)::before,
+    html.sc-dc-streaming .sc-interp.sc-missing:nth-child(n+9 of .sc-interp.sc-missing)::before{animation:none;
+      background:color-mix(in srgb,currentColor 8%,transparent)}
+    .sc-placeholder-error{padding:4px 8px;font:11px/1.4 ui-monospace,monospace;
+      color:color-mix(in srgb,currentColor 70%,transparent);word-break:break-word}
+    .sc-interp.sc-missing{display:inline-block;width:2em;height:1em;overflow:hidden;
+      vertical-align:text-bottom;background:rgba(255,255,255,.3);border:1px solid rgba(0,0,0,.5);
+      border-radius:2px;box-sizing:border-box;color:transparent;
+      user-select:none}
+    .sc-interp.sc-unresolved{font-family:ui-monospace,monospace;font-size:.85em;
+      color:color-mix(in srgb,currentColor 50%,transparent);
+      background:color-mix(in srgb,currentColor 10%,transparent);border-radius:3px;
+      padding:0 3px}
+    .sc-host.sc-has-error{position:relative}
+    .sc-logic-error{position:absolute;top:8px;left:8px;z-index:2147483647;max-width:60ch;
+      padding:6px 10px;background:#b00020;color:#fff;font:12px/1.4 ui-monospace,monospace;
+      border-radius:4px;white-space:pre-wrap;pointer-events:none}
+    /* Mirrors PRINT_BASELINE_CSS in apps/web deck-stage-export.ts — keep both
+       in sync until dc-runtime regains a build step. */
+    @media print {
+      @page { margin: 0.5cm; }
+      figure, table { break-inside: avoid; }
+      #dc-root, #dc-root > .sc-host { height: auto; }
+      *, *::before, *::after {
+        print-color-adjust: exact; -webkit-print-color-adjust: exact;
+        backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+        animation-delay: -99s !important; animation-duration: .001s !important;
+        animation-iteration-count: 1 !important; animation-fill-mode: both !important;
+        animation-play-state: running !important; transition-duration: 0s !important;
+      }
+    }
+  </style>
+<meta charset="utf-8">
+<title>Ślad zmiany CHG-7</title>
+<style>x-dc{display:none!important}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com" data-dc-tpl="1"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" data-dc-tpl="2"><style data-dc-tpl="3">
+body{margin:0;background:#F4F6F9}
+a{color:#2846B5}a:hover{color:#1B3285}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.st-run{background:#E6ECFB;color:#22409F}
+.st-wait{background:#FFF0D2;color:#7A4700}
+.st-block{background:#FCE6E3;color:#A1271D}
+.st-live{background:#DDF2E5;color:#17663A}
+.st-hidden{background:#ECEFF3;color:#3F4B5B}
+.st-measure{background:#EFE9F8;color:#5A3A8C}
+.who{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10.5px;font-weight:500;padding:1px 7px;border-radius:4px;white-space:nowrap}
+.who-human{background:#FFF0D2;color:#7A4700}
+.who-ai{background:#E6ECFB;color:#22409F}
+.who-app{background:#ECEFF3;color:#3F4B5B}
+.node{display:flex;flex-direction:column;gap:4px;align-items:flex-start;min-width:0}
+.ring{width:14px;height:14px;border-radius:50%;box-sizing:border-box}
+.ring-done{background:#17663A;border:2px solid #17663A}
+.ring-now{background:#FFFFFF;border:3px solid #2846B5}
+.ring-next{background:#FFFFFF;border:2px solid #9AA7B8}
+.btn{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:13px;font-weight:500;border-radius:8px;padding:8px 12px;min-height:36px;cursor:pointer;border:1px solid #C9D1DC;background:#FFFFFF;color:#15202B}
+.btn-primary{background:#2846B5;border-color:#2846B5;color:#FFFFFF}
+</style></head>
+<body>
+<div id="dc-root"><div class="sc-host" data-sc-name="Slad"><div data-dc-tpl="4" style="width: 100%; min-height: 1400px; box-sizing: border-box; font-family: &quot;IBM Plex Sans&quot;, system-ui, sans-serif; color: rgb(21, 32, 43); background: rgb(244, 246, 249); display: flex; flex-direction: column;">
+
+  
+  <header data-dc-tpl="5" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 14px 24px; background: rgb(255, 255, 255); border-bottom: 1px solid rgb(221, 227, 234);">
+    <div data-dc-tpl="6" style="display: flex; align-items: baseline; gap: 10px;">
+      <span data-dc-tpl="7" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-weight: 500; font-size: 15px; color: rgb(40, 70, 181);">pdi</span>
+      <span data-dc-tpl="8" style="font-weight: 600; font-size: 16px;">Konsola</span>
+    </div>
+    <span data-dc-tpl="9" style="font-size: 13px; color: rgb(68, 81, 99);">Sprintdeck</span>
+    <nav data-dc-tpl="10" aria-label="Widoki" style="display: flex; gap: 4px;">
+      <a data-dc-tpl="11" href="Main.html" style="font-size: 13px; color: rgb(68, 81, 99); text-decoration: none; padding: 8px 10px;">Tablica</a>
+      <a data-dc-tpl="12" href="#" style="font-size: 13px; font-weight: 600; color: rgb(21, 32, 43); text-decoration: none; padding: 8px 10px; border-radius: 8px; background: rgb(238, 241, 245);">Ślad zmiany</a>
+      <a data-dc-tpl="13" href="Decyzje.html" style="font-size: 13px; color: rgb(68, 81, 99); text-decoration: none; padding: 8px 10px;">Decyzje</a>
+      <a data-dc-tpl="14" href="Autonomia.html" style="font-size: 13px; color: rgb(68, 81, 99); text-decoration: none; padding: 8px 10px;">Autonomia</a>
+    </nav>
+    <div data-dc-tpl="15" style="flex: 1 1 200px;"></div>
+    <span data-dc-tpl="16" style="font-size: 12px; color: rgb(91, 104, 120);">Dane przykładowe</span>
+  </header>
+
+  
+  <section data-dc-tpl="17" aria-label="Zmiana" style="padding: 18px 24px 8px; display: flex; flex-direction: column; gap: 10px;">
+    <nav data-dc-tpl="18" aria-label="Okruszki" style="font-size: 12px; color: rgb(91, 104, 120);"><a data-dc-tpl="19" href="Main.html">Tablica</a> / U użytkowników / CHG-7</nav>
+    <div data-dc-tpl="20" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;">
+      <span data-dc-tpl="21" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 14px; color: rgb(68, 81, 99);">CHG-7</span>
+      <h1 data-dc-tpl="22" style="margin: 0px; font-size: 24px; font-weight: 600;">Tworzenie pokoju</h1>
+      <span data-dc-tpl="23" class="chip st-live"><span data-dc-tpl="24" class="dot"></span>u użytkowników · 10%</span>
+      <span data-dc-tpl="25" class="chip st-hidden"><span data-dc-tpl="26" class="dot"></span>linia R1 (MVP)</span>
+    </div>
+    <p data-dc-tpl="27" style="margin: 0px; font-size: 14px; color: rgb(57, 70, 90); max-width: 820px; line-height: 1.5;">Z <a data-dc-tpl="28" href="#">PRB-21</a>: „Prowadzący nie może szybko zebrać zespołu do estymacji”. Wynik MVP: prowadzący tworzy pokój i dzieli link bez zakładania konta.</p>
+    <div data-dc-tpl="29" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px;">
+      <div data-dc-tpl="30" style="background: rgb(255, 255, 255); border: 1px solid rgb(221, 227, 234); border-radius: 10px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px;">
+        <span data-dc-tpl="31" style="font-size: 11px; color: rgb(91, 104, 120);">Od zgłoszenia</span>
+        <span data-dc-tpl="32" style="font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums;">12 dni</span>
+      </div>
+      <div data-dc-tpl="33" style="background: rgb(255, 255, 255); border: 1px solid rgb(221, 227, 234); border-radius: 10px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px;">
+        <span data-dc-tpl="34" style="font-size: 11px; color: rgb(91, 104, 120);">Od commitu do PROD</span>
+        <span data-dc-tpl="35" style="font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums;">1 dzień</span>
+      </div>
+      <div data-dc-tpl="36" style="background: rgb(255, 255, 255); border: 1px solid rgb(221, 227, 234); border-radius: 10px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px;">
+        <span data-dc-tpl="37" style="font-size: 11px; color: rgb(91, 104, 120);">Koszt agentów</span>
+        <span data-dc-tpl="38" style="font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums;">4,30 USD</span>
+      </div>
+      <div data-dc-tpl="39" style="background: rgb(255, 255, 255); border: 1px solid rgb(221, 227, 234); border-radius: 10px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px;">
+        <span data-dc-tpl="40" style="font-size: 11px; color: rgb(91, 104, 120);">Decyzje człowieka</span>
+        <span data-dc-tpl="41" style="font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums;">8</span>
+      </div>
+      <div data-dc-tpl="42" style="background: rgb(255, 255, 255); border: 1px solid rgb(221, 227, 234); border-radius: 10px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px;">
+        <span data-dc-tpl="43" style="font-size: 11px; color: rgb(91, 104, 120);">Czas oczekiwania na decyzje</span>
+        <span data-dc-tpl="44" style="font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums;">31 h</span>
+      </div>
+    </div>
+  </section>
+
+  
+  <section data-dc-tpl="45" aria-label="Etapy śladu" style="margin: 8px 24px 0px; background: rgb(255, 255, 255); border: 1px solid rgb(221, 227, 234); border-radius: 12px; padding: 16px;">
+    <div data-dc-tpl="46" style="overflow-x: auto;">
+      <ol data-dc-tpl="47" style="list-style: none; margin: 0px; padding: 0px; display: grid; grid-template-columns: repeat(8, minmax(120px, 1fr)); gap: 0px; min-width: 980px;">
+        
+          <li data-dc-tpl="49" class="node" style="padding-right: 8px;">
+            <div data-dc-tpl="50" style="display: flex; align-items: center; width: 100%;">
+              <span data-dc-tpl="51" class="ring ring-done"></span>
+              <span data-dc-tpl="52" style="flex: 1 1 auto; height: 2px; background: rgb(23, 102, 58); margin-left: 6px;"></span>
+            </div>
+            <span data-dc-tpl="53" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(68, 81, 99); margin-top: 6px;"><span class="sc-interp">PRB-21</span></span>
+            <span data-dc-tpl="54" style="font-size: 13px; font-weight: 600;"><span class="sc-interp">Zgłoszenie</span></span>
+            <span data-dc-tpl="55" style="font-size: 12px; color: rgb(57, 70, 90); line-height: 1.35;"><span class="sc-interp">Wywiad ze Scrum Masterem</span></span>
+            <span data-dc-tpl="56" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120);"><span class="sc-interp">13.10</span></span>
+          </li>
+        
+          <li data-dc-tpl="49" class="node" style="padding-right: 8px;">
+            <div data-dc-tpl="50" style="display: flex; align-items: center; width: 100%;">
+              <span data-dc-tpl="51" class="ring ring-done"></span>
+              <span data-dc-tpl="52" style="flex: 1 1 auto; height: 2px; background: rgb(23, 102, 58); margin-left: 6px;"></span>
+            </div>
+            <span data-dc-tpl="53" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(68, 81, 99); margin-top: 6px;"><span class="sc-interp">CHG-7</span></span>
+            <span data-dc-tpl="54" style="font-size: 13px; font-weight: 600;"><span class="sc-interp">Intencja i MVP</span></span>
+            <span data-dc-tpl="55" style="font-size: 12px; color: rgb(57, 70, 90); line-height: 1.35;"><span class="sc-interp">Wynik, metryka, budżet</span></span>
+            <span data-dc-tpl="56" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120);"><span class="sc-interp">14.10</span></span>
+          </li>
+        
+          <li data-dc-tpl="49" class="node" style="padding-right: 8px;">
+            <div data-dc-tpl="50" style="display: flex; align-items: center; width: 100%;">
+              <span data-dc-tpl="51" class="ring ring-done"></span>
+              <span data-dc-tpl="52" style="flex: 1 1 auto; height: 2px; background: rgb(23, 102, 58); margin-left: 6px;"></span>
+            </div>
+            <span data-dc-tpl="53" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(68, 81, 99); margin-top: 6px;"><span class="sc-interp">US-11, US-12</span></span>
+            <span data-dc-tpl="54" style="font-size: 13px; font-weight: 600;"><span class="sc-interp">Historyjki</span></span>
+            <span data-dc-tpl="55" style="font-size: 12px; color: rgb(57, 70, 90); line-height: 1.35;"><span class="sc-interp">5 scenariuszy GWT</span></span>
+            <span data-dc-tpl="56" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120);"><span class="sc-interp">15.10</span></span>
+          </li>
+        
+          <li data-dc-tpl="49" class="node" style="padding-right: 8px;">
+            <div data-dc-tpl="50" style="display: flex; align-items: center; width: 100%;">
+              <span data-dc-tpl="51" class="ring ring-done"></span>
+              <span data-dc-tpl="52" style="flex: 1 1 auto; height: 2px; background: rgb(23, 102, 58); margin-left: 6px;"></span>
+            </div>
+            <span data-dc-tpl="53" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(68, 81, 99); margin-top: 6px;"><span class="sc-interp">R1, R2</span></span>
+            <span data-dc-tpl="54" style="font-size: 13px; font-weight: 600;"><span class="sc-interp">Plan wydania</span></span>
+            <span data-dc-tpl="55" style="font-size: 12px; color: rgb(57, 70, 90); line-height: 1.35;"><span class="sc-interp">3 cięcia, 1 flaga</span></span>
+            <span data-dc-tpl="56" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120);"><span class="sc-interp">15.10</span></span>
+          </li>
+        
+          <li data-dc-tpl="49" class="node" style="padding-right: 8px;">
+            <div data-dc-tpl="50" style="display: flex; align-items: center; width: 100%;">
+              <span data-dc-tpl="51" class="ring ring-done"></span>
+              <span data-dc-tpl="52" style="flex: 1 1 auto; height: 2px; background: rgb(23, 102, 58); margin-left: 6px;"></span>
+            </div>
+            <span data-dc-tpl="53" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(68, 81, 99); margin-top: 6px;"><span class="sc-interp">PR #18, #19</span></span>
+            <span data-dc-tpl="54" style="font-size: 13px; font-weight: 600;"><span class="sc-interp">Budowa i review</span></span>
+            <span data-dc-tpl="55" style="font-size: 12px; color: rgb(57, 70, 90); line-height: 1.35;"><span class="sc-interp">Talos, 6 kawałków</span></span>
+            <span data-dc-tpl="56" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120);"><span class="sc-interp">16–17.10</span></span>
+          </li>
+        
+          <li data-dc-tpl="49" class="node" style="padding-right: 8px;">
+            <div data-dc-tpl="50" style="display: flex; align-items: center; width: 100%;">
+              <span data-dc-tpl="51" class="ring ring-done"></span>
+              <span data-dc-tpl="52" style="flex: 1 1 auto; height: 2px; background: rgb(23, 102, 58); margin-left: 6px;"></span>
+            </div>
+            <span data-dc-tpl="53" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(68, 81, 99); margin-top: 6px;"><span class="sc-interp">PROD</span></span>
+            <span data-dc-tpl="54" style="font-size: 13px; font-weight: 600;"><span class="sc-interp">Wdrożenie</span></span>
+            <span data-dc-tpl="55" style="font-size: 12px; color: rgb(57, 70, 90); line-height: 1.35;"><span class="sc-interp">Ukryte za flagą</span></span>
+            <span data-dc-tpl="56" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120);"><span class="sc-interp">17.10</span></span>
+          </li>
+        
+          <li data-dc-tpl="49" class="node" style="padding-right: 8px;">
+            <div data-dc-tpl="50" style="display: flex; align-items: center; width: 100%;">
+              <span data-dc-tpl="51" class="ring ring-now"></span>
+              <span data-dc-tpl="52" style="flex: 1 1 auto; height: 2px; background: rgb(201, 209, 220); margin-left: 6px;"></span>
+            </div>
+            <span data-dc-tpl="53" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(68, 81, 99); margin-top: 6px;"><span class="sc-interp">room-create</span></span>
+            <span data-dc-tpl="54" style="font-size: 13px; font-weight: 600;"><span class="sc-interp">Udostępnianie</span></span>
+            <span data-dc-tpl="55" style="font-size: 12px; color: rgb(57, 70, 90); line-height: 1.35;"><span class="sc-interp">10%, dzień 5 z 7</span></span>
+            <span data-dc-tpl="56" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120);"><span class="sc-interp">teraz</span></span>
+          </li>
+        
+          <li data-dc-tpl="49" class="node" style="padding-right: 8px;">
+            <div data-dc-tpl="50" style="display: flex; align-items: center; width: 100%;">
+              <span data-dc-tpl="51" class="ring ring-next"></span>
+              <span data-dc-tpl="52" style="flex: 1 1 auto; height: 2px; background: rgb(201, 209, 220); margin-left: 6px;"></span>
+            </div>
+            <span data-dc-tpl="53" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(68, 81, 99); margin-top: 6px;"><span class="sc-interp">metryka</span></span>
+            <span data-dc-tpl="54" style="font-size: 13px; font-weight: 600;"><span class="sc-interp">Skutek</span></span>
+            <span data-dc-tpl="55" style="font-size: 12px; color: rgb(57, 70, 90); line-height: 1.35;"><span class="sc-interp">Ocena po 30 dniach</span></span>
+            <span data-dc-tpl="56" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120);"><span class="sc-interp">później</span></span>
+          </li>
+        
+      </ol>
+    </div>
+  </section>
+
+  
+  <div data-dc-tpl="57" style="display: flex; flex-wrap: wrap; gap: 16px; padding: 16px 24px 28px; align-items: flex-start;">
+
+    <main data-dc-tpl="58" style="flex: 999 1 600px; min-width: 0px; display: flex; flex-direction: column; gap: 16px;">
+      <section data-dc-tpl="59" aria-label="Przebieg" style="background: rgb(255, 255, 255); border: 1px solid rgb(221, 227, 234); border-radius: 12px; padding: 14px;">
+        <div data-dc-tpl="60" style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin-bottom: 6px;">
+          <h2 data-dc-tpl="61" style="margin: 0px; font-size: 15px; font-weight: 600;">Przebieg</h2>
+          <span data-dc-tpl="62" style="font-size: 12px; color: rgb(91, 104, 120);">kto co zrobił, od zgłoszenia do dziś</span>
+          <div data-dc-tpl="63" style="flex: 1 1 auto;"></div>
+          <span data-dc-tpl="64" class="who who-human">człowiek</span>
+          <span data-dc-tpl="65" class="who who-ai">AI</span>
+          <span data-dc-tpl="66" class="who who-app">aplikacja</span>
+        </div>
+        <ol data-dc-tpl="67" style="list-style: none; margin: 0px; padding: 0px;">
+          
+            <li data-dc-tpl="69" style="display: grid; grid-template-columns: 92px 84px minmax(0px, 1fr); gap: 12px; align-items: baseline; padding: 9px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <span data-dc-tpl="70" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11.5px; color: rgb(91, 104, 120);"><span class="sc-interp">13.10 09:40</span></span>
+              <span data-dc-tpl="71"><span data-dc-tpl="72" class="who who-human"><span class="sc-interp">człowiek</span></span></span>
+              <span data-dc-tpl="73" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="74" style="font-size: 13px; color: rgb(21, 32, 43); line-height: 1.4;"><span class="sc-interp">Scrum Master w wywiadzie: zebranie zespołu do estymacji trwa za długo.</span></span>
+                <span data-dc-tpl="75" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120); overflow-wrap: anywhere;"><span class="sc-interp">PRB-21</span></span>
+              </span>
+            </li>
+          
+            <li data-dc-tpl="69" style="display: grid; grid-template-columns: 92px 84px minmax(0px, 1fr); gap: 12px; align-items: baseline; padding: 9px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <span data-dc-tpl="70" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11.5px; color: rgb(91, 104, 120);"><span class="sc-interp">13.10 10:05</span></span>
+              <span data-dc-tpl="71"><span data-dc-tpl="72" class="who who-ai"><span class="sc-interp">AI</span></span></span>
+              <span data-dc-tpl="73" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="74" style="font-size: 13px; color: rgb(21, 32, 43); line-height: 1.4;"><span class="sc-interp">Triaż: brak duplikatów, rekomendacja „przyjąć”.</span></span>
+                <span data-dc-tpl="75" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120); overflow-wrap: anywhere;"><span class="sc-interp">proc-issue-triage</span></span>
+              </span>
+            </li>
+          
+            <li data-dc-tpl="69" style="display: grid; grid-template-columns: 92px 84px minmax(0px, 1fr); gap: 12px; align-items: baseline; padding: 9px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <span data-dc-tpl="70" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11.5px; color: rgb(91, 104, 120);"><span class="sc-interp">13.10 11:20</span></span>
+              <span data-dc-tpl="71"><span data-dc-tpl="72" class="who who-human"><span class="sc-interp">człowiek</span></span></span>
+              <span data-dc-tpl="73" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="74" style="font-size: 13px; color: rgb(21, 32, 43); line-height: 1.4;"><span class="sc-interp">Przyjęto do budowy jako CHG-7.</span></span>
+                <span data-dc-tpl="75" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120); overflow-wrap: anywhere;"><span class="sc-interp">DEC-30</span></span>
+              </span>
+            </li>
+          
+            <li data-dc-tpl="69" style="display: grid; grid-template-columns: 92px 84px minmax(0px, 1fr); gap: 12px; align-items: baseline; padding: 9px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <span data-dc-tpl="70" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11.5px; color: rgb(91, 104, 120);"><span class="sc-interp">14.10 10:00</span></span>
+              <span data-dc-tpl="71"><span data-dc-tpl="72" class="who who-ai"><span class="sc-interp">AI</span></span></span>
+              <span data-dc-tpl="73" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="74" style="font-size: 13px; color: rgb(21, 32, 43); line-height: 1.4;"><span class="sc-interp">Rozmowa o MVP: wynik, budżet 1 tydzień, metryka aktywacji.</span></span>
+                <span data-dc-tpl="75" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120); overflow-wrap: anywhere;"><span class="sc-interp">changes/CHG-7/intent.md</span></span>
+              </span>
+            </li>
+          
+            <li data-dc-tpl="69" style="display: grid; grid-template-columns: 92px 84px minmax(0px, 1fr); gap: 12px; align-items: baseline; padding: 9px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <span data-dc-tpl="70" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11.5px; color: rgb(91, 104, 120);"><span class="sc-interp">14.10 16:30</span></span>
+              <span data-dc-tpl="71"><span data-dc-tpl="72" class="who who-human"><span class="sc-interp">człowiek</span></span></span>
+              <span data-dc-tpl="73" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="74" style="font-size: 13px; color: rgb(21, 32, 43); line-height: 1.4;"><span class="sc-interp">Bramka B1: zakres zatwierdzony.</span></span>
+                <span data-dc-tpl="75" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120); overflow-wrap: anywhere;"><span class="sc-interp">DEC-31</span></span>
+              </span>
+            </li>
+          
+            <li data-dc-tpl="69" style="display: grid; grid-template-columns: 92px 84px minmax(0px, 1fr); gap: 12px; align-items: baseline; padding: 9px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <span data-dc-tpl="70" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11.5px; color: rgb(91, 104, 120);"><span class="sc-interp">15.10 09:15</span></span>
+              <span data-dc-tpl="71"><span data-dc-tpl="72" class="who who-ai"><span class="sc-interp">AI</span></span></span>
+              <span data-dc-tpl="73" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="74" style="font-size: 13px; color: rgb(21, 32, 43); line-height: 1.4;"><span class="sc-interp">Historyjki US-11 i US-12, 5 scenariuszy GWT; lint kształtu: 0 problemów.</span></span>
+                <span data-dc-tpl="75" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120); overflow-wrap: anywhere;"><span class="sc-interp">requirements.md</span></span>
+              </span>
+            </li>
+          
+            <li data-dc-tpl="69" style="display: grid; grid-template-columns: 92px 84px minmax(0px, 1fr); gap: 12px; align-items: baseline; padding: 9px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <span data-dc-tpl="70" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11.5px; color: rgb(91, 104, 120);"><span class="sc-interp">15.10 09:40</span></span>
+              <span data-dc-tpl="71"><span data-dc-tpl="72" class="who who-app"><span class="sc-interp">aplikacja</span></span></span>
+              <span data-dc-tpl="73" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="74" style="font-size: 13px; color: rgb(21, 32, 43); line-height: 1.4;"><span class="sc-interp">ci_for_sdlc: AC-002 w US-11 („pokój działa poprawnie”), pytanie do PO.</span></span>
+                <span data-dc-tpl="75" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120); overflow-wrap: anywhere;"><span class="sc-interp">ci_for_sdlc · AC-002</span></span>
+              </span>
+            </li>
+          
+            <li data-dc-tpl="69" style="display: grid; grid-template-columns: 92px 84px minmax(0px, 1fr); gap: 12px; align-items: baseline; padding: 9px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <span data-dc-tpl="70" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11.5px; color: rgb(91, 104, 120);"><span class="sc-interp">15.10 11:10</span></span>
+              <span data-dc-tpl="71"><span data-dc-tpl="72" class="who who-human"><span class="sc-interp">człowiek</span></span></span>
+              <span data-dc-tpl="73" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="74" style="font-size: 13px; color: rgb(21, 32, 43); line-height: 1.4;"><span class="sc-interp">Odpowiedź: „prowadzący widzi link do skopiowania i licznik uczestników”.</span></span>
+                <span data-dc-tpl="75" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120); overflow-wrap: anywhere;"><span class="sc-interp">DEC-33</span></span>
+              </span>
+            </li>
+          
+            <li data-dc-tpl="69" style="display: grid; grid-template-columns: 92px 84px minmax(0px, 1fr); gap: 12px; align-items: baseline; padding: 9px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <span data-dc-tpl="70" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11.5px; color: rgb(91, 104, 120);"><span class="sc-interp">15.10 14:00</span></span>
+              <span data-dc-tpl="71"><span data-dc-tpl="72" class="who who-ai"><span class="sc-interp">AI</span></span></span>
+              <span data-dc-tpl="73" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="74" style="font-size: 13px; color: rgb(21, 32, 43); line-height: 1.4;"><span class="sc-interp">Plan cięć i release.yaml: TSK-21 szkielet, TSK-22 sekretny link (R1), TSK-23 limity (R2).</span></span>
+                <span data-dc-tpl="75" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120); overflow-wrap: anywhere;"><span class="sc-interp">plan.md · release.yaml</span></span>
+              </span>
+            </li>
+          
+            <li data-dc-tpl="69" style="display: grid; grid-template-columns: 92px 84px minmax(0px, 1fr); gap: 12px; align-items: baseline; padding: 9px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <span data-dc-tpl="70" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11.5px; color: rgb(91, 104, 120);"><span class="sc-interp">15.10 17:20</span></span>
+              <span data-dc-tpl="71"><span data-dc-tpl="72" class="who who-human"><span class="sc-interp">człowiek</span></span></span>
+              <span data-dc-tpl="73" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="74" style="font-size: 13px; color: rgb(21, 32, 43); line-height: 1.4;"><span class="sc-interp">Bramka B3 i zakres R1 zatwierdzone; gotowość zielona, „Approve for implementation”.</span></span>
+                <span data-dc-tpl="75" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120); overflow-wrap: anywhere;"><span class="sc-interp">DEC-34 · DEC-35</span></span>
+              </span>
+            </li>
+          
+            <li data-dc-tpl="69" style="display: grid; grid-template-columns: 92px 84px minmax(0px, 1fr); gap: 12px; align-items: baseline; padding: 9px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <span data-dc-tpl="70" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11.5px; color: rgb(91, 104, 120);"><span class="sc-interp">16.10 08:30</span></span>
+              <span data-dc-tpl="71"><span data-dc-tpl="72" class="who who-ai"><span class="sc-interp">AI</span></span></span>
+              <span data-dc-tpl="73" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="74" style="font-size: 13px; color: rgb(21, 32, 43); line-height: 1.4;"><span class="sc-interp">Talos: TSK-21 w 4 kawałkach, PR #18 (2,10 USD).</span></span>
+                <span data-dc-tpl="75" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120); overflow-wrap: anywhere;"><span class="sc-interp">Change: TSK-21 · Flag: room-create</span></span>
+              </span>
+            </li>
+          
+            <li data-dc-tpl="69" style="display: grid; grid-template-columns: 92px 84px minmax(0px, 1fr); gap: 12px; align-items: baseline; padding: 9px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <span data-dc-tpl="70" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11.5px; color: rgb(91, 104, 120);"><span class="sc-interp">16.10 15:45</span></span>
+              <span data-dc-tpl="71"><span data-dc-tpl="72" class="who who-ai"><span class="sc-interp">AI</span></span></span>
+              <span data-dc-tpl="73" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="74" style="font-size: 13px; color: rgb(21, 32, 43); line-height: 1.4;"><span class="sc-interp">Talos: TSK-22 w 2 kawałkach, PR #19 (0,90 USD).</span></span>
+                <span data-dc-tpl="75" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120); overflow-wrap: anywhere;"><span class="sc-interp">Change: TSK-22</span></span>
+              </span>
+            </li>
+          
+            <li data-dc-tpl="69" style="display: grid; grid-template-columns: 92px 84px minmax(0px, 1fr); gap: 12px; align-items: baseline; padding: 9px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <span data-dc-tpl="70" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11.5px; color: rgb(91, 104, 120);"><span class="sc-interp">17.10 10:10</span></span>
+              <span data-dc-tpl="71"><span data-dc-tpl="72" class="who who-human"><span class="sc-interp">człowiek</span></span></span>
+              <span data-dc-tpl="73" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="74" style="font-size: 13px; color: rgb(21, 32, 43); line-height: 1.4;"><span class="sc-interp">Review i merge PR #18 i #19; decyzja o wydaniu (B4–B5).</span></span>
+                <span data-dc-tpl="75" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120); overflow-wrap: anywhere;"><span class="sc-interp">DEC-36 · DEC-37</span></span>
+              </span>
+            </li>
+          
+            <li data-dc-tpl="69" style="display: grid; grid-template-columns: 92px 84px minmax(0px, 1fr); gap: 12px; align-items: baseline; padding: 9px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <span data-dc-tpl="70" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11.5px; color: rgb(91, 104, 120);"><span class="sc-interp">17.10 11:02</span></span>
+              <span data-dc-tpl="71"><span data-dc-tpl="72" class="who who-app"><span class="sc-interp">aplikacja</span></span></span>
+              <span data-dc-tpl="73" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="74" style="font-size: 13px; color: rgb(21, 32, 43); line-height: 1.4;"><span class="sc-interp">ShipScope: na PROD, ukryte za flagą room-create.</span></span>
+                <span data-dc-tpl="75" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120); overflow-wrap: anywhere;"><span class="sc-interp">deployed (hidden)</span></span>
+              </span>
+            </li>
+          
+            <li data-dc-tpl="69" style="display: grid; grid-template-columns: 92px 84px minmax(0px, 1fr); gap: 12px; align-items: baseline; padding: 9px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <span data-dc-tpl="70" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11.5px; color: rgb(91, 104, 120);"><span class="sc-interp">21.10 09:00</span></span>
+              <span data-dc-tpl="71"><span data-dc-tpl="72" class="who who-human"><span class="sc-interp">człowiek</span></span></span>
+              <span data-dc-tpl="73" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="74" style="font-size: 13px; color: rgb(21, 32, 43); line-height: 1.4;"><span class="sc-interp">Etap flagi: wewnętrzni → 10% (kryteria spełnione po 3 dniach).</span></span>
+                <span data-dc-tpl="75" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; color: rgb(91, 104, 120); overflow-wrap: anywhere;"><span class="sc-interp">DEC-39</span></span>
+              </span>
+            </li>
+          
+        </ol>
+      </section>
+
+      <section data-dc-tpl="76" aria-label="Cięcia i flaga" style="background: rgb(255, 255, 255); border: 1px solid rgb(221, 227, 234); border-radius: 12px; padding: 14px;">
+        <h2 data-dc-tpl="77" style="margin: 0px 0px 8px; font-size: 15px; font-weight: 600;">Cięcia, PR-y i co widzą użytkownicy</h2>
+        <div data-dc-tpl="78" style="overflow-x: auto;">
+          <table data-dc-tpl="79" style="border-collapse: collapse; width: 100%; min-width: 640px; font-size: 13px;">
+            <thead data-dc-tpl="80">
+              <tr data-dc-tpl="81">
+                <th data-dc-tpl="82" style="text-align: left; padding: 8px 10px; font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; font-weight: 500; color: rgb(91, 104, 120); border-bottom: 1px solid rgb(221, 227, 234);">Cięcie</th>
+                <th data-dc-tpl="83" style="text-align: left; padding: 8px 10px; font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; font-weight: 500; color: rgb(91, 104, 120); border-bottom: 1px solid rgb(221, 227, 234);">Wartość</th>
+                <th data-dc-tpl="84" style="text-align: left; padding: 8px 10px; font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; font-weight: 500; color: rgb(91, 104, 120); border-bottom: 1px solid rgb(221, 227, 234);">Linia</th>
+                <th data-dc-tpl="85" style="text-align: left; padding: 8px 10px; font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; font-weight: 500; color: rgb(91, 104, 120); border-bottom: 1px solid rgb(221, 227, 234);">PR</th>
+                <th data-dc-tpl="86" style="text-align: left; padding: 8px 10px; font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 11px; font-weight: 500; color: rgb(91, 104, 120); border-bottom: 1px solid rgb(221, 227, 234);">Na PROD</th>
+              </tr>
+            </thead>
+            <tbody data-dc-tpl="87">
+              
+                <tr data-dc-tpl="89">
+                  <td data-dc-tpl="90" style="padding: 9px 10px; border-bottom: 1px solid rgb(238, 241, 245); font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 12px;"><span class="sc-interp">TSK-21</span></td>
+                  <td data-dc-tpl="91" style="padding: 9px 10px; border-bottom: 1px solid rgb(238, 241, 245);"><span class="sc-interp">Prowadzący tworzy pokój i dostaje link</span></td>
+                  <td data-dc-tpl="92" style="padding: 9px 10px; border-bottom: 1px solid rgb(238, 241, 245); font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 12px;"><span class="sc-interp">R1</span></td>
+                  <td data-dc-tpl="93" style="padding: 9px 10px; border-bottom: 1px solid rgb(238, 241, 245); font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 12px;"><span class="sc-interp">#18</span></td>
+                  <td data-dc-tpl="94" style="padding: 9px 10px; border-bottom: 1px solid rgb(238, 241, 245);"><span data-dc-tpl="95" class="chip st-live"><span data-dc-tpl="96" class="dot"></span><span class="sc-interp">10% użytkowników</span></span></td>
+                </tr>
+              
+                <tr data-dc-tpl="89">
+                  <td data-dc-tpl="90" style="padding: 9px 10px; border-bottom: 1px solid rgb(238, 241, 245); font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 12px;"><span class="sc-interp">TSK-22</span></td>
+                  <td data-dc-tpl="91" style="padding: 9px 10px; border-bottom: 1px solid rgb(238, 241, 245);"><span class="sc-interp">Sekretny link odzyskuje rolę prowadzącego</span></td>
+                  <td data-dc-tpl="92" style="padding: 9px 10px; border-bottom: 1px solid rgb(238, 241, 245); font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 12px;"><span class="sc-interp">R1</span></td>
+                  <td data-dc-tpl="93" style="padding: 9px 10px; border-bottom: 1px solid rgb(238, 241, 245); font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 12px;"><span class="sc-interp">#19</span></td>
+                  <td data-dc-tpl="94" style="padding: 9px 10px; border-bottom: 1px solid rgb(238, 241, 245);"><span data-dc-tpl="95" class="chip st-live"><span data-dc-tpl="96" class="dot"></span><span class="sc-interp">10% użytkowników</span></span></td>
+                </tr>
+              
+                <tr data-dc-tpl="89">
+                  <td data-dc-tpl="90" style="padding: 9px 10px; border-bottom: 1px solid rgb(238, 241, 245); font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 12px;"><span class="sc-interp">TSK-23</span></td>
+                  <td data-dc-tpl="91" style="padding: 9px 10px; border-bottom: 1px solid rgb(238, 241, 245);"><span class="sc-interp">Limity tworzenia pokoi</span></td>
+                  <td data-dc-tpl="92" style="padding: 9px 10px; border-bottom: 1px solid rgb(238, 241, 245); font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 12px;"><span class="sc-interp">R2</span></td>
+                  <td data-dc-tpl="93" style="padding: 9px 10px; border-bottom: 1px solid rgb(238, 241, 245); font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 12px;"><span class="sc-interp">—</span></td>
+                  <td data-dc-tpl="94" style="padding: 9px 10px; border-bottom: 1px solid rgb(238, 241, 245);"><span data-dc-tpl="95" class="chip st-hidden"><span data-dc-tpl="96" class="dot"></span><span class="sc-interp">nie zaczęte</span></span></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <aside data-dc-tpl="97" aria-label="Szczegóły" style="flex: 1 1 360px; max-width: 440px; min-width: 0px; display: flex; flex-direction: column; gap: 16px;">
+
+      <section data-dc-tpl="98" aria-label="Flaga" style="background: rgb(255, 255, 255); border: 1px solid rgb(221, 227, 234); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+        <div data-dc-tpl="99" style="display: flex; justify-content: space-between; align-items: baseline;">
+          <h2 data-dc-tpl="100" style="margin: 0px; font-size: 15px; font-weight: 600;">Udostępnianie</h2>
+          <span data-dc-tpl="101" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 12px; color: rgb(68, 81, 99);">room-create</span>
+        </div>
+        <div data-dc-tpl="102" style="display: grid; grid-template-columns: repeat(3, minmax(0px, 1fr)); gap: 6px;">
+          <div data-dc-tpl="103" style="background: rgb(221, 242, 229); color: rgb(23, 102, 58); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 2px;">
+            <span data-dc-tpl="104" style="font-size: 12px; font-weight: 600;">wewnętrzni</span>
+            <span data-dc-tpl="105" style="font-size: 11px;">3 dni · zakończony</span>
+          </div>
+          <div data-dc-tpl="106" style="background: rgb(230, 236, 251); color: rgb(34, 64, 159); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 2px; outline: rgb(40, 70, 181) solid 2px; outline-offset: -2px;">
+            <span data-dc-tpl="107" style="font-size: 12px; font-weight: 600;">10%</span>
+            <span data-dc-tpl="108" style="font-size: 11px;">dzień 5 z min. 7</span>
+          </div>
+          <div data-dc-tpl="109" style="background: rgb(244, 246, 249); color: rgb(68, 81, 99); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 2px;">
+            <span data-dc-tpl="110" style="font-size: 12px; font-weight: 600;">100%</span>
+            <span data-dc-tpl="111" style="font-size: 11px;">następny</span>
+          </div>
+        </div>
+        <ul data-dc-tpl="112" style="margin: 0px; padding-left: 18px; font-size: 12.5px; color: rgb(57, 70, 90); display: flex; flex-direction: column; gap: 4px; line-height: 1.4;">
+          <li data-dc-tpl="113">Kryterium wyjścia: 0 błędów krytycznych (spełnione)</li>
+          <li data-dc-tpl="114">Metryka ochronna: [PRÓG BŁĘDÓW DOŁĄCZANIA] (brak źródła danych, luka G5)</li>
+          <li data-dc-tpl="115">Usunięcie flagi do 2026-12-15 · właściciel: PO Sprintdeck</li>
+        </ul>
+        <div data-dc-tpl="116" style="display: flex; flex-wrap: wrap; gap: 6px;">
+          <button data-dc-tpl="117" class="btn" type="button">Zaplanuj 100% na dzień 7</button>
+          <button data-dc-tpl="118" class="btn" type="button">Cofnij do wewnętrznych</button>
+        </div>
+      </section>
+
+      <section data-dc-tpl="119" aria-label="Decyzje" style="background: rgb(255, 255, 255); border: 1px solid rgb(221, 227, 234); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 4px;">
+        <div data-dc-tpl="120" style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
+          <h2 data-dc-tpl="121" style="margin: 0px; font-size: 15px; font-weight: 600;">Decyzje w tej zmianie</h2>
+          <span data-dc-tpl="122" style="font-size: 12px; color: rgb(91, 104, 120);">5 z 8 szkiców AI bez zmian</span>
+        </div>
+        <ol data-dc-tpl="123" style="list-style: none; margin: 0px; padding: 0px;">
+          
+            <li data-dc-tpl="125" style="display: grid; grid-template-columns: 58px minmax(0px, 1fr); gap: 10px; padding: 8px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <a data-dc-tpl="126" href="#" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 12px;"><span class="sc-interp">DEC-30</span></a>
+              <span data-dc-tpl="127" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="128" style="font-size: 13px; line-height: 1.35;"><span class="sc-interp">Przyjąć PRB-21 do budowy</span></span>
+                <span data-dc-tpl="129" style="font-size: 11px; color: rgb(91, 104, 120);"><span class="sc-interp">triaż · szkic AI bez zmian</span></span>
+              </span>
+            </li>
+          
+            <li data-dc-tpl="125" style="display: grid; grid-template-columns: 58px minmax(0px, 1fr); gap: 10px; padding: 8px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <a data-dc-tpl="126" href="#" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 12px;"><span class="sc-interp">DEC-31</span></a>
+              <span data-dc-tpl="127" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="128" style="font-size: 13px; line-height: 1.35;"><span class="sc-interp">Zakres i metryka MVP</span></span>
+                <span data-dc-tpl="129" style="font-size: 11px; color: rgb(91, 104, 120);"><span class="sc-interp">B1 · szkic AI zmieniony (budżet)</span></span>
+              </span>
+            </li>
+          
+            <li data-dc-tpl="125" style="display: grid; grid-template-columns: 58px minmax(0px, 1fr); gap: 10px; padding: 8px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <a data-dc-tpl="126" href="#" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 12px;"><span class="sc-interp">DEC-33</span></a>
+              <span data-dc-tpl="127" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="128" style="font-size: 13px; line-height: 1.35;"><span class="sc-interp">Co widzi prowadzący po utworzeniu pokoju</span></span>
+                <span data-dc-tpl="129" style="font-size: 11px; color: rgb(91, 104, 120);"><span class="sc-interp">odpowiedź na AC-002 · człowiek</span></span>
+              </span>
+            </li>
+          
+            <li data-dc-tpl="125" style="display: grid; grid-template-columns: 58px minmax(0px, 1fr); gap: 10px; padding: 8px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <a data-dc-tpl="126" href="#" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 12px;"><span class="sc-interp">DEC-34</span></a>
+              <span data-dc-tpl="127" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="128" style="font-size: 13px; line-height: 1.35;"><span class="sc-interp">Plan cięć: 3 cięcia, szkielet pierwszy</span></span>
+                <span data-dc-tpl="129" style="font-size: 11px; color: rgb(91, 104, 120);"><span class="sc-interp">B3 · szkic AI bez zmian</span></span>
+              </span>
+            </li>
+          
+            <li data-dc-tpl="125" style="display: grid; grid-template-columns: 58px minmax(0px, 1fr); gap: 10px; padding: 8px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <a data-dc-tpl="126" href="#" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 12px;"><span class="sc-interp">DEC-35</span></a>
+              <span data-dc-tpl="127" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="128" style="font-size: 13px; line-height: 1.35;"><span class="sc-interp">Zakres R1: TSK-21 i TSK-22</span></span>
+                <span data-dc-tpl="129" style="font-size: 11px; color: rgb(91, 104, 120);"><span class="sc-interp">zakres MVP · szkic AI zmieniony</span></span>
+              </span>
+            </li>
+          
+            <li data-dc-tpl="125" style="display: grid; grid-template-columns: 58px minmax(0px, 1fr); gap: 10px; padding: 8px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <a data-dc-tpl="126" href="#" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 12px;"><span class="sc-interp">DEC-36</span></a>
+              <span data-dc-tpl="127" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="128" style="font-size: 13px; line-height: 1.35;"><span class="sc-interp">Scalić PR #18 i #19</span></span>
+                <span data-dc-tpl="129" style="font-size: 11px; color: rgb(91, 104, 120);"><span class="sc-interp">review · szkic AI bez zmian</span></span>
+              </span>
+            </li>
+          
+            <li data-dc-tpl="125" style="display: grid; grid-template-columns: 58px minmax(0px, 1fr); gap: 10px; padding: 8px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <a data-dc-tpl="126" href="#" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 12px;"><span class="sc-interp">DEC-37</span></a>
+              <span data-dc-tpl="127" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="128" style="font-size: 13px; line-height: 1.35;"><span class="sc-interp">Wydać na PROD za flagą</span></span>
+                <span data-dc-tpl="129" style="font-size: 11px; color: rgb(91, 104, 120);"><span class="sc-interp">B4–B5 · szkic AI bez zmian</span></span>
+              </span>
+            </li>
+          
+            <li data-dc-tpl="125" style="display: grid; grid-template-columns: 58px minmax(0px, 1fr); gap: 10px; padding: 8px 0px; border-top: 1px solid rgb(238, 241, 245);">
+              <a data-dc-tpl="126" href="#" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 12px;"><span class="sc-interp">DEC-39</span></a>
+              <span data-dc-tpl="127" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="128" style="font-size: 13px; line-height: 1.35;"><span class="sc-interp">Flaga: wewnętrzni → 10%</span></span>
+                <span data-dc-tpl="129" style="font-size: 11px; color: rgb(91, 104, 120);"><span class="sc-interp">etap flagi · szkic AI bez zmian</span></span>
+              </span>
+            </li>
+          
+        </ol>
+      </section>
+
+      <section data-dc-tpl="130" aria-label="Skutek" style="background: rgb(255, 255, 255); border: 1px solid rgb(221, 227, 234); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px;">
+        <div data-dc-tpl="131" style="display: flex; justify-content: space-between; align-items: center;">
+          <h2 data-dc-tpl="132" style="margin: 0px; font-size: 15px; font-weight: 600;">Skutek</h2>
+          <span data-dc-tpl="133" class="chip st-measure"><span data-dc-tpl="134" class="dot"></span>po 100% + 30 dni</span>
+        </div>
+        <p data-dc-tpl="135" style="margin: 0px; font-size: 13px; color: rgb(57, 70, 90); line-height: 1.45;">Metryka z intent.md: odsetek pokoi z co najmniej 3 uczestnikami i 1 zatwierdzonym zadaniem. Cel: [PRÓG AKTYWACJI].</p>
+        <p data-dc-tpl="136" style="margin: 0px; font-size: 12px; color: rgb(91, 104, 120); line-height: 1.45;">Ocenę uruchomi zdarzenie feature.released dla R1. Wynik potwierdza człowiek i trafia do rejestru jako wniosek.</p>
+      </section>
+
+      <section data-dc-tpl="137" aria-label="Zapytaj" style="background: rgb(255, 255, 255); border: 1px solid rgb(221, 227, 234); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px;">
+        <h2 data-dc-tpl="138" style="margin: 0px; font-size: 15px; font-weight: 600;">Zapytaj o tę zmianę</h2>
+        <form data-dc-tpl="139" style="display: flex; gap: 8px; align-items: center;">
+          <label data-dc-tpl="140" for="ask7" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px);">Pytanie o CHG-7</label>
+          <input data-dc-tpl="141" id="ask7" type="text" placeholder="Np. dlaczego TSK-23 jest w R2?" style="flex: 1 1 auto; min-width: 0px; font-family: inherit; font-size: 13px; padding: 10px 12px; border: 1px solid rgb(201, 209, 220); border-radius: 8px; min-height: 40px; box-sizing: border-box;">
+          <button data-dc-tpl="142" class="btn btn-primary" type="button" aria-label="Wyślij" style="min-width: 44px; min-height: 40px; display: inline-flex; align-items: center; justify-content: center;">
+            <svg data-dc-tpl="143" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path data-dc-tpl="144" d="M2 8h11M9 4l4 4-4 4" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </button>
+        </form>
+      </section>
+    </aside>
+  </div></div></div></div>
+
+
+
+</body></html>
