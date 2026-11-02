@@ -502,3 +502,21 @@ def test_local_mode_accept_starts_intent_without_problem_text_in_state(
 
     assert again.specs[0]["source"] == "PRB-1"
     assert json.loads(again.envs[0]["PDI_PROBLEM"])["proposed_solution"] == "przycisk bulk update"
+
+
+def test_accepting_sends_the_triage_decision_text_and_other_decisions_of_the_change(
+    registry: Registry, make_draft: Any
+) -> None:
+    from tests.test_dispatch import FakeGitHub
+
+    earlier = registry.record(make_draft(statement="Eksport tylko CSV.", links={"chg": "CHG-40"}))
+    github = FakeGitHub()
+    problems = accepting(registry, github)
+    problems.record(problem())
+
+    result = problems.triage("PRB-1", "accepted", make_draft(), change="CHG-40")
+
+    inputs = github.calls[0][2]["inputs"]
+    triage = result["decision"]
+    assert inputs["decision_text"] == f"{triage['statement']} Dlaczego: {triage['why']}"
+    assert [d["id"] for d in json.loads(inputs["decisions"])] == [earlier["id"]]

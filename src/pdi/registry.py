@@ -40,6 +40,7 @@ FIELD_ORDER = (
     "evidence",
     "assumptions",
     "dependencies",
+    "answers",
     "success_metric",
     "review_by",
     "supersedes",
@@ -348,6 +349,10 @@ def _render_body(d: Decision) -> str:
             f"- {'**nośne:** ' if a['load_bearing'] else ''}{a['statement']} — nieaktualne, gdy: {a['invalidated_if']}"
             for a in d["assumptions"]
         ]
+        lines.append("")
+    if d.get("answers"):
+        lines.append("## Odpowiedzi na pytania\n")
+        lines += [f"- {a['question']} → {a['answer']}" for a in d["answers"]]
         lines.append("")
     if d.get("evidence"):
         lines.append("## Dowody\n")

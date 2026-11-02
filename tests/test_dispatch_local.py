@@ -818,6 +818,118 @@ def test_start_passes_the_decision_text_in_the_spec(checkout: Path, tmp_path: Pa
     assert spawn.specs[0]["decision_text"] == "x" * dispatch_local.DECISION_TEXT_MAX
 
 
+# --- Z1: odpowiedzi na pytania bramki i decyzje zmiany z rejestru (PRB-3) ---
+
+IMPORT_HELP = f"python3 {S}/decision_record.py decision import --help"
+ANSWERS = [{"question": "Czy build.json zostaje w repo?", "answer": "Nie — DEC-0003."}]
+LINKED = [{"id": "DEC-0003", "statement": "config/build.json generuje build.", "why": "Powtarzalność."}]
+NEW_TF = {HELP: (0, "usage: ... [--why WHY] [--answers ANSWERS]\n"), IMPORT_HELP: (0, "usage: import key --json")}
+
+
+def import_calls(run: FakeRun) -> list[list[str]]:
+    return [c for c in run.calls if c[1:4] == [f"{S}/decision_record.py", "decision", "import"] and "--help" not in c]
+
+
+def test_answers_and_linked_decisions_go_to_tf_as_files_next_to_the_log(checkout: Path, tmp_path: Path) -> None:
+    run = FakeRun(NEW_TF)
+    s = spec(checkout, tmp_path, decision_text=TEXT, answers=ANSWERS, decisions=LINKED)
+
+    result, lines = execute(s, run)
+
+    assert result["status"] == "done"
+    (gate,) = decision_calls(run)
+    answers_file = Path(gate[gate.index("--answers") + 1])
+    assert json.loads(answers_file.read_text(encoding="utf-8")) == ANSWERS
+    (imported,) = import_calls(run)
+    assert imported[4:6] == ["CHG-12", "--json"]
+    decisions_file = Path(imported[6])
+    assert json.loads(decisions_file.read_text(encoding="utf-8")) == LINKED
+    assert answers_file.parent == decisions_file.parent == tmp_path / "runs"  # poza klonem, klon zostaje czysty
+    assert run.calls.index(imported) < run.calls.index(gate)
+    assert run.calls.index(gate) < next(i for i, c in enumerate(run.calls) if "run" in c[2:3])
+    assert "Powtarzalność" not in "\n".join(lines)  # treść decyzji nie trafia do logu
+
+
+@pytest.mark.parametrize("answer", [(0, "usage: ... [--why WHY]"), (2, "invalid choice: 'import'")])
+def test_older_tf_gets_the_phase_without_answers_and_imports(
+    checkout: Path, tmp_path: Path, answer: tuple[int, str]
+) -> None:
+    run = FakeRun({HELP: answer, IMPORT_HELP: answer})
+
+    result, _ = execute(spec(checkout, tmp_path, answers=ANSWERS, decisions=LINKED), run)
+
+    assert result["status"] == "done"
+    (gate,) = decision_calls(run)
+    assert "--answers" not in gate
+    assert import_calls(run) == []
+
+
+def test_linked_decisions_are_imported_also_without_a_gate_decision(checkout: Path, tmp_path: Path) -> None:
+    run = FakeRun(NEW_TF)
+
+    execute(spec(checkout, tmp_path, decision="", decisions=LINKED), run)
+
+    assert decision_calls(run) == []
+    assert len(import_calls(run)) == 1
+
+
+def test_without_answers_and_decisions_no_new_steps(checkout: Path, tmp_path: Path) -> None:
+    run = FakeRun(NEW_TF)
+
+    execute(spec(checkout, tmp_path), run)
+
+    assert import_calls(run) == []
+    assert not any("--help" in c for c in run.calls)
+    assert not list((tmp_path / "runs").glob("*.json")) if (tmp_path / "runs").exists() else True
+
+
+def test_start_passes_answers_and_decisions_in_the_spec(checkout: Path, tmp_path: Path) -> None:
+    spawn = FakeSpawn()
+    dispatch_local.start(
+        runs_dir=tmp_path / "runs",
+        checkout=str(checkout),
+        ref="main",
+        budget_usd=None,
+        change="CHG-12",
+        phase="requirements",
+        gate="B1",
+        outcome="approved",
+        decision="DEC-0001",
+        rework=False,
+        at=AT,
+        answers=ANSWERS,
+        decisions=LINKED,
+        run=FakeRun(),
+        spawn=spawn,
+        environ={},
+    )
+
+    assert (spawn.specs[0]["answers"], spawn.specs[0]["decisions"]) == (ANSWERS, LINKED)
+
+
+def test_dispatch_phase_passes_them_in_local_mode(checkout: Path, tmp_path: Path) -> None:
+    spawn = FakeSpawn()
+    cfg = DispatchConfig(repo=None, mode="local", checkout=str(checkout))
+
+    dispatch_phase(
+        cfg,
+        change="CHG-12",
+        phase="requirements",
+        gate="B1",
+        outcome="approved",
+        decision="DEC-0001",
+        rework=False,
+        at=AT,
+        answers=ANSWERS,
+        decisions=LINKED,
+        runs_dir=tmp_path / "runs",
+        spawn=spawn,
+        run=FakeRun(),
+    )
+
+    assert spawn.specs[0]["decisions"] == LINKED
+
+
 # --- log fazy na bieżąco (PRB-6) ---
 
 

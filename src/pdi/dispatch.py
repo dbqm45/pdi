@@ -27,6 +27,10 @@ TIMEOUT_SECONDS = 10
 _REPO = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 _WORKFLOW = re.compile(r"^[A-Za-z0-9_.-]+\.ya?ml$")
 _REF = re.compile(r"^[A-Za-z0-9_./-]{1,200}$")
+# Z1: wejścia z decyzjami zmiany; szablon sprzed Z1 ich nie zna (GitHub odpowiada wtedy 422) i dostaje fazę bez nich.
+Z1_INPUTS = ("decision_text", "answers", "decisions")
+# Górna granica długości jednego wejścia z JSON-em (łączny limit wejść workflow_dispatch jest większy, §4 planu Z1).
+INPUT_MAX = 20_000
 
 
 @dataclass(frozen=True)
@@ -71,6 +75,8 @@ def dispatch_phase(
     source: str | None = None,
     problem: str | None = None,
     decision_text: str | None = None,
+    answers: list[dict[str, str]] | None = None,
+    decisions: list[dict[str, Any]] | None = None,
     runs_dir: Path | None = None,
     spawn: dispatch_local.Spawn | None = None,
     run: dispatch_local.Run | None = None,
@@ -78,8 +84,10 @@ def dispatch_phase(
     """Uruchamia fazę `phase` dla `change`; wynik `{"status": sent | skipped | failed, …}` do zapisu w stanie.
 
     `source` (PRB) i `problem` (JSON zgłoszenia) idą tylko przy przyjęciu do budowy (F3, faza `intent`); szablon fazy
-    bez tych wejść ich nie dostaje. W trybie lokalnym wynik ma `mode: local` i `status: running | failed`, a log
-    przebiegu trafia do `runs_dir` (`$PDI_REGISTRY_PATH/runs`).
+    bez tych wejść ich nie dostaje. `decision_text`, `answers` (odpowiedzi na pytania bramki) i `decisions` (decyzje
+    zmiany z rejestru) idą tylko, gdy są (Z1); szablon sprzed Z1 dostaje fazę bez nich, z ostrzeżeniem. W trybie
+    lokalnym wynik ma `mode: local` i `status: running | failed`, a log przebiegu trafia do `runs_dir`
+    (`$PDI_REGISTRY_PATH/runs`).
     """
     result: dict[str, Any] = {"status": "failed", "phase": phase, "rework": rework, "at": at}
     if config.mode and not config.local:
@@ -102,6 +110,8 @@ def dispatch_phase(
             source=source,
             problem=problem,
             decision_text=decision_text,
+            answers=answers,
+            decisions=decisions,
             run=run,
             spawn=spawn,
         )
@@ -131,6 +141,12 @@ def dispatch_phase(
         inputs["source"] = source
     if problem:
         inputs["problem"] = problem
+    if decision_text:
+        inputs["decision_text"] = decision_text[: dispatch_local.DECISION_TEXT_MAX]
+    if answers:
+        inputs["answers"] = _capped(answers)
+    if decisions:
+        inputs["decisions"] = _capped(decisions)
     url = f"{API}/repos/{config.repo}/actions/workflows/{config.workflow}/dispatches"
     headers = {
         "authorization": f"Bearer {config.token}",
@@ -138,15 +154,38 @@ def dispatch_phase(
         "x-github-api-version": "2022-11-28",
         "content-type": "application/json",
     }
-    body = json.dumps({"ref": config.ref, "inputs": inputs}).encode()
     try:
-        status = (post or _post)(url, headers, body)
+        status = _send(post or _post, url, headers, config.ref, inputs)
+        if status == 422 and set(Z1_INPUTS) & set(inputs):
+            older = {k: v for k, v in inputs.items() if k not in Z1_INPUTS}
+            if 200 <= _send(post or _post, url, headers, config.ref, older) < 300:
+                return {
+                    **result,
+                    "status": "sent",
+                    "warning": f"{config.workflow} w {config.repo} nie zna wejść {', '.join(Z1_INPUTS)} (szablon "
+                    "sprzed Z1) — faza ruszyła bez decyzji zmiany; zaktualizuj szablon: phase_run.py workflow "
+                    "install --force.",
+                }
     except OSError:
         # Treść wyjątku może zawierać nagłówki albo adres z tokenem — nie przepisujemy jej.
         return {**result, "error": "Nie udało się nawiązać połączenia z GitHubem."}
     if not 200 <= status < 300:
         return {**result, "error": f"GitHub odpowiedział {status} na workflow_dispatch."}
     return {**result, "status": "sent"}
+
+
+def _send(post: Post, url: str, headers: dict[str, str], ref: str, inputs: dict[str, str]) -> int:
+    return post(url, headers, json.dumps({"ref": ref, "inputs": inputs}).encode())
+
+
+def _capped(items: list[dict[str, Any]]) -> str:
+    """JSON listy nie dłuższy niż INPUT_MAX: przy nadmiarze odpadają najstarsze pozycje."""
+    kept = list(items)
+    text = json.dumps(kept, ensure_ascii=False)
+    while len(text) > INPUT_MAX and kept:
+        kept = kept[1:]
+        text = json.dumps(kept, ensure_ascii=False)
+    return text
 
 
 def _post(url: str, headers: dict[str, str], body: bytes) -> int:

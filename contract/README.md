@@ -4,7 +4,8 @@ Schematy i zasady wspólne dla pdi, tf, ci_for_sdlc i ShipScope ([decyzja D1](..
 Wersjonowany wg SemVer 2.0.0 w [`contract.json`](contract.json); zmiana niezgodna wstecz podnosi wersję główną
 (w 0.x — drugą liczbę). Odbiorca zdarzeń przypina wersję przez pole `contract_version`.
 
-Wersja: `0.10.0`. Historia: 0.10.0 — `source.kind: meeting` w decyzji (decyzje z transkrypcji spotkań, A5);
+Wersja: `0.11.0`. Historia: 0.11.0 — opcjonalne pole `answers` w decyzji (`[{question, answer}]`: odpowiedzi
+człowieka na pytania z `## Pytania do bramki`, Z1, PRB-3); 0.10.0 — `source.kind: meeting` w decyzji (decyzje z transkrypcji spotkań, A5);
 0.9.0 — format tabeli ramek w `design.md` (etap 07 Design, F6): konwencje, schemat
 odczytanej tabeli, parser referencyjny `pdi.design`; 0.8.0 — eksport rekonstrukcji z kodu (format tf → ci_for_sdlc, F2) i wydania kontraktu
 jako tagi `contract-v<wersja>`; 0.7.0 — zdarzenie `decision.recorded` (decyzja podjęta w aplikacji nadawcy do zapisu
@@ -35,7 +36,7 @@ nazwy: `decision`, `problem`, `change`, `task`, `event`, `story`, `release_plan`
 `triage_recommendation`, `reconstruction`, `design_links`. Tabela z `design.md`: `from pdi.design import
 parse_design_md`.
 
-Zgodność wstecz: 0.9.0 dodaje nowy schemat i konwencję; 0.8.0 dodaje tylko nowy schemat; 0.7.0 dodaje tylko nowy typ zdarzenia i wartość `source.kind`; 0.6.0 dodaje tylko nowy schemat; wszystkie pola dodane w 0.5.0 są opcjonalne, a zdarzenia
+Zgodność wstecz: 0.11.0 dodaje tylko pole opcjonalne; 0.9.0 dodaje nowy schemat i konwencję; 0.8.0 dodaje tylko nowy schemat; 0.7.0 dodaje tylko nowy typ zdarzenia i wartość `source.kind`; 0.6.0 dodaje tylko nowy schemat; wszystkie pola dodane w 0.5.0 są opcjonalne, a zdarzenia
 z `contract_version` 0.4.0–0.6.0 dalej przechodzą walidację. Zestaw wzorcowy `fixtures/story-shape/` ma wersję 0.4.0 — tę, w której zmienił się ostatnio.
 
 ## Wydania i kopie u konsumentów (od 0.8.0)

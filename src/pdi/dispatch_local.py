@@ -112,6 +112,8 @@ def start(
     source: str | None = None,
     problem: str | None = None,
     decision_text: str | None = None,
+    answers: list[dict[str, str]] | None = None,
+    decisions: list[dict[str, Any]] | None = None,
     run: Run | None = None,
     spawn: Spawn | None = None,
     environ: Mapping[str, str] | None = None,
@@ -144,6 +146,9 @@ def start(
             "outcome": outcome,
             "decision": decision,
             "decision_text": (decision_text or "")[:DECISION_TEXT_MAX] or None,
+            # Z1: odpowiedzi na pytania bramki i decyzje zmiany z rejestru (pdi.phase_decisions, już przycięte).
+            "answers": answers or None,
+            "decisions": decisions or None,
             "rework": rework,
             "budget_usd": budget_usd,
             "source": source,
@@ -424,15 +429,25 @@ def execute(
             quiet=True,
             extra=problem_env,
         )
+        if spec.get("decisions"):
+            # Decyzje zmiany z rejestru pdi (Z1) — tylko do tf, który zna `decision import`; idempotentne po DEC.
+            code, usage = step(
+                "decision", script("decision_record.py", "decision", "import", "--help"), ok=(0, 2), quiet=True
+            )
+            if code == 0 and "--json" in usage:
+                path = _data_file(spec, "decisions", spec["decisions"])
+                step("decision", script("decision_record.py", "decision", "import", change, "--json", str(path)))
         if spec.get("decision"):
             gate_args = ["--gate", spec["gate"], "--outcome", spec["outcome"], "--id", spec["decision"]]
-            if spec.get("decision_text"):
-                # Treść decyzji trafia do decisions.md tylko w tf, który zna `--why` (PRB-3).
+            if spec.get("decision_text") or spec.get("answers"):
+                # Treść decyzji (PRB-3) i odpowiedzi na pytania (Z1) idą tylko do tf, który zna `--why`/`--answers`.
                 code, usage = step(
                     "decision", script("decision_record.py", "decision", "gate", "--help"), ok=(0, 2), quiet=True
                 )
-                if code == 0 and "--why" in usage:
+                if code == 0 and spec.get("decision_text") and "--why" in usage:
                     gate_args += ["--why", spec["decision_text"]]
+                if code == 0 and spec.get("answers") and "--answers" in usage:
+                    gate_args += ["--answers", str(_data_file(spec, "answers", spec["answers"]))]
             step("decision", script("decision_record.py", "decision", "gate", change, *gate_args))
 
         cuts_before = _cuts(step) if phase == "delivery" else set()
@@ -467,6 +482,15 @@ def execute(
 
 
 Step = Callable[..., tuple[int, str]]
+
+
+def _data_file(spec: dict[str, Any], name: str, data: Any) -> Path:
+    """Dane dla tf w pliku obok logu (poza klonem, więc klon zostaje czysty); treść nie trafia do logu."""
+    log = Path(spec["log"])
+    path = log.with_name(f"{log.stem}.{name}.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return path
 
 
 def _cuts(step: Step) -> set[str]:

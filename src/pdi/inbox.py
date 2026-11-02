@@ -24,7 +24,7 @@ from typing import Any, TypeAlias
 
 import yaml
 
-from pdi import autonomy, capture, contract, dispatch_local, flow, forecast, impact
+from pdi import autonomy, capture, contract, dispatch_local, flow, forecast, impact, phase_decisions
 from pdi import pr_state as pr_state_mod
 from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig, Post, dispatch_phase
@@ -499,6 +499,9 @@ class Inbox:
             raise InvalidDecision(f"Szkic z rozmowy wymaga outcome: {' albo '.join(CAPTURE_OUTCOMES)}.")
         if item["kind"] == "capture" and outcome == "rejected":
             return self._dismiss_capture(item, draft)
+        if "answers" in draft:
+            checked = _checked_answers(item, draft["answers"])
+            draft = {k: v for k, v in draft.items() if k != "answers"} | ({"answers": checked} if checked else {})
         new_policy = None
         if item["kind"] == "autonomy" and outcome == "approved":
             try:  # najpierw sprawdzenie polityki, żeby nie zapisać decyzji, której kontrakt nie przyjmie
@@ -715,6 +718,8 @@ class Inbox:
             source=run.get("source"),
             problem=run.get("problem"),
             decision_text=self._decision_text(decision),
+            answers=self._answers(decision),
+            decisions=phase_decisions.linked(self.registry, change, exclude=decision),
             runs_dir=self.registry.root / "runs",
             spawn=self._local_spawn,
             run=self._local_run,
@@ -729,7 +734,14 @@ class Inbox:
             d = self.registry.get(decision)
         except DecisionNotFound:
             return None
-        return f"{d['statement'].strip()} Dlaczego: {d['why'].strip()}"
+        return phase_decisions.text(d)
+
+    def _answers(self, decision: str) -> list[dict[str, str]] | None:
+        """Odpowiedzi decyzji na pytania bramki — do wpisu `## Bramka …` w `decisions.md` (Z1)."""
+        try:
+            return phase_decisions.answers(self.registry.get(decision))
+        except DecisionNotFound:
+            return None
 
     def _check_pr(self, item: Item) -> str | None:
         """Odmawia zatwierdzenia bramki z niezmergowanym PR-em fazy (PRB-2); stan nieznany daje ostrzeżenie."""
@@ -780,6 +792,29 @@ def _check_event(event: dict[str, Any]) -> None:
         raise InvalidEvent(f"type: {event['type']} nie jest przyjmowane od source {event['source']}.")
     if not _EVENT_ID.match(event["id"]):
         raise InvalidEvent("id: dozwolone litery, cyfry, „.”, „_” i „-” (do 128 znaków, bez „..”).")
+
+
+def _checked_answers(item: Item, answers: Any) -> list[dict[str, str]] | None:
+    """Odpowiedzi na pytania pozycji bramki: każde pytanie dosłownie z `questions`, raz, z niepustą odpowiedzią."""
+    if not answers:
+        return None
+    if item["kind"] != "gate":
+        raise InvalidDecision("answers: odpowiedzi na pytania przyjmuje tylko bramka (kind gate).")
+    asked = [str(q).strip() for q in item.get("questions") or []]
+    if not asked:
+        raise InvalidDecision(f"answers: pozycja {item['id']} nie ma pytań z artefaktu — pomiń answers.")
+    out: list[dict[str, str]] = []
+    for a in answers:
+        question, answer = str(a.get("question") or "").strip(), str(a.get("answer") or "").strip()
+        if question not in asked:
+            listed = "; ".join(f"„{q}”" for q in asked)
+            raise InvalidDecision(f"answers: pytania „{question}” nie ma wśród pytań pozycji ({listed}).")
+        if any(o["question"] == question for o in out):
+            raise InvalidDecision(f"answers: odpowiedź na „{question}” podana dwa razy.")
+        if not answer:
+            raise InvalidDecision(f"answers: pusta odpowiedź na „{question}”.")
+        out.append({"question": question, "answer": answer})
+    return out
 
 
 def _gate_of(event: dict[str, Any]) -> str | None:

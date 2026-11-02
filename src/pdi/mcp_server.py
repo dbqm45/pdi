@@ -115,6 +115,11 @@ class Assumption(TypedDict):
     invalidated_if: str
 
 
+class Answer(TypedDict):
+    question: str
+    answer: str
+
+
 class SuccessMetric(TypedDict):
     metric: str
     target: str
@@ -144,6 +149,7 @@ DRAFT_FIELDS = (
     "evidence",
     "assumptions",
     "dependencies",
+    "answers",
     "success_metric",
     "review_by",
     "links",
@@ -319,6 +325,7 @@ def build_server(
         review_by: str | None = None,
         links: Links | None = None,
         tags: list[str] | None = None,
+        answers: list[Answer] | None = None,
     ) -> dict[str, Any]:
         """Zamyka pozycję skrzynki decyzją w rejestrze; wywołuj po zatwierdzeniu szkicu przez człowieka.
 
@@ -326,6 +333,11 @@ def build_server(
         stan zmiany się przesuwa, a następna faza tf (albo poprawki tej samej) zostaje uruchomiona. approved z
         niezmergowanym PR-em fazy (url pozycji) jest odrzucane — najpierw merge; gdy stanu PR-a nie da się sprawdzić,
         decyzja przechodzi z ostrzeżeniem (warning). Ustalenie i uzasadnienie trafiają do decisions.md zmiany.
+        Bramka z pytaniami (pole questions pozycji, z sekcji „Pytania do bramki” artefaktu): w szkicu zaproponuj
+        odpowiedź na każde pytanie, pokaż je człowiekowi i podaj w answers te, które zatwierdził albo poprawił
+        (question dosłownie z questions, answer jego słowami). Odpowiedzi trafiają do wpisu bramki w decisions.md
+        i do promptu kolejnych faz; tf odrzuca artefakt, który zada rozstrzygnięte pytanie ponownie, a delivery nie
+        rusza, gdy pytanie z plan.md nie ma odpowiedzi. Faza dostaje też inne decyzje zmiany (links.chg).
         Ocena skutku MVP (kind impact_review) wymaga outcome: met, not_met albo unknown — wynik potwierdzony przez
         człowieka, może różnić się od szkicu pdi (pole draft pozycji); decyzja dostaje kind product, zależność od
         decyzji o intencji i odczyt z ShipScope jako dowód. Problem z pasm kontrolnych tf (kind problem,

@@ -64,6 +64,7 @@ Pierwszy schemat kontraktu (F0). Pola z [dokumentu 12 §4.1](12-zmiana-kierunku-
 | `evidence[]` | nie | `{text, source_url, epistemic_status: observation \| interpretation \| hypothesis \| ai_inference}` |
 | `assumptions[]` | nie (zalecane dla `product`/`intent`) | `{statement, load_bearing, invalidated_if}` |
 | `dependencies[]` | nie | systemy, dostawcy, zespoły, rynki |
+| `answers[]` | nie | od kontraktu 0.11.0: odpowiedzi człowieka na pytania z `## Pytania do bramki` (`question`, `answer`); przekazywane do faz tf (Z1) |
 | `success_metric` | nie | metryka, wartość docelowa, horyzont |
 | `review_by` | nie | data przeglądu |
 | `status` | tak | `recorded` / `superseded` / `reverted` |

@@ -38,6 +38,17 @@ def test_record_writes_markdown_with_frontmatter_and_readable_body(registry: Reg
     assert make_draft()["why"] in body
 
 
+def test_answers_are_kept_and_shown_in_the_body(registry: Registry, make_draft: Draft) -> None:
+    answers = [{"question": "Czy build.json zostaje w repo?", "answer": "Nie, generuje go build."}]
+
+    saved = registry.record(make_draft(answers=answers))
+
+    assert registry.get(saved["id"])["answers"] == answers
+    body = Path(saved["path"]).read_text(encoding="utf-8").split("---\n", 2)[2]
+    assert "## Odpowiedzi na pytania" in body
+    assert "Czy build.json zostaje w repo? → Nie, generuje go build." in body
+
+
 def test_ids_are_sequential(registry: Registry, make_draft: Draft) -> None:
     first = registry.record(make_draft(statement="Pierwsza."))
     second = registry.record(make_draft(statement="Druga."))
