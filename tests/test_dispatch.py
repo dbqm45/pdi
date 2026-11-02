@@ -164,3 +164,71 @@ def test_source_and_problem_are_sent_only_when_given() -> None:
     with_problem, plain = (c[2]["inputs"] for c in github.calls)
     assert (with_problem["source"], with_problem["problem"]) == ("PRB-3", '{"title": "T"}')
     assert "source" not in plain and "problem" not in plain
+
+
+# --- Z1: treść decyzji, odpowiedzi i decyzje zmiany jako wejścia szablonu fazy ---
+
+ANSWERS = [{"question": "Czy build.json zostaje w repo?", "answer": "Nie."}]
+LINKED = [{"id": "DEC-0003", "statement": "build.json generuje build.", "why": "Powtarzalność."}]
+
+
+def test_decision_text_answers_and_linked_decisions_go_as_json_inputs() -> None:
+    github = FakeGitHub()
+
+    result = run(config(), github, decision_text="Zatwierdzone. Dlaczego: ok.", answers=ANSWERS, decisions=LINKED)
+
+    inputs = github.calls[0][2]["inputs"]
+    assert inputs["decision_text"] == "Zatwierdzone. Dlaczego: ok."
+    assert json.loads(inputs["answers"]) == ANSWERS
+    assert json.loads(inputs["decisions"]) == LINKED
+    assert all(isinstance(v, str) for v in inputs.values())
+    assert result["status"] == "sent" and "warning" not in result
+
+
+def test_without_them_the_inputs_are_as_before() -> None:
+    github = FakeGitHub()
+
+    run(config(), github, decision_text=None, answers=None, decisions=None)
+
+    assert not {"decision_text", "answers", "decisions"} & set(github.calls[0][2]["inputs"])
+
+
+class OldTemplate(FakeGitHub):
+    """Szablon sdlc-phase.yml sprzed Z1: nieznane wejścia → 422."""
+
+    def __call__(self, url: str, headers: dict[str, str], body: bytes) -> int:
+        super().__call__(url, headers, body)
+        return 422 if "decisions" in json.loads(body)["inputs"] else 204
+
+
+def test_old_template_gets_the_phase_without_the_new_inputs_and_a_warning() -> None:
+    github = OldTemplate()
+
+    result = run(config(), github, decision_text="x", answers=ANSWERS, decisions=LINKED)
+
+    assert len(github.calls) == 2
+    assert not {"decision_text", "answers", "decisions"} & set(github.calls[1][2]["inputs"])
+    assert result["status"] == "sent"
+    assert "sdlc-phase.yml" in result["warning"]
+
+
+def test_other_422_is_still_a_failure() -> None:
+    github = FakeGitHub(status=422)
+
+    result = run(config(), github)
+
+    assert len(github.calls) == 1
+    assert result["status"] == "failed"
+
+
+def test_inputs_are_capped() -> None:
+    from pdi import dispatch
+
+    github = FakeGitHub()
+    many = [{"id": f"DEC-{n}", "statement": "x" * 900, "why": "y" * 900} for n in range(60)]
+
+    run(config(), github, decisions=many)
+
+    sent = json.loads(github.calls[0][2]["inputs"]["decisions"])
+    assert len(github.calls[0][2]["inputs"]["decisions"]) <= dispatch.INPUT_MAX
+    assert sent[-1]["id"] == "DEC-59"  # zostają najnowsze

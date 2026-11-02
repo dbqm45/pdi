@@ -951,3 +951,128 @@ def test_pr_state_is_not_asked_for_other_outcomes_or_non_pr_links(
     inbox.decide("evt-gate-1", make_draft(), outcome=outcome)
 
     assert asked == []
+
+
+# --- Z1: odpowiedzi na pytania bramki i decyzje zmiany w fazie (PRB-3) ---
+
+QUESTIONS = ["Czy config/build.json zostaje w repo? (adresat: właściciel)", "Kto zatwierdza kopię tekstów?"]
+
+
+def test_gate_decision_keeps_answers_to_the_artifact_questions(
+    registry: Registry, make_draft: Draft, tmp_path: Path
+) -> None:
+    from tests.test_dispatch_local import FakeSpawn, make_checkout
+
+    spawn = FakeSpawn()
+    inbox = local_inbox(registry, make_checkout(tmp_path), spawn)
+    inbox.receive(gate_event(questions=QUESTIONS))
+    answers = [{"question": f"  {QUESTIONS[0]} ", "answer": "Nie — build go generuje (DEC-0003)."}]
+
+    result = inbox.decide("evt-gate-1", make_draft(answers=answers), outcome="approved")
+
+    stored = [{"question": QUESTIONS[0], "answer": "Nie — build go generuje (DEC-0003)."}]
+    assert result["decision"]["answers"] == stored
+    assert registry.get("DEC-0001")["answers"] == stored
+    (spec,) = spawn.specs
+    assert spec["answers"] == stored
+
+
+@pytest.mark.parametrize(
+    ("answers", "message"),
+    [
+        ([{"question": "Pytanie spoza artefaktu?", "answer": "Tak."}], "nie ma wśród pytań"),
+        ([{"question": QUESTIONS[1], "answer": "A"}, {"question": QUESTIONS[1], "answer": "B"}], "dwa razy"),
+        ([{"question": QUESTIONS[1], "answer": "  "}], "pusta"),
+    ],
+    ids=["spoza", "powtorzone", "puste"],
+)
+def test_answers_must_match_the_gate_questions(
+    inbox: Inbox, make_draft: Draft, answers: list[dict[str, str]], message: str
+) -> None:
+    inbox.receive(gate_event(questions=QUESTIONS))
+
+    with pytest.raises(InvalidDecision, match=message):
+        inbox.decide("evt-gate-1", make_draft(answers=answers), outcome="approved")
+    assert inbox.get("evt-gate-1")["status"] == "open"
+
+
+def test_answers_need_a_gate_with_questions(inbox: Inbox, make_draft: Draft) -> None:
+    inbox.receive(gate_event())
+
+    with pytest.raises(InvalidDecision, match="nie ma pytań"):
+        inbox.decide("evt-gate-1", make_draft(answers=[{"question": "Q?", "answer": "A"}]), outcome="approved")
+
+
+def test_answers_only_for_gates(inbox: Inbox, make_draft: Draft) -> None:
+    item = inbox.receive(metric_event())["item"]
+
+    with pytest.raises(InvalidDecision, match="tylko bramka"):
+        inbox.decide(item["id"], make_draft(answers=[{"question": "Q?", "answer": "A"}]), outcome="accepted")
+
+
+def test_without_answers_the_decision_has_no_answers_field(inbox: Inbox, make_draft: Draft) -> None:
+    inbox.receive(gate_event(questions=QUESTIONS))
+
+    result = inbox.decide("evt-gate-1", make_draft(), outcome="approved")
+
+    assert "answers" not in result["decision"]
+
+
+def test_phase_gets_linked_decisions_of_the_change_without_superseded_ones(
+    registry: Registry, make_draft: Draft, tmp_path: Path
+) -> None:
+    from tests.test_dispatch_local import FakeSpawn, make_checkout
+
+    kept = registry.record(make_draft(statement="config/build.json nie jest w repo.", links={"chg": "CHG-12"}))
+    old = registry.record(make_draft(statement="Stara decyzja o kopii.", links={"chg": "CHG-12"}))
+    registry.supersede(old["id"], make_draft(statement="Kopię zatwierdza właściciel.", links={"chg": "CHG-12"}))
+    registry.record(make_draft(statement="Inna zmiana.", links={"chg": "CHG-99"}))
+    spawn = FakeSpawn()
+    inbox = local_inbox(registry, make_checkout(tmp_path), spawn)
+    inbox.receive(gate_event())
+
+    result = inbox.decide("evt-gate-1", make_draft(), outcome="approved")
+
+    (spec,) = spawn.specs
+    ids = [d["id"] for d in spec["decisions"]]
+    assert ids == [kept["id"], "DEC-0003"]
+    assert result["decision"]["id"] not in ids
+    assert spec["decisions"][0]["statement"] == "config/build.json nie jest w repo."
+
+
+def test_without_answers_and_linked_decisions_the_phase_spec_is_as_before(
+    registry: Registry, make_draft: Draft, tmp_path: Path
+) -> None:
+    from tests.test_dispatch_local import FakeSpawn, make_checkout
+
+    spawn = FakeSpawn()
+    inbox = local_inbox(registry, make_checkout(tmp_path), spawn)
+    inbox.receive(gate_event())
+
+    inbox.decide("evt-gate-1", make_draft(), outcome="approved")
+
+    (spec,) = spawn.specs
+    assert spec["answers"] is None and spec["decisions"] is None
+
+
+def test_actions_mode_sends_answers_and_linked_decisions_as_inputs(registry: Registry, make_draft: Draft) -> None:
+    import json
+
+    sent: list[dict[str, Any]] = []
+
+    def post(url: str, headers: dict[str, str], body: bytes) -> int:
+        sent.append(json.loads(body))
+        return 204
+
+    registry.record(make_draft(statement="config/build.json nie jest w repo.", links={"chg": "CHG-12"}))
+    cfg = DispatchConfig(repo="dbqm45/sklep", token="t")  # noqa: S106 — token testowy
+    inbox = Inbox(registry, dispatch=cfg, post=post)
+    inbox.receive(gate_event(questions=QUESTIONS))
+    answers = [{"question": QUESTIONS[1], "answer": "Właściciel."}]
+
+    inbox.decide("evt-gate-1", make_draft(answers=answers), outcome="approved")
+
+    inputs = sent[0]["inputs"]
+    assert json.loads(inputs["answers"]) == answers
+    assert [d["id"] for d in json.loads(inputs["decisions"])] == ["DEC-0001"]
+    assert inputs["decision_text"].startswith(make_draft()["statement"])

@@ -167,6 +167,23 @@ async def test_decide_inbox_item_errors_return_hints(server: Any, registry: Regi
         await server.call_tool("decide_inbox_item", {"item_id": "evt-stage-1", **make_draft()})
 
 
+async def test_decide_inbox_item_takes_answers_to_gate_questions(
+    server: Any, registry: Registry, make_draft: Draft
+) -> None:
+    Inbox(registry).receive(gate_event(questions=["Czy build.json zostaje w repo?"]))
+    answers = [{"question": "Czy build.json zostaje w repo?", "answer": "Nie."}]
+
+    decided = await call(
+        server,
+        "decide_inbox_item",
+        {"item_id": "evt-gate-1", "outcome": "approved", "answers": answers, **make_draft()},
+    )
+
+    assert decided["decision"]["answers"] == answers
+    tools = {t.name: t for t in await server.list_tools()}
+    assert "answers" in tools["decide_inbox_item"].input_schema["properties"]
+
+
 async def test_changes_through_tools(
     server: Any, registry: Registry, make_draft: Draft, monkeypatch: pytest.MonkeyPatch
 ) -> None:

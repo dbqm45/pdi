@@ -58,10 +58,20 @@ Skrócenie czasu:
   Bez merge'u pdi odmawia `approved`; gdy nie może sprawdzić PR-a (`gh` niezalogowany), przepuszcza z ostrzeżeniem.
   Faza bez artefaktu poprzedniej na `main` kończy się krokiem `inputs`. Ustalenie i uzasadnienie decyzji trafiają do
   `decisions.md` zmiany, gdy tf w repo zna `decision gate --why`.
-- [ ] **B2 (requirements):** PR, merge, decyzja → faza `architecture`.
+- [ ] **B2 (requirements):** PR, merge, decyzja → faza `architecture`. Gdy pozycja ma `questions` (z
+  `## Pytania do bramki`), **C** proponuje odpowiedź na każde, a Ty je poprawiasz; `decide_inbox_item` z `answers`
+  (`question` dosłownie z pozycji). Oczekiwane: w `decisions.md` zmiany wpis `## Bramka B2: approved` z parami
+  `- pytanie:` / `- odpowiedz:`, a w logu fazy (`runs/CHG-1-architecture-….log`) kroki `decision import` (inne
+  decyzje CHG-1 z rejestru, `pochodzenie: pdi`) i `decision gate … --answers`.
+- [ ] **Z1 — pytanie nie wraca (dla właściciela, na Macu: Docker, zalogowane `gh` i `claude`):** pytanie, na które
+  odpowiedziałeś przy B2, nie pojawia się w `## Pytania do bramki` ani w `plan.md` (B3), ani w `design.md`
+  (design-review); zamiast niego artefakt ma ustalenie z odwołaniem `CHG-1/Dk` i `DEC-n`. Gdy persona je powtórzy,
+  faza kończy się krokiem `run` z błędem `repeated_question` (pytanie i decyzja w logu) — to też wynik do zapisania
+  (PRB). Delivery nie rusza, dopóki pytanie z `plan.md` nie ma odpowiedzi; talos nie łamie przyjętych decyzji
+  (np. DEC-0003 z poprzedniego przebiegu). Wymaga tf z Z1 (`decision import`, `decision gate --answers`) w repo próbnym.
 - [ ] **B3 (architecture):** w PR jest `plan.md` i `release.yaml` z flagą (`owner`, `remove_by`, `rollout` z
-  `min_days: 0`). Merge, decyzja → faza `design`.
-- [ ] **design-review:** PR, merge, decyzja.
+  `min_days: 0`). Merge, decyzja (z `answers`, gdy są pytania) → faza `design`.
+- [ ] **design-review:** PR, merge, decyzja (z `answers`, gdy są pytania).
 
 ## 3. Gotowość i zatwierdzenie do budowy
 

@@ -21,7 +21,7 @@ from typing import Any, TypeAlias
 
 import yaml
 
-from pdi import contract, dispatch_local
+from pdi import contract, dispatch_local, phase_decisions
 from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig, Post, dispatch_phase
 from pdi.notify import ReporterNotifyConfig, notify_reporter
@@ -326,6 +326,8 @@ class ProblemStore:
             post=self._dispatch_post,
             source=item["id"],
             problem=problem,
+            decision_text=phase_decisions.text(self.registry.get(decision)),
+            decisions=phase_decisions.linked(self.registry, change, exclude=decision),
             runs_dir=self.registry.root / "runs",
             spawn=self._local_spawn,
             run=self._local_run,

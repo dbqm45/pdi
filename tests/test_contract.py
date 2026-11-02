@@ -45,7 +45,7 @@ def test_schema_is_valid_json_schema_2020_12(name: str) -> None:
 def test_settings_define_version_key_pattern_and_default_prefixes() -> None:
     settings = contract.settings()
 
-    assert settings["version"] == contract.CONTRACT_VERSION == "0.10.0"
+    assert settings["version"] == contract.CONTRACT_VERSION == "0.11.0"
     assert settings["prefixes"] == {"problem": "PRB", "change": "CHG", "task": "TSK", "decision": "DEC"}
     assert settings["key_pattern"] == "^[A-Z][A-Z0-9]+-[0-9]+$"
 
@@ -650,3 +650,31 @@ def test_decision_source_kind_includes_meeting() -> None:
     kinds = enum("decision", "source", "properties", "kind")
 
     assert {"slack", "meeting"} <= set(kinds)
+
+
+# --- kontrakt 0.11.0: odpowiedzi na pytania bramki (Z1, PRB-3) ---
+
+
+def _decision_with(answers: object) -> dict:
+    return {**example("decision"), "answers": answers}
+
+
+def test_decision_may_carry_answers_to_gate_questions() -> None:
+    answers = [{"question": "Czy config/build.json zostaje w repo?", "answer": "Nie — generuje go build (DEC-0003)."}]
+
+    assert contract.errors("decision", _decision_with(answers)) == []
+    assert contract.errors("decision", example("decision")) == []  # pole jest opcjonalne
+
+
+@pytest.mark.parametrize(
+    "answers",
+    [
+        [{"question": "Q?"}],
+        [{"question": "", "answer": "A"}],
+        [{"question": "Q?", "answer": ""}],
+        [{"question": "Q?", "answer": "A", "by": "x"}],
+        "Q? A",
+    ],
+)
+def test_answers_need_a_question_and_an_answer(answers: object) -> None:
+    assert contract.errors("decision", _decision_with(answers)) != []
