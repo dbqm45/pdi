@@ -245,6 +245,7 @@ tylko komenda `uv run --directory <pdi> sdlc mcp pdi|shipscope`, która przy sta
 - [`docs/plan-g1-g2.md`](docs/plan-g1-g2.md) — plan domknięcia luk G1 (plan wydania i MVP) i G2 (kształt historyjki
   i kryteriów akceptacji): reguły, zmiany plik po pliku w pdi, tf, ci_for_sdlc i ShipScope, kroki, decyzje DG1–DG7.
 - [`docs/plan-automatyzacja-i-konsola.md`](docs/plan-automatyzacja-i-konsola.md) — gdzie jeszcze automatyzować
+- [`docs/plan-zespol-jednoosobowy.md`](docs/plan-zespol-jednoosobowy.md) — zespół jednoosobowy: wywiad (greenfield), poznanie projektu (brownfield), przeglądarka na żywo; tabele braków, kroki Z1–Z6
 - [`docs/plan-sdlc-lokalnie.md`](docs/plan-sdlc-lokalnie.md) — cały workflow lokalnie dwoma poleceniami (`sdlc up`), plan L1–L5
 - [`docs/przebieg-na-sobie-s5.md`](docs/przebieg-na-sobie-s5.md) — przebieg jednej zmiany (sprintdeck S5) przez cały ekosystem, z poleceniami i dziennikiem
   (poziomy autonomii 0–3 zdobywane na danych, kroki A0–A8) i konsola pdi: oś zdarzeń, skrzynka decyzji, rozmowa z Claude.
