@@ -1,6 +1,6 @@
 # Plan: zespół jednoosobowy — greenfield od wywiadu, brownfield od poznania projektu, wszystko w przeglądarce
 
-Data: 2026-11-02 · Status: **plan; decyzje DZ1–DZ5 przyjęte 2026-11-02**, otwarte DA4 i DZ6–DZ8 (Z7) · Stan wyjściowy: pdi `d66b4bf`, tf 5.55.0,
+Data: 2026-11-02 · Status: **plan; decyzje DZ1–DZ5 przyjęte 2026-11-02**, otwarte DA4, DZ6–DZ8 (Z7) i DZ9–DZ11 (Z8) · Stan wyjściowy: pdi `d66b4bf`, tf 5.55.0,
 ShipScope 0.2.67, ci_for_sdlc 0.1.35+ · Powiązane: [plan `sdlc up`](plan-sdlc-lokalnie.md),
 [przebieg lokalny](przebieg-lokalny.md#wynik-przebiegu-2026-10-31), [etapy 2–18](polecenia-startowe-sdlc-lokalnie.md),
 [automatyzacja i konsola](plan-automatyzacja-i-konsola.md), [jedna platforma](15-jedna-platforma.md)
@@ -199,9 +199,12 @@ z uzasadnieniem i źródłem. Każda kolejna faza dostaje w wejściu decyzje, kt
 | Z5 | **Onboarding brownfield:** faza `onboarding` (rekonstrukcja z kodu + wyniki ci_for_sdlc z Jiry, Confluence, Figmy) → `standards.md` z dowodami, mapa wiedzy, pytania; B0; standardy w wejściu faz i reguła w ci_for_sdlc | tf + pdi + ci_for_sdlc | Z1 | na „obcym” repo (DZ4) pierwsza zmiana przechodzi zgodnie z jego standardami, a review nie znajduje naruszeń konwencji |
 | Z6 | **Źródła rozmów:** Slack, potem Teams i Miro jako źródła wiedzy do onboardingu (cytat i link) | pdi (+ konektory) | Z5, DZ2 | mapa wiedzy cytuje wątki i tablice; sprzeczności z Confluence są w pytaniach |
 | Z7 | **Układ z cyklu aplikacji AI** (§8.1): trzy pasy w konsoli i dokumentacji, bramka „spełnia cele?” z krótką pętlą do wskazanej fazy, pas governance przez wszystkie fazy, opcjonalna gałąź dla produktów, które same są aplikacją AI | pdi + tf + ci_for_sdlc (+ ShipScope) | Z1, Z3 (pasy w konsoli) | patrz §8.1, Z7a–Z7d |
+| Z8 | **Uprząż i dowody** (§8.2): izolacja faz, tożsamość agentów, skaner bezpieczeństwa w pętli talosa i w CI, pakiet dowodów zmiany, miary wartości, uprząż ucząca się z PRB | tf + pdi (+ ci_for_sdlc, ShipScope) | Z1 | patrz §8.2, Z8a–Z8f |
 
 Kolejność: Z1 → Z2 (w czacie Claude, bez nowej usługi) → Z3 → Z4 i Z5 równolegle → Z6. Z7: Z7b i Z7c mogą iść
-razem z Z1–Z2 (nie zależą od konsoli), Z7a razem z Z3, Z7d przy pierwszym produkcie, który jest aplikacją AI.
+razem z Z1–Z2 (nie zależą od konsoli), Z7a razem z Z3, Z7d przy pierwszym produkcie, który jest aplikacją AI. Z8: Z8a i Z8c
+przed kolejnym przebiegiem z prawdziwym kodem (etap 2 na sprintdecku), Z8b przed etapem 3 (produkcja), Z8d razem z Z7c, Z8e
+z etapem 12 (G7), Z8f po każdym przebiegu.
 
 **Miejsce w etapach 2–18:** Z1 to poprawka przed etapem 2 (zalecana w wyniku przebiegu). Z3 łączy etap 4 (usługa
 i konsola K-2) z etapem 10 (rozmowa K-3) i przesuwa rozmowę wcześniej. Z2, Z4, Z5 i Z6 to nowe etapy, których w tej
@@ -238,6 +241,43 @@ dowożenie dowolnej zmiany, więc nie zastępujemy przebiegu, tylko przejmujemy 
 | Z7c | **Pas governance:** dla każdej fazy lista kontrolna (dane osobowe, dostępy i sekrety, zabezpieczenia AI, audyt i pochodzenie) z wynikiem w stanie zmiany; graf śladu i konsola pokazują go jako pas; brak sprawdzenia blokuje B5 (autoryzacja PROD) | pdi + tf | Z1 | `get_trace` pokazuje pas governance każdej zmiany; B5 bez kompletu odmawia z listą braków |
 | Z7d | **Gałąź dla produktów AI:** gdy wywiad albo architektura oznaczy produkt jako aplikację AI, dochodzą fazy opcjonalne: dobór modelu (decyzja z kosztem), kontekst i RAG, orkiestracja agentów, decyzja o fine-tuningu, ewaluacje z progami (Z7b); skille tf jako podstawa (DZ3) | tf + pdi (kontrakt) | Z2, Z7b | mały produkt AI przechodzi gałąź z ewaluacją spełniającą próg przed wydaniem |
 
+### 8.2. Z8 — uprząż i dowody
+
+Źródło: materiały „Agentic SDLC” pokazane 2026-11-02 (dwie strony: specyfikacja i uprząż; pięć warstw: intencja,
+wykonanie, uprząż, weryfikacja, governance; drabina dojrzałości L1–L5) i transkrypcja z NotebookLM. Liczby z tych
+materiałów (Symphony, wyniki modeli, odsetki przyjęć) to w dużej części dane od dostawców; w planie nie przyjmujemy ich
+jako faktów. Jedyną liczbą z niezależnego badania jest raport Veracode z 2025 r. (ok. 45% kodu z AI z podatnością
+z OWASP Top 10), którą przed cytowaniem trzeba sprawdzić u źródła. Zasada przyjęta z materiału: „nie da się bezpiecznie
+zautomatyzować tego, czego się nie rozumie” — uzasadnia Z2 (wywiad) i Z5 (onboarding).
+
+**Pięć warstw a nasz ekosystem**
+
+| Warstwa | U nas | Stan |
+|---|---|---|
+| 1. Intencja (specyfikacja w repo jako źródło prawdy) | `docs/project/changes/CHG-n/`: `intent.md`, `requirements.md`, `plan.md`, `release.yaml`, `design.md` wg kontraktu pdi | jest (to jest SDD) |
+| 2. Wykonanie (agenci) | persony tf, talos | jest |
+| 3. Uprząż: przewodniki | CLAUDE.md, skille, persony; standardy projektu w Z5 | jest; `standards.md` w Z5 |
+| 3. Uprząż: czujniki | hooki tf (`tdd_guard`, `scan_secrets`, `guard_bash`, `guard_paths`), testy, reguły ci_for_sdlc; pętla talosa „test czerwony → kod → weryfikacja → przegląd zakresu → commit” | w części: brak skanu podatności i izolacji |
+| 4. Weryfikacja | ci_for_sdlc (STORY/AC/REL/DES/TEST), review; progi celów w Z7b | w części |
+| 5. Governance | rejestr decyzji, graf śladu, typy chronione, licznik autonomii; pas w Z7c | w części: brak tożsamości agentów i eksportu dowodów |
+
+Na drabinie z materiału jesteśmy między L3 (agenci bez nadzoru, deterministyczne bramki) a L4 (fabryka z governance).
+
+**Kroki**
+
+| Krok | Co | Dlaczego | Repo | Gotowe, gdy |
+|---|---|---|---|---|
+| Z8a | **Izolacja faz:** persony i talos w kontenerze albo sandboxie z listą dozwolonych adresów sieci, bez dostępu do kluczy i plików spoza klonu repo; w Actions to samo w obrazie joba | w trybie lokalnym (`PDI_DISPATCH=local`) persona działa wprost na komputerze właściciela z `--permission-mode acceptEdits`, jego `gh` i kluczami | pdi (`dispatch_local`, `sdlc`) + tf (`sdlc-phase.yml`) | faza w trybie lokalnym nie widzi `~/.sdlc/env`, `~/.ssh` ani innych repo, a próba wyjścia poza listę adresów kończy się błędem w logu |
+| Z8b | **Tożsamość agentów:** osobna aplikacja GitHub (bot) z krótkotrwałymi tokenami instalacji do push i PR; w commicie dopiski `Agent: <persona>` i `Phase: <faza>` obok `Change:`; graf śladu łączy linię kodu z agentem, fazą, decyzją i człowiekiem, który zatwierdził bramkę | dziś lokalne commity agentów wyglądają jak commity właściciela; audyt musi odróżniać człowieka od agenta | pdi + tf (+ ShipScope: odczyt dopisków) | każdy commit agenta jest podpisany botem, a `get_trace` pokazuje agenta przy każdym PR |
+| Z8c | **Skaner bezpieczeństwa jako czujnik:** SAST i skan zależności w pętli kawałka talosa (przed commitem) i w CI na PR; blokujące ustalenie wraca do talosa jak czerwony test; PR dopiero, gdy wszystkie czujniki są zielone | kod z AI częściej niż ręczny zawiera podatności (raport Veracode 2025, do sprawdzenia u źródła) | tf (talos, `change-check.yml`) + ci_for_sdlc (wynik skanu jako ustalenie) | podatność wstrzyknięta w teście (np. SQL injection) zatrzymuje kawałek przed PR, a w PR nie ma blokujących ustaleń |
+| Z8d | **Pakiet dowodów zmiany:** `export_evidence CHG-n` (MCP i CLI): intencja, decyzje i bramki, testy kryteriów, wyniki skanów, review, tożsamości agentów, wdrożenia, etapy flag, ocena skutku; z mapowaniem na SSDF i NIST AI RMF (skille tf z #91) | audyt jako produkt uboczny normalnej pracy; dla klientów regulowanych (np. infrastruktura ładowania EV) | pdi | dla CHG-1 z repo próbnego powstaje jeden pakiet (Markdown + JSON) bez ręcznego zbierania |
+| Z8e | **Miary wartości:** odsetek PR-ów agentów przyjętych bez poprawek, usterki po wydaniu na zmianę, czas od intencji do PROD; bez liczby linii i liczby PR-ów | uzupełnia licznik autonomii (mierzy szkice decyzji, nie kod) | pdi + ShipScope | `pdi-stats` i konsola pokazują trzy miary dla ostatnich zmian |
+| Z8f | **Uprząż ucząca się:** każde PRB z przebiegu z kategorii „uprząż” daje szkic zmiany reguły, skilla albo hooka w tf (wzór: `10x-lesson`, `10x-rule-review`); człowiek zatwierdza w skrzynce pdi, a zmiana idzie PR-em do tf z evalem | poziom L5 z materiału, ale pod nadzorem; materiał już jest (PRB-2…22 z jednego przebiegu) | pdi + tf | po kolejnym przebiegu co najmniej jedno PRB „uprzęży” kończy się zmianą w tf z evalem, zatwierdzoną w skrzynce |
+
+**Czego nie przejmujemy:** kodu jako jednorazowego produktu regenerowanego ze specyfikacji (przy brownfield i prawdziwych
+użytkownikach zostajemy przy przyrostowych cięciach z PR-ami) ani konkretnych produktów jednego dostawcy (Entra Agent
+ID, Azure Policy, Sentinel): bierzemy zasady — tożsamość agenta, krótkie tokeny, polityki jako kod, logi audytu.
+
 ## 9. Decyzje do podjęcia
 
 | # | Pytanie | Rekomendacja |
@@ -251,6 +291,9 @@ dowożenie dowolnej zmiany, więc nie zastępujemy przebiegu, tylko przejmujemy 
 | DZ6 | Co robi pętla przy niespełnionym celu albo `not_met`: wraca do fazy tej samej zmiany czy otwiera nowe zgłoszenie? | wraca do wskazanej fazy tej samej zmiany (z powodem i danymi), z limitem prób (np. 2), potem decyzja człowieka; nowe zgłoszenie tylko dla nowego problemu |
 | DZ7 | Kto ustala cele zmiany (`targets`) | architekt (tomasz) proponuje w planie, człowiek zatwierdza w B3; dla produktów AI progi ewaluacji obowiązkowe |
 | DZ8 | Czy governance blokuje wydanie | tak, tylko na B5 (autoryzacja PROD); wcześniej ostrzega |
+| DZ9 | Czym izolować fazy (Z8a) | kontener (Docker, jest już wymagany przez `sdlc up`) z montowanym tylko klonem repo i listą adresów sieci; sandbox Claude Code jako druga warstwa |
+| DZ10 | Osobna aplikacja GitHub dla agentów (Z8b) | tak, jedna na organizację, z uprawnieniami tylko do repo produktu (contents, pull requests); tokeny instalacji ważne do godziny |
+| DZ11 | Jaki skaner (Z8c) | Semgrep (reguły OWASP, działa lokalnie i w CI, bez konta) + skan zależności z menedżera pakietów (`npm audit`, `pip-audit`); CodeQL później, w Actions |
 
 ## 10. Stan
 
@@ -263,3 +306,4 @@ dowożenie dowolnej zmiany, więc nie zastępujemy przebiegu, tylko przejmujemy 
 | Z5 | do zrobienia, po DZ4 |
 | Z6 | do zrobienia, po DZ2 |
 | Z7 | do zrobienia, po DZ6–DZ8 (Z7a po Z3) |
+| Z8 | do zrobienia, po DZ9–DZ11 (Z8a i Z8c przed etapem 2) |
