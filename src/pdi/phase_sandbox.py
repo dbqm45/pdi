@@ -49,7 +49,12 @@ CPUS_ENV, MEMORY_ENV = "PDI_DISPATCH_CPUS", "PDI_DISPATCH_MEMORY"
 DEFAULT_CPUS, DEFAULT_MEMORY, PIDS = "4", "6g", "1024"
 ALLOW_HOSTS_ENV = "PDI_DISPATCH_ALLOW_HOSTS"
 UPSTREAM_ENV = "PDI_EGRESS_UPSTREAM"
-DOCKER_ENV = ("DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_CONFIG", "DOCKER_CERT_PATH", "DOCKER_TLS_VERIFY")
+# Środowisko klienta `docker` na hoście: PATH (na Macu docker jest w /usr/local/bin) i HOME (kontekst Docker Desktop
+# w ~/.docker) plus zmienne samego Dockera. Bez tokenów i reszty środowiska pdi.
+DOCKER_ENV = (
+    "PATH", "HOME", "USER", "TMPDIR",
+    "DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_CONFIG", "DOCKER_CERT_PATH", "DOCKER_TLS_VERIFY",
+)  # fmt: skip
 # Ze zmiennych systemowych kroku `run` do kontenera idą tylko te, które nie są ścieżkami ani gniazdami hosta.
 CONTAINER_SYSTEM = ("LANG", "LANGUAGE", "TERM", "TZ")
 CONTAINER_PREFIXES = ("LC_", "GIT_")
