@@ -1,6 +1,6 @@
 # Plan: zespół jednoosobowy — greenfield od wywiadu, brownfield od poznania projektu, wszystko w przeglądarce
 
-Data: 2026-11-02 · Status: **plan; decyzje DZ1–DZ5 przyjęte 2026-11-02**, DZ6–DZ11 przyjęte 2026-11-02, otwarte DA4 · Stan wyjściowy: pdi `d66b4bf`, tf 5.55.0,
+Data: 2026-11-02 · Status: **plan; decyzje DZ1–DZ5 przyjęte 2026-11-02**, DZ6–DZ11 przyjęte 2026-11-02, otwarte DA4 i DZ12–DZ13 (Z9) · Stan wyjściowy: pdi `d66b4bf`, tf 5.55.0,
 ShipScope 0.2.67, ci_for_sdlc 0.1.35+ · Powiązane: [plan `sdlc up`](plan-sdlc-lokalnie.md),
 [przebieg lokalny](przebieg-lokalny.md#wynik-przebiegu-2026-10-31), [etapy 2–18](polecenia-startowe-sdlc-lokalnie.md),
 [automatyzacja i konsola](plan-automatyzacja-i-konsola.md), [jedna platforma](15-jedna-platforma.md)
@@ -200,11 +200,13 @@ z uzasadnieniem i źródłem. Każda kolejna faza dostaje w wejściu decyzje, kt
 | Z6 | **Źródła rozmów:** Slack, potem Teams i Miro jako źródła wiedzy do onboardingu (cytat i link) | pdi (+ konektory) | Z5, DZ2 | mapa wiedzy cytuje wątki i tablice; sprzeczności z Confluence są w pytaniach |
 | Z7 | **Układ z cyklu aplikacji AI** (§8.1): trzy pasy w konsoli i dokumentacji, bramka „spełnia cele?” z krótką pętlą do wskazanej fazy, pas governance przez wszystkie fazy, opcjonalna gałąź dla produktów, które same są aplikacją AI | pdi + tf + ci_for_sdlc (+ ShipScope) | Z1, Z3 (pasy w konsoli) | patrz §8.1, Z7a–Z7d |
 | Z8 | **Uprząż i dowody** (§8.2): izolacja faz, tożsamość agentów, skaner bezpieczeństwa w pętli talosa i w CI, pakiet dowodów zmiany, miary wartości, uprząż ucząca się z PRB | tf + pdi (+ ci_for_sdlc, ShipScope) | Z1 | patrz §8.2, Z8a–Z8f |
+| Z9 | **Pętle jakości i kontekst** (§8.3): przegląd drugim modelem, pętla budujący–recenzent i samonaprawa CI, jeden skrypt weryfikacji, cele pokrycia i testy mutacyjne, evale przebiegu, kontekst przycięty do fazy, wznawianie pracy, makiety HTML, wzorce i testy charakteryzujące w brownfield, łańcuch dostaw, karta decyzji przy bramce | tf + pdi (+ ci_for_sdlc) | Z1, Z8c | patrz §8.3, N1–N11 |
 
 Kolejność: Z1 → Z2 (w czacie Claude, bez nowej usługi) → Z3 → Z4 i Z5 równolegle → Z6. Z7: Z7b i Z7c mogą iść
 razem z Z1–Z2 (nie zależą od konsoli), Z7a razem z Z3, Z7d przy pierwszym produkcie, który jest aplikacją AI. Z8: Z8a i Z8c
 przed kolejnym przebiegiem z prawdziwym kodem (etap 2 na sprintdecku), Z8b przed etapem 3 (produkcja), Z8d razem z Z7c, Z8e
-z etapem 12 (G7), Z8f po każdym przebiegu.
+z etapem 12 (G7), Z8f po każdym przebiegu. Z9: N1, N2 i N5 przed etapem 2; N9 razem z Z5;
+pozostałe razem z krokami, do których są przypięte (§8.3).
 
 **Miejsce w etapach 2–18:** Z1 to poprawka przed etapem 2 (zalecana w wyniku przebiegu). Z3 łączy etap 4 (usługa
 i konsola K-2) z etapem 10 (rozmowa K-3) i przesuwa rozmowę wcześniej. Z2, Z4, Z5 i Z6 to nowe etapy, których w tej
@@ -275,6 +277,30 @@ Na drabinie z materiału jesteśmy między L3 (agenci bez nadzoru, deterministyc
 | Z8f | **Uprząż ucząca się:** każde PRB z przebiegu z kategorii „uprząż” daje szkic zmiany reguły, skilla albo hooka w tf (wzór: `10x-lesson`, `10x-rule-review`); człowiek zatwierdza w skrzynce pdi, a zmiana idzie PR-em do tf z evalem | poziom L5 z materiału, ale pod nadzorem; materiał już jest (PRB-2…22 z jednego przebiegu) | pdi + tf | po kolejnym przebiegu co najmniej jedno PRB „uprzęży” kończy się zmianą w tf z evalem, zatwierdzoną w skrzynce |
 
 
+### 8.3. Z9 — pętle jakości i kontekst
+
+Źródło: transkrypcje czterech nagrań pokazanych 2026-11-02 — studium przypadku Open Mercato (podcast Better Software
+Design), webinar Lean TECHniques „Building an Agentic-First Software Organization”, przegląd „Claude Code: The Complete
+AI-Native SDLC Guide” i webinar Overcut „From SDLC to ADLC”. Liczby z nagrań pochodzą od samych mówców (firmy doradcze,
+producenci, autorzy projektu) i nie są w planie podstawą decyzji. Nagrania potwierdzają kierunek przyjęty w Z1–Z8:
+wywiad typu grill-me na start, łańcuch intencja → specyfikacja → plan w repo, triaż jako jedno wejście, izolacja
+uruchomień, tożsamość agentów, pętla z produkcji do nowej intencji, uczenie się z poprzednich uruchomień i miary wartości
+zamiast liczby PR-ów. Poniżej mechanizmy, których w planie brakowało.
+
+| # | Mechanizm | Skąd | Przypięty do | Gotowe, gdy |
+|---|---|---|---|---|
+| N1 | **Przegląd drugim modelem** (najlepiej innego dostawcy): szuka luk w `requirements.md` i `plan.md` przed bramką i sprawdza uwagi z review, zanim talos je poprawi; uwagi, których drugi model nie potwierdza, idą do człowieka zamiast do poprawki | Open Mercato, Overcut | fazy requirements i architecture (tf), review w tf (`REVIEW.md`) | prośba o B2 i B3 zawiera wynik drugiego przeglądu, a poprawki po review dotyczą tylko potwierdzonych uwag |
+| N2 | **Pętla budujący–recenzent na PR i samonaprawa CI:** review → sprawdzenie uwag (N1) → poprawka → ponowny review, z limitem rund; przy czerwonym CI agent czyta log, poprawia i czeka na zielone; człowiek widzi PR dopiero po zielonym CI i zamkniętych uwagach | wszystkie cztery | po fazie delivery (pdi `dispatch_local`, tf `sdlc-phase.yml`) | PR talosa trafia do człowieka z zielonym CI i zamkniętymi uwagami albo z wyraźnym „nie udało się po N rundach” |
+| N3 | **Jeden skrypt weryfikacji** (formatter, lint, typy, testy, skan bezpieczeństwa Z8c) wskazany w pierwszej linii CLAUDE.md produktu i uruchamiany tak samo w CI | Lean TECHniques, Claude Code | tf (szablon CLAUDE.md, bootstrap Z4), Z8c | talos i CI uruchamiają to samo polecenie z tym samym wynikiem |
+| N4 | **Cele pokrycia i testy mutacyjne:** pokrycie 100% z jawnie oznaczonymi wyjątkami; testy mutacyjne sprawdzają, czy testy wykrywają zmianę zachowania | Lean TECHniques | Z7b (`targets` zmiany), ci_for_sdlc | cel pokrycia i progi mutacji są w `targets`, a ich niespełnienie zatrzymuje zmianę przed B4 |
+| N5 | **Evale przebiegu:** zestaw 20–200 prawdziwych zadań z przeszłości (zmiany i cięcia z repo próbnego i sprintdecka), uruchamiany po każdej zmianie modelu, skilla albo promptu fazy; mierzy wynik, koszt, liczbę czytanych plików i przyjęcie; także na tańszych modelach | Open Mercato, Claude Code | tf (evale skilli już są), „evale flow” z planu jednego flow | zmiana modelu albo skilla nie wchodzi bez przebiegu evali, a raport porównuje wynik i koszt |
+| N6 | **Kontekst przycięty do fazy:** każda faza ładuje tylko swoje skille (klasyfikator zadania); mapa projektu (API, zdarzenia, ekrany, moduły) generowana z kodu przy buildzie zamiast przeszukiwania repo | Open Mercato, Overcut | tf (persony, instalacja), rekonstrukcja z kodu (Z5) | faza czyta wyraźnie mniej plików i tokenów przy tym samym wyniku evali (N5) |
+| N7 | **Wznawianie przerwanej pracy:** notatka w PR, co z planu zrobione, a co nie; po błędzie faza rusza od ostatniego kroku zamiast od zera | Open Mercato, Overcut | pdi `dispatch_local`, talos | `retry_dispatch` po błędzie w połowie delivery kończy tylko brakujące cięcia |
+| N8 | **Klikalne makiety HTML** w design systemie produktu; komentarze do komponentów zapisywane jako JSON i przekazywane talosowi; gdy nie ma pliku Figmy | Open Mercato | faza design (tf, natalia), `design.md` | design-review działa bez Figmy, a talos dostaje komentarze z makiety jako wejście |
+| N9 | **Brownfield: wzorcowa implementacja i testy charakteryzujące.** `standards.md` wskazuje pliki do naśladowania, bo agenci kopiują istniejące wzorce. Przed zmianą w kodzie legacy powstają testy obecnego zachowania, a aplikacja musi dać się uruchomić lokalnie. | Lean TECHniques | Z5 | onboarding kończy się listą wzorców, uruchamialną aplikacją i testami charakteryzującymi obszar pierwszej zmiany |
+| N10 | **Łańcuch dostaw:** nowa wersja zależności wchodzi najwcześniej 7 dni po publikacji; pliki blokad w repo; opcjonalnie własny rejestr pakietów | Lean TECHniques | Z8c (obok skanu zależności) | dodanie świeżo opublikowanej wersji zatrzymuje kawałek z wyjaśnieniem |
+| N11 | **Karta decyzji przy bramce:** streszczenie zmiany, diagram architektury przed i po, plusy i minusy | Open Mercato | konsola (Z3), skrzynka pdi | bramki B3 i approve-for-implementation pokazują kartę w konsoli |
+
 ## 9. Decyzje do podjęcia
 
 | # | Pytanie | Rekomendacja |
@@ -291,6 +317,8 @@ Na drabinie z materiału jesteśmy między L3 (agenci bez nadzoru, deterministyc
 | DZ9 | Czym izolować fazy (Z8a) | **przyjęte**: kontener (Docker, jest już wymagany przez `sdlc up`) z montowanym tylko klonem repo i listą adresów sieci; sandbox Claude Code jako druga warstwa |
 | DZ10 | Osobna aplikacja GitHub dla agentów (Z8b) | **przyjęte**: tak, jedna na organizację, z uprawnieniami tylko do repo produktu (contents, pull requests); tokeny instalacji ważne do godziny |
 | DZ11 | Jaki skaner (Z8c) | **przyjęte**: Semgrep (reguły OWASP, działa lokalnie i w CI, bez konta) + skan zależności z menedżera pakietów (`npm audit`, `pip-audit`); CodeQL później, w Actions |
+| DZ12 | Drugi model w N1: od tego samego dostawcy czy innego? | inny dostawca (osobny klucz API, koszt w budżecie fazy); bez klucza — inny model Claude z osobnym promptem recenzenta, oznaczony w wyniku |
+| DZ13 | Ile zadań w evalach przebiegu (N5) i jaki budżet | start: 20 zadań z repo próbnego i sprintdecka, budżet na jedno uruchomienie ustalony w tf; rozbudowa do ok. 200 po pierwszych wynikach |
 
 ## 10. Stan
 
@@ -304,3 +332,4 @@ Na drabinie z materiału jesteśmy między L3 (agenci bez nadzoru, deterministyc
 | Z6 | do zrobienia, po DZ2 |
 | Z7 | do zrobienia (Z7a po Z3) |
 | Z8 | do zrobienia; Z8a i Z8c przed etapem 2, [polecenia startowe](polecenia-startowe-zespol.md) |
+| Z9 | do zrobienia, po DZ12–DZ13; N1, N2 i N5 przed etapem 2 |
