@@ -98,9 +98,19 @@ def spec(checkout: Path, tmp_path: Path, **overrides: Any) -> dict[str, Any]:
     return base
 
 
+# Te testy opisują kroki przebiegu z krokiem `run` na hoście (tryb jawnie bez izolacji); krok `run` w kontenerze
+# (domyślny, Z8a) — tests/test_phase_sandbox.py.
+HOST = {"PDI_DISPATCH_SANDBOX": "none"}
+
+
+@pytest.fixture(autouse=True)
+def _host_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PDI_DISPATCH_SANDBOX", "none")
+
+
 def execute(s: dict[str, Any], run: FakeRun, env: dict[str, str] | None = None) -> tuple[dict[str, Any], list[str]]:
     lines: list[str] = []
-    result = dispatch_local.execute(s, run=run, env=env or {}, log=lines.append)
+    result = dispatch_local.execute(s, run=run, env={**HOST, **(env or {})}, log=lines.append)
     return result, lines
 
 
@@ -831,7 +841,7 @@ def test_steps_stream_their_output_into_the_log_except_quiet_ones(checkout: Path
 
     run = FakeRun()
     lines: list[str] = []
-    result = dispatch_local.execute(spec(checkout, tmp_path), run=run, env={}, log=lines.append, stream=stream)
+    result = dispatch_local.execute(spec(checkout, tmp_path), run=run, env=HOST, log=lines.append, stream=stream)
 
     assert result["status"] == "done"
     assert ["python3", f"{S}/phase_run.py", "run", "--change", "CHG-12", "--phase", "requirements"] in streamed
@@ -851,7 +861,7 @@ def test_a_long_step_leaves_a_sign_of_life_in_the_log(
         return fake(argv, cwd, env)
 
     lines: list[str] = []
-    dispatch_local.execute(spec(checkout, tmp_path), run=slow, env={}, log=lines.append)
+    dispatch_local.execute(spec(checkout, tmp_path), run=slow, env=HOST, log=lines.append)
 
     alive = [line for line in lines if line.startswith("# … krok run trwa")]
     assert alive, lines
