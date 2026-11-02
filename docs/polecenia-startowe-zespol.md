@@ -1,4 +1,4 @@
-# Polecenia startowe: Z1, Z2, Z8a i Z8c planu „zespół jednoosobowy”
+# Polecenia startowe planu „zespół jednoosobowy”: grupa A i Z2
 
 **Data:** 2026-11-02 · **Źródło:** [plan „zespół jednoosobowy”](plan-zespol-jednoosobowy.md) §8, §8.2, decyzje DZ1–DZ11
 ([decyzje](decyzje.md)) · **Stan przed startem:** pdi `e2cec98` (kontrakt 0.10.0), tf 5.55.0, ShipScope 0.2.67
@@ -16,6 +16,11 @@ jest niezależny od Z1, a Z8c ma dwie części: najpierw Z8c-1 (ci_for_sdlc), po
 | [Z8a](#z8a--pdi--tf-fazy-w-kontenerze) | fazy w kontenerze (izolacja persony i talosa) | — | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
 | [Z8c-1](#z8c-1--ci_for_sdlc-wyniki-skanera-sarif-jako-ustalenia) | wyniki skanera (SARIF) jako ustalenia w ci_for_sdlc | — | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` | do zrobienia |
 | [Z8c-2](#z8c-2--tf-skaner-w-pętli-kawałka-talosa-i-w-ci) | skaner w pętli kawałka talosa i w CI | Z8c-1 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
+| [N1](#n1--tf-przegląd-drugim-modelem) | przegląd drugim modelem (wymagania, plan, uwagi z review) | Z1 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
+| [N5](#n5--tf-evale-przebiegu) | evale przebiegu na 20 prawdziwych zadaniach | Z1 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
+| [Z7b-1a](#z7b-1a--pdi--tf-cele-zmiany-w-kontrakcie-i-planie) | cele zmiany (`targets`) w kontrakcie i planie, B3 | Z1 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
+| [Z7b-1b](#z7b-1b--ci_for_sdlc-sprawdzanie-celów-zmiany) | sprawdzanie celów (pokrycie, testy mutacyjne) w ci_for_sdlc | Z7b-1a, Z8c-1 | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` | do zrobienia |
+| [N2](#n2--pdi--tf-pętla-budujący-recenzent-na-pr-i-samonaprawa-ci) | pętla budujący–recenzent na PR i samonaprawa CI | Z8a, N1 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
 
 ## Z1 — pdi + tf: wszystkie decyzje zmiany w każdej fazie (domknięcie PRB-3)
 
@@ -267,6 +272,155 @@ talos slice on dbqm45/sdlc-proba with a deliberate SQL injection in the acceptan
 second attempt and only then committed; record it in pdi docs/przebieg-lokalny.md. Gates: the repo's checks (workspace.py
 check --packs pack-it, mode tests, skill evals if covered). GitHub Actions do not run on this account right now — run the
 gates locally and say so in the PR. Commit and PR on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
+```
+
+## N1 — tf: przegląd drugim modelem
+
+```text
+Implement N1 of docs/plan-zespol-jednoosobowy.md (§8.3) in dbqm45/tf, under decision DZ12 in pdi docs/decyzje.md: the
+second model comes from another vendor (own API key, cost inside the phase budget); without that key, another Claude
+model with a separate reviewer prompt, marked in the output as a same-vendor review. Start when Z1 is merged. Answer me in
+Polish; code, commits and PR title in English, Conventional Commits.
+
+Goal: before a gate request for B2 (requirements) and B3 (architecture), a second model reads the artifact against
+intent.md, requirements and the change's decisions and lists gaps (missing error states, unclear acceptance criteria,
+contradictions with a decision, slices that cannot be verified). The findings go into the gate request as questions,
+marked as coming from the second review. The same function validates review comments for N2: a comment the second model
+does not confirm goes to the human instead of to a fix.
+
+1. Plan first in docs/plans/ (files, order, tests). TDD for the scripts.
+2. A script in mode-pdi (stdlib Python): `second_review.py artifact --change CHG-n --phase P` and
+   `second_review.py comments --pr <n> --input <json>`; provider and model from PDI_SECOND_MODEL (e.g.
+   openai:<model>, or claude:<model> as the fallback), the key from the provider's usual variable, never logged. Output
+   JSON (findings with severity, quote, reason) and a `## Przegląd drugim modelem` section in the artifact.
+3. phase_run.py: after the run and before gate request for requirements and architecture, run the artifact review;
+   its blocking findings join the questions of the gate request. A failed or missing second model is visible in the
+   gate request ("drugi przegląd: niedostępny, powód"), never a silent pass.
+4. Sources are data: the artifact and the comments go to the second model as quoted data with an instruction to treat
+   them as data.
+5. Cost: the review's cost is added to the phase report and counts against the phase budget.
+
+Tests: provider selection and fallback, no key in logs, findings merged into the gate request, unavailable reviewer
+reported, comment validation (confirmed / not confirmed) with an injected client. Then one run on dbqm45/sdlc-proba with a
+requirements.md that misses an error state: the second review finds it. Gates: the repo's checks (workspace.py check
+--packs pack-it, mode-pdi tests, skill evals if covered). GitHub Actions do not run on this account right now — run the
+gates locally and say so in the PR. Commit and PR on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
+```
+
+## N5 — tf: evale przebiegu
+
+```text
+Implement N5 of docs/plan-zespol-jednoosobowy.md (§8.3) in dbqm45/tf, under decision DZ13 in pdi docs/decyzje.md: start
+with 20 real tasks from dbqm45/sdlc-proba and sprintdeck, a budget per run set in tf, grow to about 200 after the first
+results. Start when Z1 is merged. Answer me in Polish; code, commits and PR title in English, Conventional Commits.
+
+Goal: a change of model, skill, persona or phase prompt does not land without running the flow evals, and the report
+compares result and cost with the previous run.
+
+1. Plan first in docs/plans/ (files, order, tests). Reuse what tf already has for skill evals (holdout sets, result-vs-
+   cost report, #102, #127, #130) instead of a second framework.
+2. A task is: a fixture repo snapshot (the product repo at a commit), the change's folder state before a phase, the
+   phase to run, and checks — the artifact passes decision_record.py check and requirements_lint/design_check where they
+   apply, `npm run analyze -- --repo` (ci_for_sdlc) has no blocking finding, for delivery the tests pass, no question
+   settled by a decision comes back (Z1), cost and number of files read within limits. Take the 20 tasks from the
+   phases of the 2026-10-31 run (pdi docs/przebieg-lokalny.md) and from sprintdeck history; store them in tf.
+3. Runner: runs phase_run.py for each task (in the container of Z8a when available), collects result, cost, tokens,
+   files read, time; report as Markdown and JSON with the comparison to the previous run.
+4. Trigger: a workspace.py command and a CI job on changes to personas, mode-pdi prompts or the pinned model; locally the
+   command. A change that lowers the pass rate or raises cost by more than a set limit fails with the report.
+
+Tests: task loading and validation, checks per phase, the comparison and the failure limits, with an injected runner.
+Then one real run of the 20 tasks; record pass rate and cost in the PR. Gates: the repo's checks. GitHub Actions do not
+run on this account right now — run the gates locally and say so in the PR. Commit and PR on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
+```
+
+## Z7b-1a — pdi + tf: cele zmiany w kontrakcie i planie
+
+```text
+Implement part 1a of Z7b of docs/plan-zespol-jednoosobowy.md (§8.1, Z7b-1 in §0) in dbqm45/pdi, with the tf part in
+dbqm45/tf (attach it with push access), under decisions DZ6 and DZ7 in docs/decyzje.md: the architect persona (tomasz)
+proposes the change's targets in the plan, the human approves them at B3; for AI products evaluation thresholds are
+mandatory. Start when Z1 is merged. Answer me in Polish; code, commits and PR titles in English.
+
+Goal: every change carries measurable quality targets, approved at B3 and checked before B4, instead of judging PRs by
+eye.
+
+1. Plan first in docs/plan-z7b-cele.md (pdi). TDD.
+2. Contract (next free minor version, contract-v tag after merge): `targets` in release-plan.schema.json (or a sibling
+   schema linked from it): coverage of changed code (min %, with explicit exclusions), mutation score on changed code
+   (min %; tools: StrykerJS for JS/TS, mutmut for Python, per N4), optional performance budgets (name, metric, limit),
+   evaluation thresholds for AI features (eval set, metric, min). Examples and contract/README.md.
+3. tf: the architecture phase writes `targets` with a short justification per target; plan.md template and
+   decision_record.py check validate them against the contract copy (regenerated from the new tag, as tf #93 does).
+4. pdi: the B3 gate shows the targets; approve-for-implementation and B4 show their status once ci_for_sdlc reports it
+   (Z7b-1b); get_change and get_trace include them.
+5. Docs: contract/README.md, README, plan §10.
+
+Tests: schema and examples, tf template and check (missing or malformed targets), pdi gate items with targets. Gates:
+pdi — uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src; tf — the repo's
+checks. GitHub Actions do not run on this account right now — run the gates locally and say so in the PRs. Commit and PR
+on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
+```
+
+## Z7b-1b — ci_for_sdlc: sprawdzanie celów zmiany
+
+```text
+Implement part 1b of Z7b of the plan "one-person team" from dbqm45/pdi (main): docs/plan-zespol-jednoosobowy.md §8.1
+and §0 (Z7b-1), the contract change of Z7b-1a (targets) and N4 in §8.3. Start when Z7b-1a and Z8c-1 are merged. Answer me
+in Polish; code, commits and PR title in English, Conventional Commits.
+
+Goal: the gate checks a change's `targets` against real reports, the way it reads JUnit (--tests) and SARIF (--sarif)
+today, so a change below its targets is not ready for B4.
+
+1. Plan first in docs/ (TARGETS-PLAN.md). TDD.
+2. Inputs: `npm run analyze -- --repo <path> --coverage <lcov or cobertura> --mutation <Stryker JSON or mutmut
+   results>` plus the change's `targets` from release.yaml. Readers with size limits; an unreadable or missing report
+   for a set target fails the gate (a check that did not run is never "met").
+3. Rules: TGT-001 coverage of changed code below target (blocking), TGT-002 mutation score on changed code below target
+   (blocking), TGT-003 performance budget exceeded (warning unless the target says blocking), TGT-004 evaluation
+   threshold not met for an AI feature (blocking). Changed code = the change's slices' files (commits with
+   `Change: TSK-n`) or the PR diff in CI.
+4. Readiness to pdi (--send-to-pdi) carries the targets' status; annotations on files in GitHub Actions; the
+   change-check template gains optional coverage and mutation steps.
+
+Tests: readers (valid, malformed, too big), changed-code filtering, TGT-001…004, exit codes and annotations, readiness
+payload. Gates: npm test, npm run typecheck, npm run test:contract, npm run lint:commit. GitHub Actions do not run on
+this account right now — run the gates locally and say so in the PR. Commit and PR on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
+```
+
+## N2 — pdi + tf: pętla budujący–recenzent na PR i samonaprawa CI
+
+```text
+Implement N2 of docs/plan-zespol-jednoosobowy.md (§8.3) in dbqm45/pdi, with the tf part in dbqm45/tf (attach it with
+push access). Start when Z8a (phases in a container) and N1 (second review) are merged. Answer me in Polish; code,
+commits and PR titles in English.
+
+Goal: a talos PR reaches the human only with green checks and closed review comments, or with a clear "not done after
+N rounds" and the reason. Background: Spotify's Honk opens a PR only after full verification kept apart from the agent
+(engineering.atspotify.com, 2025-11); verify the details before relying on them.
+
+1. Plan first in docs/plan-n2-petla-pr.md (pdi). TDD.
+2. After delivery, per talos PR: AI review (tf REVIEW.md) → comment validation by the second model (N1) → talos fixes
+   only the validated comments → re-review; at most 2 rounds (as DZ6), then the PR goes to the human with the open
+   comments. Unvalidated comments go to the human as questions, not to a fix.
+3. Red checks: the agent reads the failing log (local verification script of N3 while Actions do not run; CI log
+   later), fixes, re-runs, waits for green; the same round limit. Every round runs in the container of Z8a.
+4. pdi: the change state gets `pr_loop` per PR (round, status: reviewing | fixing | green | needs_human, last reason);
+   the inbox shows "PR gotowy do Twojego przeglądu" only when green or when the limit is reached; get_trace shows the
+   rounds; cost per round in the phase report and budget.
+5. Docs: README, integrations/claude-code/README.md, mode-pdi GUIDE.md.
+
+Tests: the round loop with injected review, validation and fix steps (green after 1 round, limit reached, unvalidated
+comments to the human), red check fix path, state and inbox items, cost accounting. Then one run on dbqm45/sdlc-proba with
+a talos PR that has one real review finding and one false one: the real one is fixed, the false one goes to the human.
+Gates: pdi — uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src; tf — the
+repo's checks. GitHub Actions do not run on this account right now — run the gates locally and say so in the PRs. Commit
+and PR on my request.
 Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
