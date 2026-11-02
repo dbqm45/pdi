@@ -425,6 +425,7 @@ Gates: uv run pytest, uv run ruff check src tests, uv run ruff format --check sr
 Actions do not run on this account right now: run the gates locally and say so in the PR. At the end, run
 `sdlc attach dbqm45/sprintdeck` with me and walk S5 version 3 through step 3 (triage → CHG-1 dispatched). The rest I
 run myself, filling the §7 journal. Commit, PR and any ShipScope or sprintdeck change on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
 ## Etap 3 — pdi (+ ShipScope, tf): z localhosta na produkcję
@@ -499,6 +500,7 @@ Tests (pdi, injected runner, HTTP client and env; no real network, platforms or 
 Gates: uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src, plus the
 Actions checks once they run. At the end, walk S5 version 4 with me through step 3 (triage → phase intent started in
 sprintdeck's Actions). The rest I run myself. Commit, PRs, platform changes and any secret setting on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
 ## Etap 4 — pdi: usługa (DA4) i konsola, krok K-2
@@ -572,6 +574,7 @@ Gates: the existing Python gates (uv run pytest, ruff check, ruff format --check
 lint, typecheck and tests, and the e2e suite, all in Actions (working since stage 3). At the end, decide one inbox
 item in the console with me and show it in `list_inbox` and in the timeline. Commit, PRs, migration on real data,
 production deploy and any new repo on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
 ## Etap 5 — pdi: graf śladu, rejestr decyzji i panel w Jirze (K-4)
@@ -643,6 +646,7 @@ Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy sr
 typecheck, tests and e2e, and for part B the Forge app's lint and tests, all in Actions. At the end, open the trace
 of the S5 change with me in the console (and in Jira, if part B is done). Commit, PRs, the Forge app's install,
 any Jira write scope and any new repo on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
 ## Etap 6 — pdi: autonomia zdobywana na danych
@@ -727,6 +731,7 @@ Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy sr
 lint, typecheck, tests and e2e, all in Actions. At the end, show me the Autonomia screen with the real report and walk
 one level-2 decision in a test tenant with me: the inbox entry with its deadline, a veto, then one applied after the
 window. Commit, PRs, any policy change on the real tenant and changes in other repos on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
 ## Etap 7 — pdi (+ ShipScope, tf): etapy flag według reguły (A4) i metryki ochronne (G5)
@@ -809,6 +814,7 @@ checks, and each touched repo's own gates, all in Actions. At the end, walk with
 flag on sprintdeck at level 3: the proposal with its evidence, my approval, the executor's change, ShipScope showing
 the new stage. Commit, PRs, any flag change on production, the analytics tool's setup and changes in other repos
 on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
 ## Etap 8 — pdi (+ tf, ci_for_sdlc): uproszczone review (A7) i lustro Jira ↔ repo (A8)
@@ -891,6 +897,7 @@ checks, and each touched repo's own gates, all in Actions. At the end, walk with
 level 3 (classification, proposal with evidence, my approval, merge) and one approved change mirrored to its Jira
 issue. Commit, PRs, any merge, any Jira write on a real site, new permissions and changes in other repos on my
 request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
 ## Etap 9 — pdi: incydenty w pętli skutku (G8) i aplikacja Slacka (A5)
@@ -973,6 +980,7 @@ Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy sr
 checks and each touched repo's own gates, all in Actions. At the end, walk with me one test incident matched to the
 S5 change (trace, timeline, impact review) and one decision recorded from a Slack thread. Commit, PRs, the incident
 tool's setup, installing the Slack app, any consent setting and changes in other repos on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
 ## Etap 10 — pdi: rozmowa w konsoli (K-3)
@@ -1051,6 +1059,7 @@ Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy sr
 lint, typecheck, tests and e2e, and the touched repos' own gates, all in Actions. At the end, with me: ask the chat
 what blocks the S5 change, then have it draft one decision and approve it in the inbox. Commit, PRs, the model's API
 key setup, production deploy and changes in other repos on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
 ## Etap 11 — ci_for_sdlc (+ pdi, sprintdeck): zaległe kroki G1/G2 (G2.3, G1.6, G2.6)
@@ -1125,6 +1134,7 @@ Tests (for the steps that come back):
 Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy src) and each touched repo's own gates,
 all in Actions. At the end, show me each recorded decision, and for each step that came back walk it once with me on
 a real story. Commit, PRs, contract changes and changes in other repos on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
 ## Etap 12 — pdi: jedno wejście dla ludzi (G6, P1) i miary przepływu (G7)
@@ -1208,6 +1218,7 @@ Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy sr
 lint, typecheck, tests and e2e, and each touched repo's own gates, all in Actions. At the end, walk the shell with me:
 sign in once, go from "Now" to the S5 change in "Work", its release in "Releases", and its numbers in "Outcomes".
 Commit, PRs, the product name, any change to existing users' workspaces and changes in other repos on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
 ## Etap 13 — pdi (+ ShipScope, tf): przełącznik funkcjonalności i pierwsze łączenie backendów
@@ -1295,6 +1306,7 @@ Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy sr
 checks and each touched repo's own gates, all in Actions. At the end, with me: a dry run of the S5 feature's switch
 on TEST, then a real switch on TEST, then the PROD decision in the inbox (I decide whether to approve). Commit, PRs,
 ADR-004, any real switch on QA or PROD, migration of existing connections and changes in other repos on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
 ## Etap 14 — pdi (+ ShipScope, ci_for_sdlc): łączenie backendów moduł po module
@@ -1365,6 +1377,7 @@ Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy sr
 checks and each touched repo's own gates, all in Actions. At the end, with me: run S5's main path through the
 merged module (report → change → release → outcome) and show the removed integration code. Commit, PRs, the
 migration on real data, the cut-over, the removal of the old path and changes in other repos on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
 ## Etap 15 — pdi: pilotaż z design partnerami na platformie
@@ -1444,6 +1457,7 @@ Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy sr
 all in Actions. At the end, walk the onboarding path with me on a fresh test workspace and repo, and show me the
 outreach materials ready to send. Commit, PRs, every message to a candidate, any agreement, any access to a partner's
 systems and changes in other repos on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
 ## Etap 16 — pdi (+ ShipScope, ci_for_sdlc): utrzymanie i niezawodność platformy
@@ -1518,6 +1532,7 @@ Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy sr
 checks and each touched repo's own gates, all in Actions. At the end, with me: one restore test on a copy, one key
 rotation on a test workspace, and one alert fired end to end. Commit, PRs, any change to hosting, alerting or on-call
 settings, any rotation on production, and changes in other repos on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
 ## Etap 17 — pdi: cennik i rozliczenia platformy
@@ -1595,6 +1610,7 @@ Gates: the Python gates (uv run pytest, ruff check, ruff format --check, mypy sr
 checks and each touched repo's own gates, all in Actions. At the end, with me: one full cycle in the provider's test
 mode (trial → plan → usage → limit → upgrade → cancellation). Commit, PRs, prices published anywhere, the provider
 account and live mode, any charge, any change to a real customer's plan, and changes in other repos on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
 ## Etap 18 — pdi: przegląd na dowodach i nowa mapa drogowa
@@ -1659,4 +1675,5 @@ Checks (instead of tests, since this stage writes no code):
 
 Gates: uv run pytest (doc-related tests, if any) and the repo's lint for docs. Commit, PR, any decision to cut a
 capability, any message to partners about changes, and any change in other repos on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
