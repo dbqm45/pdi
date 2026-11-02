@@ -1,6 +1,6 @@
 # Plan: zespół jednoosobowy — greenfield od wywiadu, brownfield od poznania projektu, wszystko w przeglądarce
 
-Data: 2026-11-02 · Status: **plan; decyzje DZ1–DZ5 przyjęte 2026-11-02**, otwarte DA4 · Stan wyjściowy: pdi `d66b4bf`, tf 5.55.0,
+Data: 2026-11-02 · Status: **plan; decyzje DZ1–DZ5 przyjęte 2026-11-02**, otwarte DA4 i DZ6–DZ8 (Z7) · Stan wyjściowy: pdi `d66b4bf`, tf 5.55.0,
 ShipScope 0.2.67, ci_for_sdlc 0.1.35+ · Powiązane: [plan `sdlc up`](plan-sdlc-lokalnie.md),
 [przebieg lokalny](przebieg-lokalny.md#wynik-przebiegu-2026-10-31), [etapy 2–18](polecenia-startowe-sdlc-lokalnie.md),
 [automatyzacja i konsola](plan-automatyzacja-i-konsola.md), [jedna platforma](15-jedna-platforma.md)
@@ -198,12 +198,45 @@ z uzasadnieniem i źródłem. Każda kolejna faza dostaje w wejściu decyzje, kt
 | Z4 | **Greenfield do końca:** wybór stosu (`arch-tech-selection`, decyzja `stack`), bootstrap repo ze stosu z tf, lista kroków infrastruktury dla człowieka | tf + pdi (`sdlc new`) | Z2, DZ3 | nowy mały produkt od wywiadu do oceny skutku, bez szablonu `sdlc-sandbox` |
 | Z5 | **Onboarding brownfield:** faza `onboarding` (rekonstrukcja z kodu + wyniki ci_for_sdlc z Jiry, Confluence, Figmy) → `standards.md` z dowodami, mapa wiedzy, pytania; B0; standardy w wejściu faz i reguła w ci_for_sdlc | tf + pdi + ci_for_sdlc | Z1 | na „obcym” repo (DZ4) pierwsza zmiana przechodzi zgodnie z jego standardami, a review nie znajduje naruszeń konwencji |
 | Z6 | **Źródła rozmów:** Slack, potem Teams i Miro jako źródła wiedzy do onboardingu (cytat i link) | pdi (+ konektory) | Z5, DZ2 | mapa wiedzy cytuje wątki i tablice; sprzeczności z Confluence są w pytaniach |
+| Z7 | **Układ z cyklu aplikacji AI** (§8.1): trzy pasy w konsoli i dokumentacji, bramka „spełnia cele?” z krótką pętlą do wskazanej fazy, pas governance przez wszystkie fazy, opcjonalna gałąź dla produktów, które same są aplikacją AI | pdi + tf + ci_for_sdlc (+ ShipScope) | Z1, Z3 (pasy w konsoli) | patrz §8.1, Z7a–Z7d |
 
-Kolejność: Z1 → Z2 (w czacie Claude, bez nowej usługi) → Z3 → Z4 i Z5 równolegle → Z6.
+Kolejność: Z1 → Z2 (w czacie Claude, bez nowej usługi) → Z3 → Z4 i Z5 równolegle → Z6. Z7: Z7b i Z7c mogą iść
+razem z Z1–Z2 (nie zależą od konsoli), Z7a razem z Z3, Z7d przy pierwszym produkcie, który jest aplikacją AI.
 
 **Miejsce w etapach 2–18:** Z1 to poprawka przed etapem 2 (zalecana w wyniku przebiegu). Z3 łączy etap 4 (usługa
 i konsola K-2) z etapem 10 (rozmowa K-3) i przesuwa rozmowę wcześniej. Z2, Z4, Z5 i Z6 to nowe etapy, których w tej
 tabeli nie ma. Zmianę kolejności etapów zatwierdza właściciel (DZ5).
+
+### 8.1. Z7 — układ z cyklu aplikacji AI
+
+Źródło: diagram cyklu życia aplikacji AI (pokazany 2026-11-02): trzy pasy „Design & Build”, „Evaluate & Ship”,
+„Deploy, Monitor & Improve”, bramka „meets targets?” z pętlą „fail → iterate”, pętla ulepszeń wracająca do faz 2–7
+i pas „Governance, Security & Compliance” przez wszystkie fazy. Diagram opisuje budowę aplikacji AI, a nasz przebieg
+dowożenie dowolnej zmiany, więc nie zastępujemy przebiegu, tylko przejmujemy cztery elementy.
+
+**Porównanie z naszym przebiegiem**
+
+| Na diagramie | U nas dziś | Brakuje |
+|---|---|---|
+| 1. Cel biznesowy i metryki | metryka sukcesu w decyzji B1 (`success_metric`), cel MVP w `release.yaml` | metryka już w wywiadzie (Z2), przed kształtem rozwiązania |
+| 2. Przygotowanie danych i wiedzy | brownfield: rekonstrukcja z kodu, ci_for_sdlc; reszta w Z5–Z6 | — (pokrywa Z5, Z6) |
+| 3–7. Model, kontekst, RAG, agenci, fine-tuning | brak jako faz; skille tf (wywołania LLM, ewaluacje RAG, bramki dla agentów) | opcjonalna gałąź dla produktów AI (Z7d) |
+| 8. Ewaluacja i testy | reguły ci_for_sdlc (STORY/AC/REL/DES/TEST), testy repo, review | mierzalne cele jakości zmiany (progi), sprawdzane automatycznie |
+| Bramka „spełnia cele?”, „fail → iterate” | bramki ludzi; „do poprawek” wraca tylko do tej samej fazy | bramka z celami i powrót do wskazanej wcześniejszej fazy (Z7b) |
+| 9. Wdrożenie i integracja | ShipScope: wdrożenia, flagi, etapy | — |
+| 10. Obserwowalność i monitoring | `metric_watch.py` (pasma 3σ), ShipScope (`/metrics`, `/flow`) | metryki ochronne produktu (G5, etap 7) |
+| 11. Informacja zwrotna i analiza błędów | ocena skutku (`met`/`not_met`), `metric.breached` → nowe zgłoszenie | analiza przyczyny przy `not_met` jako wejście dla kolejnej iteracji |
+| „Update & Experiment”, pętla do faz 2–7 | `not_met` i wybicie metryki otwierają nowe PRB: cały cykl od triażu | ponowne otwarcie tej samej zmiany od wymagań albo architektury, z danymi z produkcji (Z7b) |
+| 12. Governance przez wszystkie fazy | rozproszone: rejestr decyzji, graf śladu, typy chronione (DA2), `security-reviewer`, zasady źródeł (A5) | jeden pas: co w każdej fazie sprawdzono pod kątem danych osobowych, dostępów, zabezpieczeń i audytu (Z7c) |
+
+**Kroki**
+
+| Krok | Co | Repo | Zależy od | Gotowe, gdy |
+|---|---|---|---|---|
+| Z7a | **Trzy pasy:** „Zaprojektuj i zbuduj” (discovery/onboarding → design), „Oceń i wydaj” (gotowość, approve-for-implementation, dostarczenie, cele, B4/B5), „Wdróż, obserwuj, ulepszaj” (wdrożenie, etapy flagi, wydanie, skutek, pętla); `stage` każdej fazy i bramki w kontrakcie, tablica konsoli i dokumentacja według pasów | pdi (kontrakt, konsola) | Z3 | na tablicy widać, w którym pasie jest każda zmiana |
+| Z7b | **Bramka z celami i krótka pętla:** `targets` zmiany (progi: testy kryteriów, pokrycie, wydajność, ewaluacje dla AI) w `release.yaml` albo planie; sprawdzane przez ci_for_sdlc i testy przed B4; wynik „nie spełnia” albo ocena skutku `not_met` może wrócić do wskazanej fazy (`return_to: requirements \| architecture \| design \| delivery`) tej samej zmiany, z danymi jako wejściem, zamiast nowego zgłoszenia | pdi + tf + ci_for_sdlc | Z1 | zmiana, która nie spełnia celu, wraca do wskazanej fazy z powodem, a pętla ma limit prób i potem trafia do człowieka |
+| Z7c | **Pas governance:** dla każdej fazy lista kontrolna (dane osobowe, dostępy i sekrety, zabezpieczenia AI, audyt i pochodzenie) z wynikiem w stanie zmiany; graf śladu i konsola pokazują go jako pas; brak sprawdzenia blokuje B5 (autoryzacja PROD) | pdi + tf | Z1 | `get_trace` pokazuje pas governance każdej zmiany; B5 bez kompletu odmawia z listą braków |
+| Z7d | **Gałąź dla produktów AI:** gdy wywiad albo architektura oznaczy produkt jako aplikację AI, dochodzą fazy opcjonalne: dobór modelu (decyzja z kosztem), kontekst i RAG, orkiestracja agentów, decyzja o fine-tuningu, ewaluacje z progami (Z7b); skille tf jako podstawa (DZ3) | tf + pdi (kontrakt) | Z2, Z7b | mały produkt AI przechodzi gałąź z ewaluacją spełniającą próg przed wydaniem |
 
 ## 9. Decyzje do podjęcia
 
@@ -215,6 +248,9 @@ tabeli nie ma. Zmianę kolejności etapów zatwierdza właściciel (DZ5).
 | DZ4 | Na jakim repo sprawdzić brownfield? | **przyjęte**: sprintdeck albo ShipScope jako „obcy” projekt: mają dokumentację, standardy i historię |
 | DZ5 | Czy zmienić kolejność etapów 2–18? | **przyjęte**: Z1 przed etapem 2; Z2 i Z3 przed etapem 3; rozmowa (K-3) razem z konsolą (K-2) |
 | DA4 | Stos usługi pdi (otwarte od etapu 4) | do rozstrzygnięcia przed Z3 |
+| DZ6 | Co robi pętla przy niespełnionym celu albo `not_met`: wraca do fazy tej samej zmiany czy otwiera nowe zgłoszenie? | wraca do wskazanej fazy tej samej zmiany (z powodem i danymi), z limitem prób (np. 2), potem decyzja człowieka; nowe zgłoszenie tylko dla nowego problemu |
+| DZ7 | Kto ustala cele zmiany (`targets`) | architekt (tomasz) proponuje w planie, człowiek zatwierdza w B3; dla produktów AI progi ewaluacji obowiązkowe |
+| DZ8 | Czy governance blokuje wydanie | tak, tylko na B5 (autoryzacja PROD); wcześniej ostrzega |
 
 ## 10. Stan
 
@@ -226,3 +262,4 @@ tabeli nie ma. Zmianę kolejności etapów zatwierdza właściciel (DZ5).
 | Z4 | do zrobienia |
 | Z5 | do zrobienia, po DZ4 |
 | Z6 | do zrobienia, po DZ2 |
+| Z7 | do zrobienia, po DZ6–DZ8 (Z7a po Z3) |
