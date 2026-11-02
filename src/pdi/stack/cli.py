@@ -3,8 +3,9 @@
 `sdlc up` sprawdza narzędzia, raz pyta o ścieżki klonów (`~/.sdlc/config.toml`), raz generuje sekrety
 (`~/.sdlc/env`, 600), startuje ShipScope (`npm run dev`: Postgres w Dockerze, web i worker) i pdi-receiver jako
 odłączone procesy, łączy ShipScope z pdi bez przeglądarki (`server/scripts/local-pdi.js` w ShipScope), wysyła gotowość
-zmian z ci_for_sdlc i rejestruje serwery MCP w Claude Code. Sekrety idą do procesów tylko przez środowisko; w argv,
-logach i wyjściu `sdlc` ich nie ma. Tylko biblioteka standardowa. Plan: docs/plan-l4-sdlc.md.
+zmian z ci_for_sdlc, buduje obraz kontenera faz tf (Z8a, `sdlc image`) i rejestruje serwery MCP w Claude Code.
+Sekrety idą do procesów tylko przez środowisko; w argv, logach i wyjściu `sdlc` ich nie ma. Tylko biblioteka
+standardowa. Plan: docs/plan-l4-sdlc.md.
 """
 
 from __future__ import annotations
@@ -29,6 +30,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from pdi import phase_sandbox
 from pdi.stack import home
 
 Run = Callable[[list[str], Path | None, Mapping[str, str], str | None], tuple[int, str, str]]
@@ -336,6 +338,42 @@ def register_mcp(ctx: Ctx, config: home.Config) -> None:
             raise Stop(f"claude mcp add {name}: {_first_line(err) or f'kod {code}'}")
 
 
+def phase_run(ctx: Ctx) -> phase_sandbox.Run:
+    """`ctx.run` w kształcie wykonawcy z pdi.phase_sandbox (kod, stdout + stderr)."""
+
+    def run(argv: list[str], cwd: Path, env: Mapping[str, str]) -> tuple[int, str]:
+        code, out, err = ctx.run(argv, cwd, env, None)
+        return code, out + err
+
+    return run
+
+
+def sandbox_mode(ctx: Ctx, secrets: Mapping[str, str]) -> str:
+    try:
+        return phase_sandbox.mode({**ctx.environ, **secrets})
+    except phase_sandbox.SandboxError as e:
+        raise Stop(str(e)) from e
+
+
+def ensure_phase_image(ctx: Ctx, config: home.Config, secrets: Mapping[str, str], *, force: bool = False) -> None:
+    """Obraz kontenera faz tf (Z8a) dla repo produktu z config.toml; ostrzeżenie, gdy brak tokenu Claude."""
+    if config.checkout is None:
+        return
+    env = {**ctx.environ, **secrets}
+    if not force:
+        ctx.out("Obraz faz: sprawdzam (pierwsza budowa trwa kilka minut)…")
+    try:
+        tag, built = phase_sandbox.ensure_image(config.checkout, run=phase_run(ctx), env=env, force=force)
+    except phase_sandbox.SandboxError as e:
+        raise Stop(str(e)) from e
+    ctx.out(f"obraz faz: {tag} ({'zbudowany' if built else 'jest'})")
+    if not any(env.get(name) for name in (*phase_sandbox.TOKENS, "ANTHROPIC_AUTH_TOKEN")):
+        ctx.out(
+            "  uwaga: fazy w kontenerze potrzebują tokenu Claude — `claude setup-token`, potem w ~/.sdlc/env "
+            "CLAUDE_CODE_OAUTH_TOKEN=<token> (albo ANTHROPIC_API_KEY, tylko jedna z nich) i `uv run sdlc up`."
+        )
+
+
 def cmd_up(ctx: Ctx) -> int:
     problems = check_tools(ctx)
     if problems:
@@ -348,6 +386,13 @@ def cmd_up(ctx: Ctx) -> int:
     secrets, created = home.ensure_env(ctx.root)
     if created:
         ctx.out(f"~/.sdlc/env: wygenerowane {', '.join(created)}")
+    sandbox = sandbox_mode(ctx, secrets)
+    if sandbox == "docker":
+        issue = phase_sandbox.docker_problem(phase_run(ctx), ctx.cwd, {**ctx.environ, **secrets})
+        if issue:
+            raise Stop(issue)
+    else:
+        ctx.out("uwaga: PDI_DISPATCH_SANDBOX=none — fazy tf działają bez kontenera, z dostępem do tego komputera.")
     url = ensure_shipscope(ctx, config)
     if pid_of(ctx, "pdi-receiver") is None:
         start_receiver(ctx, config, secrets)
@@ -359,6 +404,8 @@ def cmd_up(ctx: Ctx) -> int:
         state = _state(out) if code == 0 else f"test nieudany: {_first_line(err)}"
         ctx.out(f"ShipScope ↔ pdi: {state}")
     ci_check(ctx, config, secrets)
+    if sandbox == "docker":
+        ensure_phase_image(ctx, config, secrets)
     register_mcp(ctx, config)
     ctx.out("")
     ctx.out(f"  ShipScope       {url}/")
@@ -523,6 +570,18 @@ def cmd_deploy(ctx: Ctx, target: str, repo: str | None) -> int:
     if code != 0:
         raise Stop(f"gh api: status wdrożenia {deployment} — {_first_line(err) or code}")
     ctx.out(f"Wdrożenie {deployment}: {repo}@{sha} → {environment} (success). ShipScope odczyta je w ciągu minuty.")
+    return 0
+
+
+def cmd_image(ctx: Ctx, *, force: bool) -> int:
+    config = config_of(ctx)
+    if config.checkout is None:
+        raise Stop("Brak repo produktu dla faz tf (checkout w ~/.sdlc/config.toml) — najpierw `uv run sdlc sandbox`.")
+    secrets, _ = home.ensure_env(ctx.root)
+    problem = phase_sandbox.docker_problem(phase_run(ctx), ctx.cwd, {**ctx.environ, **secrets})
+    if problem:
+        raise Stop(problem)
+    ensure_phase_image(ctx, config, secrets, force=force)
     return 0
 
 
@@ -691,6 +750,8 @@ def main(argv: list[str] | None = None, *, ctx: Ctx | None = None) -> int:
     sandbox.add_argument("--owner", help="konto GitHub (domyślnie zalogowane w gh)")
     sub.add_parser("impact-review", help="otwiera oceny skutku, których termin minął (pdi-impact-review)")
     sub.add_parser("forecast", help="wyniki prognoz i czas przepływu dostarczonych zmian (pdi-forecast)")
+    image = sub.add_parser("image", help="obraz kontenera faz tf (Z8a): buduje, gdy go nie ma")
+    image.add_argument("--force", action="store_true", help="buduje od nowa")
     mcp = sub.add_parser("mcp", help="(dla Claude Code) serwer MCP ze zmiennymi z ~/.sdlc/env")
     mcp.add_argument("name", choices=("pdi", "shipscope"))
     args = parser.parse_args(argv)
@@ -714,6 +775,8 @@ def main(argv: list[str] | None = None, *, ctx: Ctx | None = None) -> int:
             return cmd_reset(ctx)
         if args.command == "sandbox":
             return cmd_sandbox(ctx, args.name, args.owner)
+        if args.command == "image":
+            return cmd_image(ctx, force=args.force)
         return cmd_mcp(ctx, args.name)
     except Stop as e:
         ctx.out(f"✗ {e}")

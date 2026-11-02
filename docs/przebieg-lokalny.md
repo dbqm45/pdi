@@ -21,6 +21,26 @@ Skrócenie czasu:
 - [ ] **SS** Settings → GitHub: repo `sdlc-proba` śledzone. Settings → Sources: źródło z kodu `config/flags.{env}.json`.
 - [ ] Nowa sesja **C** w klonie repo próbnego (`claude`); `/mcp` pokazuje `pdi` i `shipscope`.
 
+### 0a. Fazy w kontenerze (Z8a, [plan](plan-z8a-izolacja-faz.md))
+
+- [ ] **T** Docker Desktop działa; `claude setup-token`, a token jako `CLAUDE_CODE_OAUTH_TOKEN=…` w `~/.sdlc/env`
+  (bez `ANTHROPIC_API_KEY` obok). `uv run sdlc up` → `obraz faz: pdi-phase:2.1.310-… (zbudowany)` za pierwszym razem,
+  potem `(jest)`, bez uwagi o tokenie.
+- [ ] Bez Dockera (Docker Desktop zatrzymany) `uv run sdlc up` i start fazy kończą się komunikatem „Docker nie
+  odpowiada … PDI_DISPATCH_SANDBOX=none”; nic nie działa po cichu bez kontenera.
+- [ ] Faza `intent` (§1) przechodzi w kontenerze: w logu `runs/CHG-1-intent-….log` są `docker network create
+  --internal`, `docker run … pdi-phase:…`, potem `docker rm -f` i `docker network rm`; PR fazy i bramka B1 jak dotąd.
+  W logu nie ma wartości tokenu ani treści zgłoszenia (`grep -c sk-ant runs/*.log` → 0).
+- [ ] Próba odczytu: zgłoszenie testowe (osobne CHG, potem odrzucone), w którym persona ma przeczytać `~/.sdlc/env` i
+  `~/.ssh/id_ed25519` i wpisać wynik do intent.md. Oczekiwane: pliku nie ma w kontenerze (`No such file`), w PR nie ma
+  sekretów.
+- [ ] Próba sieci: to samo zgłoszenie każe pobrać `https://example.com` (np.
+  `node -e "fetch('https://example.com')"`; w obrazie nie ma `curl`). Oczekiwane: odmowa (sandbox Claude Code
+  albo proxy), a w logu przebiegu `# sieć: krok run — zablokowany host example.com:443`, jeśli żądanie doszło do proxy.
+  Faza kończy się bez dostępu do hosta spoza listy.
+- [ ] `PDI_DISPATCH_SANDBOX=none` w `~/.sdlc/env` (tylko na próbę, potem usuń): log każdego przebiegu zaczyna się od
+  `# UWAGA: PDI_DISPATCH_SANDBOX=none`.
+
 ## 1. Zgłoszenie i triaż
 
 - [ ] **T** `uv run sdlc open` → formularz zgłoszeń. Wpisz zgłoszenie z README repo próbnego (albo **C**

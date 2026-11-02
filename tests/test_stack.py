@@ -893,3 +893,78 @@ def test_daily_runs_get_the_same_variables_as_the_mcp_server(world: World, comma
 def test_daily_runs_need_sdlc_up_first(world: World) -> None:
     assert cli.main(["impact-review"], ctx=world.ctx()) == 1
     assert "sdlc up" in world.text()
+
+
+# --- obraz fazy w kontenerze (Z8a, DZ9) ---
+
+
+def builds(world: World) -> list[list[str]]:
+    return [argv for argv, _, _, _ in world.runs if argv[:2] == ["docker", "build"]]
+
+
+def test_up_refuses_when_docker_does_not_answer(world: World) -> None:
+    world.answer(("docker", "version"), 1, "", "Cannot connect to the Docker daemon")
+
+    assert up(world) == 1
+
+    assert "Docker" in world.text() and "Docker Desktop" in world.text()
+    assert "PDI_DISPATCH_SANDBOX=none" in world.text()
+    assert world.spawned == []
+
+
+def test_up_builds_the_phase_image_when_missing_and_says_so(world: World) -> None:
+    world.answer(("docker", "image", "inspect"), 1, "", "No such image")
+
+    assert up(world) == 0
+
+    (build,) = builds(world)
+    assert build[2] == "-t" and build[3].startswith("pdi-phase:")
+    assert f"obraz faz: {build[3]} (zbudowany)" in world.text()
+
+
+def test_up_keeps_an_existing_image_and_warns_without_a_claude_token(world: World) -> None:
+    assert up(world) == 0
+
+    assert builds(world) == []
+    assert "obraz faz: pdi-phase:" in world.text()
+    assert "claude setup-token" in world.text() and "CLAUDE_CODE_OAUTH_TOKEN" in world.text()
+
+
+def test_up_with_a_claude_token_does_not_warn(world: World) -> None:
+    root = world.home / ".sdlc"
+    env, _ = home.ensure_env(root)
+    home.write_env(root / "env", {**env, "CLAUDE_CODE_OAUTH_TOKEN": "sk-ant-oat01-tajny"})
+
+    assert up(world) == 0
+
+    assert "claude setup-token" not in world.text()
+    assert "sk-ant-oat01-tajny" not in world.text() + world.argv_text()
+
+
+def test_up_in_none_mode_skips_docker_and_the_image(world: World) -> None:
+    root = world.home / ".sdlc"
+    env, _ = home.ensure_env(root)
+    home.write_env(root / "env", {**env, "PDI_DISPATCH_SANDBOX": "none"})
+    world.answer(("docker", "version"), 1, "", "Cannot connect")
+
+    assert up(world) == 0
+
+    assert not [a for a, _, _, _ in world.runs if a[:2] in (["docker", "version"], ["docker", "image"])]
+    assert "PDI_DISPATCH_SANDBOX=none" in world.text()
+
+
+def test_sdlc_image_force_rebuilds(world: World) -> None:
+    assert up(world) == 0
+
+    assert cli.main(["image", "--force"], ctx=world.ctx()) == 0
+
+    (build,) = builds(world)
+    assert build[3].startswith("pdi-phase:")
+
+
+def test_sdlc_image_reports_a_failed_build(world: World) -> None:
+    assert up(world) == 0
+    world.answer(("docker", "build"), 1, "", "no space left on device")
+
+    assert cli.main(["image", "--force"], ctx=world.ctx()) == 1
+    assert "no space left on device" in world.text()

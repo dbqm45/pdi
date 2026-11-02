@@ -10,6 +10,9 @@ zwraca `running`, więc wywołanie MCP i odbiornik odpowiadają bez czekania. Je
 tle pisze log `runs/<CHG>-<faza>-<czas>.log` i wynik obok (`….result.json`); stanu zmiany nie zapisuje — wynik dopisuje
 do niego `settle()` przy odczycie (`pdi.changes`). Każde polecenie to lista argumentów, nigdy tekst dla powłoki. Do logu
 i stanu pdi nie dopisuje tokenów ani treści zgłoszenia (ta idzie do persony tylko przez `PDI_PROBLEM`).
+
+Krok `run` (persona, talos) działa domyślnie w kontenerze Docker, który widzi tylko klon i listę hostów sieci
+(`pdi.phase_sandbox`, krok Z8a, decyzja DZ9); pozostałe kroki — z poświadczeniami — zostają na tym komputerze.
 """
 
 from __future__ import annotations
@@ -29,7 +32,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from pdi import contract, flow
+from pdi import contract, flow, phase_sandbox
 
 Run = Callable[[list[str], Path, Mapping[str, str]], tuple[int, str]]
 # Jak Run, ale każdą linię wyjścia oddaje od razu (do logu), zanim krok się skończy (PRB-6).
@@ -127,6 +130,15 @@ def start(
         return {**result, "error": f"git status w {checkout} zakończony kodem {code}."}
     if out.strip():
         return {**result, "error": f"Klon {checkout} ma niezatwierdzone zmiany — zatwierdź je albo odłóż i ponów."}
+    environ = environ or os.environ
+    try:
+        sandbox = phase_sandbox.mode(environ)  # Z8a: krok run w kontenerze; bez Dockera odmowa, nie cichy powrót
+    except phase_sandbox.SandboxError as e:
+        return {**result, "error": str(e)}
+    if sandbox == "docker":
+        problem_text = phase_sandbox.docker_problem(run or _run, Path(checkout), dict(environ))
+        if problem_text:
+            return {**result, "error": problem_text}
 
     runs_dir.mkdir(parents=True, exist_ok=True)
     lock = runs_dir / f"{change}.lock"
@@ -388,6 +400,12 @@ def execute(
         return ["python3", f"{SCRIPTS}/{name}", *args]
 
     try:
+        try:
+            sandbox = phase_sandbox.mode(env)
+        except phase_sandbox.SandboxError as e:
+            raise _StepFailed("run", str(e)) from e
+        if sandbox == "none":
+            log(phase_sandbox.NONE_WARNING)
         _, dirty = step("checkout", ["git", "status", "--porcelain"])
         if dirty.strip():
             raise _StepFailed("checkout", "Klon ma niezatwierdzone zmiany — zatwierdź je albo odłóż i ponów.")
@@ -441,7 +459,11 @@ def execute(
             args += ["--rework", "--gate", spec["gate"], "--decision", spec["decision"]]
         if spec.get("budget_usd"):
             args += ["--budget-usd", spec["budget_usd"]]
-        step("run", script("phase_run.py", "run", *args), extra={**problem_env, **claude_env})
+        if sandbox == "docker":
+            _run_in_container(spec, step, log, env, base, passed, script("phase_run.py", "run", *args),
+                              {**problem_env, **claude_env})  # fmt: skip
+        else:
+            step("run", script("phase_run.py", "run", *args), extra={**problem_env, **claude_env})
 
         if phase == "delivery":
             cuts = _publish_cuts(step, cuts_before, ref, github_env)
@@ -467,6 +489,38 @@ def execute(
 
 
 Step = Callable[..., tuple[int, str]]
+
+
+def _run_in_container(
+    spec: Mapping[str, Any],
+    step: Step,
+    log: Callable[[str], None],
+    env: Mapping[str, str],
+    base: Mapping[str, str],
+    passed: set[str],
+    run_argv: list[str],
+    run_env: Mapping[str, str],
+) -> None:
+    """Krok `run` w kontenerze (Z8a, `pdi.phase_sandbox`); sieć i kontenery przebiegu sprząta zawsze."""
+    box = phase_sandbox.Box.of(spec["log"])
+    try:
+        phase_sandbox.prepare(
+            box,
+            checkout=Path(spec["checkout"]),
+            log_path=Path(spec["log"]),
+            env=env,
+            base=base,
+            passed=passed,
+            run_argv=run_argv,
+            run_env=run_env,
+            timeout=STEP_TIMEOUT_SECONDS,
+            step=step,
+        )
+        step("run", box.argv, extra=box.env)
+    except phase_sandbox.SandboxError as e:
+        raise _StepFailed("run", str(e)) from e
+    finally:
+        phase_sandbox.cleanup(box, step=step, log=log, env=env)
 
 
 def _cuts(step: Step) -> set[str]:
