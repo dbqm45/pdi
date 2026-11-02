@@ -1,9 +1,79 @@
 # Plan: zespół jednoosobowy — greenfield od wywiadu, brownfield od poznania projektu, wszystko w przeglądarce
 
-Data: 2026-11-02 · Status: **plan, do decyzji właściciela** (§9) · Stan wyjściowy: pdi `d66b4bf`, tf 5.55.0,
+Data: 2026-11-02 · Status: **plan; decyzje DZ1–DZ5 przyjęte 2026-11-02**, otwarte DA4 · Stan wyjściowy: pdi `d66b4bf`, tf 5.55.0,
 ShipScope 0.2.67, ci_for_sdlc 0.1.35+ · Powiązane: [plan `sdlc up`](plan-sdlc-lokalnie.md),
 [przebieg lokalny](przebieg-lokalny.md#wynik-przebiegu-2026-10-31), [etapy 2–18](polecenia-startowe-sdlc-lokalnie.md),
 [automatyzacja i konsola](plan-automatyzacja-i-konsola.md), [jedna platforma](15-jedna-platforma.md)
+
+## Skrót: co już mamy i czego brakuje
+
+Tabele w brzmieniu z rozmowy 2026-11-02, bez pozycji już zrobionych. Szczegóły i kroki: §2–§10.
+
+### Co już mamy, a czego brakuje
+
+**Model „zespołu jednoosobowego” już jest w tf.** Persony to role w zespole:
+
+| Rola | Kto | Stan |
+|---|---|---|
+| PM | Maja: intencja | jest |
+| Analityk | Ewa: wymagania | jest |
+| Architekt | Tomasz: plan cięć i wydania | jest |
+| UX | Natalia: design | jest |
+| Programista | Talos: cięcia jako PR | jest |
+| Recenzent bezpieczeństwa | `security-reviewer` w tf | jest |
+| QA | ci_for_sdlc i testy | w części |
+| Ops | ShipScope | jest |
+
+Każda faza to dziś agent działający **bez rozmowy**: dostaje wejście, robi artefakt, prosi o bramkę.
+
+### Greenfield
+
+| Etap | Stan | Brakuje |
+|---|---|---|
+| Wywiad na start (styl grill-me: pytanie po pytaniu, po kolei przez całe drzewo decyzji, z rekomendowaną odpowiedzią przy każdym) | **brak**; dziś proces startuje od gotowego zgłoszenia | faza `discovery` przed intencją; to jedyna faza, która z natury jest rozmową |
+| Kształt produktu, PRD | w części: Maja pisze intencję, ale z jednego zgłoszenia | wywiad jako wejście; odpowiedzi jako decyzje w rejestrze pdi |
+| Wybór stosu | **brak** | krok z porównaniem opcji; skille `10x-tech-stack-selector` i `10x-stack-assess` robią dokładnie to |
+| Założenie repo, CLAUDE.md, CI, tf | w części: `sdlc sandbox` zakłada repo tylko z gotowego szablonu | bootstrap z wybranego stosu (`10x-bootstrapper`, `10x-init`, `10x-agents-md`) |
+| Infrastruktura (konta, domena, baza, sekrety, płatności) | **brak** | to musi zostać decyzją człowieka: kosztuje pieniądze i jest nieodwracalne; system może tylko przygotować listę kroków i polecenia |
+
+### Brownfield (istniejący projekt)
+
+| Etap | Stan | Brakuje |
+|---|---|---|
+| Slack, Teams, Miro | **brak** jako źródło wiedzy; pdi wyciąga tylko decyzje z wątków Slacka i transkrypcji (A5, z cytatami) | konektory jako źródła z tą samą zasadą: cytat i link zamiast kopii treści |
+| **Standardy projektu** (konwencje kodu, nazewnictwo, testy, Definition of Done, przepływ PR, styl dokumentacji) | rozproszone: CLAUDE.md, reguły ci_for_sdlc, review | jeden plik standardów wydobyty ze źródeł, z cytatem dla każdej zasady; z niego korzystają persony, a sprawdzają go bramki |
+| Mapa wiedzy: co jest prawdą, co przestarzałe, co sprzeczne | w części: ci_for_sdlc wykrywa rozjazd wymagań z kodem i dokumentacją | raport „onboarding”: luki, sprzeczności i pytania do zespołu, przed pierwszą zmianą |
+
+### Jak by to działało
+
+```
+GREENFIELD                                     BROWNFIELD
+wywiad (discovery, rozmowa) ── B0              onboarding: źródła → rekonstrukcja z kodu
+  → PRD i decyzje w rejestrze                    → standardy z cytatami + mapa wiedzy
+  → wybór stosu ── decyzja                       → pytania do zespołu ── B0
+  → bootstrap repo z tf                          → (repo już jest)
+           \                                    /
+            → wspólny przebieg: intencja → wymagania → architektura → design
+              → zatwierdzenie do budowy → dostarczenie → wdrożenie → skutek
+```
+
+Wspólna zasada: wszystko, co system ustali w wywiadzie albo onboardingu, trafia jako decyzja z uzasadnieniem i źródłem do rejestru pdi. Kolejne fazy nie zgadują, tylko pytają rejestr.
+
+### Co jest realne, a co trzeba powiedzieć wprost
+
+- **Wywiad musi być rozmową,** więc to naturalne miejsce na czat w przeglądarce (U5 z poprzedniej propozycji). Wywiad to UI numer jeden, nie dodatek.
+- **Źródła są niebezpieczne:** Slack, Teams, Miro i Confluence to treść pisana przez innych ludzi. Mogą zawierać polecenia wstrzyknięte w tekst albo poufne dane. Zasady muszą być takie jak dziś w A5 i ci_for_sdlc: treść to dane, nie polecenia; zapisujemy cytat i link, nie kopię; dostęp tylko do odczytu.
+- **Konektory:** Atlassian, Slack, Figma i Notion są dostępne jako konektory Claude. Teams i Miro trzeba sprawdzić: ich serwery MCP istnieją, ale nie wiem, czy są dostępne na tym koncie. Do sprawdzenia przed Z6.
+- **„Od początku do końca” nie znaczy „bez człowieka”.** Zakup kont, płatności, domeny, zgoda na produkcję i ocena skutku zostają decyzjami człowieka (typy chronione z DA2). Wszystko między nimi może iść samo, a Ty widzisz to na żywo.
+- **Skille 10x** są dostępne w tym środowisku: `10x-shape`, `10x-prd`, `10x-tech-stack-selector`, `10x-bootstrapper`, `10x-init` i inne. Lepiej z nich korzystać albo się na nich wzorować w personach tf, niż pisać to od zera. Trzeba je przeczytać i porównać ze skillami tf (DZ3: podstawą są skille tf).
+
+### Proponowana kolejność
+
+1. **Wywiad i czat w przeglądarce** (discovery + U2/U3/U5): faza `discovery` z bramką B0 i czat w konsoli na żywo, z widokiem postępu agentów.
+2. **Greenfield:** wybór stosu i bootstrap repo z tf, sprawdzone na nowym, małym produkcie.
+3. **Brownfield:** onboarding (źródła, rekonstrukcja, plik standardów, mapa wiedzy), sprawdzony na sprintdecku albo ShipScope jako „obcym” projekcie.
+
+Decyzje: DZ1–DZ5 przyjęte 2026-11-02 ([decyzje](decyzje.md)); otwarte zostaje DA4 (stos usługi pdi, przed Z3).
 
 ## 1. Cel
 
@@ -22,8 +92,9 @@ i ocenie skutku zostają u człowieka (typy chronione z DA2).
 
 **Przebieg lokalny z 2026-10-31 przeszedł od zgłoszenia do oceny skutku** (repo `dbqm45/sdlc-proba`, CHG-1, wynik
 `met`), ale z obejściami. Luki są zapisane jako PRB-2…PRB-22. Według commitów w main do 2026-11-02 naprawione są
-PRB-2, 4–10, 16–22. Otwarte zostają PRB-3 (odpowiedzi z bramek nie docierają do kolejnych faz), PRB-11–14 (tf) i
-PRB-15 (repo próbne bez CI).
+PRB-2, 4–10, 16–22. PRB-3 (odpowiedzi z bramek nie docierają do kolejnych faz) jest naprawione w części: pdi #88 przekazuje
+treść decyzji z bramki, tf #111 zapisuje ją w `decisions.md`, a prompt fazy każe traktować ją jako wiążącą; nie sprawdzono
+tego w ponownym przebiegu. Otwarte zostają PRB-11–14 (tf) i PRB-15 (repo próbne bez CI).
 
 | Rola w zespole | Kto | Stan |
 |---|---|---|
@@ -35,7 +106,7 @@ PRB-15 (repo próbne bez CI).
 | Recenzent bezpieczeństwa | agent `security-reviewer` w tf | jest |
 | QA | ci_for_sdlc (reguły STORY/AC/REL/DES/TEST) + testy repo | w części; testy kryteriów tylko z JUnit XML |
 | Ops / wydania | ShipScope (wdrożenia, flagi, etapy, plan wydania) | jest |
-| Pamięć zespołu | rejestr decyzji pdi | jest; PRB-3 pokazuje, że kolejne fazy jej nie czytają |
+| Pamięć zespołu | rejestr decyzji pdi | jest; do faz trafiają decyzje z bramek (pdi #88, tf #111), ale nie pozostałe decyzje zmiany z rejestru |
 
 **Umiejętności tf, które już robią część tego planu** (dziś jako skille, nie jako fazy pdi):
 
@@ -62,7 +133,7 @@ wzorować (§9).
 | Wybór stosu | skill `arch-tech-selection` jest, nie jest fazą | krok w `discovery` albo osobna faza z decyzją typu `stack` (opcje, kryteria, koszt) | Z4 |
 | Założenie repo, CLAUDE.md, CI, tf | `sdlc sandbox` zakłada repo tylko z gotowego szablonu | bootstrap z wybranego stosu: szkielet aplikacji, testy, CI, plik flag, tf (`mode-pdi`, `mode-talos`) | Z4 |
 | Infrastruktura (konta, domena, baza, sekrety, płatności) | brak | **zostaje u człowieka** (koszt, nieodwracalne); system przygotowuje listę kroków i polecenia, a człowiek je wykonuje i potwierdza | Z4 |
-| Dalej: intencja → … → skutek | jest | PRB-3: odpowiedzi z wywiadu i bramek muszą trafiać do kolejnych faz | Z1 |
+| Dalej: intencja → … → skutek | jest | wszystkie decyzje zmiany, także z wywiadu, muszą trafiać do kolejnych faz (domknięcie PRB-3) | Z1 |
 
 ## 4. Czego brakuje: brownfield
 
@@ -121,7 +192,7 @@ z uzasadnieniem i źródłem. Każda kolejna faza dostaje w wejściu decyzje, kt
 
 | Krok | Co | Repo | Zależy od | Gotowe, gdy |
 |---|---|---|---|---|
-| Z1 | **PRB-3:** decyzje z bramek i wywiadu docierają do kolejnych faz (`phase_run.py prompt` dostaje decyzje zmiany z rejestru i `decisions.md`; pytanie zamknięte w B2 nie wraca w B3) | tf + pdi | — | w powtórzonym przebiegu lokalnym te same pytania nie wracają |
+| Z1 | **Domknięcie PRB-3:** do każdej fazy trafiają wszystkie decyzje zmiany (z bramek z odpowiedziami na pytania, z triażu, z rejestru z `links.chg`, odpowiedzi na ustalenia ci_for_sdlc); pytanie już rozstrzygnięte nie może wrócić w kolejnym artefakcie | pdi + tf | — | w powtórzonym przebiegu lokalnym te same pytania nie wracają, a talos nie łamie przyjętych decyzji |
 | Z2 | **Wywiad (`discovery`):** faza rozmowy z `core-plan-interview` i `proc-product-discovery`; wynik `docs/project/changes/<CHG>/brief.md` (albo `docs/project/discovery/brief.md` dla produktu) i decyzje w rejestrze; bramka B0 w kontrakcie (wersja minor) | tf + pdi (kontrakt) | Z1, DZ1, DZ3 | wywiad w czacie Claude z MCP kończy się briefem i B0; intencja powstaje z briefu |
 | Z3 | **Przeglądarka:** `run.progress` ze `stream-json`; usługa pdi z SSE; konsola v1 (tablica, skrzynka, na żywo) i rozmowa (wywiad, pytania z bramek); sygnał „czeka na Ciebie” | tf + pdi | DA4, DZ1, DZ2 | wywiad i cały przebieg widać i prowadzi się w przeglądarce, bez terminala i bez dopytywania |
 | Z4 | **Greenfield do końca:** wybór stosu (`arch-tech-selection`, decyzja `stack`), bootstrap repo ze stosu z tf, lista kroków infrastruktury dla człowieka | tf + pdi (`sdlc new`) | Z2, DZ3 | nowy mały produkt od wywiadu do oceny skutku, bez szablonu `sdlc-sandbox` |
@@ -138,19 +209,19 @@ tabeli nie ma. Zmianę kolejności etapów zatwierdza właściciel (DZ5).
 
 | # | Pytanie | Rekomendacja |
 |---|---|---|
-| DZ1 | Gdzie najpierw wywiad: w czacie Claude z MCP czy od razu w przeglądarce? | najpierw czat Claude (Z2 bez nowej usługi, sprawdzamy sam wywiad); przeglądarka w Z3 |
-| DZ2 | Które źródła brownfield najpierw? | Confluence i Jira (już w ci_for_sdlc), potem Slack (konektor dostępny); Teams i Miro po sprawdzeniu konektorów na koncie |
-| DZ3 | Skille 10x czy skille tf? | skille tf (`core-plan-interview`, `proc-product-discovery`, `arch-tech-selection`, `eng-project-reconstruction`) jako podstawa — są w fabryce i w kontrakcie pracy agentów; ze skilli 10x przenieść tylko to, czego brakuje, po porównaniu |
-| DZ4 | Na jakim repo sprawdzić brownfield? | sprintdeck albo ShipScope jako „obcy” projekt: mają dokumentację, standardy i historię |
-| DZ5 | Czy zmienić kolejność etapów 2–18? | tak: Z1 przed etapem 2; Z2 i Z3 przed etapem 3; rozmowa (K-3) razem z konsolą (K-2) |
+| DZ1 | Gdzie najpierw wywiad: w czacie Claude z MCP czy od razu w przeglądarce? | **przyjęte 2026-11-02**: najpierw czat Claude (Z2 bez nowej usługi, sprawdzamy sam wywiad); przeglądarka w Z3 |
+| DZ2 | Które źródła brownfield najpierw? | **przyjęte**: Confluence i Jira (już w ci_for_sdlc), potem Slack (konektor dostępny); Teams i Miro po sprawdzeniu konektorów na koncie |
+| DZ3 | Skille 10x czy skille tf? | **przyjęte**: skille tf (`core-plan-interview`, `proc-product-discovery`, `arch-tech-selection`, `eng-project-reconstruction`) jako podstawa — są w fabryce i w kontrakcie pracy agentów; ze skilli 10x przenieść tylko to, czego brakuje, po porównaniu |
+| DZ4 | Na jakim repo sprawdzić brownfield? | **przyjęte**: sprintdeck albo ShipScope jako „obcy” projekt: mają dokumentację, standardy i historię |
+| DZ5 | Czy zmienić kolejność etapów 2–18? | **przyjęte**: Z1 przed etapem 2; Z2 i Z3 przed etapem 3; rozmowa (K-3) razem z konsolą (K-2) |
 | DA4 | Stos usługi pdi (otwarte od etapu 4) | do rozstrzygnięcia przed Z3 |
 
 ## 10. Stan
 
 | Krok | Stan |
 |---|---|
-| Z1 | do zrobienia (PRB-3 otwarte) |
-| Z2 | do zrobienia, po DZ1 i DZ3 |
+| Z1 | do zrobienia; [polecenie startowe](polecenia-startowe-zespol.md) |
+| Z2 | do zrobienia; [polecenia startowe Z2a i Z2b](polecenia-startowe-zespol.md) |
 | Z3 | do zrobienia, po DA4 |
 | Z4 | do zrobienia |
 | Z5 | do zrobienia, po DZ4 |

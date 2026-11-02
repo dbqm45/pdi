@@ -9,6 +9,10 @@ Każde polecenie wklejasz jako pierwszą wiadomość nowej sesji Claude Code w k
 każdy startuje po kroku z kolumny „Startuje po” i sam sprawdza swoje warunki startu, a gdy któregoś brakuje,
 zatrzymuje się. L1, L2 i L3 są niezależne i mogą iść równolegle. Kolumnę „Stan” aktualizuj po merge'u kroku.
 
+> **Zmiana kolejności 2026-11-02 (DZ5):** przed etapem 2 idzie Z1, przed etapem 3 Z2 i Z3, a rozmowa w konsoli (K-3,
+> etap 10) idzie razem z konsolą (K-2, etap 4). Polecenia Z1 i Z2: [`polecenia-startowe-zespol.md`](polecenia-startowe-zespol.md),
+> plan: [zespół jednoosobowy](plan-zespol-jednoosobowy.md).
+
 | Krok | Co | Startuje po | Źródło | Repo | Sesja w katalogu | Stan |
 |---|---|---|---|---|---|---|
 | [L1](#l1--shipscope-tryb-lokalny-dla-adresów-pdi) | ShipScope: tryb lokalny dla adresów pdi | — | [plan `sdlc up`](plan-sdlc-lokalnie.md) §4 | ShipScope | `/Users/x/WebstormProjects/evdt-service-shipscope` | zrobione |
