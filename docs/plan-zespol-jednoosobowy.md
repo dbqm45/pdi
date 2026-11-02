@@ -15,7 +15,7 @@ równolegle. „Bramka” to warunek przejścia do następnej grupy.
 
 | # | Krok | Repo | Po czym | Polecenie startowe |
 |---|---|---|---|---|
-| A1 | Z1 — wszystkie decyzje zmiany w każdej fazie · Z8a — fazy w kontenerze · Z8c-1 — SARIF w ci_for_sdlc | pdi + tf · pdi + tf · ci_for_sdlc | — | [jest](polecenia-startowe-zespol.md) |
+| A1 | ~~Z1 — wszystkie decyzje zmiany w każdej fazie~~ (**zrobione 2026-11-02**, pdi #110, tf #135 i #136, kontrakt 0.11.0) · Z8a — fazy w kontenerze · Z8c-1 — SARIF w ci_for_sdlc | pdi + tf · pdi + tf · ci_for_sdlc | — | [jest](polecenia-startowe-zespol.md) |
 | A2 | Z8c-2 — skaner w pętli talosa i w CI, razem z N3 (jeden skrypt weryfikacji) i N10 (karencja dla nowych wersji zależności) | tf | Z8c-1 | [jest](polecenia-startowe-zespol.md) |
 | A3 | N1 — przegląd drugim modelem · N5 — evale przebiegu (20 zadań) | tf | Z1 | [jest](polecenia-startowe-zespol.md) |
 | A4 | Z7b-1 — cele zmiany (`targets`): proponowane w planie, zatwierdzane w B3, sprawdzane przed B4; razem z N4 (pokrycie i testy mutacyjne na zmienionym kodzie) | pdi + tf + ci_for_sdlc | Z1, Z8c-1 | [jest](polecenia-startowe-zespol.md) (Z7b-1a, Z7b-1b) |
@@ -182,7 +182,7 @@ wzorować (§9).
 | Wybór stosu | skill `arch-tech-selection` jest, nie jest fazą | krok w `discovery` albo osobna faza z decyzją typu `stack` (opcje, kryteria, koszt) | Z4 |
 | Założenie repo, CLAUDE.md, CI, tf | `sdlc sandbox` zakłada repo tylko z gotowego szablonu | bootstrap z wybranego stosu: szkielet aplikacji, testy, CI, plik flag, tf (`mode-pdi`, `mode-talos`) | Z4 |
 | Infrastruktura (konta, domena, baza, sekrety, płatności) | brak | **zostaje u człowieka** (koszt, nieodwracalne); system przygotowuje listę kroków i polecenia, a człowiek je wykonuje i potwierdza | Z4 |
-| Dalej: intencja → … → skutek | jest | wszystkie decyzje zmiany, także z wywiadu, muszą trafiać do kolejnych faz (domknięcie PRB-3) | Z1 |
+| Dalej: intencja → … → skutek | jest; od Z1 (2026-11-02) decyzje zmiany z rejestru (`links.chg`) i odpowiedzi na pytania z bramek trafiają do każdej fazy | decyzje z wywiadu trafią tą samą drogą, gdy zapisze je Z2 (z `links.chg`) | Z2 |
 
 ## 4. Czego brakuje: brownfield
 
@@ -243,7 +243,7 @@ z uzasadnieniem i źródłem. Każda kolejna faza dostaje w wejściu decyzje, kt
 
 | Krok | Co | Repo | Zależy od | Gotowe, gdy |
 |---|---|---|---|---|
-| Z1 | **Domknięcie PRB-3:** do każdej fazy trafiają wszystkie decyzje zmiany (z bramek z odpowiedziami na pytania, z triażu, z rejestru z `links.chg`, odpowiedzi na ustalenia ci_for_sdlc); pytanie już rozstrzygnięte nie może wrócić w kolejnym artefakcie | pdi + tf | — | w powtórzonym przebiegu lokalnym te same pytania nie wracają, a talos nie łamie przyjętych decyzji |
+| Z1 | **Domknięcie PRB-3:** do każdej fazy trafiają wszystkie decyzje zmiany (z bramek z odpowiedziami na pytania, z triażu, z rejestru z `links.chg`, odpowiedzi na ustalenia ci_for_sdlc); pytanie już rozstrzygnięte nie może wrócić w kolejnym artefakcie. **Zrobione 2026-11-02** ([plan Z1](plan-z1-decyzje-w-fazach.md); pdi #110, tf #135, #136): pole `answers` w decyzji (kontrakt 0.11.0, tag `contract-v0.11.0`), `decide_inbox_item(answers=…)`, decyzje z `links.chg` w wejściu fazy (`decision import`, `decision gate --answers`, wejścia `decision_text`, `answers`, `decisions` w `sdlc-phase.yml`), lista decyzji w prompcie, odmowa przy powtórzonym pytaniu (`repeated_question`) i delivery przy otwartym pytaniu w `plan.md`; zostaje sprawdzenie w przebiegu lokalnym (A6, [lista](przebieg-lokalny.md)) | pdi + tf | — | w powtórzonym przebiegu lokalnym te same pytania nie wracają, a talos nie łamie przyjętych decyzji |
 | Z2 | **Wywiad (`discovery`):** faza rozmowy z `core-plan-interview` i `proc-product-discovery`; wynik `docs/project/changes/<CHG>/brief.md` (albo `docs/project/discovery/brief.md` dla produktu) i decyzje w rejestrze; bramka B0 w kontrakcie (wersja minor) | tf + pdi (kontrakt) | Z1, DZ1, DZ3 | wywiad w czacie Claude z MCP kończy się briefem i B0; intencja powstaje z briefu |
 | Z3 | **Przeglądarka:** `run.progress` ze `stream-json`; usługa pdi z SSE; konsola v1 (tablica, skrzynka, na żywo) i rozmowa (wywiad, pytania z bramek); sygnał „czeka na Ciebie” | tf + pdi | DA4, DZ1, DZ2 | wywiad i cały przebieg widać i prowadzi się w przeglądarce, bez terminala i bez dopytywania |
 | Z4 | **Greenfield do końca:** wybór stosu (`arch-tech-selection`, decyzja `stack`), bootstrap repo ze stosu z tf, lista kroków infrastruktury dla człowieka | tf + pdi (`sdlc new`) | Z2, DZ3 | nowy mały produkt od wywiadu do oceny skutku, bez szablonu `sdlc-sandbox` |
