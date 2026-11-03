@@ -194,13 +194,18 @@ Co wymagało obejścia:
   z GitHuba (tf #144).
 - W świeżym klonie nie ma `.claude/factory-manifest.json` (jest w `.gitignore`), więc `factory/update.py` widzi
   instalację 0.0.0 i pomija istniejące pliki; aktualizację fabryki w repo próbnym trzeba zrobić na komputerze
-  właściciela.
+  właściciela. **Naprawione 2026-11-03** (tf #142, 5.58.3; tf #143 dla `update.py --ci`): instalacja zespołowa
+  zapisuje commitowany `.claude/factory-lock.json` i świeży klon aktualizuje się z niego. `sdlc-proba` jest na 5.56.0
+  bez locka, więc pierwszą aktualizację do 5.58.3 i tak trzeba zrobić na komputerze właściciela.
 - Hooki fabryki nie działają w sesji z kilkoma repozytoriami; bramki uruchamiane ręcznie. `run_report.py finish`
   szuka transkryptów w katalogu projektu repo, a sesja zaczęła się w katalogu nadrzędnym — trzeba było podać
-  `--session` i dowiązanie w `CLAUDE_CONFIG_DIR`.
+  `--session` i dowiązanie w `CLAUDE_CONFIG_DIR`. **Część z transkryptami naprawiona 2026-11-03** (tf #141,
+  mode-talos 1.2.3): `finish` i `status` szukają w najbliższym katalogu nadrzędnym, a `--session` w każdym katalogu
+  projektu. Hooki w sesji z kilkoma repozytoriami bez zmian.
 
-Luki w tf (do zgłoszenia):
-- Skan traktuje zmianę `package.json` bez zależności i bez lockfile'a jako błąd, a `cooldown` na tym samym repo daje
-  PASS („nie wykryto menedżera pakietów z lockfile'em”). Projekt bez zależności nie ma czego audytować.
-- Próba 2 nadpisuje w `security/K<n>/` SARIF i werdykt próby 1, więc raport przebiegu nie pokazuje zablokowanego
-  SQL injection, tylko wynik ostatniej próby.
+Luki w tf (**obie zrobione 2026-11-03**):
+- Skan traktował zmianę `package.json` bez zależności i bez lockfile'a jako błąd, a `cooldown` na tym samym repo dawał
+  PASS. Teraz audyt jest pomijany z podanym powodem, a manifest z zależnościami bez lockfile'a dalej jest błędem (N10)
+  — tf #139, mode-talos 1.2.1, tf 5.58.0.
+- Próba 2 nadpisywała w `security/K<n>/` SARIF i werdykt próby 1. Teraz każda próba ma katalog `proba-<k>`, a raport
+  przebiegu pokazuje wszystkie próby kawałka — tf #140, mode-talos 1.2.2, tf 5.58.1.
