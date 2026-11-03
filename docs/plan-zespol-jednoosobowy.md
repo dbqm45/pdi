@@ -436,15 +436,17 @@ DORA i przepływu (etap 12, Z8e), model zagrożeń w architekturze (B3 w tf).
 
 ## 10. Stan
 
+Stan 2026-11-03 (pdi `53ec1bb`). Kolejność i bramki: §0; polecenia startowe i ich stan: [zespół](polecenia-startowe-zespol.md).
+
 | Krok | Stan |
 |---|---|
-| Z1 | do zrobienia; [polecenie startowe](polecenia-startowe-zespol.md) |
-| Z2 | do zrobienia; [polecenia startowe Z2a i Z2b](polecenia-startowe-zespol.md) |
-| Z3 | do zrobienia, po DA4 |
-| Z4 | do zrobienia |
-| Z5 | do zrobienia, po DZ4 |
-| Z6 | do zrobienia, po DZ2 |
-| Z7 | do zrobienia (Z7a po Z3) |
-| Z8 | Z8a w PR (pdi + tf, 2026-11-02): krok `run` w kontenerze `pdi-phase` z proxy wyjścia i sandboxem Claude Code, [plan](plan-z8a-izolacja-faz.md); do sprawdzenia na Macu — [przebieg lokalny](przebieg-lokalny.md) §0; Z8c przed etapem 2, [polecenia startowe](polecenia-startowe-zespol.md) |
-| Z9 | do zrobienia; N1, N2 i N5 przed etapem 2 |
-| Z10 | do zrobienia; decyzje DZ15–DZ17 przyjęte 2026-11-03 |
+| Z1 | **zrobione 2026-11-02** (pdi #110, tf #135, #136, kontrakt 0.11.0); do potwierdzenia w przebiegu A6 ([lista](przebieg-lokalny.md)) |
+| Z2 | do zrobienia: Z2a (B1) może iść od razu, Z2b (B2) po tagu kontraktu z Z2a; polecenia startowe odświeżone po Z1 i Z8a (pdi #117, #118) |
+| Z3 | Z3-lokalnie (A7) do zrobienia, po A6; polecenie startowe odświeżone (pdi #116) i uzupełnione o panel „Pliki” i boczny panel observability (DZ18, pdi #122); usługa pdi (B5) po DA4 |
+| Z4 | do zrobienia (C1, po Z2) |
+| Z5 | do zrobienia (C2); repo do próby — sprintdeck albo ShipScope (DZ4), wybór przy Z5 |
+| Z6 | do zrobienia (C3, po Z5); kolejność źródeł według DZ2 |
+| Z7 | Z7b-1 (A4: Z7b-1a, potem Z7b-1b) do zrobienia, polecenia startowe w brzmieniu z 2026-11-02; Z7a razem z A7 (trzy pasy); Z7b-2 i Z7c w B3; Z7d przy pierwszym produkcie, który jest aplikacją AI |
+| Z8 | **Z8a zrobione** (pdi #111, tf 5.56.0, [plan](plan-z8a-izolacja-faz.md)), sprawdzenie na Macu na liście [przebiegu lokalnego](przebieg-lokalny.md) §0a; **Z8c-1 zrobione** (ci_for_sdlc #109); **Z8c-2 zrobione** (tf #138, razem z N3 i N10), kawałek talosa na `sdlc-proba` 2026-11-03 (sdlc-proba #10, [wynik](przebieg-lokalny.md#wynik-przebiegu-2026-11-03-z8c-2-talos-na-sdlc-proba)); Z8b i Z8d w B3; Z8e z etapem 12; Z8f po każdym przebiegu |
+| Z9 | N3 i N10 zrobione z Z8c-2; N1 i N5 (A3) do zrobienia, mogą iść od razu; N2 (A5) po N1; N4 z Z7b-1; pozostałe z krokami, do których są przypięte (§8.3) |
+| Z10 | do zrobienia (§8.5); decyzje DZ15–DZ17 przyjęte 2026-11-03; boczny panel z Z10c ma miejsce w konsoli od A7 (DZ18) |
