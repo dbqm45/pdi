@@ -1,7 +1,7 @@
 # Polecenia startowe planu „zespół jednoosobowy”: grupa A i Z2
 
 **Data:** 2026-11-02, odświeżone 2026-11-03 · **Źródło:** [plan „zespół jednoosobowy”](plan-zespol-jednoosobowy.md) §8,
-§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `aadfbf9` (kontrakt 0.11.0), tf 5.58.4 (kopia
+§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `3a8c118` (kontrakt 0.11.0), tf 5.58.4 (kopia
 kontraktu 0.11.0), ShipScope 0.2.67 (stan z 2026-11-02) · Wszystkie niezrobione polecenia mają nad sobą
 własny stan przed startem z 2026-11-03.
 
@@ -14,7 +14,7 @@ wszystkie przed etapem 2.
 | Krok | Co | Startuje po | Repo | Sesja w katalogu | Stan |
 |---|---|---|---|---|---|
 | [Z1](#z1--pdi--tf-wszystkie-decyzje-zmiany-w-każdej-fazie-domknięcie-prb-3) | wszystkie decyzje zmiany w każdej fazie (domknięcie PRB-3) | — | pdi + tf | `/Users/x/WebstormProjects/pdi` | zrobione (pdi #110, tf #135, #136) |
-| [Z2a](#z2a--pdi-faza-discovery-i-bramka-b0-w-kontrakcie-i-przebiegu) | faza `discovery` i bramka B0 w kontrakcie i przebiegu | Z1 | pdi | `/Users/x/WebstormProjects/pdi` | do zrobienia |
+| [Z2a](#z2a--pdi-faza-discovery-i-bramka-b0-w-kontrakcie-i-przebiegu) | faza `discovery` i bramka B0 w kontrakcie i przebiegu, z N19 (pytania z opcjami) | Z1 | pdi | `/Users/x/WebstormProjects/pdi` | do zrobienia |
 | [Z2b](#z2b--tf-wywiad-discovery-w-mode-pdi) | wywiad `/discovery` w mode-pdi; intencja z briefu | Z2a i tag kontraktu | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [Z8a](#z8a--pdi--tf-fazy-w-kontenerze) | fazy w kontenerze (izolacja persony i talosa) | — | pdi + tf | `/Users/x/WebstormProjects/pdi` | zrobione (pdi #111, tf 5.56.0), [plan](plan-z8a-izolacja-faz.md) |
 | [Z8c-1](#z8c-1--ci_for_sdlc-wyniki-skanera-sarif-jako-ustalenia) | wyniki skanera (SARIF) jako ustalenia w ci_for_sdlc | — | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` | zrobione (ci_for_sdlc #109) |
@@ -81,13 +81,15 @@ Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, che
 
 ## Z2a — pdi: faza `discovery` i bramka B0 w kontrakcie i przebiegu
 
-Startuje po Z1 (zrobione). Sesja w klonie pdi; część tf to Z2b, po tagu kontraktu. **Stan przed startem
-(2026-11-03):** pdi `084c104` (kontrakt 0.11.0), tf 5.57.0. Od pierwszej wersji tego polecenia weszły: Z1 (odpowiedzi
+Startuje po Z1 (zrobione), razem z N19 (pytania z opcjami w kontrakcie, wiersz B1 planu). Sesja w klonie pdi; część
+tf to Z2b, po tagu kontraktu. **Stan przed startem (2026-11-03, sprawdzony ponownie):** pdi `3a8c118` (kontrakt
+0.11.0), tf 5.58.4; od pierwszego odświeżenia nie zmienił się kod pdi ani kontrakt, doszły w planie N19 i DZ19. Od pierwszej wersji tego polecenia weszły: Z1 (odpowiedzi
 na pytania bramki w decyzji i decyzje z `links.chg` w każdej fazie), Z8a (krok `run` w kontenerze), Z8c-2; CI na
 GitHubie znowu działa.
 
 ```text
-Implement step Z2a of docs/plan-zespol-jednoosobowy.md (§3, §8) in dbqm45/pdi, under decisions DZ1 and DZ3 in
+Implement step Z2a of docs/plan-zespol-jednoosobowy.md (§3, §8, row B1 in §0) in dbqm45/pdi, together with the contract
+part of N19 (questions with options, §8.3), under decisions DZ1 and DZ3 in
 docs/decyzje.md: the interview runs first in a Claude chat with the pdi MCP server, not in a new service; its skills are
 tf's (core-plan-interview, proc-product-discovery). Answer me in Polish; code, commits and PR title in English.
 
@@ -98,7 +100,8 @@ The interview ends with brief.md and gate B0; approving B0 starts the intent pha
 Today (check each against the code before planning): src/pdi/flow.py GATES starts at B1 (produced_by intent);
 triage_problem accepted creates CHG-n and dispatches intent (src/pdi/problems.py `triage` and `_accept`,
 src/pdi/dispatch.py, src/pdi/dispatch_local.py with PRIOR_ARTIFACT and GATES); the contract is 0.11.0 and
-contract/change.schema.json already allows phase `discovery`; protected autonomy types live in contract.json
+contract/change.schema.json already allows phase `discovery`; gate.requested `questions` is an array of plain strings
+and `_checked_answers` in src/pdi/inbox.py matches answers to them literally; protected autonomy types live in contract.json
 `autonomy.protected_types` and are forced to level 3 in contract/autonomy.schema.json.
 
 Already done (read first, do not redo): Z1 (docs/plan-z1-decyzje-w-fazach.md) — gate items carry the artifact's
@@ -115,6 +118,11 @@ do not build a second one.
    and the brief's sections (problem, outcome and its metric, users, scope, out of scope, constraints, open risks,
    `## Pytania do bramki`); the triage decision may carry start_with: intent | discovery; examples and
    contract/README.md.
+   N19 in the same version: a question may be an object {question, options [{value, label}], recommended, other
+   (whether a free answer is allowed)} next to a plain string, in gate.requested `questions` and in the brief's
+   questions, so old senders stay valid; an answer in the decision's `answers` may carry the chosen `option` next to
+   the text. Check the JSON Schema 2020-12 rules you use (oneOf/anyOf for string-or-object) against the spec, with the
+   date.
 3. Flow: Gate("B0", produced_by="discovery", next_phase="intent"), in the chain before B1 only for changes that start
    with discovery (missing_before must not ask a plain change for B0). B0 is a scope decision: make its decision type
    protected (always human, like scope.r1, DA2) in contract.json and autonomy.schema.json, and say so in the plan.
@@ -127,6 +135,9 @@ do not build a second one.
    in Z2b; pdi only passes the change.
 5. Interview answers are decisions: record_decision with links.chg, kind product, tag discovery, the human's answer as a
    quoted evidence (the conversation is not stored, as in A5). Z1 already brings them to later phases.
+   N19 in pdi: decide_inbox_item and the inbox accept an answer to a question with options as the chosen option (it must
+   be one of them) or, when the question allows it, free text; plain-string questions work as today. The persona side
+   (asking through the schema, retry at most twice) is Z2b; the buttons are Z3-lokalnie.
 6. If the local console of Z3-lokalnie is merged by then, show the discovery item and B0 there too (same read model, no
    new code path); otherwise note it for Z3-lokalnie in the plan.
 7. Docs: README (start with an interview), integrations/claude-code/README.md, docs/przebieg-lokalny.md (a checklist
@@ -134,7 +145,9 @@ do not build a second one.
    starts and does not ask it again), docs/plan-zespol-jednoosobowy.md §10 and the Z2a row of
    docs/polecenia-startowe-zespol.md.
 
-Tests: contract schemas and examples (brief header, B0, start_with, protected type), flow (B0 only in discovery changes,
+Tests: contract schemas and examples (brief header, B0, start_with, protected type, questions as strings and as
+objects with options, answers with an option), answers validated against options (unknown option refused, free text
+only when allowed), flow (B0 only in discovery changes,
 next phase intent), triage with and without start_with (without it everything as today), the discovery inbox item and
 its closing by gate.requested B0, approving B0 dispatches intent in local and Actions mode with the linked decisions,
 intent of a discovery change refused without brief.md, autonomy type of B0 protected.
@@ -144,7 +157,7 @@ Coordination: other sessions may work in parallel in pdi (flow.py, inbox.py, pro
 contract); keep your changes small, keep the branch up to date with main and resolve conflicts keeping both behaviours.
 When the gates pass, commit, push the branch and open a PR to main, but do not merge it. At the end report in Polish:
 the PR link, gates and results, the contract version taken, and the exact names of new fields, gates, item kinds and
-commands (inputs for Z2b).
+commands, and the question and answer shapes of N19 (inputs for Z2b and Z3-lokalnie).
 Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
