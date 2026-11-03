@@ -1,6 +1,6 @@
 # Plan: zespół jednoosobowy — greenfield od wywiadu, brownfield od poznania projektu, wszystko w przeglądarce
 
-Data: 2026-11-02 · Status: **plan; decyzje DZ1–DZ5 przyjęte 2026-11-02**, DZ1–DZ14 przyjęte, otwarte DA4; Z10 (niezawodność i obserwowalność) dodane 2026-11-03, DZ15–DZ18 przyjęte 2026-11-03 · Kolejność całości: §0 · Stan wyjściowy: pdi `d66b4bf`, tf 5.55.0,
+Data: 2026-11-02 · Status: **plan; decyzje DZ1–DZ5 przyjęte 2026-11-02**, DZ1–DZ14 przyjęte, otwarte DA4; Z10 (niezawodność i obserwowalność) dodane 2026-11-03, DZ15–DZ19 przyjęte 2026-11-03 · Kolejność całości: §0 · Stan wyjściowy: pdi `d66b4bf`, tf 5.55.0,
 ShipScope 0.2.67, ci_for_sdlc 0.1.35+ · Powiązane: [plan `sdlc up`](plan-sdlc-lokalnie.md),
 [przebieg lokalny](przebieg-lokalny.md#wynik-przebiegu-2026-10-31), [etapy 2–18](polecenia-startowe-sdlc-lokalnie.md),
 [automatyzacja i konsola](plan-automatyzacja-i-konsola.md), [jedna platforma](15-jedna-platforma.md)
@@ -13,16 +13,18 @@ równolegle. „Bramka” to warunek przejścia do następnej grupy.
 
 **A. Przed prawdziwym kodem (przed etapem 2)**
 
+Kolejność od 2026-11-03 (DZ19): A1 i A2 zrobione → bramka A6 → A3–A5 i A7 równolegle → A8. Wiersze zostają przy swoich numerach, tabela jest w kolejności wykonania.
+
 | # | Krok | Repo | Po czym | Polecenie startowe |
 |---|---|---|---|---|
-| A1 | ~~Z1 — wszystkie decyzje zmiany w każdej fazie~~ (**zrobione 2026-11-02**, pdi #110, tf #135 i #136, kontrakt 0.11.0) · Z8a — fazy w kontenerze · Z8c-1 — SARIF w ci_for_sdlc | pdi + tf · pdi + tf · ci_for_sdlc | — | [jest](polecenia-startowe-zespol.md) |
-| A2 | Z8c-2 — skaner w pętli talosa i w CI, razem z N3 (jeden skrypt weryfikacji) i N10 (karencja dla nowych wersji zależności) | tf | Z8c-1 | [jest](polecenia-startowe-zespol.md) |
-| A3 | N1 — przegląd drugim modelem · N5 — evale przebiegu (20 zadań) z N17 (reguły sędziego) | tf | Z1 | [jest](polecenia-startowe-zespol.md) |
-| A4 | Z7b-1 — cele zmiany (`targets`): proponowane w planie, zatwierdzane w B3, sprawdzane przed B4; razem z N4 (pokrycie i testy mutacyjne na zmienionym kodzie) i N20 (co najmniej dwie opcje w planie) | pdi + tf + ci_for_sdlc | Z1, Z8c-1 | [jest](polecenia-startowe-zespol.md) (Z7b-1a, Z7b-1b) |
-| A5 | N2 — pętla budujący–recenzent na PR i samonaprawa CI · N12 — weryfikacja przed zakończeniem fazy · N13 — limity tur i czasu, zapętlenie trafia do skrzynki · N15 — zakres zapisu fazy | pdi + tf | Z8a, N1 (N2); N3 (N12) | [jest](polecenia-startowe-zespol.md) |
-| A6 | **Bramka:** ponowny przebieg lokalny na `sdlc-proba` w kontenerze, z jedną zmianą od zgłoszenia do oceny skutku; bez obejść z przebiegu 2026-10-31 | — | A1–A5 | lista: [przebieg lokalny](przebieg-lokalny.md) |
-| A7 | Z3-lokalnie — konsola w przeglądarce na Macu (DZ14): `sdlc up` uruchamia ją obok stosu; tablica zmian w trzech pasach, ślad zmiany z krokami, postęp fazy na żywo z `run.progress` (pasek, bieżąca czynność, czas, koszt), skrzynka z przyciskami decyzji; panel „Pliki” w śladzie zmiany (artefakty zmiany i diff bieżącego cięcia na żywo, tylko do odczytu) i boczny panel postępu i kosztu, który dane z OpenTelemetry dostaje w Z10c (DZ18); bez usługi, rozmowy i powiadomień (zostają w Z3, B5) | pdi + tf | A6 | [jest](polecenia-startowe-zespol.md#z3-lokalnie--pdi--tf-konsola-w-przeglądarce-na-macu) |
-| A8 | **Etap 2** — scenariusz S5 na sprintdecku (prawdziwy kod i wdrożenie) | pdi + sprintdeck | A7 | [jest](polecenia-startowe-sdlc-lokalnie.md#etap-2--pdi--sprintdeck-scenariusz-s5-na-prawdziwym-wdrożeniu) |
+| A1 | ~~Z1 — wszystkie decyzje zmiany w każdej fazie~~ (**zrobione 2026-11-02**, pdi #110, tf #135 i #136, kontrakt 0.11.0) · ~~Z8a — fazy w kontenerze~~ (**zrobione**, pdi #111, tf 5.56.0) · ~~Z8c-1 — SARIF w ci_for_sdlc~~ (**zrobione**, ci_for_sdlc #109) | pdi + tf · pdi + tf · ci_for_sdlc | — | [jest](polecenia-startowe-zespol.md) |
+| A2 | ~~Z8c-2 — skaner w pętli talosa i w CI, razem z N3 (jeden skrypt weryfikacji) i N10 (karencja dla nowych wersji zależności)~~ (**zrobione 2026-11-03**, tf #138; kawałek talosa na `sdlc-proba` #10) | tf | Z8c-1 | [jest](polecenia-startowe-zespol.md) |
+| A6 | **Bramka:** ponowny przebieg lokalny na `sdlc-proba` w kontenerze, z jedną zmianą od zgłoszenia do oceny skutku; bez obejść z przebiegu 2026-10-31 | — | A1, A2 (DZ19: przed A3–A5) | lista: [przebieg lokalny](przebieg-lokalny.md) |
+| A3 | N1 — przegląd drugim modelem · N5 — evale przebiegu (20 zadań) z N17 (reguły sędziego) | tf | A6; Z1 | [jest](polecenia-startowe-zespol.md) |
+| A4 | Z7b-1 — cele zmiany (`targets`): proponowane w planie, zatwierdzane w B3, sprawdzane przed B4; razem z N4 (pokrycie i testy mutacyjne na zmienionym kodzie) i N20 (co najmniej dwie opcje w planie) | pdi + tf + ci_for_sdlc | A6; Z1, Z8c-1 | [jest](polecenia-startowe-zespol.md) (Z7b-1a, Z7b-1b) |
+| A5 | N2 — pętla budujący–recenzent na PR i samonaprawa CI · N12 — weryfikacja przed zakończeniem fazy · N13 — limity tur i czasu, zapętlenie trafia do skrzynki · N15 — zakres zapisu fazy | pdi + tf | A6; Z8a, N1 (N2); N3 (N12) | [jest](polecenia-startowe-zespol.md) |
+| A7 | Z3-lokalnie — konsola w przeglądarce na Macu (DZ14): `sdlc up` uruchamia ją obok stosu; tablica zmian w trzech pasach, ślad zmiany z krokami, postęp fazy na żywo z `run.progress` (pasek, bieżąca czynność, czas, koszt), skrzynka z przyciskami decyzji; panel „Pliki” w śladzie zmiany (artefakty zmiany i diff bieżącego cięcia na żywo, tylko do odczytu) i boczny panel postępu i kosztu, który dane z OpenTelemetry dostaje w Z10c (DZ18); bez usługi, rozmowy i powiadomień (zostają w Z3, B5) | pdi + tf | A6 (równolegle z A3–A5) | [jest](polecenia-startowe-zespol.md#z3-lokalnie--pdi--tf-konsola-w-przeglądarce-na-macu) |
+| A8 | **Etap 2** — scenariusz S5 na sprintdecku (prawdziwy kod i wdrożenie) | pdi + sprintdeck | A3–A5, A7 | [jest](polecenia-startowe-sdlc-lokalnie.md#etap-2--pdi--sprintdeck-scenariusz-s5-na-prawdziwym-wdrożeniu) |
 
 **B. Przed produkcją (przed etapem 3)**
 
@@ -453,6 +455,7 @@ DORA i przepływu (etap 12, Z8e), model zagrożeń w architekturze (B3 w tf).
 | DZ16 | Dokąd idzie telemetria agentów (Z10c) | **przyjęte 2026-11-03**: lokalnie kolektor OpenTelemetry w Dockerze z `sdlc up`, zapis do pliku czytanego przez konsolę, bez zewnętrznej usługi; backend (Grafana, Honeycomb, …) dopiero z usługą pdi po DA4 |
 | DZ17 | Kto i kiedy ustala SLA | **przyjęte 2026-11-03**: tylko człowiek, jako typ chroniony (DA2), dopiero w etapie 16 dla platformy; produkty mają SLO, nie SLA, dopóki nie ma klienta z umową |
 | DZ18 | Czy workflow ma się stać IDE (podgląd powstających plików, panel observability z boku) | **przyjęte 2026-11-03**: nie budujemy IDE; konsola dostaje panel „Pliki” w śladzie zmiany (artefakty i diff bieżącego cięcia na żywo, tylko do odczytu) i boczny panel observability (`run.progress`, potem Z10c); ręczna praca w istniejącym IDE z rozszerzeniem Claude Code i serwerem MCP pdi |
+| DZ19 | Czy bramka A6 idzie przed A3–A5 | **przyjęte 2026-11-03**: tak; najpierw ponowny przebieg na `sdlc-proba` z tym, co już jest (Z1, Z8a, Z8c-1, Z8c-2), potem A3–A5 i A7 równolegle, a etap 2 (A8) po nich |
 | DZ13 | Ile zadań w evalach przebiegu (N5) i jaki budżet | **przyjęte**: start: 20 zadań z repo próbnego i sprintdecka, budżet na jedno uruchomienie ustalony w tf; rozbudowa do ok. 200 po pierwszych wynikach |
 
 ## 10. Stan
@@ -462,14 +465,14 @@ Stan 2026-11-03 (pdi `53ec1bb`). Kolejność i bramki: §0; polecenia startowe i
 | Krok | Stan |
 |---|---|
 | Z1 | **zrobione 2026-11-02** (pdi #110, tf #135, #136, kontrakt 0.11.0); do potwierdzenia w przebiegu A6 ([lista](przebieg-lokalny.md)) |
-| Z2 | do zrobienia: Z2a (B1) może iść od razu, Z2b (B2) po tagu kontraktu z Z2a; polecenia startowe odświeżone po Z1 i Z8a (pdi #117, #118) |
+| Z2 | do zrobienia: Z2a (B1) może iść od razu (nie zależy od A6), Z2b (B2) po tagu kontraktu z Z2a; polecenia startowe odświeżone po Z1 i Z8a (pdi #117, #118) |
 | Z3 | Z3-lokalnie (A7) do zrobienia, po A6; polecenie startowe odświeżone (pdi #116) i uzupełnione o panel „Pliki” i boczny panel observability (DZ18, pdi #122); usługa pdi (B5) po DA4 |
 | Z4 | do zrobienia (C1, po Z2) |
 | Z5 | do zrobienia (C2); repo do próby — sprintdeck albo ShipScope (DZ4), wybór przy Z5 |
 | Z6 | do zrobienia (C3, po Z5); kolejność źródeł według DZ2 |
 | Z7 | Z7b-1 (A4: Z7b-1a, potem Z7b-1b) do zrobienia, polecenia startowe w brzmieniu z 2026-11-02; Z7a razem z A7 (trzy pasy); Z7b-2 i Z7c w B3; Z7d przy pierwszym produkcie, który jest aplikacją AI |
 | Z8 | **Z8a zrobione** (pdi #111, tf 5.56.0, [plan](plan-z8a-izolacja-faz.md)), sprawdzenie na Macu na liście [przebiegu lokalnego](przebieg-lokalny.md) §0a; **Z8c-1 zrobione** (ci_for_sdlc #109); **Z8c-2 zrobione** (tf #138, razem z N3 i N10), kawałek talosa na `sdlc-proba` 2026-11-03 (sdlc-proba #10, [wynik](przebieg-lokalny.md#wynik-przebiegu-2026-11-03-z8c-2-talos-na-sdlc-proba)); Z8b, Z8d i Z8g w B3 (Z8g przed etapem 3); Z8e z etapem 12; Z8f po każdym przebiegu |
-| Z9 | N3 i N10 zrobione z Z8c-2; N1 i N5 (A3) do zrobienia, mogą iść od razu; N2 (A5) po N1, razem z nim N12, N13 i N15; N4 z Z7b-1; N14 i N18 z Z5; N16 z Z8f; N17 z N5 (A3); N19 z Z2 (B1, B2); N20 z Z7b-1 (A4); pozostałe z krokami, do których są przypięte (§8.3) |
+| Z9 | N3 i N10 zrobione z Z8c-2; N1 i N5 (A3) do zrobienia, po przebiegu A6 (DZ19); N2 (A5) po N1, razem z nim N12, N13 i N15; N4 z Z7b-1; N14 i N18 z Z5; N16 z Z8f; N17 z N5 (A3); N19 z Z2 (B1, B2); N20 z Z7b-1 (A4); pozostałe z krokami, do których są przypięte (§8.3) |
 | Z10 | do zrobienia (§8.5); decyzje DZ15–DZ17 przyjęte 2026-11-03; boczny panel z Z10c ma miejsce w konsoli od A7 (DZ18) |
 
 ## 11. Do rozważenia w przyszłości

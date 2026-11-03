@@ -8,8 +8,8 @@ odświeżyć tak samo.
 
 Każde polecenie wklejasz jako pierwszą wiadomość nowej sesji Claude Code w katalogu z tabeli. Zrobione są Z1, Z8a,
 Z8c-1 i Z8c-2 (kolumna „Stan”). Dalej: Z2a, potem Z2b (po tagu kontraktu z Z2a); zgodnie z DZ5 Z2 idzie przed etapem 3
-([etapy](polecenia-startowe-sdlc-lokalnie.md)). N1, N5 i Z7b-1a mogą iść od razu (Z1 jest scalone), Z7b-1b po Z7b-1a,
-N2 po N1. Z3-lokalnie startuje po przebiegu A6 na `sdlc-proba`, przed etapem 2.
+([etapy](polecenia-startowe-sdlc-lokalnie.md)). Najpierw przebieg A6 na `sdlc-proba` (DZ19); po nim N1, N5 i Z7b-1a, Z7b-1b po Z7b-1a,
+N2 po N1, a równolegle Z3-lokalnie; wszystkie przed etapem 2.
 
 | Krok | Co | Startuje po | Repo | Sesja w katalogu | Stan |
 |---|---|---|---|---|---|
@@ -19,9 +19,9 @@ N2 po N1. Z3-lokalnie startuje po przebiegu A6 na `sdlc-proba`, przed etapem 2.
 | [Z8a](#z8a--pdi--tf-fazy-w-kontenerze) | fazy w kontenerze (izolacja persony i talosa) | — | pdi + tf | `/Users/x/WebstormProjects/pdi` | zrobione (pdi #111, tf 5.56.0), [plan](plan-z8a-izolacja-faz.md) |
 | [Z8c-1](#z8c-1--ci_for_sdlc-wyniki-skanera-sarif-jako-ustalenia) | wyniki skanera (SARIF) jako ustalenia w ci_for_sdlc | — | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` | zrobione (ci_for_sdlc #109) |
 | [Z8c-2](#z8c-2--tf-skaner-w-pętli-kawałka-talosa-i-w-ci) | skaner w pętli kawałka talosa i w CI | Z8c-1 | tf | `/Users/x/WebstormProjects/tf` | zrobione (tf #138; kawałek talosa na sdlc-proba 2026-11-03, sdlc-proba #10, [wynik](przebieg-lokalny.md#wynik-przebiegu-2026-11-03-z8c-2-talos-na-sdlc-proba)) |
-| [N1](#n1--tf-przegląd-drugim-modelem) | przegląd drugim modelem (wymagania, plan, uwagi z review) | Z1 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
-| [N5](#n5--tf-evale-przebiegu) | evale przebiegu na 20 prawdziwych zadaniach | Z1 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
-| [Z7b-1a](#z7b-1a--pdi--tf-cele-zmiany-w-kontrakcie-i-planie) | cele zmiany (`targets`) w kontrakcie i planie, B3 | Z1 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
+| [N1](#n1--tf-przegląd-drugim-modelem) | przegląd drugim modelem (wymagania, plan, uwagi z review) | Z1, A6 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
+| [N5](#n5--tf-evale-przebiegu) | evale przebiegu na 20 prawdziwych zadaniach | Z1, A6 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
+| [Z7b-1a](#z7b-1a--pdi--tf-cele-zmiany-w-kontrakcie-i-planie) | cele zmiany (`targets`) w kontrakcie i planie, B3 | Z1, A6 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
 | [Z7b-1b](#z7b-1b--ci_for_sdlc-sprawdzanie-celów-zmiany) | sprawdzanie celów (pokrycie, testy mutacyjne) w ci_for_sdlc | Z7b-1a, Z8c-1 | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` | do zrobienia |
 | [N2](#n2--pdi--tf-pętla-budujący-recenzent-na-pr-i-samonaprawa-ci) | pętla budujący–recenzent na PR i samonaprawa CI | Z8a, N1 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
 | [Z3-lokalnie](#z3-lokalnie--pdi--tf-konsola-w-przeglądarce-na-macu) | konsola w przeglądarce na Macu: trzy pasy, ślad z panelem plików, postęp na żywo, decyzje przyciskami (DZ14, DZ18) | A6 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
