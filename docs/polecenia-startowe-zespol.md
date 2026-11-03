@@ -1,14 +1,15 @@
 # Polecenia startowe planu „zespół jednoosobowy”: grupa A i Z2
 
 **Data:** 2026-11-02, odświeżone 2026-11-03 · **Źródło:** [plan „zespół jednoosobowy”](plan-zespol-jednoosobowy.md) §8,
-§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `d170ecb` (kontrakt 0.11.0), tf 5.58.3 (kopia
+§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `aadfbf9` (kontrakt 0.11.0), tf 5.58.4 (kopia
 kontraktu 0.11.0), ShipScope 0.2.67 (stan z 2026-11-02) · Wszystkie niezrobione polecenia mają nad sobą
-własny stan przed startem z 2026-11-03; N12, N13 i N15 (grupa A5) nie mają jeszcze poleceń.
+własny stan przed startem z 2026-11-03.
 
 Każde polecenie wklejasz jako pierwszą wiadomość nowej sesji Claude Code w katalogu z tabeli. Zrobione są Z1, Z8a,
 Z8c-1 i Z8c-2 (kolumna „Stan”). Dalej: Z2a, potem Z2b (po tagu kontraktu z Z2a); zgodnie z DZ5 Z2 idzie przed etapem 3
 ([etapy](polecenia-startowe-sdlc-lokalnie.md)). Najpierw przebieg A6 na `sdlc-proba` (DZ19, [polecenie](#a6--pdi--tf-shipscope-ci_for_sdlc-ponowny-przebieg-lokalny-na-sdlc-proba)); po nim N1, N5 i Z7b-1a, Z7b-1b po Z7b-1a,
-N2 po N1, a równolegle Z3-lokalnie; wszystkie przed etapem 2.
+N2 po N1, N12, N13 i N15 po A6 (po kolei z N2, bo zmieniają te same pliki), a równolegle Z3-lokalnie;
+wszystkie przed etapem 2.
 
 | Krok | Co | Startuje po | Repo | Sesja w katalogu | Stan |
 |---|---|---|---|---|---|
@@ -24,6 +25,9 @@ N2 po N1, a równolegle Z3-lokalnie; wszystkie przed etapem 2.
 | [Z7b-1a](#z7b-1a--pdi--tf-cele-zmiany-w-kontrakcie-i-planie) | cele zmiany (`targets`) w kontrakcie i planie, B3 | Z1, A6 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
 | [Z7b-1b](#z7b-1b--ci_for_sdlc-sprawdzanie-celów-zmiany) | sprawdzanie celów (pokrycie, testy mutacyjne) w ci_for_sdlc | Z7b-1a, Z8c-1 | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` | do zrobienia |
 | [N2](#n2--pdi--tf-pętla-budujący-recenzent-na-pr-i-samonaprawa-ci) | pętla budujący–recenzent na PR i samonaprawa CI | Z8a, N1 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
+| [N12](#n12--tf-weryfikacja-przed-zakończeniem-fazy) | weryfikacja przed zakończeniem fazy (świeży wynik N3 dla commita) | A6 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
+| [N13](#n13--tf--pdi-limity-tur-i-czasu-zapętlenie-trafia-do-skrzynki) | limity tur i czasu, zapętlenie trafia do skrzynki | A6 | tf + pdi | `/Users/x/WebstormProjects/tf` | do zrobienia |
+| [N15](#n15--tf--pdi-zakres-zapisu-fazy) | zakres zapisu fazy (`guard_paths` i sandbox) | A6 | tf + pdi (kontrakt) | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [Z3-lokalnie](#z3-lokalnie--pdi--tf-konsola-w-przeglądarce-na-macu) | konsola w przeglądarce na Macu: trzy pasy, ślad z panelem plików, postęp na żywo, decyzje przyciskami (DZ14, DZ18) | A6 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
 
 ## Z1 — pdi + tf: wszystkie decyzje zmiany w każdej fazie (domknięcie PRB-3)
@@ -663,7 +667,7 @@ Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, che
 ## N2 — pdi + tf: pętla budujący–recenzent na PR i samonaprawa CI
 
 Startuje po A6 (DZ19), Z8a (zrobione) i N1. Sesja w klonie pdi; część tf osobnym PR-em. W tej samej grupie A5 są N12,
-N13 i N15 — mają osobne polecenia (do przygotowania), bo dotykają tych samych plików, więc sesje trzeba prowadzić po
+N13 i N15 — mają osobne polecenia, bo dotykają tych samych plików, więc sesje trzeba prowadzić po
 kolei albo uzgadniać zmiany. **Stan przed startem (2026-11-03):** pdi `d170ecb` (kontrakt 0.11.0), tf 5.58.3. Od
 pierwszej wersji tego polecenia weszły: Z1 (decyzje zmiany wiążą poprawki), Z8a (persona w kontenerze; push, PR i
 tokeny GitHuba tylko na hoście), Z8c-2 (ustalenia skanera blokują kawałek, skan PR w CI), a w planie rozszerzenie N2
@@ -725,6 +729,152 @@ statuses, commands and PR sections.
 Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
+## N12 — tf: weryfikacja przed zakończeniem fazy
+
+Grupa A5. Startuje po A6 (DZ19); N3 jest zrobione z Z8c-2. Sesja w klonie tf. Dotyka tych samych plików co N2, N13 i
+N15 (talos, `phase_run.py`): prowadź po kolei albo uzgadniaj zmiany. **Stan przed startem (2026-11-03):** pdi `aadfbf9` (kontrakt 0.11.0), tf 5.58.4. Już jest: Z1, Z8a (krok `run`
+w kontenerze z sandboxem Claude Code), Z8c-2 z N3 (jedno polecenie weryfikacji w pierwszej linii CLAUDE.md produktu,
+wzór `templates/verify.sh` w talos-story-run); CI na GitHubie działa.
+
+```text
+Implement N12 of docs/plan-zespol-jednoosobowy.md (§8.3, row A5 in §0) from dbqm45/pdi (main) in dbqm45/tf. Answer me
+in Polish; code, commits and PR title in English, Conventional Commits.
+
+Goal: the delivery phase and a talos slice cannot end as a success when the code changed after the last verification:
+there must be a fresh result of the product's verification command (N3) for the current commit. A missing result turns
+"done" into a continuation with the instruction to run the verification, visible in the log.
+
+Read first: pdi docs/plan-zespol-jednoosobowy.md §8.3 (N3, N12, N13) and docs/plan-z8a-izolacja-faz.md; in tf
+modes/mode-talos/skills/talos-story-run (SKILL.md: the slice loop, `BRAMKA K<n>: PASS|FAIL`, templates/verify.sh,
+scripts/security_scan.py), modes/mode-pdi/skills/pdi-decisions/scripts/phase_run.py (the run result) and
+sandbox_settings.py, core/hooks (how hooks are registered; project_record.py already has a Stop hook).
+
+Already done (do not redo): N3 — one verification command in the first line of the product's CLAUDE.md, run in the
+slice loop; the security scan per slice (Z8c-2).
+
+1. Plan first in docs/plans/ (files, order, tests, sources with dates). TDD.
+2. A verification record: after each run of the verification command, a small file in the run directory with the
+   commit (HEAD and whether the tree is clean), the command, the exit code and the time — written by a script, not by
+   the persona's own claim.
+3. Enforcement on stop: check in the official Claude Code docs how a Stop (and SubagentStop) hook can block the end of
+   a turn and send the agent back with a reason, and with which fields; then a hook that refuses to stop when the code
+   changed after the last passing verification record, with the exact command to run. A loop guard: after N refusals
+   in a row the hook lets the session stop with status "verification missing" instead of looping (N13 will count it).
+4. phase_run.py: the delivery result and talos's report show the verification record of the last slice; a slice
+   without a fresh passing record is not "done".
+5. Docs: talos-story-run SKILL.md, mode-talos and mode-pdi GUIDE.md.
+
+Tests: the record written and read (clean and dirty tree, different commit), the hook allows stop with a fresh passing
+record and refuses without it (with the command in the reason), the loop guard, phase_run's delivery result.
+A run on dbqm45/sdlc-proba needs my Mac: add it as a checklist item for me in pdi docs/przebieg-lokalny.md (a slice that
+changes code after its last verification is sent back to verify, and the log shows it).
+Gates: pdi (if changed) — uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy
+src; tf — the repo's checks (workspace.py check --packs pack-it and --packs mode-pdi, plus --packs mode-talos when talos
+changes, skill gates of changed skills). CI runs on the PRs: wait for it to be green and say in the PRs what you ran
+locally.
+When the gates pass, commit, push and open PRs to main (tf first if pdi depends on it), but do not merge them.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
+At the end report in Polish: the PR link, gates and results, and the exact names of the hook, the record file and its
+fields.
+```
+
+## N13 — tf + pdi: limity tur i czasu, zapętlenie trafia do skrzynki
+
+Grupa A5. Startuje po A6 (DZ19). Sesja w klonie tf; część pdi (pozycja w skrzynce) osobnym PR-em. Dotyka tych samych
+plików co N2, N12 i N15: prowadź po kolei albo uzgadniaj zmiany. **Stan przed startem (2026-11-03):** pdi `aadfbf9` (kontrakt 0.11.0), tf 5.58.4. Już jest: Z1, Z8a (krok `run`
+w kontenerze z sandboxem Claude Code), Z8c-2 z N3 (jedno polecenie weryfikacji w pierwszej linii CLAUDE.md produktu,
+wzór `templates/verify.sh` w talos-story-run); CI na GitHubie działa.
+
+```text
+Implement N13 of docs/plan-zespol-jednoosobowy.md (§8.3, row A5 in §0) from dbqm45/pdi (main) in dbqm45/tf, with the pdi
+part in dbqm45/pdi (attach both with push access). Answer me in Polish; code, commits and PR titles in English.
+
+Goal: cheap limits stop a phase that runs away, with a readable reason, and a loop goes to the pdi inbox instead of
+using up the budget: a turn limit next to the cost limit, a time limit, and a counter of identical tool calls (three in
+a row → an inbox item "faza się powtarza" with the last steps).
+
+Read first: pdi docs/plan-zespol-jednoosobowy.md §8.3 (N13, N12, N16) and docs/plan-z8a-izolacja-faz.md; in tf
+modes/mode-pdi/skills/pdi-decisions/scripts/phase_run.py (how claude is started: --print, --max-budget-usd from
+PDI_PHASE_BUDGET_USD, --settings), sandbox_settings.py, templates/sdlc-phase.yml, core/hooks; in pdi
+src/pdi/dispatch_local.py (STEP_TIMEOUT_SECONDS, the run result), src/pdi/inbox.py (item kinds), src/pdi/receiver.py and
+contract/event.schema.json.
+
+1. Plan first in docs/plans/ (tf; files in both repos, order, tests, sources with dates). TDD.
+2. Limits: check in the official Claude Code docs the flags for a turn limit in print mode (`--max-turns`), how the run
+   ends when a limit is hit (result subtype, exit code) and what is reported; then pass a turn limit and a time limit
+   per phase from the product's settings (e.g. .claude/pdi-phases.json next to the persona override) with safe
+   defaults. A phase stopped by a limit ends `failed` with a readable reason (which limit, the value, the last step),
+   not a generic error; pdi's step timeout stays the outer bound.
+3. Loop counter: a PreToolUse/PostToolUse hook counts identical consecutive tool calls (same tool, same normalised
+   input); at three in a row it stops the phase with status `looping` and the last steps (tool names and short,
+   secret-free summaries — no file contents, prompts or tokens).
+4. pdi: a looping or limit-stopped phase gives an inbox item (kind e.g. `phase_stuck`: change, phase, reason, last
+   steps, log link) with options "ponów" (retry_dispatch) and "zatrzymaj". It needs a way for the result to reach pdi:
+   in local mode dispatch_local reads it from the run result; in Actions mode decide in the plan whether it is a new
+   event type or a field of an existing one, and if the contract changes take the next free minor version
+   (coordinate with Z2a and Z7b-1a, which also bump it; tag after merge, then tf's pinned copy as tf #136).
+5. Docs: mode-pdi GUIDE.md, README, a checklist item for me in pdi docs/przebieg-lokalny.md (a phase with a low turn
+   limit stops with a clear reason; a forced loop gives the inbox item).
+
+Tests: limit flags passed from settings and defaults, the result for each limit, the loop counter (three identical
+calls, different inputs not counted, no secrets in the summary), the pdi inbox item and its options, retry.
+Gates: pdi (if changed) — uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy
+src; tf — the repo's checks (workspace.py check --packs pack-it and --packs mode-pdi, plus --packs mode-talos when talos
+changes, skill gates of changed skills). CI runs on the PRs: wait for it to be green and say in the PRs what you ran
+locally.
+When the gates pass, commit, push and open PRs to main (tf first if pdi depends on it), but do not merge them.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
+At the end report in Polish: PR links, gates and results, the merge order, the contract version taken (if any), and the
+exact names of the settings, statuses, hook and inbox item kind.
+```
+
+## N15 — tf + pdi: zakres zapisu fazy
+
+Grupa A5. Startuje po A6 (DZ19). Sesja w klonie tf; lista ścieżek fazy w kontrakcie pdi osobnym PR-em. Dotyka tych
+samych plików co N2, N12 i N13 (hooki, persony): prowadź po kolei albo uzgadniaj zmiany. **Stan przed startem (2026-11-03):** pdi `aadfbf9` (kontrakt 0.11.0), tf 5.58.4. Już jest: Z1, Z8a (krok `run`
+w kontenerze z sandboxem Claude Code), Z8c-2 z N3 (jedno polecenie weryfikacji w pierwszej linii CLAUDE.md produktu,
+wzór `templates/verify.sh` w talos-story-run); CI na GitHubie działa.
+
+```text
+Implement N15 of docs/plan-zespol-jednoosobowy.md (§8.3, row A5 in §0) from dbqm45/pdi (main) in dbqm45/tf, with the
+contract part in dbqm45/pdi (attach both with push access). Answer me in Polish; code, commits and PR titles in English.
+
+Goal: a phase can write only its own files. guard_paths gets a list of allowed paths per phase (e.g. intent: only the
+change's intent.md; requirements: requirements.md; architecture: plan.md, release.yaml and architecture.md; design:
+design.md; delivery: code, tests and the change's run report); every phase may also add entries to decisions.md only
+through decision_record.py. A write outside the scope is a refusal in the log, not a silent skip.
+
+Read first: pdi docs/plan-zespol-jednoosobowy.md §8.3 (N15), contract/contract.json (conventions) and
+contract/change.schema.json; in tf core/hooks/guard_paths.py (secrets, guardrails, context economy), how hooks are
+registered for personas, modes/mode-pdi/skills/pdi-decisions/scripts/phase_run.py (PHASES with the artifact of each
+phase; the persona runs with --settings $PDI_CLAUDE_SETTINGS) and sandbox_settings.py (Z8a: filesystem.allowWrite),
+the tf #134 change that moved ADRs to architecture.md.
+
+1. Plan first in docs/plans/ (tf; files in both repos, order, tests, sources with dates). TDD.
+2. Contract: the list of writable paths per phase in contract.json conventions (patterns relative to the product repo,
+   with `<CHG>`), the next free minor version (coordinate with Z2a, which adds the `discovery` phase and brief.md, and
+   with Z7b-1a and N13, which may also bump it); tag after merge, then tf's pinned copy as tf #136.
+3. Enforcement in two layers: guard_paths refuses Edit/Write/NotebookEdit outside the phase's list (the phase from an
+   environment variable set by phase_run.py, never from the persona), with the allowed list in the message; and the
+   Claude Code sandbox settings for the phase (check in the official docs how filesystem write rules and
+   permissions.deny apply to Bash and to Edit/Write, and note the date) narrow writes the same way, so a shell command
+   cannot bypass the hook. Outside a pdi phase (no variable) guard_paths behaves as today.
+4. The delivery phase writes code; talos's own rules stay. Rework of a phase uses the same list.
+5. Docs: mode-pdi GUIDE.md and SKILL.md, contract/README.md (pdi), a checklist item for me in pdi
+   docs/przebieg-lokalny.md (the architecture persona cannot change code or another phase's artifact; the refusal is
+   in the log).
+
+Tests: the contract list and examples, guard_paths per phase (allowed, refused with the list, decisions.md through the
+script only, no phase → as today), the sandbox settings per phase, a shell write outside the scope refused.
+Gates: pdi (if changed) — uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy
+src; tf — the repo's checks (workspace.py check --packs pack-it and --packs mode-pdi, plus --packs mode-talos when talos
+changes, skill gates of changed skills). CI runs on the PRs: wait for it to be green and say in the PRs what you ran
+locally.
+When the gates pass, commit, push and open PRs to main (tf first if pdi depends on it), but do not merge them.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
+At the end report in Polish: PR links, gates and results, the merge order, the contract version taken, and the exact
+names of the contract field, the environment variable and the refusal message.
+```
 
 ## Z3-lokalnie — pdi + tf: konsola w przeglądarce na Macu
 
