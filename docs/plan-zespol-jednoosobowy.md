@@ -1,6 +1,6 @@
 # Plan: zespół jednoosobowy — greenfield od wywiadu, brownfield od poznania projektu, wszystko w przeglądarce
 
-Data: 2026-11-02 · Status: **plan; decyzje DZ1–DZ5 przyjęte 2026-11-02**, DZ1–DZ14 przyjęte, otwarte DA4 · Kolejność całości: §0 · Stan wyjściowy: pdi `d66b4bf`, tf 5.55.0,
+Data: 2026-11-02 · Status: **plan; decyzje DZ1–DZ5 przyjęte 2026-11-02**, DZ1–DZ14 przyjęte, otwarte DA4; Z10 (niezawodność i obserwowalność) dodane 2026-11-03, DZ15–DZ17 przyjęte 2026-11-03 · Kolejność całości: §0 · Stan wyjściowy: pdi `d66b4bf`, tf 5.55.0,
 ShipScope 0.2.67, ci_for_sdlc 0.1.35+ · Powiązane: [plan `sdlc up`](plan-sdlc-lokalnie.md),
 [przebieg lokalny](przebieg-lokalny.md#wynik-przebiegu-2026-10-31), [etapy 2–18](polecenia-startowe-sdlc-lokalnie.md),
 [automatyzacja i konsola](plan-automatyzacja-i-konsola.md), [jedna platforma](15-jedna-platforma.md)
@@ -30,9 +30,9 @@ równolegle. „Bramka” to warunek przejścia do następnej grupy.
 |---|---|---|---|---|
 | B1 | Z2a — faza `discovery` i bramka B0 | pdi | Z1 | [jest](polecenia-startowe-zespol.md) |
 | B2 | Z2b — wywiad `/discovery` w mode-pdi | tf | Z2a i tag kontraktu | jest |
-| B3 | Z7b-2 — pętla ulepszeń: ocena skutku `not_met` albo wybicie metryki otwiera zmianę ponownie od wymagań albo architektury, z danymi z produkcji jako wejściem (DZ6: najwyżej 2 próby, potem człowiek) · Z7c + Z8d — pas governance (blokuje B5) i pakiet dowodów · Z8b — tożsamość agentów | pdi + tf + ci_for_sdlc | Z1 | do przygotowania |
+| B3 | Z7b-2 — pętla ulepszeń: ocena skutku `not_met` albo wybicie metryki otwiera zmianę ponownie od wymagań albo architektury, z danymi z produkcji jako wejściem (DZ6: najwyżej 2 próby, potem człowiek) · Z7c + Z8d — pas governance (blokuje B5) i pakiet dowodów · Z8b — tożsamość agentów · Z10a — SLO produktu i budżet błędów (wyczerpany budżet otwiera pętlę Z7b-2) · Z10d — SBOM i licencje w pakiecie dowodów | pdi + tf + ci_for_sdlc + ShipScope | Z1 | do przygotowania |
 | B4 | **Decyzja DA4** — stos usługi pdi | — | — | decyzja właściciela |
-| B5 | Z3 — usługa pdi: konsola z A7 jako usługa, rozmowa w konsoli (dawne etapy 4 i 10) i sygnał „czeka na Ciebie”, razem z N11 (karta decyzji przy bramce) | pdi + tf | DA4, Z2, A7 | do przygotowania |
+| B5 | Z3 — usługa pdi: konsola z A7 jako usługa, rozmowa w konsoli (dawne etapy 4 i 10) i sygnał „czeka na Ciebie”, razem z N11 (karta decyzji przy bramce) i Z10c (obserwowalność przebiegu agentów i miesięczny budżet kosztu) | pdi + tf | DA4, Z2, A7 | do przygotowania |
 | B6 | **Etap 3** — z localhosta na produkcję | pdi + ShipScope + tf + sprintdeck | B1–B5, działające Actions | [jest](polecenia-startowe-sdlc-lokalnie.md#etap-3--pdi--shipscope-tf-z-localhosta-na-produkcję) |
 
 **C. Greenfield i brownfield**
@@ -42,14 +42,14 @@ równolegle. „Bramka” to warunek przejścia do następnej grupy.
 | C1 | Z4 — greenfield do końca: wybór stosu, bootstrap repo z tf (z N3), lista kroków infrastruktury | tf + pdi | Z2 | do przygotowania |
 | C2 | Z5 — onboarding brownfield z N9 (wzorce, testy charakteryzujące, uruchamialność) i N6 (mapa projektu z kodu) | tf + pdi + ci_for_sdlc | Z1 | do przygotowania |
 | C3 | Z6 — Slack, potem Teams i Miro jako źródła wiedzy | pdi | Z5 | do przygotowania |
-| C4 | N7 — wznawianie przerwanej fazy · N8 — makiety HTML w fazie design | pdi + tf | Z8a | do przygotowania |
+| C4 | N7 — wznawianie przerwanej fazy · N8 — makiety HTML w fazie design · Z10e — wydajność i dostępność (WCAG) w celach zmiany | pdi + tf (+ ci_for_sdlc) | Z8a, Z7b-1 | do przygotowania |
 
 **D. Dalsze etapy (bez zmian, po kolei)**
 
 Etap 5 (graf śladu, rejestr decyzji, panel w Jirze) → etap 6 (autonomia na danych) → etap 7 (etapy flag według reguły,
-metryki ochronne) → etap 8 (uproszczone review, lustro Jira) → etap 9 (incydenty, aplikacja Slacka) → etap 11 (zaległe
+metryki ochronne, alerty spalania budżetu błędów — Z10b) → etap 8 (uproszczone review, lustro Jira) → etap 9 (incydenty, aplikacja Slacka) → etap 11 (zaległe
 kroki G1/G2) → etap 12 (jedno wejście, miary przepływu; razem z Z8e) → etapy 13–14 (łączenie backendów) → etap 15
-(pilotaż) → etap 16 (utrzymanie) → etap 17 (cennik) → etap 18 (przegląd na dowodach). Etapy 4 i 10 weszły do Z3.
+(pilotaż) → etap 16 (utrzymanie; SLO platformy i SLA dla partnerów — Z10) → etap 17 (cennik) → etap 18 (przegląd na dowodach). Etapy 4 i 10 weszły do Z3.
 
 **Na bieżąco:** Z8f — po każdym przebiegu PRB dotyczące uprzęży zamieniają się w zmiany w tf z evalem. Z7d — przy
 pierwszym produkcie, który sam jest aplikacją AI.
@@ -252,12 +252,14 @@ z uzasadnieniem i źródłem. Każda kolejna faza dostaje w wejściu decyzje, kt
 | Z7 | **Układ z cyklu aplikacji AI** (§8.1): trzy pasy w konsoli i dokumentacji, bramka „spełnia cele?” z krótką pętlą do wskazanej fazy, pas governance przez wszystkie fazy, opcjonalna gałąź dla produktów, które same są aplikacją AI | pdi + tf + ci_for_sdlc (+ ShipScope) | Z1, Z3 (pasy w konsoli) | patrz §8.1, Z7a–Z7d |
 | Z8 | **Uprząż i dowody** (§8.2): izolacja faz, tożsamość agentów, skaner bezpieczeństwa w pętli talosa i w CI, pakiet dowodów zmiany, miary wartości, uprząż ucząca się z PRB | tf + pdi (+ ci_for_sdlc, ShipScope) | Z1 | patrz §8.2, Z8a–Z8f |
 | Z9 | **Pętle jakości i kontekst** (§8.3): przegląd drugim modelem, pętla budujący–recenzent i samonaprawa CI, jeden skrypt weryfikacji, cele pokrycia i testy mutacyjne, evale przebiegu, kontekst przycięty do fazy, wznawianie pracy, makiety HTML, wzorce i testy charakteryzujące w brownfield, łańcuch dostaw, karta decyzji przy bramce | tf + pdi (+ ci_for_sdlc) | Z1, Z8c | patrz §8.3, N1–N11 |
+| Z10 | **Niezawodność i obserwowalność** (§8.5): SLO produktu i budżet błędów w planie wydania, alerty spalania budżetu przy etapach flag, obserwowalność przebiegu agentów (OpenTelemetry z Claude Code) z miesięcznym budżetem kosztu, SBOM i licencje, wydajność i dostępność w celach zmiany; SLA tylko jako decyzja człowieka | pdi + tf + ShipScope (+ ci_for_sdlc) | Z1, Z7b-1, Z8a | patrz §8.5, Z10a–Z10e |
 
 Kolejność: Z1 → Z3-lokalnie (konsola na Macu, DZ14) → Z2 (w czacie Claude, bez nowej usługi) → Z3 → Z4 i Z5 równolegle → Z6. Z7: Z7b i Z7c mogą iść
 razem z Z1–Z2 (nie zależą od konsoli), Z7a razem z Z3-lokalnie (trzy pasy w konsoli), Z7d przy pierwszym produkcie, który jest aplikacją AI. Z8: Z8a i Z8c
 przed kolejnym przebiegiem z prawdziwym kodem (etap 2 na sprintdecku), Z8b przed etapem 3 (produkcja), Z8d razem z Z7c, Z8e
 z etapem 12 (G7), Z8f po każdym przebiegu. Z9: N1, N2 i N5 przed etapem 2; N9 razem z Z5;
-pozostałe razem z krokami, do których są przypięte (§8.3).
+pozostałe razem z krokami, do których są przypięte (§8.3). Z10: Z10a i Z10d razem z Z7b-2 i Z8d (grupa B), Z10c razem z Z3,
+Z10e po Z7b-1, Z10b z etapem 7 (G5), SLO platformy i SLA w etapie 16 (§8.5).
 
 **Miejsce w etapach 2–18:** Z1 to poprawka przed etapem 2 (zalecana w wyniku przebiegu). Z3 łączy etap 4 (usługa
 i konsola K-2) z etapem 10 (rozmowa K-3) i przesuwa rozmowę wcześniej. Z2, Z4, Z5 i Z6 to nowe etapy, których w tej
@@ -280,7 +282,7 @@ dowożenie dowolnej zmiany, więc nie zastępujemy przebiegu, tylko przejmujemy 
 | 8. Ewaluacja i testy | reguły ci_for_sdlc (STORY/AC/REL/DES/TEST), testy repo, review | mierzalne cele jakości zmiany (progi), sprawdzane automatycznie |
 | Bramka „spełnia cele?”, „fail → iterate” | bramki ludzi; „do poprawek” wraca tylko do tej samej fazy | bramka z celami i powrót do wskazanej wcześniejszej fazy (Z7b) |
 | 9. Wdrożenie i integracja | ShipScope: wdrożenia, flagi, etapy | — |
-| 10. Obserwowalność i monitoring | `metric_watch.py` (pasma 3σ), ShipScope (`/metrics`, `/flow`) | metryki ochronne produktu (G5, etap 7) |
+| 10. Obserwowalność i monitoring | `metric_watch.py` (pasma 3σ), ShipScope (`/metrics`, `/flow`) | metryki ochronne produktu (G5, etap 7); SLO, budżet błędów i alerty spalania (Z10a, Z10b); obserwowalność samych agentów (Z10c) |
 | 11. Informacja zwrotna i analiza błędów | ocena skutku (`met`/`not_met`), `metric.breached` → nowe zgłoszenie | analiza przyczyny przy `not_met` jako wejście dla kolejnej iteracji |
 | „Update & Experiment”, pętla do faz 2–7 | `not_met` i wybicie metryki otwierają nowe PRB: cały cykl od triażu | ponowne otwarcie tej samej zmiany od wymagań albo architektury, z danymi z produkcji (Z7b) |
 | 12. Governance przez wszystkie fazy | rozproszone: rejestr decyzji, graf śladu, typy chronione (DA2), `security-reviewer`, zasady źródeł (A5) | jeden pas: co w każdej fazie sprawdzono pod kątem danych osobowych, dostępów, zabezpieczeń i audytu (Z7c) |
@@ -373,11 +375,40 @@ w praktyce przy realizacji kroku; „✗” — nie potwierdzone, nie cytujemy.
 | Stripe Minions, 1300 PR tygodniowo | ✗ tylko wzmianka na InfoQ, bez materiału Stripe | — | — |
 | Open Mercato | ✓ organizacja na GitHubie, MIT, TypeScript | N6–N9 | [GitHub](https://github.com/open-mercato) |
 | Testy mutacyjne | ✓ StrykerJS (JS/TS), mutmut (Python); uruchamiać na zmienionym kodzie | N4 | [przegląd](https://playbooks.com/skills/secondsky/claude-skills/mutation-testing) |
+| Telemetria Claude Code przez OpenTelemetry | ✓ sprawdzone 2026-11-03: metryki i zdarzenia (`CLAUDE_CODE_ENABLE_TELEMETRY=1`, `OTEL_METRICS_EXPORTER`, `OTEL_LOGS_EXPORTER`, `OTEL_EXPORTER_OTLP_PROTOCOL` bez wartości domyślnej, `OTEL_EXPORTER_OTLP_ENDPOINT`); metryki m.in. `claude_code.cost.usage`, `claude_code.token.usage`; zdarzenia m.in. `claude_code.api_request`, `claude_code.tool_result`, `claude_code.tool_decision`; ślady w becie (`CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=1`); treść promptów redagowana, chyba że `OTEL_LOG_USER_PROMPTS=1` | Z10c | [Monitoring](https://code.claude.com/docs/en/monitoring-usage) |
+| Alerty spalania budżetu błędów w kilku oknach | ? nie sprawdzone: strona sre.google niedostępna z sesji 2026-11-03; sprawdzić liczby (tempa i okna) przed Z10b | Z10b | [SRE Workbook: Alerting on SLOs](https://sre.google/workbook/alerting-on-slos/) |
+| SBOM z menedżera pakietów (`npm sbom`, CycloneDX i SPDX) | ? nie sprawdzone: docs.npmjs.com niedostępne z sesji 2026-11-03; sprawdzić wersję npm i formaty przed Z10d | Z10d | [npm sbom](https://docs.npmjs.com/cli/v11/commands/npm-sbom) |
 
 **Zasada na dalej.** Każde polecenie startowe wymaga, by sesja przed planem sprawdziła zachowanie zewnętrznych
 narzędzi, API i ustawień w oficjalnej dokumentacji (z datą), a to, czego dokumentacja nie rozstrzyga, sprawdziła
 lokalnie, i zapisała źródła w swoim planie. Przed każdą grupą z §0 (A–D) tabela wyżej jest sprawdzana ponownie dla
 kroków tej grupy.
+
+### 8.5. Z10 — niezawodność i obserwowalność
+
+Źródło: rozmowa 2026-11-03 (pytanie o obserwowalność, SLO/SLI/SLA, ADLC i uprząż). Luki w planie: (1) zmiana produktu
+nie ma SLO ani budżetu błędów, więc etapy flag i pętla ulepszeń opierają się tylko na metrykach ochronnych z pasmami 3σ;
+(2) przebieg agentów widać w logu fazy i `run.progress`, ale nie ma metryk ani śladów z samego Claude Code, a koszt ma
+tylko limit na fazę (DL5), bez limitu na miesiąc; (3) pakiet dowodów (Z8d) nie ma listy składników (SBOM) ani licencji;
+(4) cele zmiany (Z7b-1) nie obejmują jawnie dostępności i wydajności interfejsu. SLO, budżet błędów i alerty ShipScope
+dla jego własnego serwera (`server/SLO.pl.md`) są wzorem; w tym kroku przenosimy je na produkty, a w etapie 16 na
+platformę. Plików ShipScope w tej sesji nie czytano (brak dostępu), więc szczegóły wzoru sprawdza sesja kroku.
+
+**Pojęcia w planie:** SLI to mierzona wielkość (np. odsetek udanych żądań, czas odpowiedzi p95); SLO to cel dla SLI
+w oknie (np. 99,5% w 28 dni); budżet błędów to 100% − SLO; SLA to obietnica wobec klienta z konsekwencjami — u nas
+zawsze decyzja człowieka (koszt i zobowiązanie), nigdy automat.
+
+| Krok | Co | Repo | Zależy od | Gotowe, gdy |
+|---|---|---|---|---|
+| Z10a | **SLO produktu w planie wydania:** pole `slo` w `release.yaml` (kontrakt, wersja minor): SLI ze źródłem (ShipScope, analityka z G5 albo `/metrics` produktu), cel, okno; architekt (tomasz) proponuje SLO w planie razem z `targets`, człowiek zatwierdza w B3 (jak DZ7); ShipScope liczy SLI i pozostały budżet błędów dla każdego środowiska; wyczerpany budżet wysyła zdarzenie (np. `slo.budget_exhausted`) do pdi, które otwiera pętlę Z7b-2 z `return_to` i danymi SLI jako wejściem, a do czasu powrotu budżetu wstrzymuje kolejne etapy flag tej zmiany; produkt bez SLO dostaje ostrzeżenie w B3 i odmowę w B5 (DZ15) | pdi (kontrakt) + tf (tomasz) + ShipScope | Z1, Z7b-1 | w repo próbnym zmiana z SLO, które celowo wyczerpujemy w teście, wraca do wskazanej fazy z powodem, a etap flagi czeka |
+| Z10b | **Alerty spalania budżetu i etapy flag:** alert, gdy budżet znika szybciej niż zakłada okno (kilka okien: szybkie i wolne spalanie), zamiast progu na jednej metryce; `flag.stage_advance` (A4) wymaga zapasu budżetu, a szybkie spalanie w trakcie etapu daje propozycję wycofania na poziomie 1 (jak dziś w etapie 7) | ShipScope + pdi | Z10a, G5 (etap 7) | w teście szybkie spalanie zatrzymuje etap flagi i proponuje wycofanie z dowodem |
+| Z10c | **Obserwowalność przebiegu agentów:** w kontenerze fazy (Z8a) Claude Code wysyła telemetrię OpenTelemetry (`CLAUDE_CODE_ENABLE_TELEMETRY=1`, eksport OTLP) do kolektora uruchamianego przez `sdlc up` (adres kolektora na liście dozwolonych adresów Z8a); atrybuty zmiany, fazy i persony przy każdej metryce; konsola pokazuje koszt i tokeny (`claude_code.cost.usage`, `claude_code.token.usage`), błędy i odmowy API, decyzje o narzędziach na zmianę i fazę; ślady (beta) tylko opcjonalnie; treść promptów zostaje zredagowana (domyślnie); do tego **miesięczny budżet kosztu** całego ekosystemu z ostrzeżeniem przy 80% i zatrzymaniem nowych faz przy 100% (decyzja człowieka, żeby iść dalej) | pdi (`sdlc up`, konsola) + tf (`sdlc-phase.yml`) | Z8a, A7 | po przebiegu konsola pokazuje koszt i błędy każdej fazy z telemetrii, zgodne z logiem fazy; przekroczenie budżetu miesięcznego zatrzymuje kolejną fazę z pozycją w skrzynce |
+| Z10d | **SBOM i licencje:** przy każdym PR talosa lista składników (SBOM w formacie CycloneDX albo SPDX) z menedżera pakietów i sprawdzenie licencji nowych zależności według listy dozwolonych w `standards.md` (Z5) albo w ustawieniach produktu; SBOM i wynik w pakiecie dowodów (Z8d) | tf (talos, `change-check.yml`) + ci_for_sdlc (ustalenie) + pdi (Z8d) | Z8c, Z8d | nowa zależność z licencją spoza listy zatrzymuje kawałek z wyjaśnieniem, a `export_evidence` zawiera SBOM |
+| Z10e | **Wydajność i dostępność w celach zmiany:** w `targets` (Z7b-1) opcjonalne progi: czas odpowiedzi p95 dla zmienionych ścieżek, budżet rozmiaru paczki frontendu, automatyczny test dostępności (WCAG 2.2 AA, poziom do decyzji) zmienionych ekranów; natalia proponuje progi dostępności w design, tomasz wydajności w planie | tf (natalia, tomasz, testy) + ci_for_sdlc (reguła TEST) | Z7b-1 | ekran z brakującą etykietą pola albo zbyt wolna ścieżka zatrzymuje zmianę przed B4 |
+| — | **SLO platformy i SLA dla partnerów:** w etapie 16; zaczyna od decyzji człowieka, co obiecujemy partnerom i ile to kosztuje (DZ17) | pdi + ShipScope + ci_for_sdlc | etap 15 | patrz [etap 16](polecenia-startowe-sdlc-lokalnie.md#etap-16--pdi--shipscope-ci_for_sdlc-utrzymanie-i-niezawodność-platformy) |
+
+Poza zakresem Z10 (już w planie): wycofanie przy wybiciu metryki ochronnej (etap 7), incydenty (G8, etap 9), miary
+DORA i przepływu (etap 12, Z8e), model zagrożeń w architekturze (B3 w tf).
 
 ## 9. Decyzje do podjęcia
 
@@ -396,6 +427,9 @@ kroków tej grupy.
 | DZ10 | Osobna aplikacja GitHub dla agentów (Z8b) | **przyjęte**: tak, jedna na organizację, z uprawnieniami tylko do repo produktu (contents, pull requests); tokeny instalacji (GitHub wydaje je zawsze na godzinę) |
 | DZ11 | Jaki skaner (Z8c) | **przyjęte**: Semgrep (reguły OWASP, lokalnie i w CI; do sprawdzenia, czy reguły z rejestru pobierają się bez logowania, inaczej reguły zapisane w repo) + skan zależności z menedżera pakietów (`npm audit`, `pip-audit`); CodeQL później, w Actions |
 | DZ12 | Drugi model w N1: od tego samego dostawcy czy innego? | **przyjęte 2026-11-02**: inny dostawca (osobny klucz API, koszt w budżecie fazy); bez klucza — inny model Claude z osobnym promptem recenzenta, oznaczony w wyniku |
+| DZ15 | Czy brak SLO blokuje wydanie (Z10a) | **przyjęte 2026-11-03**: dla produktu z użytkownikami tak, na B5 (jak pas governance, DZ8); wcześniej ostrzeżenie w B3; repo próbne i zmiany bez wpływu na użytkowników zwolnione z jawnym powodem |
+| DZ16 | Dokąd idzie telemetria agentów (Z10c) | **przyjęte 2026-11-03**: lokalnie kolektor OpenTelemetry w Dockerze z `sdlc up`, zapis do pliku czytanego przez konsolę, bez zewnętrznej usługi; backend (Grafana, Honeycomb, …) dopiero z usługą pdi po DA4 |
+| DZ17 | Kto i kiedy ustala SLA | **przyjęte 2026-11-03**: tylko człowiek, jako typ chroniony (DA2), dopiero w etapie 16 dla platformy; produkty mają SLO, nie SLA, dopóki nie ma klienta z umową |
 | DZ13 | Ile zadań w evalach przebiegu (N5) i jaki budżet | **przyjęte**: start: 20 zadań z repo próbnego i sprintdecka, budżet na jedno uruchomienie ustalony w tf; rozbudowa do ok. 200 po pierwszych wynikach |
 
 ## 10. Stan
@@ -411,3 +445,4 @@ kroków tej grupy.
 | Z7 | do zrobienia (Z7a po Z3) |
 | Z8 | Z8a w PR (pdi + tf, 2026-11-02): krok `run` w kontenerze `pdi-phase` z proxy wyjścia i sandboxem Claude Code, [plan](plan-z8a-izolacja-faz.md); do sprawdzenia na Macu — [przebieg lokalny](przebieg-lokalny.md) §0; Z8c przed etapem 2, [polecenia startowe](polecenia-startowe-zespol.md) |
 | Z9 | do zrobienia; N1, N2 i N5 przed etapem 2 |
+| Z10 | do zrobienia; decyzje DZ15–DZ17 przyjęte 2026-11-03 |
