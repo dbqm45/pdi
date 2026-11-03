@@ -1,7 +1,7 @@
 # Polecenia startowe planu „zespół jednoosobowy”: grupa A i Z2
 
 **Data:** 2026-11-02, odświeżone 2026-11-03 · **Źródło:** [plan „zespół jednoosobowy”](plan-zespol-jednoosobowy.md) §8,
-§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `abcbc59` (kontrakt 0.11.0), tf 5.57.0 (kopia
+§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `0845e63` (kontrakt 0.11.0), tf 5.58.3 (kopia
 kontraktu 0.11.0), ShipScope 0.2.67 (stan z 2026-11-02) · Polecenia Z2a, Z2b, Z3-lokalnie i N1 mają nad sobą własny stan
 przed startem; pozostałe niezrobione (N5, Z7b-1a, Z7b-1b, N2) są w brzmieniu z 2026-11-02 i przed użyciem warto je
 odświeżyć tak samo.
