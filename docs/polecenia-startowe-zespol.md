@@ -1,9 +1,9 @@
 # Polecenia startowe planu „zespół jednoosobowy”: grupa A i Z2
 
 **Data:** 2026-11-02, odświeżone 2026-11-03 · **Źródło:** [plan „zespół jednoosobowy”](plan-zespol-jednoosobowy.md) §8,
-§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `b6f12b8` (kontrakt 0.11.0), tf 5.58.3 (kopia
-kontraktu 0.11.0), ShipScope 0.2.67 (stan z 2026-11-02) · Polecenia Z2a, Z2b, Z3-lokalnie, N1, N5 i Z7b-1a mają nad sobą własny stan
-przed startem; pozostałe niezrobione (Z7b-1b, N2) są w brzmieniu z 2026-11-02 i przed użyciem warto je
+§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `18432c1` (kontrakt 0.11.0), tf 5.58.3 (kopia
+kontraktu 0.11.0), ShipScope 0.2.67 (stan z 2026-11-02) · Polecenia Z2a, Z2b, Z3-lokalnie, N1, N5, Z7b-1a i Z7b-1b mają nad sobą własny stan
+przed startem; polecenie N2 jest w brzmieniu z 2026-11-02 i przed użyciem warto je
 odświeżyć tak samo.
 
 Każde polecenie wklejasz jako pierwszą wiadomość nowej sesji Claude Code w katalogu z tabeli. Zrobione są Z1, Z8a,
@@ -572,8 +572,9 @@ results into findings (Z8c-1).
    linked from it): coverage of changed code (min %, with explicit exclusions and their reason), mutation score on
    changed code (min %; tools: StrykerJS for JS/TS, mutmut for Python, per N4), optional performance budgets (name,
    metric, limit), evaluation thresholds for AI features (eval set, metric, min). Shape it so Z10a (`slo`) and Z10e
-   (p95, bundle size, accessibility) can be added later as optional fields without a breaking change. Examples and
-   contract/README.md.
+   (p95, bundle size, accessibility) can be added later as optional fields without a breaking change. In the same
+   version add an optional field for the targets' status to readiness_changed in event.schema.json (today it has
+   additionalProperties false), so ci_for_sdlc can report it in Z7b-1b. Examples and contract/README.md.
 3. tf: the architecture phase writes `targets` with a short justification per target, and (N20) plan.md has at least
    two considered options with pros, cons and cost, the choice and why — check first what tomasz and
    arch-tech-selection already require and add only the missing part. plan.md and release.yaml templates and
@@ -602,28 +603,61 @@ Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, che
 
 ## Z7b-1b — ci_for_sdlc: sprawdzanie celów zmiany
 
+Startuje po Z7b-1a (cele w kontrakcie i jego tag) i Z8c-1 (zrobione). Sesja w klonie ci_for_sdlc; szablon
+`change-check.yml` jest w tf (mode-pdi), więc jego kroki idą małym PR-em w tf. **Stan przed startem (2026-11-03):** pdi
+`18432c1` (kontrakt 0.11.0), tf 5.58.3; w ci_for_sdlc czytnik SARIF z Z8c-1 (#109) i odpowiedzi na ustalenia z PRB-16
+(#107). CI na GitHubie znowu działa.
+
 ```text
 Implement part 1b of Z7b of the plan "one-person team" from dbqm45/pdi (main): docs/plan-zespol-jednoosobowy.md §8.1
-and §0 (Z7b-1), the contract change of Z7b-1a (targets) and N4 in §8.3. Start when Z7b-1a and Z8c-1 are merged. Answer me
-in Polish; code, commits and PR title in English, Conventional Commits.
+and §0 (row A4), the contract change of Z7b-1a (docs/plan-z7b-cele.md and its PR's final report: the contract version
+and the names of the `targets` fields) and N4 in §8.3. Work in dbqm45/ci_for_sdlc; the optional coverage and mutation
+steps of the change-check template go to dbqm45/tf (attach it with push access) as a small PR. Start when Z7b-1a is
+merged and its contract tag exists. Answer me in Polish; code, commits and PR titles in English, Conventional Commits.
 
 Goal: the gate checks a change's `targets` against real reports, the way it reads JUnit (--tests) and SARIF (--sarif)
 today, so a change below its targets is not ready for B4.
 
-1. Plan first in docs/ (TARGETS-PLAN.md). TDD.
+Read first: in ci_for_sdlc the SARIF reader and rules of Z8c-1 (#109: readers with size limits, findings on the items
+they touch, annotations) and the decisions that answer findings (#107, PRB-16: `decision add --finding` in the
+change's decisions.md, effects resolve / accept_risk / dismiss / confirm); in tf
+modes/mode-pdi/skills/pdi-decisions/templates/change-check.yml (Z8c-2) and the pinned contract copy; in pdi
+contract/release-plan.schema.json and contract/event.schema.json (readiness_changed).
+
+Already done (do not redo): SARIF findings and their annotations (Z8c-1), answers to findings recorded in
+decisions.md and read back by ci_for_sdlc (PRB-16), a blocking finding only makes a change not_ready (PRB-17). Reuse
+the same reader pattern, finding model and decision answers for the TGT rules.
+
+1. Plan first in docs/ (TARGETS-PLAN.md: files, order, rules, tests, sources with dates). TDD.
 2. Inputs: `npm run analyze -- --repo <path> --coverage <lcov or cobertura> --mutation <Stryker JSON or mutmut
-   results>` plus the change's `targets` from release.yaml. Readers with size limits; an unreadable or missing report
-   for a set target fails the gate (a check that did not run is never "met").
+   results>` plus the change's `targets` from release.yaml (validated against the contract version of Z7b-1a; update
+   ci_for_sdlc's pinned contract the way it pins it today). Readers with size limits; an unreadable or missing report
+   for a set target fails the gate (a check that did not run is never "met"). Check the report formats in the official
+   docs of lcov/Cobertura, StrykerJS (mutation-testing-report-schema) and mutmut, with the date.
 3. Rules: TGT-001 coverage of changed code below target (blocking), TGT-002 mutation score on changed code below target
    (blocking), TGT-003 performance budget exceeded (warning unless the target says blocking), TGT-004 evaluation
    threshold not met for an AI feature (blocking). Changed code = the change's slices' files (commits with
-   `Change: TSK-n`) or the PR diff in CI.
-4. Readiness to pdi (--send-to-pdi) carries the targets' status; annotations on files in GitHub Actions; the
-   change-check template gains optional coverage and mutation steps.
+   `Change: TSK-n`) or the PR diff in CI; excluded paths from the target are skipped with their reason. A TGT finding
+   can be answered like any other (e.g. accept_risk for a missed target, recorded in decisions.md); a new loop back to
+   an earlier phase is Z7b-2, not this step. Leave room for the Z10e thresholds (p95, bundle size, accessibility).
+4. Readiness to pdi (--send-to-pdi) carries the targets' status only if the contract has a field for it: in contract
+   0.11.0 readiness_changed has additionalProperties false and no such field. Use what Z7b-1a added; if it added
+   nothing, do not send unknown fields — note it in the plan and ask me for a small pdi contract PR.
+5. tf: change-check.yml gains optional coverage and mutation steps (only when targets are set, mutation on changed files
+   only), passing the reports to `npm run analyze`; secrets and inputs through env as in the rest of the template.
 
-Tests: readers (valid, malformed, too big), changed-code filtering, TGT-001…004, exit codes and annotations, readiness
-payload. Gates: npm test, npm run typecheck, npm run test:contract, npm run lint:commit. GitHub Actions do not run on
-this account right now — run the gates locally and say so in the PR. Commit and PR on my request.
+Tests: readers (valid, malformed, too big), changed-code filtering and exclusions, TGT-001…004, a missing report for a
+set target fails, a TGT finding answered with accept_risk, exit codes and annotations, readiness payload (with and
+without the contract field); in tf the template steps.
+A run on dbqm45/sdlc-proba needs my Mac: add it as a checklist item for me in pdi docs/przebieg-lokalny.md — a slice
+below its coverage target is not ready before B4, and accepting the risk at the gate makes it ready.
+Gates: ci_for_sdlc — npm test, npm run typecheck, npm run test:contract, npm run lint:commit; tf — the repo's checks
+(workspace.py check --packs mode-pdi, the skill gate of pdi-decisions). CI runs on the PRs again: wait for it to be
+green and say in the PRs what you ran locally.
+Coordination: other sessions may change ci_for_sdlc rules and the tf templates; keep the branches up to date with main
+and resolve conflicts keeping both behaviours.
+When the gates pass, commit, push and open PRs to main, but do not merge them. At the end report in Polish: PR links,
+gates and results, the merge order, and the exact names of the new options, rules and payload fields.
 Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
