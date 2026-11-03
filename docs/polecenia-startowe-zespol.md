@@ -8,7 +8,7 @@ odświeżyć tak samo.
 
 Każde polecenie wklejasz jako pierwszą wiadomość nowej sesji Claude Code w katalogu z tabeli. Zrobione są Z1, Z8a,
 Z8c-1 i Z8c-2 (kolumna „Stan”). Dalej: Z2a, potem Z2b (po tagu kontraktu z Z2a); zgodnie z DZ5 Z2 idzie przed etapem 3
-([etapy](polecenia-startowe-sdlc-lokalnie.md)). Najpierw przebieg A6 na `sdlc-proba` (DZ19); po nim N1, N5 i Z7b-1a, Z7b-1b po Z7b-1a,
+([etapy](polecenia-startowe-sdlc-lokalnie.md)). Najpierw przebieg A6 na `sdlc-proba` (DZ19, [polecenie](#a6--pdi--tf-shipscope-ci_for_sdlc-ponowny-przebieg-lokalny-na-sdlc-proba)); po nim N1, N5 i Z7b-1a, Z7b-1b po Z7b-1a,
 N2 po N1, a równolegle Z3-lokalnie; wszystkie przed etapem 2.
 
 | Krok | Co | Startuje po | Repo | Sesja w katalogu | Stan |
@@ -19,6 +19,7 @@ N2 po N1, a równolegle Z3-lokalnie; wszystkie przed etapem 2.
 | [Z8a](#z8a--pdi--tf-fazy-w-kontenerze) | fazy w kontenerze (izolacja persony i talosa) | — | pdi + tf | `/Users/x/WebstormProjects/pdi` | zrobione (pdi #111, tf 5.56.0), [plan](plan-z8a-izolacja-faz.md) |
 | [Z8c-1](#z8c-1--ci_for_sdlc-wyniki-skanera-sarif-jako-ustalenia) | wyniki skanera (SARIF) jako ustalenia w ci_for_sdlc | — | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` | zrobione (ci_for_sdlc #109) |
 | [Z8c-2](#z8c-2--tf-skaner-w-pętli-kawałka-talosa-i-w-ci) | skaner w pętli kawałka talosa i w CI | Z8c-1 | tf | `/Users/x/WebstormProjects/tf` | zrobione (tf #138; kawałek talosa na sdlc-proba 2026-11-03, sdlc-proba #10, [wynik](przebieg-lokalny.md#wynik-przebiegu-2026-11-03-z8c-2-talos-na-sdlc-proba)) |
+| [A6](#a6--pdi--tf-shipscope-ci_for_sdlc-ponowny-przebieg-lokalny-na-sdlc-proba) | ponowny przebieg lokalny na `sdlc-proba`: jedna zmiana od zgłoszenia do oceny skutku, w kontenerze, bez obejść (bramka A6, DZ19) | Z1, Z8a, Z8c-1, Z8c-2 | pdi (+ tf, ShipScope, ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` | do zrobienia (Twój przebieg na Macu) |
 | [N1](#n1--tf-przegląd-drugim-modelem) | przegląd drugim modelem (wymagania, plan, uwagi z review) | Z1, A6 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [N5](#n5--tf-evale-przebiegu) | evale przebiegu na 20 prawdziwych zadaniach | Z1, A6 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [Z7b-1a](#z7b-1a--pdi--tf-cele-zmiany-w-kontrakcie-i-planie) | cele zmiany (`targets`) w kontrakcie i planie, B3 | Z1, A6 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
@@ -333,6 +334,77 @@ talos slice on dbqm45/sdlc-proba with a deliberate SQL injection in the acceptan
 second attempt and only then committed; record it in pdi docs/przebieg-lokalny.md. Gates: the repo's checks (workspace.py
 check --packs pack-it, mode tests, skill evals if covered). GitHub Actions do not run on this account right now — run the
 gates locally and say so in the PR. Commit and PR on my request.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
+```
+
+## A6 — pdi (+ tf, ShipScope, ci_for_sdlc): ponowny przebieg lokalny na sdlc-proba
+
+Decyzja DZ19: bramka A6 idzie przed A3–A5. Przebieg robisz Ty na Macu (Docker, zalogowane `gh` i `claude`), a sesja
+Claude Code w klonie pdi prowadzi Cię przez [listę przebiegu lokalnego](przebieg-lokalny.md), uruchamia polecenia
+terminala, czyta logi i zapisuje wynik. Decyzje przy bramkach, merge'e PR-ów i ocenę skutku podejmujesz Ty. Jedna
+nowa zmiana od zgłoszenia do oceny skutku (ocena następnego dnia), w kontenerze (Z8a), bez obejść z przebiegu
+2026-10-31. **Stan przed startem (2026-11-03):** pdi `3210975` (kontrakt 0.11.0), tf 5.57.0 (Z1, Z8a, Z8c-2 z N3
+i N10), ci_for_sdlc z Z8c-1 (#109); w `sdlc-proba` fabryka tf 5.56.0 i otwarty PR sdlc-proba #10 z kawałka talosa
+z 2026-11-03. Koszt faz: budżet `PDI_PHASE_BUDGET_USD=3` (DL5), cały przebieg ok. 15 USD.
+
+```text
+Guide me through gate A6 of docs/plan-zespol-jednoosobowy.md (§0, decision DZ19 in docs/decyzje.md): a full local
+run on dbqm45/sdlc-proba, one new change from intake to impact review, with phases in the container (Z8a) and no
+workarounds from the 2026-10-31 run. You run in my pdi clone on my Mac. Answer me in Polish; commits and PR titles in
+English.
+
+Read first: docs/przebieg-lokalny.md (the checklist: §0, §0a, §1–§7, "Gdy coś nie działa", the 2026-10-31 result
+table and the PRB list), docs/plan-sdlc-lokalnie.md (§5), docs/plan-z8a-izolacja-faz.md, docs/plan-z1-decyzje-w-fazach.md,
+docs/decyzje.md (DL1–DL5, DZ9, DZ19), README.md, and `uv run sdlc --help`.
+
+Roles:
+- You run the terminal steps (T) yourself: sdlc up/status/sandbox/check/deploy/impact-review/down, git and gh reads,
+  log reads under ~/.sdlc/logs/ and $PDI_REGISTRY_PATH/runs/. Before any command that changes something outside this
+  machine (a push, a PR, a GitHub setting, anything in ShipScope settings) tell me what it does and wait for my OK.
+- Chat steps (C) use the pdi and shipscope MCP tools. If they are available in this session (/mcp), use them; if not,
+  give me the exact sentence to type in a Claude session in the sandbox clone and wait for the result.
+- Gates, merges and the impact assessment are mine. For each gate show me the PR, the artifact's key points, the
+  questions with a proposed answer each, and what the decision will record; record it with decide_inbox_item only
+  after I answer, with my words, and with `answers` when the item has questions (question text verbatim).
+- Never edit the sandbox repo, the registry or settings by hand to get a step through. If a step needs anything the
+  checklist does not say, stop, show me the evidence (log lines, PR, command output), and record it as a PRB with
+  record_problem (channel dogfooding, with the repo it belongs to) once I agree; then we decide whether to continue.
+
+Steps:
+0. Preflight, before any phase runs, and report in a short table:
+   a. versions: pdi HEAD, contract version, tf version in my tf clone and in sdlc-proba (.claude or the factory
+      marker), ci_for_sdlc and ShipScope HEADs; Docker running; ~/.sdlc/env has CLAUDE_CODE_OAUTH_TOKEN and no
+      ANTHROPIC_API_KEY next to it; PDI_PHASE_BUDGET_USD=3; PDI_DISPATCH_SANDBOX not set to none.
+   b. sdlc-proba needs tf with Z1 (decision import, decision gate --answers) and Z8c-2 (security_scan.py, mode-talos
+      1.2.0): if it still has 5.56.0, show me how the factory is updated there (the tf way, not by copying files) and
+      do it on my OK, as a PR to sdlc-proba that I merge.
+   c. Z8c-2 prerequisites in sdlc-proba: .npmrc with min-release-age=7, package-lock.json in git, semgrep in the
+      phase image; whether p/owasp-top-ten downloads without login from the container (check the Semgrep docs and
+      note the date), otherwise TALOS_SEMGREP_CONFIG pointing to a rules file in the repo.
+   d. Open state in sdlc-proba: PR #10 and any other open PRs or branches from earlier runs; propose what to do with
+      each (close, keep) and wait for my decision. Existing changes in the registry stay; the new change gets the next
+      PRB/CHG numbers.
+   e. Which PRB from the 2026-10-31 list are fixed on main (git log, PR numbers) and which are still open, so we know
+      what to watch for. PRB-2, PRB-3 and PRB-4 must be confirmed in this run.
+1. §0 and §0a of the checklist: start the stack and run every §0a container check (token not in logs, no access to
+   ~/.sdlc/env and ~/.ssh, blocked host in the run log, behaviour without Docker). The checks that need a test
+   change use a separate CHG that we reject afterwards.
+2. §1–§4 with one new change. The intake text: propose a small, visible change for the sandbox app behind a flag (in
+   the style of PRB-1, different from it) and wait for my OK. At B2 or later answer at least one gate question with
+   `answers` and check the Z1 item: the question does not come back in plan.md or design.md, and delivery does not
+   start while plan.md has an open question. In delivery check the Z8c-2 item, including one deliberately injected
+   SQL injection on the acceptance-test path that the scan must stop before commit.
+3. §5–§6: deployments to test and prod, flag stages internal → 10% → 100% with their gates.
+4. §7 the next day: impact review, forecast_report, autonomy_report. Today, before we stop, tell me exactly what to
+   start tomorrow and with which sentence.
+5. Result: add "## Wynik przebiegu <date> (A6)" to docs/przebieg-lokalny.md in the same shape as the 2026-10-31 one:
+   the step table (result, what needed a workaround or failed, with PRB numbers), the cost of every phase from the run
+   logs, the confirmed or still open PRB-2/3/4 and Z1/Z8a/Z8c-2 items, and new PRBs by repo. Tick the checklist items
+   that passed. Update the A6 row in §0 and §10 of docs/plan-zespol-jednoosobowy.md and the state line of
+   docs/polecenia-startowe-zespol.md. Commit on a branch, push and open a PR to main in pdi, but do not merge it.
+
+At the end report in Polish: the step table, cost per phase and total, every PRB with its repo, what blocks A3–A5,
+A7 or stage 2 (A8), the PR link, and the exact commands and tool calls you used.
 Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
