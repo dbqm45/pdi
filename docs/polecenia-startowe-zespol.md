@@ -24,7 +24,7 @@ N2 po N1. Z3-lokalnie startuje po przebiegu A6 na `sdlc-proba`, przed etapem 2.
 | [Z7b-1a](#z7b-1a--pdi--tf-cele-zmiany-w-kontrakcie-i-planie) | cele zmiany (`targets`) w kontrakcie i planie, B3 | Z1 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
 | [Z7b-1b](#z7b-1b--ci_for_sdlc-sprawdzanie-celów-zmiany) | sprawdzanie celów (pokrycie, testy mutacyjne) w ci_for_sdlc | Z7b-1a, Z8c-1 | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` | do zrobienia |
 | [N2](#n2--pdi--tf-pętla-budujący-recenzent-na-pr-i-samonaprawa-ci) | pętla budujący–recenzent na PR i samonaprawa CI | Z8a, N1 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
-| [Z3-lokalnie](#z3-lokalnie--pdi--tf-konsola-w-przeglądarce-na-macu) | konsola w przeglądarce na Macu: trzy pasy, ślad, postęp na żywo, decyzje przyciskami (DZ14) | A6 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
+| [Z3-lokalnie](#z3-lokalnie--pdi--tf-konsola-w-przeglądarce-na-macu) | konsola w przeglądarce na Macu: trzy pasy, ślad z panelem plików, postęp na żywo, decyzje przyciskami (DZ14, DZ18) | A6 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
 
 ## Z1 — pdi + tf: wszystkie decyzje zmiany w każdej fazie (domknięcie PRB-3)
 
@@ -488,13 +488,13 @@ Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, che
 
 ## Z3-lokalnie — pdi + tf: konsola w przeglądarce na Macu
 
-Decyzja DZ14. Startuje po A6 (ponowny przebieg na `sdlc-proba`), przed etapem 2. Sesja w klonie pdi; część tf
+Decyzje DZ14 i DZ18. Startuje po A6 (ponowny przebieg na `sdlc-proba`), przed etapem 2. Sesja w klonie pdi; część tf
 osobnym PR-em. Wygląd: `design/konsola/v2-klikalna/` (trzy pasy). **Stan przed startem (2026-11-03):** pdi `f6c5533`
 (kontrakt 0.11.0), tf 5.57.0. Od pierwszej wersji tego polecenia weszły: Z1 (odpowiedzi na pytania bramki, decyzje
 zmiany w fazie), Z8a (krok `run` w kontenerze Docker), Z8c-2 (skaner w pętli talosa); CI na GitHubie znowu działa.
 
 ```text
-Implement Z3-lokalnie of docs/plan-zespol-jednoosobowy.md (§0 row A7, §5, decision DZ14 in docs/decyzje.md) in
+Implement Z3-lokalnie of docs/plan-zespol-jednoosobowy.md (§0 row A7, §5, decisions DZ14 and DZ18 in docs/decyzje.md) in
 dbqm45/pdi, with the tf part in dbqm45/tf (attach it with push access). Answer me in Polish; code, commits and PR titles
 in English.
 
@@ -544,6 +544,15 @@ slices with security findings (Z8c-2).
       that it came from the console (source.kind console) and drafted_by/draft_edited; a decision on a stale item
       (state changed meanwhile) is refused with a message.
    d. Decision register and autonomy report as read-only pages.
+   e. Files panel in the change trace (DZ18), read-only: the change's artifacts from the product clone pdi already
+      uses for phase runs (intent.md, requirements.md, plan.md, design.md, release.yaml under
+      docs/project/changes/<CHG>/) and the diff of the current slice (its branch against its base), refreshed live over
+      SSE while a phase writes them. At a gate item the panel shows the exact files and commit the decision is about,
+      and the inbox refuses the decision if they changed after the page was loaded. Only paths inside the clone, no
+      symlinks out of it, no binary files, a size limit with a link to the PR, files like .env or keys never shown;
+      no editing, no writes to the clone.
+   f. Side panel in the board and the trace: the running phase's progress (current action, elapsed time, cost so far
+      from run.progress), with room for the OpenTelemetry data of Z10c (cost, tokens, errors, refusals) later.
    Security: every value escaped (decision texts, questions and log lines are data), no inline scripts, a
    Content-Security-Policy, POSTs only with the token and a same-origin check, nothing listens outside 127.0.0.1, no
    secret ever reaches a page.
@@ -553,7 +562,9 @@ slices with security findings (Z8c-2).
 Tests: stream-json to progress lines (from recorded sample streams, including a failed run, a run waiting at a gate and
 a repeated_question failure), the unchanged final result, the host-side split of progress lines from the log, the
 console's read model (lane and step of a change from registry states), SSE updates when a progress file grows, button
-decisions (same result as decide_inbox_item, with answers, refused without token, refused for a stale item), escaping
+decisions (same result as decide_inbox_item, with answers, refused without token, refused for a stale item), escaping as decide_inbox_item, with answers, refused without token, refused for a stale item),
+the files panel (artifacts and slice diff from a sample clone, live refresh when a file changes, refusal when files
+changed under a gate item, paths outside the clone, symlinks, binary and secret-like files refused), escaping
 and CSP, `sdlc up/down/status` with the console.
 A local run on dbqm45/sdlc-proba needs my Mac (Docker, logged-in gh and claude): add it as a checklist item for me in
 docs/przebieg-lokalny.md — one change followed only in the console, from intake to the first gate, a decision by button
