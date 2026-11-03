@@ -1,9 +1,9 @@
 # Polecenia startowe planu „zespół jednoosobowy”: grupa A i Z2
 
 **Data:** 2026-11-02, odświeżone 2026-11-03 · **Źródło:** [plan „zespół jednoosobowy”](plan-zespol-jednoosobowy.md) §8,
-§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `dbd3bb5` (kontrakt 0.11.0), tf 5.58.3 (kopia
-kontraktu 0.11.0), ShipScope 0.2.67 (stan z 2026-11-02) · Polecenia Z2a, Z2b, Z3-lokalnie, N1 i N5 mają nad sobą własny stan
-przed startem; pozostałe niezrobione (Z7b-1a, Z7b-1b, N2) są w brzmieniu z 2026-11-02 i przed użyciem warto je
+§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `b6f12b8` (kontrakt 0.11.0), tf 5.58.3 (kopia
+kontraktu 0.11.0), ShipScope 0.2.67 (stan z 2026-11-02) · Polecenia Z2a, Z2b, Z3-lokalnie, N1, N5 i Z7b-1a mają nad sobą własny stan
+przed startem; pozostałe niezrobione (Z7b-1b, N2) są w brzmieniu z 2026-11-02 i przed użyciem warto je
 odświeżyć tak samo.
 
 Każde polecenie wklejasz jako pierwszą wiadomość nowej sesji Claude Code w katalogu z tabeli. Zrobione są Z1, Z8a,
@@ -105,7 +105,7 @@ answers and decisions recorded during the interview reach intent and later phase
 do not build a second one.
 
 1. Plan first in docs/plan-z2a-discovery.md (files, order, contract change, tests, what Z2b does in tf). TDD.
-2. Contract: the next free minor version at the time of your PR (0.12.0 unless another open PR, e.g. Z7b-1a, already
+2. Contract: the next free minor version at the time of your PR (0.12.0 unless another PR, e.g. Z7b-1a, already
    takes it — check open pdi PRs and coordinate the number); contract-v tag after merge, then tf regenerates its pinned
    copy in Z2b (as tf #136 did). Add: phase `discovery` and gate `B0` ("brief approved") in contract.json conventions;
    artifact `docs/project/changes/<CHG>/brief.md` with the same flat YAML header as intent.md (change, status, source)
@@ -539,30 +539,64 @@ Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, che
 
 ## Z7b-1a — pdi + tf: cele zmiany w kontrakcie i planie
 
+Startuje po A6 (DZ19), po Z1 (zrobione) i Z8c-1 (zrobione), razem z N4 (pokrycie i testy mutacyjne) i N20 (co
+najmniej dwie opcje w planie). Sesja w klonie pdi; część tf osobnym PR-em. **Stan przed startem (2026-11-03):** pdi
+`b6f12b8` (kontrakt 0.11.0), tf 5.58.3 (kopia kontraktu 0.11.0). Od pierwszej wersji tego polecenia weszły: Z1
+(decyzje z bramek wiążą kolejne fazy, `decision import`), Z8a, Z8c-1 i Z8c-2, a w planie N20 i Z10 (SLO i progi
+wydajności oraz dostępności, które później dojdą do `targets`); CI na GitHubie znowu działa.
+
 ```text
-Implement part 1a of Z7b of docs/plan-zespol-jednoosobowy.md (§8.1, Z7b-1 in §0) in dbqm45/pdi, with the tf part in
-dbqm45/tf (attach it with push access), under decisions DZ6 and DZ7 in docs/decyzje.md: the architect persona (tomasz)
+Implement part 1a of Z7b of docs/plan-zespol-jednoosobowy.md (§8.1, row A4 in §0) in dbqm45/pdi, with the tf part in
+dbqm45/tf (attach it with push access), together with N4 (coverage and mutation targets on changed code) and N20 (at
+least two options in plan.md), under decisions DZ6 and DZ7 in docs/decyzje.md: the architect persona (tomasz)
 proposes the change's targets in the plan, the human approves them at B3; for AI products evaluation thresholds are
-mandatory. Start when Z1 is merged. Answer me in Polish; code, commits and PR titles in English.
+mandatory. Start when A6 is done (DZ19). Answer me in Polish; code, commits and PR titles in English.
 
 Goal: every change carries measurable quality targets, approved at B3 and checked before B4, instead of judging PRs by
 eye.
 
-1. Plan first in docs/plan-z7b-cele.md (pdi). TDD.
-2. Contract (next free minor version, contract-v tag after merge): `targets` in release-plan.schema.json (or a sibling
-   schema linked from it): coverage of changed code (min %, with explicit exclusions), mutation score on changed code
-   (min %; tools: StrykerJS for JS/TS, mutmut for Python, per N4), optional performance budgets (name, metric, limit),
-   evaluation thresholds for AI features (eval set, metric, min). Examples and contract/README.md.
-3. tf: the architecture phase writes `targets` with a short justification per target; plan.md template and
-   decision_record.py check validate them against the contract copy (regenerated from the new tag, as tf #93 does).
-4. pdi: the B3 gate shows the targets; approve-for-implementation and B4 show their status once ci_for_sdlc reports it
-   (Z7b-1b); get_change and get_trace include them.
-5. Docs: contract/README.md, README, plan §10.
+Read first: docs/plan-zespol-jednoosobowy.md §8.1 (Z7b), §8.3 (N4, N20), §8.5 (Z10a `slo`, Z10e performance and
+accessibility thresholds in `targets`); docs/plan-z1-decyzje-w-fazach.md; contract/release-plan.schema.json and
+contract/README.md; src/pdi/flow.py, src/pdi/inbox.py, src/pdi/trace.py; in tf the persona tomasz,
+packs/pack-it/skills/arch-tech-selection (it already asks for 2–3 candidates per area), modes/mode-pdi templates
+plan.md and release.yaml, decision_record.py (check_plan, check_release) and tools/pdi-contract.json.
 
-Tests: schema and examples, tf template and check (missing or malformed targets), pdi gate items with targets. Gates:
-pdi — uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src; tf — the repo's
-checks. GitHub Actions do not run on this account right now — run the gates locally and say so in the PRs. Commit and PR
-on my request.
+Already done (do not redo): Z1 — the B3 decision and its answers reach every later phase through decisions.md and the
+phase prompt, so approved targets bind design and delivery without a new mechanism; ci_for_sdlc already turns scanner
+results into findings (Z8c-1).
+
+1. Plan first in docs/plan-z7b-cele.md (pdi): files in both repos, order, tests, sources with dates. TDD.
+2. Contract: the next free minor version at the time of your PR. Z2a also bumps the contract: check main and open pdi
+   PRs; whichever merges first takes 0.12.0 and the other rebases to the next number. contract-v tag after merge, then
+   tf regenerates its pinned copy as tf #136 did. Add `targets` in release-plan.schema.json (or a sibling schema
+   linked from it): coverage of changed code (min %, with explicit exclusions and their reason), mutation score on
+   changed code (min %; tools: StrykerJS for JS/TS, mutmut for Python, per N4), optional performance budgets (name,
+   metric, limit), evaluation thresholds for AI features (eval set, metric, min). Shape it so Z10a (`slo`) and Z10e
+   (p95, bundle size, accessibility) can be added later as optional fields without a breaking change. Examples and
+   contract/README.md.
+3. tf: the architecture phase writes `targets` with a short justification per target, and (N20) plan.md has at least
+   two considered options with pros, cons and cost, the choice and why — check first what tomasz and
+   arch-tech-selection already require and add only the missing part. plan.md and release.yaml templates and
+   decision_record.py check validate targets against the contract copy and flag a plan with a single option.
+4. pdi: the B3 gate shows the targets (and the options considered); approve-for-implementation and B4 show their status
+   once ci_for_sdlc reports it (Z7b-1b); get_change and get_trace include them. A change of approved targets after B3
+   should be a new decision (supersede), not a silent edit: propose in the plan how to detect it (e.g. the B3 entry
+   records the approved targets and check compares them), or say why it waits.
+5. Docs: contract/README.md, README, plan §10, the Z7b-1a row of docs/polecenia-startowe-zespol.md, and a checklist
+   item for me in docs/przebieg-lokalny.md (B3 shows the targets and the options; approving them makes them binding).
+
+Tests: schema and examples (targets valid and invalid, room for later optional fields), tf template and check (missing
+or malformed targets, a plan with one option), pdi gate items with targets, get_change/get_trace, and the detection of a
+changed target after B3 if the plan includes it.
+Gates: pdi — uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src; tf — the
+repo's checks (workspace.py check --packs pack-it and --packs mode-pdi, the skill gates of changed skills). CI runs on
+the PRs again: wait for it to be green and say in the PRs what you ran locally.
+Coordination: other sessions may work in parallel on the contract (Z2a), flow.py and inbox.py in pdi and on
+decision_record.py and the tomasz persona in tf; keep your changes small, keep the branches up to date with main and
+resolve conflicts keeping both behaviours.
+When the gates pass, commit, push and open PRs to main (pdi with the contract first, then the tf PR with the copy after
+the tag), but do not merge them. At the end report in Polish: PR links, gates and results, the contract version taken,
+the merge order, and the exact names of the new fields (inputs for Z7b-1b).
 Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
