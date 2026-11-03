@@ -18,7 +18,7 @@ N2 po N1. Z3-lokalnie startuje po przebiegu A6 na `sdlc-proba`, przed etapem 2.
 | [Z2b](#z2b--tf-wywiad-discovery-w-mode-pdi) | wywiad `/discovery` w mode-pdi; intencja z briefu | Z2a i tag kontraktu | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [Z8a](#z8a--pdi--tf-fazy-w-kontenerze) | fazy w kontenerze (izolacja persony i talosa) | — | pdi + tf | `/Users/x/WebstormProjects/pdi` | zrobione (pdi #111, tf 5.56.0), [plan](plan-z8a-izolacja-faz.md) |
 | [Z8c-1](#z8c-1--ci_for_sdlc-wyniki-skanera-sarif-jako-ustalenia) | wyniki skanera (SARIF) jako ustalenia w ci_for_sdlc | — | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` | zrobione (ci_for_sdlc #109) |
-| [Z8c-2](#z8c-2--tf-skaner-w-pętli-kawałka-talosa-i-w-ci) | skaner w pętli kawałka talosa i w CI | Z8c-1 | tf | `/Users/x/WebstormProjects/tf` | zrobione (tf #138; bez przebiegu na sdlc-proba, [lista](przebieg-lokalny.md#4-dostarczenie-talos)) |
+| [Z8c-2](#z8c-2--tf-skaner-w-pętli-kawałka-talosa-i-w-ci) | skaner w pętli kawałka talosa i w CI | Z8c-1 | tf | `/Users/x/WebstormProjects/tf` | zrobione (tf #138; kawałek talosa na sdlc-proba 2026-11-03, sdlc-proba #10, [wynik](przebieg-lokalny.md#wynik-przebiegu-2026-11-03-z8c-2-talos-na-sdlc-proba)) |
 | [N1](#n1--tf-przegląd-drugim-modelem) | przegląd drugim modelem (wymagania, plan, uwagi z review) | Z1 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [N5](#n5--tf-evale-przebiegu) | evale przebiegu na 20 prawdziwych zadaniach | Z1 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [Z7b-1a](#z7b-1a--pdi--tf-cele-zmiany-w-kontrakcie-i-planie) | cele zmiany (`targets`) w kontrakcie i planie, B3 | Z1 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |

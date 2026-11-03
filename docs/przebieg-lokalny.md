@@ -96,9 +96,10 @@ Skrócenie czasu:
   próby są czerwone: blok `STOP — K<n> (skan bezpieczeństwa)` i brak commitu. PR cięcia: `change-check.yml` uruchamia
   ten sam skan, a ci_for_sdlc dostaje SARIF (`--sarif`, SEC-001). Reguły `p/owasp-top-ten` pobiera się z
   `semgrep.dev` (host na liście dozwolonych kontenera, Z8a); bez dostępu ustaw `TALOS_SEMGREP_CONFIG` na plik reguł
-  w repo. Stan 2026-11-02: sprawdzone lokalnie na repo roboczym (semgrep 1.183.0: próba 1 FAIL CWE-89, próba 2 STOP,
-  pliki w katalogu przebiegu), na `sdlc-proba` jeszcze nie; pobranie rejestru bez logowania niesprawdzone
-  (`semgrep.dev` 403 z sandboxa).
+  w repo. Stan 2026-11-03: kawałek talosa na `sdlc-proba` przeszedł w sesji w chmurze, poza pdi
+  ([wynik](#wynik-przebiegu-2026-11-03-z8c-2-talos-na-sdlc-proba), sdlc-proba #10); fazy `delivery` z pdi
+  i `change-check.yml` na PR jeszcze nie; pobranie rejestru bez logowania niesprawdzone (`semgrep.dev` zablokowany
+  przez politykę sieci środowiska w chmurze).
 - [ ] **SS** zakładka Changes (repo): CHG-1 z tytułem z intencji. Release plan: linia R1.
 
 ## 5. Wdrożenia
@@ -163,3 +164,38 @@ w `~/.sdlc/ci-data/settings.json` (`policy.disabledRules`).
 
 Przed etapem 2 warto naprawić PRB-2, PRB-3, PRB-4, PRB-18 i PRB-21: na sprintdecku wymagałyby tych samych ręcznych
 napraw, a PRB-21 zostawia licznik autonomii (etap 6) bez danych.
+
+## Wynik przebiegu 2026-11-03 (Z8c-2, talos na sdlc-proba)
+
+Jeden kawałek talosa (`talos-story-run`, bez `--auto`) na `dbqm45/sdlc-proba`, w sesji Claude Code w chmurze, bez pdi,
+ShipScope i fazy `delivery`. Skaner z tf `main` a85e233 (mode-talos 1.2.0, tf #138), uruchamiany spoza repo; fabryka
+w repo próbnym została na 5.56.0. Historyjka: `GET /deployments?env=<env>` zwraca wdrożenia środowiska z pliku
+SQLite (`node:sqlite`, bez zależności). Wynik: PR [sdlc-proba #10](https://github.com/dbqm45/sdlc-proba/pull/10),
+bez merge'u.
+
+| Krok | Wynik |
+|---|---|
+| Przygotowanie | `.semgrep.yml` z regułą `node-sqlite-sql-from-string` (ERROR, CWE-89), osobny commit; reguły rejestru łapią SQL injection dla mysql, mssql, knex i `req.query` w Express, nie dla `node:sqlite` |
+| Test czerwony | `test/deployments.test.js` 0/3 przed kodem |
+| Próba 1 (celowa konkatenacja w filtrze `env`) | `npm test` 17/17; `BRAMKA K1: FAIL (skan bezpieczeństwa: 1 blokujących, 1 błędów skanu, próba 1/2)`: `node-sqlite-sql-from-string src/deployments.js:14 (CWE-89, error)` i „zmieniony package.json bez lockfile'a (N10)” |
+| Próba 2 (`?` i `.all(env)`) | `npm test` 17/17, blokujące 0; błąd skanu z lockfile'em zostaje → `STOP — K1 (skan bezpieczeństwa)`, brak commitu |
+| Decyzja właściciela | `package-lock.json` (bez zależności) i `.npmrc` `min-release-age=7` osobnym commitem; `security_scan.py cooldown` → PASS |
+| Wznowienie K1 | skan PASS (semgrep i npm audit: 0 ustaleń, 0 błędów); przegląd zakresu bez plików spoza planu; commit `feat(deployments): …`; `plan_drift`: 1/1 kawałków, 71% diffu w planie (poza planem dwa commity przygotowawcze) |
+| Raport | 131 min (z czekaniem na decyzje i konfiguracją dostępu), ok. 3,73 USD; odłożone do decyzji: 5 |
+
+Co wymagało obejścia:
+- `semgrep.dev` zablokowany przez politykę sieci środowiska w chmurze: `TALOS_SEMGREP_CONFIG` wskazywał kopię
+  `javascript/` z github.com/semgrep/semgrep-rules (16b9e6d) poza repo. Pobranie `p/owasp-top-ten` bez logowania
+  dalej niesprawdzone.
+- W świeżym klonie nie ma `.claude/factory-manifest.json` (jest w `.gitignore`), więc `factory/update.py` widzi
+  instalację 0.0.0 i pomija istniejące pliki; aktualizację fabryki w repo próbnym trzeba zrobić na komputerze
+  właściciela.
+- Hooki fabryki nie działają w sesji z kilkoma repozytoriami; bramki uruchamiane ręcznie. `run_report.py finish`
+  szuka transkryptów w katalogu projektu repo, a sesja zaczęła się w katalogu nadrzędnym — trzeba było podać
+  `--session` i dowiązanie w `CLAUDE_CONFIG_DIR`.
+
+Luki w tf (do zgłoszenia):
+- Skan traktuje zmianę `package.json` bez zależności i bez lockfile'a jako błąd, a `cooldown` na tym samym repo daje
+  PASS („nie wykryto menedżera pakietów z lockfile'em”). Projekt bez zależności nie ma czego audytować.
+- Próba 2 nadpisuje w `security/K<n>/` SARIF i werdykt próby 1, więc raport przebiegu nie pokazuje zablokowanego
+  SQL injection, tylko wynik ostatniej próby.
