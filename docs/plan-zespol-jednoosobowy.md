@@ -1,6 +1,6 @@
 # Plan: zespół jednoosobowy — greenfield od wywiadu, brownfield od poznania projektu, wszystko w przeglądarce
 
-Data: 2026-11-02 · Status: **plan; decyzje DZ1–DZ5 przyjęte 2026-11-02**, DZ1–DZ14 przyjęte, otwarte DA4; Z10 (niezawodność i obserwowalność) zaproponowane 2026-11-03, DZ15–DZ17 do decyzji · Kolejność całości: §0 · Stan wyjściowy: pdi `d66b4bf`, tf 5.55.0,
+Data: 2026-11-02 · Status: **plan; decyzje DZ1–DZ5 przyjęte 2026-11-02**, DZ1–DZ14 przyjęte, otwarte DA4; Z10 (niezawodność i obserwowalność) dodane 2026-11-03, DZ15–DZ17 przyjęte 2026-11-03 · Kolejność całości: §0 · Stan wyjściowy: pdi `d66b4bf`, tf 5.55.0,
 ShipScope 0.2.67, ci_for_sdlc 0.1.35+ · Powiązane: [plan `sdlc up`](plan-sdlc-lokalnie.md),
 [przebieg lokalny](przebieg-lokalny.md#wynik-przebiegu-2026-10-31), [etapy 2–18](polecenia-startowe-sdlc-lokalnie.md),
 [automatyzacja i konsola](plan-automatyzacja-i-konsola.md), [jedna platforma](15-jedna-platforma.md)
@@ -427,9 +427,9 @@ DORA i przepływu (etap 12, Z8e), model zagrożeń w architekturze (B3 w tf).
 | DZ10 | Osobna aplikacja GitHub dla agentów (Z8b) | **przyjęte**: tak, jedna na organizację, z uprawnieniami tylko do repo produktu (contents, pull requests); tokeny instalacji (GitHub wydaje je zawsze na godzinę) |
 | DZ11 | Jaki skaner (Z8c) | **przyjęte**: Semgrep (reguły OWASP, lokalnie i w CI; do sprawdzenia, czy reguły z rejestru pobierają się bez logowania, inaczej reguły zapisane w repo) + skan zależności z menedżera pakietów (`npm audit`, `pip-audit`); CodeQL później, w Actions |
 | DZ12 | Drugi model w N1: od tego samego dostawcy czy innego? | **przyjęte 2026-11-02**: inny dostawca (osobny klucz API, koszt w budżecie fazy); bez klucza — inny model Claude z osobnym promptem recenzenta, oznaczony w wyniku |
-| DZ15 | Czy brak SLO blokuje wydanie (Z10a) | **rekomendacja:** dla produktu z użytkownikami tak, na B5 (jak pas governance, DZ8); wcześniej ostrzeżenie w B3; repo próbne i zmiany bez wpływu na użytkowników zwolnione z jawnym powodem |
-| DZ16 | Dokąd idzie telemetria agentów (Z10c) | **rekomendacja:** lokalnie kolektor OpenTelemetry w Dockerze z `sdlc up`, zapis do pliku czytanego przez konsolę, bez zewnętrznej usługi; backend (Grafana, Honeycomb, …) dopiero z usługą pdi po DA4 |
-| DZ17 | Kto i kiedy ustala SLA | **rekomendacja:** tylko człowiek, jako typ chroniony (DA2), dopiero w etapie 16 dla platformy; produkty mają SLO, nie SLA, dopóki nie ma klienta z umową |
+| DZ15 | Czy brak SLO blokuje wydanie (Z10a) | **przyjęte 2026-11-03**: dla produktu z użytkownikami tak, na B5 (jak pas governance, DZ8); wcześniej ostrzeżenie w B3; repo próbne i zmiany bez wpływu na użytkowników zwolnione z jawnym powodem |
+| DZ16 | Dokąd idzie telemetria agentów (Z10c) | **przyjęte 2026-11-03**: lokalnie kolektor OpenTelemetry w Dockerze z `sdlc up`, zapis do pliku czytanego przez konsolę, bez zewnętrznej usługi; backend (Grafana, Honeycomb, …) dopiero z usługą pdi po DA4 |
+| DZ17 | Kto i kiedy ustala SLA | **przyjęte 2026-11-03**: tylko człowiek, jako typ chroniony (DA2), dopiero w etapie 16 dla platformy; produkty mają SLO, nie SLA, dopóki nie ma klienta z umową |
 | DZ13 | Ile zadań w evalach przebiegu (N5) i jaki budżet | **przyjęte**: start: 20 zadań z repo próbnego i sprintdecka, budżet na jedno uruchomienie ustalony w tf; rozbudowa do ok. 200 po pierwszych wynikach |
 
 ## 10. Stan
@@ -445,4 +445,4 @@ DORA i przepływu (etap 12, Z8e), model zagrożeń w architekturze (B3 w tf).
 | Z7 | do zrobienia (Z7a po Z3) |
 | Z8 | Z8a w PR (pdi + tf, 2026-11-02): krok `run` w kontenerze `pdi-phase` z proxy wyjścia i sandboxem Claude Code, [plan](plan-z8a-izolacja-faz.md); do sprawdzenia na Macu — [przebieg lokalny](przebieg-lokalny.md) §0; Z8c przed etapem 2, [polecenia startowe](polecenia-startowe-zespol.md) |
 | Z9 | do zrobienia; N1, N2 i N5 przed etapem 2 |
-| Z10 | zaproponowane 2026-11-03; po decyzjach DZ15–DZ17 |
+| Z10 | do zrobienia; decyzje DZ15–DZ17 przyjęte 2026-11-03 |
