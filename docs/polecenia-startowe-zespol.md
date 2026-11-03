@@ -1,7 +1,7 @@
 # Polecenia startowe planu „zespół jednoosobowy”: grupa A i Z2
 
 **Data:** 2026-11-02, odświeżone 2026-11-03 · **Źródło:** [plan „zespół jednoosobowy”](plan-zespol-jednoosobowy.md) §8,
-§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `3a8c118` (kontrakt 0.11.0), tf 5.58.4 (kopia
+§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `f003f2e` (kontrakt 0.11.0), tf 5.58.4 (kopia
 kontraktu 0.11.0), ShipScope 0.2.67 (stan z 2026-11-02) · Wszystkie niezrobione polecenia mają nad sobą
 własny stan przed startem z 2026-11-03.
 
@@ -15,7 +15,7 @@ wszystkie przed etapem 2.
 |---|---|---|---|---|---|
 | [Z1](#z1--pdi--tf-wszystkie-decyzje-zmiany-w-każdej-fazie-domknięcie-prb-3) | wszystkie decyzje zmiany w każdej fazie (domknięcie PRB-3) | — | pdi + tf | `/Users/x/WebstormProjects/pdi` | zrobione (pdi #110, tf #135, #136) |
 | [Z2a](#z2a--pdi-faza-discovery-i-bramka-b0-w-kontrakcie-i-przebiegu) | faza `discovery` i bramka B0 w kontrakcie i przebiegu, z N19 (pytania z opcjami) | Z1 | pdi | `/Users/x/WebstormProjects/pdi` | do zrobienia |
-| [Z2b](#z2b--tf-wywiad-discovery-w-mode-pdi) | wywiad `/discovery` w mode-pdi; intencja z briefu | Z2a i tag kontraktu | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
+| [Z2b](#z2b--tf-wywiad-discovery-w-mode-pdi) | wywiad `/discovery` w mode-pdi; intencja z briefu; pytania z opcjami (N19) | Z2a i tag kontraktu | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [Z8a](#z8a--pdi--tf-fazy-w-kontenerze) | fazy w kontenerze (izolacja persony i talosa) | — | pdi + tf | `/Users/x/WebstormProjects/pdi` | zrobione (pdi #111, tf 5.56.0), [plan](plan-z8a-izolacja-faz.md) |
 | [Z8c-1](#z8c-1--ci_for_sdlc-wyniki-skanera-sarif-jako-ustalenia) | wyniki skanera (SARIF) jako ustalenia w ci_for_sdlc | — | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` | zrobione (ci_for_sdlc #109) |
 | [Z8c-2](#z8c-2--tf-skaner-w-pętli-kawałka-talosa-i-w-ci) | skaner w pętli kawałka talosa i w CI | Z8c-1 | tf | `/Users/x/WebstormProjects/tf` | zrobione (tf #138; kawałek talosa na sdlc-proba 2026-11-03, sdlc-proba #10, [wynik](przebieg-lokalny.md#wynik-przebiegu-2026-11-03-z8c-2-talos-na-sdlc-proba)) |
@@ -163,15 +163,17 @@ Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, che
 
 ## Z2b — tf: wywiad `/discovery` w mode-pdi
 
-Startuje po scaleniu Z2a i po tagu jego kontraktu. Sesja w klonie tf. **Stan przed startem (2026-11-03):** tf 5.57.0
-(kopia kontraktu pdi 0.11.0), pdi `89fc725`. Od pierwszej wersji tego polecenia weszły: Z1 (`decision import`,
+Startuje po scaleniu Z2a i po tagu jego kontraktu, razem z częścią tf kroku N19 (pytania z opcjami, wiersz B2 planu).
+Sesja w klonie tf. **Stan przed startem (2026-11-03, sprawdzony ponownie):** tf 5.58.4 (kopia kontraktu pdi 0.11.0),
+pdi `f003f2e`; kształt pytań z opcjami ustala Z2a (polecenie Z2a, #138). Od pierwszej wersji tego polecenia weszły: Z1 (`decision import`,
 `decision gate --answers`, odmowa przy powtórzonym pytaniu), Z8a (persona w kontenerze, bez sekretów), Z8c-2; CI na
 GitHubie znowu działa, a CHANGELOG i wersję tf robi CI wydania.
 
 ```text
 Implement step Z2b of the plan "one-person team" from dbqm45/pdi (main): docs/plan-zespol-jednoosobowy.md §3 and §8,
 decisions DZ1 and DZ3 in docs/decyzje.md, and the contract change of Z2a (docs/plan-z2a-discovery.md and the Z2a PR's
-final report: contract version, new fields, gate B0, item kind discovery, commands). Start only when Z2a is merged and
+final report: contract version, new fields, gate B0, item kind discovery, commands, the question and answer shapes of
+N19), together with the tf part of N19 (questions with options, §8.3, row B2). Start only when Z2a is merged and
 its contract-v tag exists. Answer me in Polish; code, commits and PR title in English, Conventional Commits.
 
 Goal: in Claude Code, in a product repo with mode-pdi, `/discovery CHG-n` runs an interview the way grill-me does: one
@@ -198,37 +200,49 @@ passes every decision with links.chg to each phase. Reuse this: discovery decisi
    or an earlier decision (say where from); the human may say "przyjmij rekomendację"; no question about something
    not needed for the brief. A new skill goes through the skill gate with its own scenarios in
    modes/mode-pdi/tests/skill_evals/.
+   N19: every interview question has options to choose from with the recommended one marked and an "other" choice;
+   check in the official Claude Code docs whether a command or skill can ask through the built-in multiple-choice
+   question tool (AskUserQuestion) and how the answer comes back, and use it if so; otherwise number the options in
+   the message. Each question is built in the contract's shape (Z2a); a question that does not match the schema is
+   rejected and rebuilt, at most twice, then asked as plain text with a note.
 3. Each settled answer: decision_record.py decision add (kind product, tag discovery) and, when the pdi MCP server is
    connected, record_decision with links.chg and the answer as a quote, then decision mark with the DEC id — so the
    import before intent skips it by id instead of adding a duplicate. Without the MCP server the entry stays
    `wyslano: nie` and `decision pending` shows it.
 4. brief.md from the template with the contract's header (Z2a) and a `## Pytania do bramki` section for what stays
-   open; decision_record.py check validates it. At the end: branch pdi/CHG-n-discovery, commit with trailer
+   open, questions with options written in the Markdown form you define for the contract's shape (one question per
+   item, options as sub-items, the recommended one marked); decision_record.py check validates it. At the end: branch pdi/CHG-n-discovery, commit with trailer
    "Change: CHG-n", PR, then the B0 gate request. The signing secret must not reach the persona (Z8a and
    sdlc-phase.yml: only the gate step holds PDI_TF_SIGNING_SECRET); check what Z2a gives for this and plan how B0 is
    requested from an interactive session (e.g. the command prints the exact `phase_run.py gate request --change CHG-n
    --gate B0 --url <PR>` for the human, or a pdi command or MCP tool that signs it), and say which you chose and why.
-5. phase_run.py: `discovery` in PHASES refuses `run` with a message that it is interactive and names the command;
+5. N19 in the other phases: questions_in() reads both the plain one-line questions of today and the new form, so
+   gate request sends strings or objects with options in `questions` (contract of Z2a), and the phase prompt asks
+   personas to give options with a recommendation where they can; `decision gate --answers` keeps the chosen option
+   in the `## Bramka …` entry next to the answer text, and the repeat check (Z1) compares the question text only.
+6. phase_run.py: `discovery` in PHASES refuses `run` with a message that it is interactive and names the command;
    build_prompt for intent reads brief.md when it exists and treats it, the B0 entry with its answers and the discovery
    decisions as binding input; an intent.md that asks again what B0 answered fails as `repeated_question` (Z1).
-6. Regenerate the pinned pdi contract copy from the new contract-v tag as tf #136 did (tools/pdi-contract.json version,
+7. Regenerate the pinned pdi contract copy from the new contract-v tag as tf #136 did (tools/pdi-contract.json version,
    new files if Z2a adds any, `python3 tools/sync_contract.py sync`, then `check`); bump phase_run.py
    CONTRACT_VERSION and triage_pdi.py CONTRACT. Docs: mode-pdi GUIDE.md and SKILL.md (do not edit CHANGELOG or VERSION:
    the release workflow does that).
 
 Tests: the command's script parts (brief header and check, gate request B0, decision add with tag discovery and mark),
 phase_run refusing to run discovery, intent prompt with and without brief.md, intent repeating a B0 question refused,
+N19 (questions with options parsed from an artifact and sent in gate.requested, plain questions as before, a question
+that breaks the schema rebuilt at most twice, the chosen option kept in the gate entry, the repeat check by text),
 the contract copy and constants, the skill gate of the new skill.
 A run on dbqm45/sdlc-proba needs my Mac (logged-in gh and claude, the stack from `sdlc up`): add it as a checklist item
-for me in pdi docs/przebieg-lokalny.md — one small idea through the interview, brief, B0 with one answered question and
-the intent PR, which does not ask that question again.
+for me in pdi docs/przebieg-lokalny.md — one small idea through the interview (most answers picked from options), brief,
+B0 with one answered question and the intent PR, which does not ask that question again.
 Gates: the repo's checks (workspace.py check --packs pack-it and --packs mode-pdi, the mode-pdi tests, the skill gate
 and skill evals validation). CI runs on the PR again: wait for it to be green and say in the PR what you ran locally.
 Coordination: other sessions may work in parallel in mode-pdi (phase_run.py, decision_record.py, sdlc-phase.yml); keep
 your changes there small, keep the branch up to date with main and resolve conflicts keeping both behaviours.
 When the gates pass, commit, push the branch and open a PR to main (and a small pdi PR for the checklist item), but do
 not merge them. At the end report in Polish: PR links, gates and results, and the exact names of the new command,
-skill, files and fields.
+skill, files and fields, and the Markdown form of a question with options.
 Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
