@@ -1,12 +1,15 @@
 # Polecenia startowe planu „zespół jednoosobowy”: grupa A i Z2
 
-**Data:** 2026-11-02 · **Źródło:** [plan „zespół jednoosobowy”](plan-zespol-jednoosobowy.md) §8, §8.2, decyzje DZ1–DZ14
-([decyzje](decyzje.md)) · **Stan przed startem:** pdi `e2cec98` (kontrakt 0.10.0), tf 5.55.0, ShipScope 0.2.67
+**Data:** 2026-11-02, odświeżone 2026-11-03 · **Źródło:** [plan „zespół jednoosobowy”](plan-zespol-jednoosobowy.md) §8,
+§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `abcbc59` (kontrakt 0.11.0), tf 5.57.0 (kopia
+kontraktu 0.11.0), ShipScope 0.2.67 (stan z 2026-11-02) · Polecenia Z2a, Z2b i Z3-lokalnie mają nad sobą własny stan
+przed startem; pozostałe niezrobione (N1, N5, Z7b-1a, Z7b-1b, N2) są w brzmieniu z 2026-11-02 i przed użyciem warto je
+odświeżyć tak samo.
 
-Każde polecenie wklejasz jako pierwszą wiadomość nowej sesji Claude Code w katalogu z tabeli. Kroki idą po kolei: Z1,
-potem Z2a, potem Z2b. Zgodnie z DZ5 Z1 idzie przed etapem 2, a Z2 przed etapem 3 ([etapy](polecenia-startowe-sdlc-lokalnie.md)).
-Z8a i Z8c (uprząż) też idą przed etapem 2, czyli przed pierwszym przebiegiem na prawdziwym kodzie sprintdecka; Z8a
-jest niezależny od Z1, a Z8c ma dwie części: najpierw Z8c-1 (ci_for_sdlc), potem Z8c-2 (tf).
+Każde polecenie wklejasz jako pierwszą wiadomość nowej sesji Claude Code w katalogu z tabeli. Zrobione są Z1, Z8a,
+Z8c-1 i Z8c-2 (kolumna „Stan”). Dalej: Z2a, potem Z2b (po tagu kontraktu z Z2a); zgodnie z DZ5 Z2 idzie przed etapem 3
+([etapy](polecenia-startowe-sdlc-lokalnie.md)). N1, N5 i Z7b-1a mogą iść od razu (Z1 jest scalone), Z7b-1b po Z7b-1a,
+N2 po N1. Z3-lokalnie startuje po przebiegu A6 na `sdlc-proba`, przed etapem 2.
 
 | Krok | Co | Startuje po | Repo | Sesja w katalogu | Stan |
 |---|---|---|---|---|---|
