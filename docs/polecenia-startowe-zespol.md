@@ -1,7 +1,7 @@
 # Polecenia startowe planu „zespół jednoosobowy”: grupa A i Z2
 
 **Data:** 2026-11-02, odświeżone 2026-11-03 · **Źródło:** [plan „zespół jednoosobowy”](plan-zespol-jednoosobowy.md) §8,
-§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `e3f4d50` (kontrakt 0.11.0), tf 5.58.4 (kopia
+§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `9903408` (kontrakt 0.11.0), tf 5.58.4 (kopia
 kontraktu 0.11.0), ShipScope 0.2.67 (stan z 2026-11-02) · Wszystkie niezrobione polecenia mają nad sobą
 własny stan przed startem z 2026-11-03.
 
@@ -373,9 +373,12 @@ Decyzja DZ19: bramka A6 idzie przed A3–A5. Przebieg robisz Ty na Macu (Docker,
 Claude Code w klonie pdi prowadzi Cię przez [listę przebiegu lokalnego](przebieg-lokalny.md), uruchamia polecenia
 terminala, czyta logi i zapisuje wynik. Decyzje przy bramkach, merge'e PR-ów i ocenę skutku podejmujesz Ty. Jedna
 nowa zmiana od zgłoszenia do oceny skutku (ocena następnego dnia), w kontenerze (Z8a), bez obejść z przebiegu
-2026-10-31. **Stan przed startem (2026-11-03):** pdi `3210975` (kontrakt 0.11.0), tf 5.57.0 (Z1, Z8a, Z8c-2 z N3
-i N10), ci_for_sdlc z Z8c-1 (#109); w `sdlc-proba` fabryka tf 5.56.0 i otwarty PR sdlc-proba #10 z kawałka talosa
-z 2026-11-03. Koszt faz: budżet `PDI_PHASE_BUDGET_USD=3` (DL5), cały przebieg ok. 15 USD.
+2026-10-31. **Stan przed startem (2026-11-03, sprawdzony ponownie):** pdi `9903408` (kontrakt 0.11.0; od pierwszej wersji
+polecenia bez zmian w kodzie), tf 5.58.4 (Z1, Z8a, Z8c-2 z N3 i N10; poprawki talosa tf #139–#141;
+`.claude/factory-lock.json` do aktualizacji świeżego klonu, tf #142 i #143), ci_for_sdlc z Z8c-1 (#109); w `sdlc-proba`
+fabryka tf 5.56.0 bez pliku lock i otwarty PR sdlc-proba #10 z kawałka talosa z 2026-11-03. Pobieranie reguł
+`p/owasp-top-ten` bez logowania do Semgrep jest już sprawdzone (pdi #134, tf #144). Przed startem warto scalić pdi #131
+(luki tf z przebiegu Z8c-2 oznaczone jako naprawione), żeby lista w `przebieg-lokalny.md` była aktualna. Koszt faz: budżet `PDI_PHASE_BUDGET_USD=3` (DL5), cały przebieg ok. 15 USD.
 
 ```text
 Guide me through gate A6 of docs/plan-zespol-jednoosobowy.md (§0, decision DZ19 in docs/decyzje.md): a full local
@@ -385,7 +388,9 @@ English.
 
 Read first: docs/przebieg-lokalny.md (the checklist: §0, §0a, §1–§7, "Gdy coś nie działa", the 2026-10-31 result
 table and the PRB list), docs/plan-sdlc-lokalnie.md (§5), docs/plan-z8a-izolacja-faz.md, docs/plan-z1-decyzje-w-fazach.md,
-docs/decyzje.md (DL1–DL5, DZ9, DZ19), README.md, and `uv run sdlc --help`.
+docs/decyzje.md (DL1–DL5, DZ9, DZ19), README.md, and `uv run sdlc --help`. In docs/przebieg-lokalny.md also read the
+"Wynik przebiegu 2026-11-03 (Z8c-2, talos na sdlc-proba)" section and the checklist items added for Z1 (B2 with
+answers) and Z8c-2.
 
 Roles:
 - You run the terminal steps (T) yourself: sdlc up/status/sandbox/check/deploy/impact-review/down, git and gh reads,
@@ -406,11 +411,14 @@ Steps:
       marker), ci_for_sdlc and ShipScope HEADs; Docker running; ~/.sdlc/env has CLAUDE_CODE_OAUTH_TOKEN and no
       ANTHROPIC_API_KEY next to it; PDI_PHASE_BUDGET_USD=3; PDI_DISPATCH_SANDBOX not set to none.
    b. sdlc-proba needs tf with Z1 (decision import, decision gate --answers) and Z8c-2 (security_scan.py, mode-talos
-      1.2.0): if it still has 5.56.0, show me how the factory is updated there (the tf way, not by copying files) and
-      do it on my OK, as a PR to sdlc-proba that I merge.
+      1.2.3 or later): it still has 5.56.0 without .claude/factory-lock.json, so its first update has to run on my
+      machine (tf #142, #143; docs/przebieg-lokalny.md, the Z8c-2 run result). Show me the tf update command for it
+      (the tf way, not by copying files), run it on my OK, and open it as a PR to sdlc-proba with the new lock file
+      committed, which I merge; later updates then work from a fresh clone and in CI.
    c. Z8c-2 prerequisites in sdlc-proba: .npmrc with min-release-age=7, package-lock.json in git, semgrep in the
-      phase image; whether p/owasp-top-ten downloads without login from the container (check the Semgrep docs and
-      note the date), otherwise TALOS_SEMGREP_CONFIG pointing to a rules file in the repo.
+      phase image. That p/owasp-top-ten downloads without a Semgrep login is already checked (pdi #134, tf #144);
+      confirm it once from inside the phase container (semgrep.dev must be in the allowed hosts of Z8a), and only if
+      it fails there fall back to TALOS_SEMGREP_CONFIG pointing to a rules file in the repo.
    d. Open state in sdlc-proba: PR #10 and any other open PRs or branches from earlier runs; propose what to do with
       each (close, keep) and wait for my decision. Existing changes in the registry stay; the new change gets the next
       PRB/CHG numbers.
