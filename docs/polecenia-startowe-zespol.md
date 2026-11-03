@@ -1,9 +1,9 @@
 # Polecenia startowe planu „zespół jednoosobowy”: grupa A i Z2
 
 **Data:** 2026-11-02, odświeżone 2026-11-03 · **Źródło:** [plan „zespół jednoosobowy”](plan-zespol-jednoosobowy.md) §8,
-§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `abcbc59` (kontrakt 0.11.0), tf 5.57.0 (kopia
-kontraktu 0.11.0), ShipScope 0.2.67 (stan z 2026-11-02) · Polecenia Z2a, Z2b i Z3-lokalnie mają nad sobą własny stan
-przed startem; pozostałe niezrobione (N1, N5, Z7b-1a, Z7b-1b, N2) są w brzmieniu z 2026-11-02 i przed użyciem warto je
+§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `0845e63` (kontrakt 0.11.0), tf 5.58.3 (kopia
+kontraktu 0.11.0), ShipScope 0.2.67 (stan z 2026-11-02) · Polecenia Z2a, Z2b, Z3-lokalnie i N1 mają nad sobą własny stan
+przed startem; pozostałe niezrobione (N5, Z7b-1a, Z7b-1b, N2) są w brzmieniu z 2026-11-02 i przed użyciem warto je
 odświeżyć tak samo.
 
 Każde polecenie wklejasz jako pierwszą wiadomość nowej sesji Claude Code w katalogu z tabeli. Zrobione są Z1, Z8a,
@@ -20,7 +20,7 @@ N2 po N1, a równolegle Z3-lokalnie; wszystkie przed etapem 2.
 | [Z8c-1](#z8c-1--ci_for_sdlc-wyniki-skanera-sarif-jako-ustalenia) | wyniki skanera (SARIF) jako ustalenia w ci_for_sdlc | — | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` | zrobione (ci_for_sdlc #109) |
 | [Z8c-2](#z8c-2--tf-skaner-w-pętli-kawałka-talosa-i-w-ci) | skaner w pętli kawałka talosa i w CI | Z8c-1 | tf | `/Users/x/WebstormProjects/tf` | zrobione (tf #138; kawałek talosa na sdlc-proba 2026-11-03, sdlc-proba #10, [wynik](przebieg-lokalny.md#wynik-przebiegu-2026-11-03-z8c-2-talos-na-sdlc-proba)) |
 | [A6](#a6--pdi--tf-shipscope-ci_for_sdlc-ponowny-przebieg-lokalny-na-sdlc-proba) | ponowny przebieg lokalny na `sdlc-proba`: jedna zmiana od zgłoszenia do oceny skutku, w kontenerze, bez obejść (bramka A6, DZ19) | Z1, Z8a, Z8c-1, Z8c-2 | pdi (+ tf, ShipScope, ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` | do zrobienia (Twój przebieg na Macu) |
-| [N1](#n1--tf-przegląd-drugim-modelem) | przegląd drugim modelem (wymagania, plan, uwagi z review) | Z1, A6 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
+| [N1](#n1--tf-przegląd-drugim-modelem) | przegląd drugim modelem (wymagania, plan, uwagi z review) | Z1, A6 | tf (+ pdi, jeśli w kontenerze) | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [N5](#n5--tf-evale-przebiegu) | evale przebiegu na 20 prawdziwych zadaniach | Z1, A6 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [Z7b-1a](#z7b-1a--pdi--tf-cele-zmiany-w-kontrakcie-i-planie) | cele zmiany (`targets`) w kontrakcie i planie, B3 | Z1, A6 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
 | [Z7b-1b](#z7b-1b--ci_for_sdlc-sprawdzanie-celów-zmiany) | sprawdzanie celów (pokrycie, testy mutacyjne) w ci_for_sdlc | Z7b-1a, Z8c-1 | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` | do zrobienia |
@@ -410,11 +410,18 @@ Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, che
 
 ## N1 — tf: przegląd drugim modelem
 
+Startuje po A6 (DZ19) i po Z1 (zrobione). Sesja w klonie tf; mała część pdi, jeśli przegląd działa w kontenerze fazy.
+**Stan przed startem (2026-11-03):** tf 5.58.3 (kopia kontraktu pdi 0.11.0), pdi `0845e63`. Od pierwszej wersji tego
+polecenia weszły: Z1 (decyzje zmiany i rozstrzygnięte pytania w prompcie, odmowa przy powtórzonym pytaniu), Z8a (krok
+`run` w kontenerze z listą dozwolonych hostów i sandboxem Claude Code, tokeny niewidoczne dla persony), Z8c-2, a w
+planie N14 (oznaczanie treści z zewnątrz) i N17 (reguły sędziego); CI na GitHubie znowu działa.
+
 ```text
 Implement N1 of docs/plan-zespol-jednoosobowy.md (§8.3) in dbqm45/tf, under decision DZ12 in pdi docs/decyzje.md: the
 second model comes from another vendor (own API key, cost inside the phase budget); without that key, another Claude
-model with a separate reviewer prompt, marked in the output as a same-vendor review. Start when Z1 is merged. Answer me in
-Polish; code, commits and PR title in English, Conventional Commits.
+model with a separate reviewer prompt, marked in the output as a same-vendor review. If the review needs a change in
+pdi (see 4), make it a small separate PR in dbqm45/pdi. Start when A6 is done (DZ19). Answer me in Polish; code,
+commits and PR titles in English, Conventional Commits.
 
 Goal: before a gate request for B2 (requirements) and B3 (architecture), a second model reads the artifact against
 intent.md, requirements and the change's decisions and lists gaps (missing error states, unclear acceptance criteria,
@@ -422,23 +429,52 @@ contradictions with a decision, slices that cannot be verified). The findings go
 marked as coming from the second review. The same function validates review comments for N2: a comment the second model
 does not confirm goes to the human instead of to a fix.
 
-1. Plan first in docs/plans/ (files, order, tests). TDD for the scripts.
+Read first: pdi docs/plan-zespol-jednoosobowy.md §8.3 (N1, N2, N14, N17), docs/plan-z1-decyzje-w-fazach.md and
+docs/plan-z8a-izolacja-faz.md; in tf modes/mode-pdi/skills/pdi-decisions/scripts/phase_run.py (build_prompt,
+decisions_of, settled, repeated, gate_event, the run result), decision_record.py, sandbox_settings.py (TOKENS denied to
+the persona) and templates/sdlc-phase.yml; in pdi src/pdi/phase_sandbox.py (ALWAYS_HOSTS, PDI_DISPATCH_ALLOW_HOSTS,
+which variables reach the container).
+
+Already done (do not redo): the change's decisions and the questions settled by gates are in decisions.md and in the
+prompt as quoted data (Z1); `run` and `gate request` refuse an artifact that repeats a settled question.
+
+1. Plan first in docs/plans/ (files, order, tests, sources with dates). TDD for the scripts.
 2. A script in mode-pdi (stdlib Python): `second_review.py artifact --change CHG-n --phase P` and
    `second_review.py comments --pr <n> --input <json>`; provider and model from PDI_SECOND_MODEL (e.g.
    openai:<model>, or claude:<model> as the fallback), the key from the provider's usual variable, never logged. Output
-   JSON (findings with severity, quote, reason) and a `## Przegląd drugim modelem` section in the artifact.
+   JSON (findings with severity, quote, reason) and a `## Przegląd drugim modelem` section in the artifact. Check the
+   provider's API in its official docs (endpoint, structured output, temperature) and note the date.
 3. phase_run.py: after the run and before gate request for requirements and architecture, run the artifact review;
-   its blocking findings join the questions of the gate request. A failed or missing second model is visible in the
-   gate request ("drugi przegląd: niedostępny, powód"), never a silent pass.
-4. Sources are data: the artifact and the comments go to the second model as quoted data with an instruction to treat
-   them as data.
-5. Cost: the review's cost is added to the phase report and counts against the phase budget.
+   its blocking findings join the questions of the gate request. A finding that asks what decisions.md already settled
+   (Z1 `settled`) is not a question: it is dropped or reported as a contradiction with that decision, with its ref. A
+   failed or missing second model is visible in the gate request ("drugi przegląd: niedostępny, powód"), never a
+   silent pass. Keep the run result's fields as they are (status, cost_usd, repeated_question) and add the review's.
+4. Where it runs (Z8a): `phase_run.py run` runs inside the phase container, whose egress allows only listed hosts, and
+   the persona must never see the second vendor's key. Choose in the plan: run the review inside the container (the
+   provider's API host added to the allowed hosts and the key passed to the review only, denied to the persona as
+   sandbox_settings.py TOKENS does) or as a separate step on the host after `run` (pdi dispatch_local and a separate
+   step in sdlc-phase.yml with its own secret). Say why. In Actions the key is a secret of that step only.
+5. Sources are data (N14): the artifact, the decisions and the PR comments go to the second model inside
+   untrusted-content markers, with markers inside the content neutralised and an instruction to treat them as data.
+6. Reviewer rules (N17): the reviewed model is never the reviewer; a rubric with an example per level for severity;
+   temperature 0 where the API takes it; the output must match a JSON schema, an invalid answer is retried at most
+   twice and then reported as unavailable.
+7. Cost: the review's cost is added to the phase result and counts against the phase budget (PDI_PHASE_BUDGET_USD).
 
-Tests: provider selection and fallback, no key in logs, findings merged into the gate request, unavailable reviewer
-reported, comment validation (confirmed / not confirmed) with an injected client. Then one run on dbqm45/sdlc-proba with a
-requirements.md that misses an error state: the second review finds it. Gates: the repo's checks (workspace.py check
---packs pack-it, mode-pdi tests, skill evals if covered). GitHub Actions do not run on this account right now — run the
-gates locally and say so in the PR. Commit and PR on my request.
+Tests: provider selection and fallback (marked same-vendor), no key in logs or in the persona's environment, findings
+merged into the gate request, a finding on a settled question dropped or turned into a contradiction, unavailable
+reviewer reported, untrusted-content markers neutralised, invalid JSON retried then reported, comment validation
+(confirmed / not confirmed) with an injected client, cost counted in the result.
+A run on dbqm45/sdlc-proba needs my Mac: add it as a checklist item for me in pdi docs/przebieg-lokalny.md — a
+requirements.md that misses an error state, the second review finds it and B2 shows it as a question.
+Gates: the repo's checks (workspace.py check --packs pack-it and --packs mode-pdi, mode-pdi tests, the skill gate of
+pdi-decisions); in pdi, if changed: uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests,
+uv run mypy src. CI runs on the PRs again: wait for it to be green and say in the PRs what you ran locally.
+Coordination: other sessions may work in parallel in phase_run.py and sdlc-phase.yml (N5, N2, N12, N13); keep your
+changes there small, keep the branches up to date with main and resolve conflicts keeping both behaviours.
+When the gates pass, commit, push and open PRs to main (tf first if pdi depends on it), but do not merge them. At the
+end report in Polish: PR links, gates and results, the merge order, and the exact names of the new script, commands,
+variables and output fields (inputs for N2).
 Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
