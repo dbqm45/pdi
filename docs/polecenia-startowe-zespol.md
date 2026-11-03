@@ -74,42 +74,70 @@ Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, che
 
 ## Z2a — pdi: faza `discovery` i bramka B0 w kontrakcie i przebiegu
 
+Startuje po Z1 (zrobione). Sesja w klonie pdi; część tf to Z2b, po tagu kontraktu. **Stan przed startem
+(2026-11-03):** pdi `084c104` (kontrakt 0.11.0), tf 5.57.0. Od pierwszej wersji tego polecenia weszły: Z1 (odpowiedzi
+na pytania bramki w decyzji i decyzje z `links.chg` w każdej fazie), Z8a (krok `run` w kontenerze), Z8c-2; CI na
+GitHubie znowu działa.
+
 ```text
 Implement step Z2a of docs/plan-zespol-jednoosobowy.md (§3, §8) in dbqm45/pdi, under decisions DZ1 and DZ3 in
 docs/decyzje.md: the interview runs first in a Claude chat with the pdi MCP server, not in a new service; its skills are
-tf's (core-plan-interview, proc-product-discovery). Start only when Z1 is merged. Answer me in Polish; code, commits and
-PR title in English.
+tf's (core-plan-interview, proc-product-discovery). Answer me in Polish; code, commits and PR title in English.
 
 Goal: a change can start with an interview. Triage can accept a problem or idea "with discovery"; pdi then does not
 dispatch a non-interactive phase but puts "interview waiting for you" in the inbox, with the exact command to start it.
 The interview ends with brief.md and gate B0; approving B0 starts the intent phase as today.
 
-Today: src/pdi/flow.py GATES starts at B1 (produced_by intent); triage_problem accepted creates CHG-n and dispatches
-intent (src/pdi/problems.py, src/pdi/dispatch.py, dispatch_local.py); the contract is 0.10.0.
+Today (check each against the code before planning): src/pdi/flow.py GATES starts at B1 (produced_by intent);
+triage_problem accepted creates CHG-n and dispatches intent (src/pdi/problems.py `triage` and `_accept`,
+src/pdi/dispatch.py, src/pdi/dispatch_local.py with PRIOR_ARTIFACT and GATES); the contract is 0.11.0 and
+contract/change.schema.json already allows phase `discovery`; protected autonomy types live in contract.json
+`autonomy.protected_types` and are forced to level 3 in contract/autonomy.schema.json.
 
-1. Plan first in docs/plan-z2a-discovery.md (files, order, contract change, tests). TDD.
-2. Contract (next free minor version, contract-v tag after merge): phase `discovery` and gate `B0` ("brief approved")
-   in contract.json conventions; artifact `docs/project/changes/<CHG>/brief.md` with the same flat YAML header as
-   intent.md (change, status, source) and the brief's sections (problem, outcome and its metric, users, scope, out of
-   scope, constraints, open risks); the triage decision may carry start_with: intent | discovery; examples and
+Already done (read first, do not redo): Z1 (docs/plan-z1-decyzje-w-fazach.md) — gate items carry the artifact's
+`questions` and decide_inbox_item takes `answers`; every recorded decision with links.chg = the change reaches each tf
+phase (src/pdi/phase_decisions.py, `decision import` in tf) and its prompt as quoted data. So B0 questions, their
+answers and decisions recorded during the interview reach intent and later phases with no extra work: reuse that path,
+do not build a second one.
+
+1. Plan first in docs/plan-z2a-discovery.md (files, order, contract change, tests, what Z2b does in tf). TDD.
+2. Contract: the next free minor version at the time of your PR (0.12.0 unless another open PR, e.g. Z7b-1a, already
+   takes it — check open pdi PRs and coordinate the number); contract-v tag after merge, then tf regenerates its pinned
+   copy in Z2b (as tf #136 did). Add: phase `discovery` and gate `B0` ("brief approved") in contract.json conventions;
+   artifact `docs/project/changes/<CHG>/brief.md` with the same flat YAML header as intent.md (change, status, source)
+   and the brief's sections (problem, outcome and its metric, users, scope, out of scope, constraints, open risks,
+   `## Pytania do bramki`); the triage decision may carry start_with: intent | discovery; examples and
    contract/README.md.
 3. Flow: Gate("B0", produced_by="discovery", next_phase="intent"), in the chain before B1 only for changes that start
-   with discovery (missing_before must not ask a plain change for B0). B0 is a scope decision: propose its autonomy
-   type as protected (always human, like scope.r1, DA2) and say so in the plan.
+   with discovery (missing_before must not ask a plain change for B0). B0 is a scope decision: make its decision type
+   protected (always human, like scope.r1, DA2) in contract.json and autonomy.schema.json, and say so in the plan.
 4. Triage: triage_problem gets start_with (default intent, so nothing changes). With discovery: create the change state,
    no dispatch, an inbox item kind discovery for the change with the command for the product repo (`/discovery CHG-n`
    in Claude Code, Z2b) and the problem's fields as data; list_changes and get_change show "waiting: discovery".
-   gate.requested B0 from tf closes that item and opens the B0 gate; approving it dispatches intent with the brief as
-   its input (tf reads brief.md in Z2b; pdi only passes the change).
+   gate.requested B0 from tf closes that item and opens the B0 gate (with the brief's questions, as any gate since Z1);
+   approving it dispatches intent with the triage and interview decisions as linked decisions (Z1). The intent phase of
+   a discovery change needs brief.md on the ref (dispatch_local PRIOR_ARTIFACT, like the other phases), and tf reads it
+   in Z2b; pdi only passes the change.
 5. Interview answers are decisions: record_decision with links.chg, kind product, tag discovery, the human's answer as a
    quoted evidence (the conversation is not stored, as in A5). Z1 already brings them to later phases.
-6. Docs: README (start with an interview), integrations/claude-code/README.md, docs/plan-zespol-jednoosobowy.md §10.
+6. If the local console of Z3-lokalnie is merged by then, show the discovery item and B0 there too (same read model, no
+   new code path); otherwise note it for Z3-lokalnie in the plan.
+7. Docs: README (start with an interview), integrations/claude-code/README.md, docs/przebieg-lokalny.md (a checklist
+   item for me: one idea accepted with discovery, the interview in Claude, B0 with one answered question, intent
+   starts and does not ask it again), docs/plan-zespol-jednoosobowy.md §10 and the Z2a row of
+   docs/polecenia-startowe-zespol.md.
 
-Tests: contract schemas and examples (brief header, B0, start_with), flow (B0 only in discovery changes, next phase
-intent), triage with and without start_with, the discovery inbox item and its closing by gate.requested B0, approving B0
-dispatches intent in local and Actions mode, autonomy type of B0 protected.
-Gates: uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src. GitHub Actions
-do not run on this account right now — run the gates locally and say so in the PR. Commit and PR on my request.
+Tests: contract schemas and examples (brief header, B0, start_with, protected type), flow (B0 only in discovery changes,
+next phase intent), triage with and without start_with (without it everything as today), the discovery inbox item and
+its closing by gate.requested B0, approving B0 dispatches intent in local and Actions mode with the linked decisions,
+intent of a discovery change refused without brief.md, autonomy type of B0 protected.
+Gates: uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src. CI runs on the
+PR again: wait for it to be green and say in the PR what you ran locally.
+Coordination: other sessions may work in parallel in pdi (flow.py, inbox.py, problems.py, dispatch_local.py, the
+contract); keep your changes small, keep the branch up to date with main and resolve conflicts keeping both behaviours.
+When the gates pass, commit, push the branch and open a PR to main, but do not merge it. At the end report in Polish:
+the PR link, gates and results, the contract version taken, and the exact names of new fields, gates, item kinds and
+commands (inputs for Z2b).
 Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
