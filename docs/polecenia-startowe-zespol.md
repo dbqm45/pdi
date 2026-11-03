@@ -1,9 +1,9 @@
 # Polecenia startowe planu „zespół jednoosobowy”: grupa A i Z2
 
 **Data:** 2026-11-02, odświeżone 2026-11-03 · **Źródło:** [plan „zespół jednoosobowy”](plan-zespol-jednoosobowy.md) §8,
-§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `0845e63` (kontrakt 0.11.0), tf 5.58.3 (kopia
-kontraktu 0.11.0), ShipScope 0.2.67 (stan z 2026-11-02) · Polecenia Z2a, Z2b, Z3-lokalnie i N1 mają nad sobą własny stan
-przed startem; pozostałe niezrobione (N5, Z7b-1a, Z7b-1b, N2) są w brzmieniu z 2026-11-02 i przed użyciem warto je
+§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `dbd3bb5` (kontrakt 0.11.0), tf 5.58.3 (kopia
+kontraktu 0.11.0), ShipScope 0.2.67 (stan z 2026-11-02) · Polecenia Z2a, Z2b, Z3-lokalnie, N1 i N5 mają nad sobą własny stan
+przed startem; pozostałe niezrobione (Z7b-1a, Z7b-1b, N2) są w brzmieniu z 2026-11-02 i przed użyciem warto je
 odświeżyć tak samo.
 
 Każde polecenie wklejasz jako pierwszą wiadomość nowej sesji Claude Code w katalogu z tabeli. Zrobione są Z1, Z8a,
@@ -480,29 +480,60 @@ Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, che
 
 ## N5 — tf: evale przebiegu
 
+Startuje po A6 (DZ19) i po Z1 (zrobione), razem z N17 (reguły sędziego). Sesja w klonie tf. **Stan przed startem
+(2026-11-03):** tf 5.58.3, pdi `dbd3bb5`. Od pierwszej wersji tego polecenia weszły: Z1 (`repeated_question` jako
+sprawdzalny wynik fazy), Z8a (krok `run` w kontenerze budowanym przez pdi), Z8c-2 (ustalenia skanera w delivery),
+a w planie N16 (uczenie z logów faz, które czyta wyniki evali) i N17; CI na GitHubie znowu działa.
+
 ```text
-Implement N5 of docs/plan-zespol-jednoosobowy.md (§8.3) in dbqm45/tf, under decision DZ13 in pdi docs/decyzje.md: start
-with 20 real tasks from dbqm45/sdlc-proba and sprintdeck, a budget per run set in tf, grow to about 200 after the first
-results. Start when Z1 is merged. Answer me in Polish; code, commits and PR title in English, Conventional Commits.
+Implement N5 of docs/plan-zespol-jednoosobowy.md (§8.3) in dbqm45/tf, with N17 (judge rules), under decision DZ13 in
+pdi docs/decyzje.md: start with 20 real tasks from dbqm45/sdlc-proba and sprintdeck, a budget per run set in tf, grow to
+about 200 after the first results. Start when A6 is done (DZ19). Answer me in Polish; code, commits and PR title in
+English, Conventional Commits.
 
 Goal: a change of model, skill, persona or phase prompt does not land without running the flow evals, and the report
 compares result and cost with the previous run.
 
-1. Plan first in docs/plans/ (files, order, tests). Reuse what tf already has for skill evals (holdout sets, result-vs-
-   cost report, #102, #127, #130) instead of a second framework.
-2. A task is: a fixture repo snapshot (the product repo at a commit), the change's folder state before a phase, the
-   phase to run, and checks — the artifact passes decision_record.py check and requirements_lint/design_check where they
-   apply, `npm run analyze -- --repo` (ci_for_sdlc) has no blocking finding, for delivery the tests pass, no question
-   settled by a decision comes back (Z1), cost and number of files read within limits. Take the 20 tasks from the
-   phases of the 2026-10-31 run (pdi docs/przebieg-lokalny.md) and from sprintdeck history; store them in tf.
-3. Runner: runs phase_run.py for each task (in the container of Z8a when available), collects result, cost, tokens,
-   files read, time; report as Markdown and JSON with the comparison to the previous run.
-4. Trigger: a workspace.py command and a CI job on changes to personas, mode-pdi prompts or the pinned model; locally the
-   command. A change that lowers the pass rate or raises cost by more than a set limit fails with the report.
+Read first: pdi docs/plan-zespol-jednoosobowy.md §8.3 (N5, N16, N17), docs/przebieg-lokalny.md (the 2026-10-31 run and
+the A6 rerun), docs/plan-z1-decyzje-w-fazach.md and docs/plan-z8a-izolacja-faz.md; in tf the skill evals
+(core/tests/run_skill_evals.py, core/tests/skill_evals, the holdout sets and result-vs-cost reports of #102, #127,
+#130), modes/mode-pdi/skills/pdi-decisions/scripts/phase_run.py (the run result: status, cost_usd, error such as
+repeated_question) and the mode-pdi tests. Attach dbqm45/sprintdeck read-only if you take tasks from its history.
 
-Tests: task loading and validation, checks per phase, the comparison and the failure limits, with an injected runner.
-Then one real run of the 20 tasks; record pass rate and cost in the PR. Gates: the repo's checks. GitHub Actions do not
-run on this account right now — run the gates locally and say so in the PR. Commit and PR on my request.
+1. Plan first in docs/plans/ (files, order, tests, sources with dates). Reuse what tf already has for skill evals
+   instead of a second framework.
+2. A task is: a fixture repo snapshot (the product repo at a commit), the change's folder state before a phase (with
+   its decisions.md, so Z1 applies), the phase to run, and checks — the artifact passes decision_record.py check and
+   requirements_lint/design_check where they apply, `npm run analyze -- --repo` (ci_for_sdlc) has no blocking finding,
+   the run does not end with repeated_question and no settled question comes back (Z1), for delivery the tests pass
+   and the slice has no blocking security finding (Z8c-2), cost and number of files read within limits. Each task has
+   a stable id: N16 will predict which tasks a proposed change fixes or breaks and check it against your report. Take
+   the 20 tasks from the phases of the 2026-10-31 run and the A6 rerun and from sprintdeck history; store them in tf.
+3. Runner: runs phase_run.py for each task and collects result, cost, tokens, files read, time; report as Markdown and
+   JSON with the comparison to the previous run, per task id. The phase container (Z8a) is built by pdi
+   (src/pdi/phase_sandbox.py); say in the plan whether the runner uses it (e.g. through pdi) or runs with tf's
+   sandbox_settings.py only, and why. Evals and their checks are read-only for the runs they judge.
+4. Judge (N17), where a check is not deterministic: a rubric with an example per level (correctness, agreement with
+   the change's decisions, style), both orders when comparing two outputs with the difference in the report, a check
+   that length is not rewarded, the judged model is never the judge, temperature 0 where the API takes it; agreement
+   with my rating on a small sample in the report.
+5. Trigger: a workspace.py command and a CI job on changes to personas, mode-pdi prompts or the pinned model; locally
+   the command. The CI job needs a model secret: without it the job reports "skipped", never "passed". A change that
+   lowers the pass rate or raises cost by more than a set limit fails with the report.
+
+Tests: task loading and validation, checks per phase (including repeated_question and a security finding), the
+comparison per task id and the failure limits, judge rules (both orders, length control) with an injected runner and
+judge, the CI job skipped without the secret.
+The first real run of the 20 tasks costs money: give me the expected cost first and run it only after I agree; if this
+session has no model credentials, add it as a checklist item for me in pdi docs/przebieg-lokalny.md. Record pass rate
+and cost in the PR.
+Gates: the repo's checks (workspace.py check --packs pack-it and --packs mode-pdi, the skill gate, skill evals
+validation). CI runs on the PR again: wait for it to be green and say in the PR what you ran locally.
+Coordination: other sessions may work in parallel in phase_run.py (N1, N2, N12, N13); keep your changes there small,
+keep the branch up to date with main and resolve conflicts keeping both behaviours.
+When the gates pass, commit, push and open a PR to main, but do not merge it. At the end report in Polish: the PR link,
+gates and results, and the exact names of the new command, CI job, files, task fields and report fields (inputs for
+N16).
 Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
