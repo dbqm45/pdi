@@ -1,7 +1,7 @@
 # Polecenia startowe planu „zespół jednoosobowy”: grupa A i Z2
 
 **Data:** 2026-11-02, odświeżone 2026-11-03 · **Źródło:** [plan „zespół jednoosobowy”](plan-zespol-jednoosobowy.md) §8,
-§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `f003f2e` (kontrakt 0.11.0), tf 5.58.4 (kopia
+§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `e3f4d50` (kontrakt 0.11.0), tf 5.58.4 (kopia
 kontraktu 0.11.0), ShipScope 0.2.67 (stan z 2026-11-02) · Wszystkie niezrobione polecenia mają nad sobą
 własny stan przed startem z 2026-11-03.
 
@@ -28,7 +28,7 @@ wszystkie przed etapem 2.
 | [N12](#n12--tf-weryfikacja-przed-zakończeniem-fazy) | weryfikacja przed zakończeniem fazy (świeży wynik N3 dla commita) | A6 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [N13](#n13--tf--pdi-limity-tur-i-czasu-zapętlenie-trafia-do-skrzynki) | limity tur i czasu, zapętlenie trafia do skrzynki | A6 | tf + pdi | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [N15](#n15--tf--pdi-zakres-zapisu-fazy) | zakres zapisu fazy (`guard_paths` i sandbox) | A6 | tf + pdi (kontrakt) | `/Users/x/WebstormProjects/tf` | do zrobienia |
-| [Z3-lokalnie](#z3-lokalnie--pdi--tf-konsola-w-przeglądarce-na-macu) | konsola w przeglądarce na Macu: trzy pasy, ślad z panelem plików, postęp na żywo, decyzje przyciskami (DZ14, DZ18) | A6 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
+| [Z3-lokalnie](#z3-lokalnie--pdi--tf-konsola-w-przeglądarce-na-macu) | konsola w przeglądarce na Macu: trzy pasy, ślad z panelem plików, postęp na żywo, decyzje przyciskami (DZ14, DZ18), opcje pytań jako przyciski (N19) | A6 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
 
 ## Z1 — pdi + tf: wszystkie decyzje zmiany w każdej fazie (domknięcie PRB-3)
 
@@ -905,13 +905,15 @@ names of the contract field, the environment variable and the refusal message.
 
 ## Z3-lokalnie — pdi + tf: konsola w przeglądarce na Macu
 
-Decyzje DZ14 i DZ18. Startuje po A6 (ponowny przebieg na `sdlc-proba`), przed etapem 2. Sesja w klonie pdi; część tf
-osobnym PR-em. Wygląd: `design/konsola/v2-klikalna/` (trzy pasy). **Stan przed startem (2026-11-03):** pdi `f6c5533`
-(kontrakt 0.11.0), tf 5.57.0. Od pierwszej wersji tego polecenia weszły: Z1 (odpowiedzi na pytania bramki, decyzje
+Decyzje DZ14 i DZ18, z częścią konsoli kroku N19 (opcje pytań jako przyciski). Startuje po A6 (ponowny przebieg na
+`sdlc-proba`), przed etapem 2. Sesja w klonie pdi; część tf osobnym PR-em. Wygląd: `design/konsola/v2-klikalna/` (trzy
+pasy). **Stan przed startem (2026-11-03, sprawdzony ponownie):** pdi `e3f4d50` (kontrakt 0.11.0), tf 5.58.4; pytania
+z opcjami (N19) wprowadza kontrakt z Z2a. Od pierwszej wersji tego polecenia weszły: Z1 (odpowiedzi na pytania bramki, decyzje
 zmiany w fazie), Z8a (krok `run` w kontenerze Docker), Z8c-2 (skaner w pętli talosa); CI na GitHubie znowu działa.
 
 ```text
-Implement Z3-lokalnie of docs/plan-zespol-jednoosobowy.md (§0 row A7, §5, decisions DZ14 and DZ18 in docs/decyzje.md) in
+Implement Z3-lokalnie of docs/plan-zespol-jednoosobowy.md (§0 row A7, §5, decisions DZ14 and DZ18 in docs/decyzje.md),
+with the console part of N19 (§8.3: options of a question shown as buttons), in
 dbqm45/pdi, with the tf part in dbqm45/tf (attach it with push access). Answer me in Polish; code, commits and PR titles
 in English.
 
@@ -960,6 +962,11 @@ slices with security findings (Z8c-2).
       decide_inbox_item (one implementation, same checks, the PR-merged check of PRB-2 included), records who decided,
       that it came from the console (source.kind console) and drafted_by/draft_edited; a decision on a stale item
       (state changed meanwhile) is refused with a message.
+      N19: when a question has options (the contract shape from Z2a: question, options [{value, label}], recommended,
+      other), show the options as buttons with the recommended one marked and a free-text field only when `other` is
+      allowed; the answer goes as `answers` with the chosen option, through the same checks as decide_inbox_item.
+      Plain-string questions keep the answer field. If Z2a is not merged yet, build the read model so that options
+      can be added without changing the page structure, and say so in the plan.
    d. Decision register and autonomy report as read-only pages.
    e. Files panel in the change trace (DZ18), read-only: the change's artifacts from the product clone pdi already
       uses for phase runs (intent.md, requirements.md, plan.md, design.md, release.yaml under
@@ -979,13 +986,14 @@ slices with security findings (Z8c-2).
 Tests: stream-json to progress lines (from recorded sample streams, including a failed run, a run waiting at a gate and
 a repeated_question failure), the unchanged final result, the host-side split of progress lines from the log, the
 console's read model (lane and step of a change from registry states), SSE updates when a progress file grows, button
-decisions (same result as decide_inbox_item, with answers, refused without token, refused for a stale item), escaping as decide_inbox_item, with answers, refused without token, refused for a stale item),
-the files panel (artifacts and slice diff from a sample clone, live refresh when a file changes, refusal when files
+decisions (same result as decide_inbox_item, with answers, refused without token, refused for a stale item), questions
+with options as buttons (the recommended one marked, an unknown option refused, free text only when allowed) if Z2a is
+merged, the files panel (artifacts and slice diff from a sample clone, live refresh when a file changes, refusal when files
 changed under a gate item, paths outside the clone, symlinks, binary and secret-like files refused), escaping
 and CSP, `sdlc up/down/status` with the console.
 A local run on dbqm45/sdlc-proba needs my Mac (Docker, logged-in gh and claude): add it as a checklist item for me in
 docs/przebieg-lokalny.md — one change followed only in the console, from intake to the first gate, a decision by button
-(with an answer to one question) and the next phase visible live.
+(with an answer to one question, picked from its options when it has them) and the next phase visible live.
 Gates: pdi — uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src; tf — the
 repo's checks (workspace.py check --packs pack-it and --packs mode-pdi, the skill gate of pdi-decisions). CI runs on the
 PRs again: wait for it to be green and say in the PRs what you also ran locally.
