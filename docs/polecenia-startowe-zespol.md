@@ -429,7 +429,9 @@ Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, che
 ## Z3-lokalnie — pdi + tf: konsola w przeglądarce na Macu
 
 Decyzja DZ14. Startuje po A6 (ponowny przebieg na `sdlc-proba`), przed etapem 2. Sesja w klonie pdi; część tf
-osobnym PR-em. Wygląd: `design/konsola/v2-klikalna/` (trzy pasy).
+osobnym PR-em. Wygląd: `design/konsola/v2-klikalna/` (trzy pasy). **Stan przed startem (2026-11-03):** pdi `f6c5533`
+(kontrakt 0.11.0), tf 5.57.0. Od pierwszej wersji tego polecenia weszły: Z1 (odpowiedzi na pytania bramki, decyzje
+zmiany w fazie), Z8a (krok `run` w kontenerze Docker), Z8c-2 (skaner w pętli talosa); CI na GitHubie znowu działa.
 
 ```text
 Implement Z3-lokalnie of docs/plan-zespol-jednoosobowy.md (§0 row A7, §5, decision DZ14 in docs/decyzje.md) in
@@ -442,44 +444,67 @@ gates with buttons. No production service yet (that is Z3 after DA4), no chat, n
 
 Read first: docs/plan-zespol-jednoosobowy.md §0, §5, §8.1 (Z7a, the three lanes) and §6; design/konsola/README.md and the
 clickable mock-ups in design/konsola/v2-klikalna/ (Main = board in three lanes, Slad = change trace with steps,
-Decyzje = decision register, Autonomia); contract/README.md and contract/event.schema.json (`run.progress`);
-src/pdi/stack/cli.py (`sdlc up/down/status/open`), src/pdi/receiver.py and src/pdi/form.py (the existing HTML pages
-without scripts), src/pdi/dispatch_local.py (phase runs: runs/<CHG>-<phase>-<time>.log and .result.json),
-src/pdi/inbox.py, src/pdi/trace.py, src/pdi/changes.py, src/pdi/mcp_server.py (what the MCP tools read and how
-decide_inbox_item decides); in tf mode-pdi `phase_run.py` (how the persona is started: `claude --print
---output-format json`).
+Decyzje = decision register, Autonomia); contract/README.md and contract/event.schema.json (`run.progress`, $defs
+run_progress); src/pdi/stack/cli.py (`sdlc up/down/status/open`), src/pdi/receiver.py and src/pdi/form.py (the existing
+HTML pages without scripts, the per-start token), src/pdi/dispatch_local.py (phase runs: runs/<CHG>-<phase>-<time>.log
+and .result.json; `_stream_run` already passes every output line to the log as it comes), src/pdi/phase_sandbox.py
+(Z8a: the `run` step runs in a Docker container that sees only the product clone, not runs/), src/pdi/inbox.py,
+src/pdi/trace.py, src/pdi/changes.py, src/pdi/mcp_server.py (what the MCP tools read and how decide_inbox_item decides,
+including `answers` from Z1); docs/plan-z1-decyzje-w-fazach.md and docs/plan-z8a-izolacja-faz.md; in tf mode-pdi
+`phase_run.py` (how the persona is started: `claude --print --output-format json`, `--settings $PDI_CLAUDE_SETTINGS`).
 
-1. Plan first in docs/plan-z3-lokalnie.md: files, order, tests, sources with dates, what stays for Z3. TDD.
+Already done (do not redo): gate items carry `questions`, and decide_inbox_item takes `answers` [{question, answer}]
+checked against them (Z1, contract 0.11.0); the persona runs in a container with an egress proxy (Z8a); talos blocks
+slices with security findings (Z8c-2).
+
+1. Plan first in docs/plan-z3-lokalnie.md: files in both repos, order, tests, sources with dates, what stays for Z3. TDD.
 2. tf (live progress): run the persona with streaming output (`--output-format stream-json`; check in the official
-   Claude Code docs which flags it needs with --print, e.g. --verbose, and what each event carries) and turn the stream
-   into progress lines: phase, step, status as in `run.progress` (started / in_progress / waiting_gate / done / failed),
-   elapsed time, cost so far, the last action in plain words ("czyta plik X", "uruchamia testy", "pisze PR"). Write
-   them as JSON lines next to the run log (e.g. runs/<…>.progress.jsonl) so pdi can tail them; the final result and
-   the existing log stay as they are. Never write prompt text, file contents or secrets into progress lines.
-3. pdi (console): a local web console started by `sdlc up` (stopped by `sdlc down`, shown by `sdlc status` and opened by
+   Claude Code docs which flags it needs with --print, e.g. --verbose, and what each event carries, including the final
+   result event that replaces today's JSON result) and turn the stream into progress lines: phase, step, status as in
+   `run.progress` (started / in_progress / waiting_gate / done / failed), elapsed time, cost so far, the last action in
+   plain words ("czyta plik X", "uruchamia testy", "pisze PR"). Because the run step is in a container that cannot see
+   runs/ (Z8a), print the progress lines to stdout with a fixed prefix (one JSON object per line); pdi on the host
+   picks them out of the streamed output. The final JSON result of `phase_run.py run` (status, cost_usd, detail,
+   repeated_question from Z1) must stay exactly as today. Never put prompt text, file contents, decision texts or
+   secrets into progress lines. Keep sdlc-phase.yml working (the progress lines simply go to the job log there).
+3. pdi (progress on the host): dispatch_local writes the prefixed lines from the run step into
+   runs/<…>.progress.jsonl next to the log (validated against run_progress, anything else ignored) and keeps them out
+   of the plain log; settle() and get_change show the last progress line.
+4. pdi (console): a local web console started by `sdlc up` (stopped by `sdlc down`, shown by `sdlc status` and opened by
    `sdlc open`), bound to 127.0.0.1 only, with a per-start token in the URL (as the problem form). Prefer the standard
    library as the receiver does, unless the plan shows a reason; threaded server, Server-Sent Events for live updates.
    Pages, following the v2 mock-ups:
    a. Board: every change in its lane and step (lane 1 Zaprojektuj i zbuduj, lane 2 Oceń i wydaj, lane 3 Wdróż,
       obserwuj, ulepszaj), "waiting for you" highlighted, a running phase with a live progress bar.
-   b. Change trace: the steps of one change with state, decisions, PRs, deployments and flag stages (what get_trace
-      gives); the running phase shows its progress lines live and links the run log.
-   c. Inbox: gate items with the draft and buttons (approve / reject / with a note). A button decision goes through the
-      same code path as decide_inbox_item (one implementation), records who decided and that it came from the console;
-      a decision on a stale item (state changed meanwhile) is refused with a message.
+   b. Change trace: the steps of one change with state, decisions (with their answers), PRs, deployments and flag
+      stages (what get_trace gives); the running phase shows its progress lines live and links the run log.
+   c. Inbox: gate items with the draft, the artifact's questions with an answer field each (sent as `answers`), and
+      buttons (approve / changes requested / reject, with a note). A button decision goes through the same code path as
+      decide_inbox_item (one implementation, same checks, the PR-merged check of PRB-2 included), records who decided,
+      that it came from the console (source.kind console) and drafted_by/draft_edited; a decision on a stale item
+      (state changed meanwhile) is refused with a message.
    d. Decision register and autonomy report as read-only pages.
-   Security: every value escaped, no inline scripts, a Content-Security-Policy, POSTs only with the token and a same-
-   origin check, nothing listens outside 127.0.0.1, no secret ever reaches a page.
-4. Docs: README, docs/przebieg-lokalny.md (the next run can be followed in the console), integrations/claude-code/README.md,
-   tf mode-pdi GUIDE.md.
+   Security: every value escaped (decision texts, questions and log lines are data), no inline scripts, a
+   Content-Security-Policy, POSTs only with the token and a same-origin check, nothing listens outside 127.0.0.1, no
+   secret ever reaches a page.
+5. Docs: README, docs/przebieg-lokalny.md (the next run can be followed in the console; add a checklist item for me),
+   integrations/claude-code/README.md, tf mode-pdi GUIDE.md.
 
-Tests: stream-json to progress lines (from recorded sample streams, including a failed run and a run waiting at a gate),
-the console's read model (lane and step of a change from registry states), SSE updates when a progress file grows,
-button decisions (same result as decide_inbox_item, refused without token, refused for a stale item), escaping and CSP,
-`sdlc up/down/status` with the console. Then one run on dbqm45/sdlc-proba followed only in the console: from intake to the
-first gate, a decision by button, and the next phase visible live.
+Tests: stream-json to progress lines (from recorded sample streams, including a failed run, a run waiting at a gate and
+a repeated_question failure), the unchanged final result, the host-side split of progress lines from the log, the
+console's read model (lane and step of a change from registry states), SSE updates when a progress file grows, button
+decisions (same result as decide_inbox_item, with answers, refused without token, refused for a stale item), escaping
+and CSP, `sdlc up/down/status` with the console.
+A local run on dbqm45/sdlc-proba needs my Mac (Docker, logged-in gh and claude): add it as a checklist item for me in
+docs/przebieg-lokalny.md — one change followed only in the console, from intake to the first gate, a decision by button
+(with an answer to one question) and the next phase visible live.
 Gates: pdi — uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src; tf — the
-repo's checks. GitHub Actions do not run on this account right now — run the gates locally and say so in the PRs. Commit
-and PR on my request.
+repo's checks (workspace.py check --packs pack-it and --packs mode-pdi, the skill gate of pdi-decisions). CI runs on the
+PRs again: wait for it to be green and say in the PRs what you also ran locally.
+Coordination: other sessions may work in parallel in pdi src/pdi/dispatch_local.py and tf phase_run.py; keep your
+changes there small, keep your branches up to date with main and resolve conflicts keeping both behaviours.
+When the gates pass, commit, push branches and open PRs to main (tf first if pdi depends on it), but do not merge them.
+At the end report in Polish: PR links, gates and results, the merge order, and the exact names of new commands,
+files, fields and variables.
 Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
