@@ -98,8 +98,10 @@ Skrócenie czasu:
   `semgrep.dev` (host na liście dozwolonych kontenera, Z8a); bez dostępu ustaw `TALOS_SEMGREP_CONFIG` na plik reguł
   w repo. Stan 2026-11-03: kawałek talosa na `sdlc-proba` przeszedł w sesji w chmurze, poza pdi
   ([wynik](#wynik-przebiegu-2026-11-03-z8c-2-talos-na-sdlc-proba), sdlc-proba #10); fazy `delivery` z pdi
-  i `change-check.yml` na PR jeszcze nie; pobranie rejestru bez logowania niesprawdzone (`semgrep.dev` zablokowany
-  przez politykę sieci środowiska w chmurze).
+  i `change-check.yml` na PR jeszcze nie. Rejestr `p/owasp-top-ten` pobiera się bez logowania (sprawdzone
+  2026-11-03, semgrep 1.183.0: 560 reguł), ale zestaw jest węższy niż po `semgrep login` — `node:sqlite`
+  i `tainted-sql-string` (Express) w nim nie ma; wzorce spoza rejestru produkt dopisuje w `.semgrep.yml`
+  (sdlc-proba ma regułę dla `node:sqlite`), a szerszy zestaw w CI daje token `SEMGREP_APP_TOKEN`.
 - [ ] **SS** zakładka Changes (repo): CHG-1 z tytułem z intencji. Release plan: linia R1.
 
 ## 5. Wdrożenia
@@ -185,8 +187,11 @@ bez merge'u.
 
 Co wymagało obejścia:
 - `semgrep.dev` zablokowany przez politykę sieci środowiska w chmurze: `TALOS_SEMGREP_CONFIG` wskazywał kopię
-  `javascript/` z github.com/semgrep/semgrep-rules (16b9e6d) poza repo. Pobranie `p/owasp-top-ten` bez logowania
-  dalej niesprawdzone.
+  `javascript/` z github.com/semgrep/semgrep-rules (16b9e6d) poza repo. Po dodaniu `semgrep.dev` do dozwolonych
+  hostów (tego samego dnia): rejestr działa bez logowania (`GET /c/p/owasp-top-ten` → 200, 560 reguł); skaner
+  talosa na kopii sdlc-proba z podatnym zapytaniem z próby 1 daje FAIL z `.semgrep.yml` produktu (CWE-89), a PASS
+  z samym rejestrem; plik z `conn.query("…" + req.query.env)` w Express — 0 ustaleń z rejestru, 2 z kopii
+  z GitHuba (tf #144).
 - W świeżym klonie nie ma `.claude/factory-manifest.json` (jest w `.gitignore`), więc `factory/update.py` widzi
   instalację 0.0.0 i pomija istniejące pliki; aktualizację fabryki w repo próbnym trzeba zrobić na komputerze
   właściciela.
