@@ -376,10 +376,13 @@ terminala, czyta logi i zapisuje wynik. Decyzje przy bramkach, merge'e PR-ów i 
 nowa zmiana od zgłoszenia do oceny skutku (ocena następnego dnia), w kontenerze (Z8a), bez obejść z przebiegu
 2026-10-31. **Stan przed startem (2026-11-03, sprawdzony ponownie):** pdi `9903408` (kontrakt 0.11.0; od pierwszej wersji
 polecenia bez zmian w kodzie), tf 5.58.4 (Z1, Z8a, Z8c-2 z N3 i N10; poprawki talosa tf #139–#141;
-`.claude/factory-lock.json` do aktualizacji świeżego klonu, tf #142 i #143), ci_for_sdlc z Z8c-1 (#109); w `sdlc-proba`
-fabryka tf 5.56.0 bez pliku lock i otwarty PR sdlc-proba #10 z kawałka talosa z 2026-11-03. Pobieranie reguł
-`p/owasp-top-ten` bez logowania do Semgrep jest już sprawdzone (pdi #134, tf #144). Przed startem warto scalić pdi #131
-(luki tf z przebiegu Z8c-2 oznaczone jako naprawione), żeby lista w `przebieg-lokalny.md` była aktualna. Koszt faz: budżet `PDI_PHASE_BUDGET_USD=3` (DL5), cały przebieg ok. 15 USD.
+`.claude/factory-lock.json` do aktualizacji świeżego klonu, tf #142 i #143), ci_for_sdlc z Z8c-1 (#109). **`sdlc-proba` (sprawdzone 2026-11-03, `main` `0e205b6`):** fabryka tf 5.58.4
+z `.claude/factory-lock.json` (sdlc-proba #18), `.npmrc` z `min-release-age=7`, `package-lock.json` i `.semgrep.yml`
+w repo; otwartych PR-ów brak — PR #10 scalony, a po nim sesje w chmurze scaliły bez pdi kawałki talosa #16–#24
+(lista wdrożeń z SQLite: walidacja środowiska, limit, zapis, stronicowanie, kursor, testy granic, odpowiedź 500,
+indeks). W rejestrze zmian repo jest tylko CHG-1. Pobieranie reguł
+`p/owasp-top-ten` bez logowania do Semgrep jest już sprawdzone (pdi #134, tf #144). pdi #131 (luki tf z przebiegu Z8c-2
+oznaczone jako naprawione) jest scalony. Koszt faz: budżet `PDI_PHASE_BUDGET_USD=3` (DL5), cały przebieg ok. 15 USD.
 
 ```text
 Guide me through gate A6 of docs/plan-zespol-jednoosobowy.md (§0, decision DZ19 in docs/decyzje.md): a full local
@@ -412,16 +415,19 @@ Steps:
       marker), ci_for_sdlc and ShipScope HEADs; Docker running; ~/.sdlc/env has CLAUDE_CODE_OAUTH_TOKEN and no
       ANTHROPIC_API_KEY next to it; PDI_PHASE_BUDGET_USD=3; PDI_DISPATCH_SANDBOX not set to none.
    b. sdlc-proba needs tf with Z1 (decision import, decision gate --answers) and Z8c-2 (security_scan.py, mode-talos
-      1.2.3 or later): it still has 5.56.0 without .claude/factory-lock.json, so its first update has to run on my
-      machine (tf #142, #143; docs/przebieg-lokalny.md, the Z8c-2 run result). Show me the tf update command for it
-      (the tf way, not by copying files), run it on my OK, and open it as a PR to sdlc-proba with the new lock file
-      committed, which I merge; later updates then work from a fresh clone and in CI.
-   c. Z8c-2 prerequisites in sdlc-proba: .npmrc with min-release-age=7, package-lock.json in git, semgrep in the
-      phase image. That p/owasp-top-ten downloads without a Semgrep login is already checked (pdi #134, tf #144);
+      1.2.3 or later). On 2026-11-03 it was already on 5.58.4 with .claude/factory-lock.json committed (sdlc-proba
+      #18). Confirm the version in my local clone after git pull; if tf has a newer release by then, show me the tf
+      update (the tf way, not by copying files) and do it on my OK as a PR to sdlc-proba, which I merge.
+   c. Z8c-2 prerequisites in sdlc-proba: .npmrc with min-release-age=7, package-lock.json and .semgrep.yml are in
+      the repo (2026-11-03); check that semgrep is in the phase image. That p/owasp-top-ten downloads without a Semgrep login is already checked (pdi #134, tf #144);
       confirm it once from inside the phase container (semgrep.dev must be in the allowed hosts of Z8a), and only if
       it fails there fall back to TALOS_SEMGREP_CONFIG pointing to a rules file in the repo.
-   d. Open state in sdlc-proba: PR #10 and any other open PRs or branches from earlier runs; propose what to do with
-      each (close, keep) and wait for my decision. Existing changes in the registry stay; the new change gets the next
+   d. Open state in sdlc-proba: on 2026-11-03 there were no open PRs (PR #10 merged). Check again, plus leftover
+      story/* or chore/* branches and my local clone (git status, pull); propose what to do with each and wait for my
+      decision. Slices #16–#24 were merged outside pdi, so the app now has a SQLite deployments list (GET
+      /deployments with validation, limit, paging, cursor) and only CHG-1 in docs/project/changes; tell me whether
+      pdi's registry and ShipScope still match that state (CHG-1 and its tasks, the merged commits without Change:
+      trailers) and what that means for the run. Existing changes in the registry stay; the new change gets the next
       PRB/CHG numbers.
    e. Which PRB from the 2026-10-31 list are fixed on main (git log, PR numbers) and which are still open, so we know
       what to watch for. PRB-2, PRB-3 and PRB-4 must be confirmed in this run.
@@ -429,7 +435,7 @@ Steps:
    ~/.sdlc/env and ~/.ssh, blocked host in the run log, behaviour without Docker). The checks that need a test
    change use a separate CHG that we reject afterwards.
 2. §1–§4 with one new change. The intake text: propose a small, visible change for the sandbox app behind a flag (in
-   the style of PRB-1, different from it) and wait for my OK. At B2 or later answer at least one gate question with
+   the style of PRB-1, different from it and from the deployments-list work already merged) and wait for my OK. At B2 or later answer at least one gate question with
    `answers` and check the Z1 item: the question does not come back in plan.md or design.md, and delivery does not
    start while plan.md has an open question. In delivery check the Z8c-2 item, including one deliberately injected
    SQL injection on the acceptance-test path that the scan must stop before commit.
