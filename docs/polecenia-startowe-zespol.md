@@ -1,7 +1,7 @@
 # Polecenia startowe planu „zespół jednoosobowy”: grupa A i Z2
 
 **Data:** 2026-11-02, odświeżone 2026-11-03 · **Źródło:** [plan „zespół jednoosobowy”](plan-zespol-jednoosobowy.md) §8,
-§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `9903408` (kontrakt 0.11.0), tf 5.58.4 (kopia
+§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `2eded12` (kontrakt 0.11.0), tf 5.58.4 (kopia
 kontraktu 0.11.0), ShipScope 0.2.67 (stan z 2026-11-02) · Wszystkie niezrobione polecenia mają nad sobą
 własny stan przed startem z 2026-11-03.
 
@@ -29,6 +29,7 @@ wszystkie przed etapem 2.
 | [N13](#n13--tf--pdi-limity-tur-i-czasu-zapętlenie-trafia-do-skrzynki) | limity tur i czasu, zapętlenie trafia do skrzynki | A6 | tf + pdi | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [N15](#n15--tf--pdi-zakres-zapisu-fazy) | zakres zapisu fazy (`guard_paths` i sandbox) | A6 | tf + pdi (kontrakt) | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [Z3-lokalnie](#z3-lokalnie--pdi--tf-konsola-w-przeglądarce-na-macu) | konsola w przeglądarce na Macu: trzy pasy, ślad z panelem plików, postęp na żywo, decyzje przyciskami (DZ14, DZ18), opcje pytań jako przyciski (N19) | A6 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
+| [Z8g](#z8g--pdi-proxy-poświadczeń-token-claude-poza-kontenerem-fazy) | proxy poświadczeń: prawdziwy token Claude poza kontenerem fazy | A6 (grupa B3, przed etapem 3) | pdi (+ tf, jeśli szablon) | `/Users/x/WebstormProjects/pdi` | do zrobienia |
 
 ## Z1 — pdi + tf: wszystkie decyzje zmiany w każdej fazie (domknięcie PRB-3)
 
@@ -1010,5 +1011,70 @@ changes there small, keep your branches up to date with main and resolve conflic
 When the gates pass, commit, push branches and open PRs to main (tf first if pdi depends on it), but do not merge them.
 At the end report in Polish: PR links, gates and results, the merge order, and the exact names of new commands,
 files, fields and variables.
+Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
+```
+
+
+## Z8g — pdi: proxy poświadczeń (token Claude poza kontenerem fazy)
+
+Grupa B3, przed etapem 3 (plan §8.2). Startuje po A6 (sprawdzenie Z8a na Macu, §0a listy przebiegu). Sesja w klonie
+pdi; część tf tylko wtedy, gdy zmienia się szablon `sdlc-phase.yml`. **Stan przed startem (2026-11-03):** pdi `2eded12`
+(kontrakt 0.11.0), tf 5.58.4. Z8a jest zrobione: persona działa w kontenerze z proxy wyjścia `pdi-egress-…` (tylko
+`CONNECT` do hostów z listy, bez rozszywania TLS), ale `CLAUDE_CODE_OAUTH_TOKEN` albo `ANTHROPIC_API_KEY` trafia do
+środowiska kontenera (`-e NAZWA`), a sandbox Claude Code tylko ukrywa je przed poleceniami persony.
+
+```text
+Implement step Z8g of docs/plan-zespol-jednoosobowy.md (§8.2) in dbqm45/pdi: a credential proxy, so the real Claude
+token never enters the phase container. Start when A6 is done. Answer me in Polish; code, commits and PR title in
+English. If the tf template sdlc-phase.yml has to change, make that a small separate PR in dbqm45/tf (attach it with
+push access).
+
+Goal: the phase container gets only a placeholder credential; a gateway outside it (next to the egress proxy of Z8a)
+adds the real credential to requests to the Claude API. An injected command that reads the environment or files and
+sends the token to an allowed host sends only the placeholder, and the phase still talks to the API.
+
+Read first: docs/plan-zespol-jednoosobowy.md §8.2 (Z8a, Z8g) and §8.4, docs/plan-z8a-izolacja-faz.md,
+src/pdi/phase_sandbox.py (TOKENS, how variables reach the container, ANTHROPIC_BASE_URL handling, the egress container
+and its logs), src/pdi/phase_egress.py, src/pdi/dispatch_local.py, src/pdi/stack/cli.py (`sdlc image`, the token
+warning), docs/przebieg-lokalny.md §0a; in tf modes/mode-pdi/skills/pdi-decisions/scripts/sandbox_settings.py (TOKENS
+denied to commands) and templates/sdlc-phase.yml.
+
+1. Plan first in docs/plan-z8g-proxy-poswiadczen.md: design, files, order, tests, sources with dates. TDD.
+2. Check in the official Claude Code docs, with the date, and test locally what they leave unclear:
+   - the LLM gateway setup: ANTHROPIC_BASE_URL, which header carries the credential for an API key and for the OAuth
+     token from `claude setup-token`, ANTHROPIC_AUTH_TOKEN and apiKeyHelper, and whether Claude Code starts with a
+     placeholder value and no onboarding stop (the known first-run issue in plan §8.4);
+   - whether a gateway without TLS interception is enough (plain HTTP inside the internal Docker network, TLS from the
+     gateway to api.anthropic.com), so no own CA is needed in the container;
+   - whether passing a subscription OAuth token through a local gateway is allowed by the terms that apply to it; if
+     that is unclear, say so and design for an API key first.
+3. Gateway: stdlib Python like phase_egress (or the same container with a second listener), reachable only from the
+   phase network; it accepts only requests to the Claude API paths Claude Code uses, replaces the placeholder with the
+   real credential, forwards over TLS with certificate checks, streams responses (SSE) without buffering them whole,
+   and never logs headers or bodies; refused requests are logged like the egress proxy's. The real token reaches only
+   the gateway container, through the docker process environment, never argv or a file in the clone.
+4. Phase container: only the placeholder and ANTHROPIC_BASE_URL pointing to the gateway; api.anthropic.com no longer
+   needs to be on the egress allow-list for the persona (say in the plan what stays on it and why: N1's second
+   vendor, semgrep.dev, Z10c's collector). The fallback stays explicit: PDI_DISPATCH_SANDBOX=none keeps today's
+   behaviour with its warning.
+5. Actions mode: say in the plan what changes in sdlc-phase.yml (the secret only in a gateway step or service) or why
+   it waits for the pdi service; do not weaken the template's current rule that secrets reach only their own step.
+6. Docs: docs/plan-z8a-izolacja-faz.md (what changed), docs/przebieg-lokalny.md §0a (a check for me: inside the phase
+   container `env` and the files have no real token, a request sending the placeholder to an allowed host carries no
+   secret, and the phase still runs), README, the Z8g row of docs/plan-zespol-jednoosobowy.md §10.
+
+Tests: placeholder in the container and real credential only at the gateway (argv, env of the phase container, logs),
+header replacement for an API key and for the OAuth token, requests outside the allowed paths refused and logged,
+streamed responses passed through, TLS verification on the upstream side, the egress allow-list without
+api.anthropic.com for the persona, PDI_DISPATCH_SANDBOX=none unchanged, cleanup of the gateway container.
+A run on dbqm45/sdlc-proba needs my Mac (Docker, logged-in claude): add it as a checklist item for me in
+docs/przebieg-lokalny.md §0a.
+Gates: uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src; tf (if
+changed) — the repo's checks. CI runs on the PRs: wait for it to be green and say in the PR what you ran locally.
+Coordination: other sessions may change phase_sandbox.py, phase_egress.py or dispatch_local.py (N13, Z10c); keep the
+branch up to date with main and resolve conflicts keeping both behaviours.
+When the gates pass, commit, push and open the PR(s) to main, but do not merge them. At the end report in Polish: PR
+links, gates and results, the design you chose and why, what the docs said (with dates), and the exact names of new
+variables, containers and log lines.
 Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
