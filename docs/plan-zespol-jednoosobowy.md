@@ -467,3 +467,13 @@ Stan 2026-11-03 (pdi `53ec1bb`). Kolejność i bramki: §0; polecenia startowe i
 | Z8 | **Z8a zrobione** (pdi #111, tf 5.56.0, [plan](plan-z8a-izolacja-faz.md)), sprawdzenie na Macu na liście [przebiegu lokalnego](przebieg-lokalny.md) §0a; **Z8c-1 zrobione** (ci_for_sdlc #109); **Z8c-2 zrobione** (tf #138, razem z N3 i N10), kawałek talosa na `sdlc-proba` 2026-11-03 (sdlc-proba #10, [wynik](przebieg-lokalny.md#wynik-przebiegu-2026-11-03-z8c-2-talos-na-sdlc-proba)); Z8b, Z8d i Z8g w B3 (Z8g przed etapem 3); Z8e z etapem 12; Z8f po każdym przebiegu |
 | Z9 | N3 i N10 zrobione z Z8c-2; N1 i N5 (A3) do zrobienia, mogą iść od razu; N2 (A5) po N1, razem z nim N12, N13 i N15; N4 z Z7b-1; N14 i N18 z Z5; N16 z Z8f; N17 z N5 (A3); N19 z Z2 (B1, B2); N20 z Z7b-1 (A4); pozostałe z krokami, do których są przypięte (§8.3) |
 | Z10 | do zrobienia (§8.5); decyzje DZ15–DZ17 przyjęte 2026-11-03; boczny panel z Z10c ma miejsce w konsoli od A7 (DZ18) |
+
+## 11. Do rozważenia w przyszłości
+
+Pomysły odłożone świadomie: nie wchodzą do kroków, dopóki nie pojawi się powód z przebiegu albo pilotażu.
+
+- **Wyszukiwanie hybrydowe z embeddingami i rerankerem.** To kosztowna infrastruktura („with great power comes great
+  bill”, wystąpienie T. Ducina), a dokument o harnessach (§8.3, uwaga pod N12–N16) pokazał, że w kodzie wystarcza
+  wyszukiwanie deterministyczne. Do Z6 najpierw wyszukiwanie pełnotekstowe.
+- **Tani model jako filtr tematu na wejściu.** Ma sens dopiero przy publicznym przyjmowaniu zgłoszeń. Triaż i tak jest
+  u człowieka (typ chroniony DA2).
