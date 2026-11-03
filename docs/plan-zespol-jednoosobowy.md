@@ -5,7 +5,9 @@ ShipScope 0.2.67, ci_for_sdlc 0.1.35+ · Powiązane: [plan `sdlc up`](plan-sdlc-
 [przebieg lokalny](przebieg-lokalny.md#wynik-przebiegu-2026-10-31), [etapy 2–18](polecenia-startowe-sdlc-lokalnie.md),
 [automatyzacja i konsola](plan-automatyzacja-i-konsola.md), [jedna platforma](15-jedna-platforma.md)
 
-## 0. Kolejność całości (stan 2026-11-02)
+## 0. Kolejność całości
+
+Stan: 2026-11-03 (kolejność grupy A według DZ19). Stan poszczególnych poleceń startowych: [tabela](polecenia-startowe-zespol.md).
 
 Jedna lista od teraz do końca planu: kroki Z1–Z9 i N1–N11 z tego planu oraz etapy 2–18 z
 [poleceń startowych](polecenia-startowe-sdlc-lokalnie.md), po zmianie kolejności z DZ5. Kroki w jednym wierszu mogą iść
