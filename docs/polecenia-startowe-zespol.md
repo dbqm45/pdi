@@ -1,10 +1,9 @@
 # Polecenia startowe planu „zespół jednoosobowy”: grupa A i Z2
 
 **Data:** 2026-11-02, odświeżone 2026-11-03 · **Źródło:** [plan „zespół jednoosobowy”](plan-zespol-jednoosobowy.md) §8,
-§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `18432c1` (kontrakt 0.11.0), tf 5.58.3 (kopia
-kontraktu 0.11.0), ShipScope 0.2.67 (stan z 2026-11-02) · Polecenia Z2a, Z2b, Z3-lokalnie, N1, N5, Z7b-1a i Z7b-1b mają nad sobą własny stan
-przed startem; polecenie N2 jest w brzmieniu z 2026-11-02 i przed użyciem warto je
-odświeżyć tak samo.
+§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `d170ecb` (kontrakt 0.11.0), tf 5.58.3 (kopia
+kontraktu 0.11.0), ShipScope 0.2.67 (stan z 2026-11-02) · Wszystkie niezrobione polecenia mają nad sobą
+własny stan przed startem z 2026-11-03; N12, N13 i N15 (grupa A5) nie mają jeszcze poleceń.
 
 Każde polecenie wklejasz jako pierwszą wiadomość nowej sesji Claude Code w katalogu z tabeli. Zrobione są Z1, Z8a,
 Z8c-1 i Z8c-2 (kolumna „Stan”). Dalej: Z2a, potem Z2b (po tagu kontraktu z Z2a); zgodnie z DZ5 Z2 idzie przed etapem 3
@@ -663,32 +662,66 @@ Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, che
 
 ## N2 — pdi + tf: pętla budujący–recenzent na PR i samonaprawa CI
 
+Startuje po A6 (DZ19), Z8a (zrobione) i N1. Sesja w klonie pdi; część tf osobnym PR-em. W tej samej grupie A5 są N12,
+N13 i N15 — mają osobne polecenia (do przygotowania), bo dotykają tych samych plików, więc sesje trzeba prowadzić po
+kolei albo uzgadniać zmiany. **Stan przed startem (2026-11-03):** pdi `d170ecb` (kontrakt 0.11.0), tf 5.58.3. Od
+pierwszej wersji tego polecenia weszły: Z1 (decyzje zmiany wiążą poprawki), Z8a (persona w kontenerze; push, PR i
+tokeny GitHuba tylko na hoście), Z8c-2 (ustalenia skanera blokują kawałek, skan PR w CI), a w planie rozszerzenie N2
+(wcześniejsze wyjście po progu wagi uwag, „Przewodnik dokończenia” w PR, wspólny z N7); CI na GitHubie znowu działa.
+
 ```text
 Implement N2 of docs/plan-zespol-jednoosobowy.md (§8.3) in dbqm45/pdi, with the tf part in dbqm45/tf (attach it with
-push access). Start when Z8a (phases in a container) and N1 (second review) are merged. Answer me in Polish; code,
-commits and PR titles in English.
+push access). Start when A6 is done (DZ19) and N1 (second review) is merged: read N1's plan and its PR's final report
+for the names of the review script, its commands and output fields. Answer me in Polish; code, commits and PR titles
+in English.
 
 Goal: a talos PR reaches the human only with green checks and closed review comments, or with a clear "not done after
-N rounds" and the reason. Background: Spotify's Honk opens a PR only after full verification kept apart from the agent
-(engineering.atspotify.com, 2025-11); verify the details before relying on them.
+N rounds" and the reason, and always with a completion guide. Background: Spotify's Honk opens a PR only after full
+verification kept apart from the agent (engineering.atspotify.com, 2025-11); verify the details before relying on
+them.
 
-1. Plan first in docs/plan-n2-petla-pr.md (pdi). TDD.
+Read first: docs/plan-zespol-jednoosobowy.md §8.3 (N2, N7, N12, N13), docs/plan-z1-decyzje-w-fazach.md,
+docs/plan-z8a-izolacja-faz.md and N1's plan; src/pdi/dispatch_local.py (delivery: `_publish_cuts`, PRs opened on the
+host), src/pdi/phase_sandbox.py, src/pdi/changes.py, src/pdi/inbox.py, src/pdi/trace.py; in tf the talos skills
+(talos-story-run), REVIEW.md, modes/mode-pdi phase_run.py, templates/sdlc-phase.yml and change-check.yml (Z8c-2).
+
+Already done (do not redo): talos's slices go to PRs from the host (pdi, PRB-4); the persona runs in a container
+without GitHub tokens (Z8a); security findings block a slice and PRs are scanned in CI (Z8c-2); the change's decisions
+reach every phase (Z1); N1 validates review comments with a second model.
+
+1. Plan first in docs/plan-n2-petla-pr.md (pdi): files in both repos, order, tests, sources with dates. TDD.
 2. After delivery, per talos PR: AI review (tf REVIEW.md) → comment validation by the second model (N1) → talos fixes
    only the validated comments → re-review; at most 2 rounds (as DZ6), then the PR goes to the human with the open
-   comments. Unvalidated comments go to the human as questions, not to a fix.
-3. Red checks: the agent reads the failing log (local verification script of N3 while Actions do not run; CI log
-   later), fixes, re-runs, waits for green; the same round limit. Every round runs in the container of Z8a.
-4. pdi: the change state gets `pr_loop` per PR (round, status: reviewing | fixing | green | needs_human, last reason);
+   comments. The loop ends early when only comments below a severity threshold remain (no blocking or important
+   ones); those go into the PR as a list. Unvalidated comments go to the human as questions, not to a fix, and so does
+   a comment that contradicts a decision of the change (Z1), with the decision's ref.
+3. Red checks: CI runs on PRs again. The host reads the failing check's log (gh, with the token that stays on the host;
+   locally the verification script of N3 as a fallback), passes it to talos as quoted data (it is external content),
+   talos fixes, the host pushes and waits for green; the same round limit. Every fix round runs in the container of
+   Z8a; pushing and reading CI stay on the host.
+4. Completion guide (shared with N7): every talos PR has a fixed section "Przewodnik dokończenia" — what is done, what
+   is left for the human (files, steps), decisions taken outside the plan with a request to approve them, risks; it is
+   updated after each round.
+5. pdi: the change state gets `pr_loop` per PR (round, status: reviewing | fixing | green | needs_human, last reason);
    the inbox shows "PR gotowy do Twojego przeglądu" only when green or when the limit is reached; get_trace shows the
-   rounds; cost per round in the phase report and budget.
-5. Docs: README, integrations/claude-code/README.md, mode-pdi GUIDE.md.
+   rounds; cost per round in the phase report and within the phase budget. If the local console (Z3-lokalnie) is
+   merged, show pr_loop there too.
+6. Docs: README, integrations/claude-code/README.md, mode-pdi GUIDE.md, a checklist item for me in
+   docs/przebieg-lokalny.md (below).
 
-Tests: the round loop with injected review, validation and fix steps (green after 1 round, limit reached, unvalidated
-comments to the human), red check fix path, state and inbox items, cost accounting. Then one run on dbqm45/sdlc-proba with
-a talos PR that has one real review finding and one false one: the real one is fixed, the false one goes to the human.
+Tests: the round loop with injected review, validation and fix steps (green after 1 round, limit reached, early exit by
+severity, unvalidated and decision-contradicting comments to the human), the red-check path with a recorded CI log,
+the completion guide updated per round, state and inbox items, cost accounting, no GitHub token in the container.
+A run on dbqm45/sdlc-proba needs my Mac: add it as a checklist item for me in docs/przebieg-lokalny.md — a talos PR with
+one real review finding and one false one: the real one is fixed, the false one goes to me, the PR has the guide.
 Gates: pdi — uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src; tf — the
-repo's checks. GitHub Actions do not run on this account right now — run the gates locally and say so in the PRs. Commit
-and PR on my request.
+repo's checks (workspace.py check --packs pack-it and --packs mode-pdi, skill gates of changed skills). CI runs on the
+PRs again: wait for it to be green and say in the PRs what you ran locally.
+Coordination: N12, N13 and N15 change the same files (phase_run.py, talos, dispatch_local.py); keep your changes small,
+keep the branches up to date with main and resolve conflicts keeping both behaviours.
+When the gates pass, commit, push and open PRs to main (tf first if pdi depends on it), but do not merge them. At the
+end report in Polish: PR links, gates and results, the merge order, and the exact names of the new state fields,
+statuses, commands and PR sections.
 Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
