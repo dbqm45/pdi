@@ -94,6 +94,26 @@ class _StepFailed(Exception):
         super().__init__(error)
         self.step = step
         self.error = error
+        self.persona: dict[str, Any] | None = None  # co persona zgłosiła, gdy faza padła po kroku run (PRB-32)
+
+
+PERSONA_KEYS = ("status", "cost_usd", "detail", "permission_denials")
+
+
+def _persona_report(output: str) -> dict[str, Any] | None:
+    """Wynik `phase_run.py run` (ostatni obiekt JSON w wyjściu kroku): status, koszt, końcówka odpowiedzi persony
+    i odmowy uprawnień. Bez tego `result.json` nieudanego delivery nie mówi, dlaczego Talos nie zostawił cięć."""
+    lines = output.splitlines()
+    for i in range(len(lines) - 1, -1, -1):
+        if lines[i].startswith("{"):
+            try:
+                data = json.loads("\n".join(lines[i:]))
+            except ValueError:
+                continue
+            if isinstance(data, dict):
+                kept = {k: data[k] for k in PERSONA_KEYS if data.get(k) is not None}
+                return kept or None
+    return None
 
 
 # --- start (w procesie pdi) ---
@@ -482,13 +502,17 @@ def execute(
         if spec.get("budget_usd"):
             args += ["--budget-usd", spec["budget_usd"]]
         if sandbox == "docker":
-            _run_in_container(spec, step, log, env, base, passed, script("phase_run.py", "run", *args),
-                              {**problem_env, **claude_env})  # fmt: skip
+            ran = _run_in_container(spec, step, log, env, base, passed, script("phase_run.py", "run", *args),
+                                    {**problem_env, **claude_env})  # fmt: skip
         else:
-            step("run", script("phase_run.py", "run", *args), extra={**problem_env, **claude_env})
+            _, ran = step("run", script("phase_run.py", "run", *args), extra={**problem_env, **claude_env})
 
         if phase == "delivery":
-            cuts = _publish_cuts(step, cuts_before, ref, branch, github_env)
+            try:
+                cuts = _publish_cuts(step, cuts_before, ref, branch, github_env)
+            except _StepFailed as e:
+                e.persona = _persona_report(ran)
+                raise
             return {"status": "done", "prs": [c["pr"] for c in cuts], "cuts": cuts}
         step("commit", ["git", "add", "-A"])
         code, _ = step("commit", ["git", "diff", "--cached", "--quiet"], ok=(0, 1))
@@ -507,7 +531,10 @@ def execute(
         return {"status": "done", "pr": url}
     except _StepFailed as e:
         log(f"# błąd: {e.error}")
-        return {"status": "failed", "step": e.step, "error": e.error}
+        failed: dict[str, Any] = {"status": "failed", "step": e.step, "error": e.error}
+        if e.persona:
+            failed["persona"] = e.persona
+        return failed
 
 
 Step = Callable[..., tuple[int, str]]
@@ -531,8 +558,8 @@ def _run_in_container(
     passed: set[str],
     run_argv: list[str],
     run_env: Mapping[str, str],
-) -> None:
-    """Krok `run` w kontenerze (Z8a, `pdi.phase_sandbox`); sieć i kontenery przebiegu sprząta zawsze."""
+) -> str:
+    """Krok `run` w kontenerze (Z8a, `pdi.phase_sandbox`); zwraca wyjście kroku, sieć i kontenery sprząta zawsze."""
     box = phase_sandbox.Box.of(spec["log"])
     try:
         phase_sandbox.prepare(
@@ -547,7 +574,7 @@ def _run_in_container(
             timeout=STEP_TIMEOUT_SECONDS,
             step=step,
         )
-        step("run", box.argv, extra=box.env)
+        return step("run", box.argv, extra=box.env)[1]
     except phase_sandbox.SandboxError as e:
         raise _StepFailed("run", str(e)) from e
     finally:
