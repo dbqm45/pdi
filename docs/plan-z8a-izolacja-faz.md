@@ -50,7 +50,10 @@ zostają na komputerze właściciela, jak dziś (potrzebują `gh`, kluczy git i 
 3. **Token:** z `CLAUDE_CODE_OAUTH_TOKEN` (fałszywy) w czystym `HOME` i bez `~/.claude.json` `claude --print` 2.1.310
    wysyła token do API (odpowiedź 401 „OAuth access token is invalid”), a bez tokenu odpowiada „Not logged in”. Błąd
    onboardingu w trybie `--print` tej wersji nie występuje; mimo to obraz zapisuje `{"hasCompletedOnboarding": true}` w
-   `~/.claude.json` kontenera (tmpfs), co nie szkodzi i chroni przy starszej wersji.
+   `~/.claude.json` kontenera (tmpfs), co nie szkodzi i chroni przy starszej wersji. Od PRB-32 (2026-11-05) entrypoint
+   (`/opt/pdi/entrypoint.py`) zapisuje tam też `projects["<klon>"].hasTrustDialogAccepted: true`. Bez tego `claude -p`
+   pomija `permissions.allow` z `.claude/settings.json` repo („Ignoring N permissions.allow entry … this workspace has
+   not been trusted”, sprawdzone na Claude Code 2.1.318) i każde polecenie spoza listy wbudowanej dostaje odmowę.
 4. **Sieć:** kontener tylko w sieci `--internal` nie rozwiązuje nazw spoza Dockera; przez proxy wyjścia `CONNECT` do
    hosta z listy daje 200, do innego 403 i linię `pdi-egress: blocked example.com:443`.
 

@@ -20,6 +20,7 @@ wszystkie przed etapem 2.
 | [Z8c-1](#z8c-1--ci_for_sdlc-wyniki-skanera-sarif-jako-ustalenia) | wyniki skanera (SARIF) jako ustalenia w ci_for_sdlc | — | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` | zrobione (ci_for_sdlc #109) |
 | [Z8c-2](#z8c-2--tf-skaner-w-pętli-kawałka-talosa-i-w-ci) | skaner w pętli kawałka talosa i w CI | Z8c-1 | tf | `/Users/x/WebstormProjects/tf` | zrobione (tf #138; kawałek talosa na sdlc-proba 2026-11-03, sdlc-proba #10, [wynik](przebieg-lokalny.md#wynik-przebiegu-2026-11-03-z8c-2-talos-na-sdlc-proba)) |
 | [A6](#a6--pdi--tf-shipscope-ci_for_sdlc-ponowny-przebieg-lokalny-na-sdlc-proba) | ponowny przebieg lokalny na `sdlc-proba`: jedna zmiana od zgłoszenia do oceny skutku, w kontenerze, bez obejść (bramka A6, DZ19) | Z1, Z8a, Z8c-1, Z8c-2 | pdi (+ tf, ShipScope, ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` | **wynik mieszany 2026-11-03–05** ([wynik](przebieg-lokalny.md#wynik-przebiegu-2026-11-03%E2%80%9305-a6)): §0–§3 zaliczone, delivery CHG-3 dwukrotnie `failed` — czeka na PRB-29 (semgrep w obrazie fazy, pdi) i PRB-28 (`detail` w `result.json`, tf); §5–§7 pominięte świadomie (bez zmian od 2026-10-31) |
+| [PRB-32](#prb-32--tf-talos-w-fazie-delivery-bez-interakcji) | Talos w fazie delivery bez interakcji: przebieg poza `.claude/`, polecenia git na liście `allow`, cięcie z kluczem zmiany (PRB-33), wynik persony przy sukcesie (PRB-28) | pdi #148 i zaufanie folderu w kontenerze fazy (pdi) | tf | `/Users/x/WebstormProjects/tf` | do zrobienia; blokuje delivery A6 |
 | [N1](#n1--tf-przegląd-drugim-modelem) | przegląd drugim modelem (wymagania, plan, uwagi z review) | Z1, A6 | tf (+ pdi, jeśli w kontenerze) | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [N5](#n5--tf-evale-przebiegu) | evale przebiegu na 20 prawdziwych zadaniach | Z1, A6 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [Z7b-1a](#z7b-1a--pdi--tf-cele-zmiany-w-kontrakcie-i-planie) | cele zmiany (`targets`) w kontrakcie i planie, B3 | Z1, A6 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
@@ -458,6 +459,66 @@ Steps:
 At the end report in Polish: the step table, cost per phase and total, every PRB with its repo, what blocks A3–A5,
 A7 or stage 2 (A8), the PR link, and the exact commands and tool calls you used.
 Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
+```
+
+## PRB-32 — tf: Talos w fazie delivery bez interakcji
+
+Blokuje delivery w A6. **Stan przed startem (2026-11-05):** pdi #148 (decyzje zacommitowane przed Talosem) scalone;
+zaufanie folderu klonu w kontenerze fazy — PR pdi „phase container trusts the clone”. Diagnoza z przebiegu na hoście
+(`claude --print --agent talos --permission-mode acceptEdits`, CHG-3, 1 USD w 39 turach, bez cięć): hooki fabryki
+przepuszczają te akcje (sprawdzone bezpośrednio), a odmawia Claude Code. `.claude/` to ścieżka chroniona, więc zapis
+`run.json`, `plan.md` i `parked.md` w `.claude/runs/` dostaje w `-p` odmowę, także w `acceptEdits` i mimo reguł
+`allow`. Polecenia Bash spoza `permissions.allow` (np. `git switch main`, `git checkout -b`) też dostają odmowę
+(code.claude.com/docs/en/permission-modes, „Protected paths”, i /permissions, 2026-11-05). Przy okazji: `run_report.py
+start --task TSK-1` bierze cięcie z CHG-1 zamiast z CHG-3 (PRB-33), a `phase_run.py` przy `status: done` nie zachowuje
+ostatniej odpowiedzi persony (PRB-28), więc tej odmowy nie było widać.
+
+Plan (kolejność):
+1. Katalog przebiegu Talosa poza `.claude/` (ignorowany przez git), z odczytem starego miejsca przy wznowieniu.
+2. Lista poleceń, które Talos i jego skrypty wołają w fazie, pokryta przez `permissions.allow` szablonu ustawień
+   (gałąź przez `git switch -c`, powrót przez `git switch <gałąź>`), sprawdzana testem.
+3. PRB-33: `run_report.py start --task` z kluczem zmiany; prompt delivery w `phase_run.py` go podaje.
+4. PRB-28: `result.json` fazy zawsze z końcówką ostatniej odpowiedzi persony i listą odmów uprawnień.
+5. Wydanie tf i aktualizacja `sdlc-proba`; potem na Macu `retry_dispatch CHG-3` (sesja A6).
+
+```text
+Fix PRB-32, PRB-33 and PRB-28 in dbqm45/tf (attach with push access; read dbqm45/pdi main for context). Answer me in
+Polish; code, commits and PR titles in English.
+
+Problem: in the pdi delivery phase Talos runs as `claude --print --agent talos --permission-mode acceptEdits` and
+cannot make progress. The factory hooks allow its actions (checked directly), but Claude Code denies them: `.claude/` is
+a protected path, so writes to `.claude/runs/<run>/run.json`, `plan.md` and `parked.md` are prompted in acceptEdits and
+denied in -p, and allow rules do not change that; Bash commands outside `permissions.allow` (`git switch main`,
+`git checkout -b story/...`) are denied too. Sources: code.claude.com/docs/en/permission-modes ("Protected paths") and
+/permissions, read 2026-11-05 — re-check them and note the date. In the phase container pdi now marks the clone as
+trusted, so the repository's `permissions.allow` applies there (without it `claude -p` prints "Ignoring N
+permissions.allow entry ... this workspace has not been trusted").
+
+Read first: mode-talos skills/talos-story-run/SKILL.md and scripts/run_report.py (RUNS dir, cmd_start, find of the cut
+by --task), the agent definition for talos, the settings template that becomes .claude/settings.json of a product repo
+(permissions.allow), modes/mode-pdi/skills/pdi-decisions/scripts/phase_run.py (build_prompt for delivery, cmd_run and
+the `detail` field), and pdi docs/przebieg-lokalny.md (A6 result, PRB-28..33).
+
+1. Plan first in docs/plans/ (files, order, tests, sources with dates). TDD.
+2. Move Talos's run directory out of `.claude/` to a git-ignored path that is not protected (check the current
+   protected list), keep reading `.claude/runs/` for resuming old runs, and update SKILL.md, the .gitignore template
+   and every script that reads it (finish, status, plan_drift). Verify with one real `claude -p --permission-mode
+   acceptEdits` Write into the new directory (cheap model, tiny budget) and say the result.
+3. Every Bash command Talos and its scripts run in a phase must match `permissions.allow` of the settings template:
+   branch with `git switch -c story/...`, go back with `git switch <branch>` (add `Bash(git switch *)`), nothing that
+   pushes. Add a test that lists the commands from SKILL.md and the scripts and checks them against the template.
+4. PRB-33: `run_report.py start --task TSK-n --change CHG-n` (and an error listing the changes when --task alone is
+   ambiguous); the delivery prompt in phase_run.py passes the change.
+5. PRB-28: phase_run.py keeps in its result, also on success, the tail of the persona's final message and the
+   `permission_denials` from the claude JSON output (check the field name in the docs of the installed version).
+6. Release tf by SemVer (semver.py) and update dbqm45/sdlc-proba the usual way, each through a PR.
+
+Gates: the repo's checks (workspace.py check --packs pack-it, --packs mode-pdi and --packs mode-talos, skill gates of
+changed skills). CI on the PRs must be green; say what you ran locally. Commit, push and open PRs, but do not merge.
+Acceptance (I run it on the Mac after merging): retry_dispatch CHG-3 on sdlc-proba ends with story/tsk-1-* branches
+with commits and PRs for CHG-3, and run.json says "change": "CHG-3".
+At the end report in Polish: PR links, gates and results, the new run directory, the allow rules added, the new tf
+version.
 ```
 
 ## N1 — tf: przegląd drugim modelem
