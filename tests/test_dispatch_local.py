@@ -308,6 +308,39 @@ def test_delivery_without_cut_commits_fails_the_cuts_step(checkout: Path, tmp_pa
     assert not any(c[:2] == ["git", "push"] for c in run.calls)
 
 
+def test_failed_cuts_keep_what_the_persona_reported(checkout: Path, tmp_path: Path) -> None:
+    # Krok run przeszedł (status done), cięć nie ma — powód jest w wyniku phase_run.py, nie tylko w logu (PRB-32).
+    persona = {
+        "change": "CHG-12", "phase": "delivery", "persona": "talos", "status": "done", "cost_usd": 0.72,
+        "detail": "semgrep: brak zapisywalnego HOME", "permission_denials": [{"tool_name": "Bash"}],
+    }  # fmt: skip
+    noise = "Ignoring 1 permissions.allow entry\n"
+    run = FakeRun(
+        {
+            REFS: [(0, ""), (0, "")],
+            f"python3 {S}/phase_run.py run": (0, noise + json.dumps(persona, ensure_ascii=False, indent=2) + "\n"),
+        }
+    )
+
+    result = delivery(checkout, tmp_path, run)
+
+    assert (result["status"], result["step"]) == ("failed", "cuts")
+    assert result["persona"] == {
+        "status": "done",
+        "cost_usd": 0.72,
+        "detail": "semgrep: brak zapisywalnego HOME",
+        "permission_denials": [{"tool_name": "Bash"}],
+    }
+
+
+def test_failed_cuts_without_a_readable_persona_result_stay_as_before(checkout: Path, tmp_path: Path) -> None:
+    run = FakeRun({REFS: [(0, ""), (0, "")], f"python3 {S}/phase_run.py run": (0, "nie json\n")})
+
+    result = delivery(checkout, tmp_path, run)
+
+    assert "persona" not in result
+
+
 def test_settle_keeps_the_cut_prs(checkout: Path, tmp_path: Path) -> None:
     log = tmp_path / "runs" / "CHG-12-delivery.log"
     log.parent.mkdir()
