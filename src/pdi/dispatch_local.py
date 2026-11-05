@@ -468,6 +468,13 @@ def execute(
                     gate_args += ["--answers", str(_data_file(spec, "answers", spec["answers"]))]
             step("decision", script("decision_record.py", "decision", "gate", change, *gate_args))
 
+        if phase == "delivery":
+            # Talos zaczyna od czystego drzewa (talos-story-run §0) — decyzje dopisane wyżej idą do commita od razu.
+            step("commit", ["git", "add", "-A", f"docs/project/changes/{change}"])
+            code, _ = step("commit", ["git", "diff", "--cached", "--quiet"], ok=(0, 1))
+            if code == 1:
+                message = f"docs({change}): decyzje przed realizacją (pdi)"
+                step("commit", ["git", "commit", "-m", message, "-m", f"Change: {change}"])
         cuts_before = _cuts(step) if phase == "delivery" else set()
         args = ["--change", change, "--phase", phase]
         if spec.get("rework"):
@@ -481,7 +488,7 @@ def execute(
             step("run", script("phase_run.py", "run", *args), extra={**problem_env, **claude_env})
 
         if phase == "delivery":
-            cuts = _publish_cuts(step, cuts_before, ref, github_env)
+            cuts = _publish_cuts(step, cuts_before, ref, branch, github_env)
             return {"status": "done", "prs": [c["pr"] for c in cuts], "cuts": cuts}
         step("commit", ["git", "add", "-A"])
         code, _ = step("commit", ["git", "diff", "--cached", "--quiet"], ok=(0, 1))
@@ -552,11 +559,16 @@ def _cuts(step: Step) -> set[str]:
     return {b for b in out.split() if _CUT.match(b) and ".." not in b}
 
 
-def _publish_cuts(step: Step, before: set[str], ref: str, github_env: Mapping[str, str]) -> list[dict[str, str]]:
-    """Wypycha nowe gałęzie cięć z commitami ponad `ref` i otwiera dla każdej PR; zwraca `[{branch, pr}]`."""
+def _publish_cuts(
+    step: Step, before: set[str], ref: str, start: str, github_env: Mapping[str, str]
+) -> list[dict[str, str]]:
+    """Wypycha nowe gałęzie cięć z commitami ponad `start` (gałąź fazy z decyzjami) i otwiera dla każdej PR do `ref`.
+
+    Zwraca `[{branch, pr}]`.
+    """
     cuts = []
     for branch in sorted(_cuts(step) - before):
-        _, count = step("cuts", ["git", "rev-list", "--count", f"{ref}..{branch}"], quiet=True)
+        _, count = step("cuts", ["git", "rev-list", "--count", f"{start}..{branch}"], quiet=True)
         if count.strip().isdigit() and int(count) > 0:
             cuts.append(branch)
     if not cuts:

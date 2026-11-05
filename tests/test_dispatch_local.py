@@ -247,6 +247,34 @@ def test_delivery_pushes_new_cut_branches_and_opens_a_pr_for_each(checkout: Path
     assert not any("phase_run.py gate" in c for c in calls)
 
 
+def test_delivery_commits_the_decisions_before_talos_starts(checkout: Path, tmp_path: Path) -> None:
+    # Talos zaczyna od czystego drzewa (talos-story-run §0), a `decision import`/`gate` dopisują decisions.md.
+    run = FakeRun({REFS: [(0, ""), (0, f"{TSK1}\n")], "git rev-list --count": (0, "1")})
+    s = spec(checkout, tmp_path, phase="delivery", gate="approve-for-implementation", decision_text="Tak.")
+
+    result, _ = execute(s, run)
+
+    assert result["status"] == "done"
+    calls = [" ".join(c) for c in run.calls]
+    gate = next(i for i, c in enumerate(calls) if c.startswith(f"python3 {S}/decision_record.py decision gate CHG-12"))
+    commit = next(i for i, c in enumerate(calls) if c.startswith("git commit"))
+    persona = calls.index(f"python3 {S}/phase_run.py run --change CHG-12 --phase delivery")
+    assert gate < calls.index("git add -A docs/project/changes/CHG-12") < commit < persona
+    assert calls[commit] == "git commit -m docs(CHG-12): decyzje przed realizacją (pdi) -m Change: CHG-12"
+    assert "git rev-list --count pdi/CHG-12-delivery..story/tsk-1-fundament" in calls  # commit decyzji to nie cięcie
+
+
+def test_delivery_skips_the_decisions_commit_when_nothing_changed(checkout: Path, tmp_path: Path) -> None:
+    run = FakeRun(
+        {REFS: [(0, ""), (0, f"{TSK1}\n")], "git rev-list --count": (0, "1"), "git diff --cached --quiet": (0, "")}
+    )
+
+    result = delivery(checkout, tmp_path, run)
+
+    assert result["status"] == "done"
+    assert not any(c[:2] == ["git", "commit"] for c in run.calls)
+
+
 def test_delivery_reuses_an_existing_cut_pr(checkout: Path, tmp_path: Path) -> None:
     run = FakeRun(
         {
