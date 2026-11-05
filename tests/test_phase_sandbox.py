@@ -416,6 +416,55 @@ def test_dockerfile_is_pinned_non_root_and_has_no_secrets(checkout: Path) -> Non
         assert word not in text
 
 
+def test_dockerfile_installs_pinned_semgrep_only_when_asked() -> None:
+    """PRB-29: talos z Z8c-2 skanuje kawałek semgrepem; bez binarki w obrazie delivery w kontenerze staje."""
+    plain = phase_sandbox.dockerfile("2.1.310", [])
+    with_scanner = phase_sandbox.dockerfile("2.1.310", [], semgrep="1.183.0")
+
+    assert "semgrep" not in plain
+    assert "python3-venv" in with_scanner
+    assert "/opt/semgrep/bin/pip install --no-cache-dir semgrep==1.183.0" in with_scanner
+    assert "ln -s /opt/semgrep/bin/semgrep /usr/local/bin/semgrep" in with_scanner
+    assert with_scanner.index("semgrep==") < with_scanner.index("\nUSER pdi"), "instalacja jako root, przed USER"
+
+
+def test_image_gets_semgrep_when_the_clone_has_the_talos_scanner(tmp_path: Path) -> None:
+    repo = make_checkout(tmp_path)
+    plain = phase_sandbox.image_for(repo)
+    scanner = repo / phase_sandbox.TALOS_SCANNER
+    scanner.parent.mkdir(parents=True)
+    scanner.write_text("# security_scan.py\n", encoding="utf-8")
+    with_scanner = phase_sandbox.image_for(repo)
+
+    assert "semgrep" not in plain.dockerfile
+    assert f"semgrep=={phase_sandbox.SEMGREP_VERSION}" in with_scanner.dockerfile
+    assert with_scanner.tag != plain.tag, "nowy tag, więc sdlc up zbuduje obraz sam"
+
+
+def test_ensure_image_checks_semgrep_in_a_freshly_built_image(tmp_path: Path) -> None:
+    repo = make_checkout(tmp_path)
+    scanner = repo / phase_sandbox.TALOS_SCANNER
+    scanner.parent.mkdir(parents=True)
+    scanner.write_text("# security_scan.py\n", encoding="utf-8")
+
+    run = FakeRun({"docker image inspect": (1, ""), "docker run --rm": (0, "1.183.0\n")})
+    tag, built = phase_sandbox.ensure_image(repo, run=run, env={})
+    assert built
+    (check,) = run.find("docker", "run", "--rm", tag)
+    assert run.calls[check][4:] == ["semgrep", "--version"]
+
+    run = FakeRun({"docker image inspect": (1, ""), "docker run --rm": (127, "semgrep: not found")})
+    with pytest.raises(phase_sandbox.SandboxError, match="semgrep"):
+        phase_sandbox.ensure_image(repo, run=run, env={})
+
+
+def test_ensure_image_skips_the_semgrep_check_without_the_talos_scanner(tmp_path: Path) -> None:
+    repo = make_checkout(tmp_path)
+    run = FakeRun({"docker image inspect": (1, "")})
+    phase_sandbox.ensure_image(repo, run=run, env={})
+    assert not run.find("docker", "run")
+
+
 def test_claude_version_comes_from_the_installed_workflow_template(tmp_path: Path) -> None:
     repo = make_checkout(tmp_path)
     assert phase_sandbox.claude_version(repo) == phase_sandbox.CLAUDE_VERSION

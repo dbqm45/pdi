@@ -67,6 +67,11 @@ zostają na komputerze właściciela, jak dziś (potrzebują `gh`, kluczy git i 
 - **Narzędzia produktu** (wykrywane po plikach w katalogu głównym klonu): `pyproject.toml`/`requirements*.txt` →
   `python3-venv python3-pip`; `go.mod` → `golang-go`; `Cargo.toml` → `cargo`; `Gemfile` → `ruby-full bundler`;
   `pom.xml`/`build.gradle*` → `default-jdk-headless maven`; `package.json` — node i npm już są.
+- **Skaner talosa (PRB-29, 2026-11-05):** gdy klon ma `.claude/skills/talos-story-run/scripts/security_scan.py`
+  (mode-talos, Z8c-2), obraz dostaje `semgrep==1.183.0` w venv `/opt/semgrep` z dowiązaniem w `/usr/local/bin`
+  (opublikowany 2026-10-29, więc z karencją N10). Po budowie `ensure_image` sprawdza `semgrep --version` w nowym
+  obrazie i przy błędzie kończy się komunikatem. Wcześniej obraz semgrepa nie miał i delivery CHG-3 w A6 skończyło
+  się dwa razy bez cięć.
 - **Nazwa:** `pdi-phase:<wersja claude>-<12 znaków sha256 z Dockerfile i egress.py>`; inna wersja albo inne narzędzia
   to inny tag, więc zmiana nie wymaga ręcznego czyszczenia.
 

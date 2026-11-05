@@ -91,6 +91,11 @@ REGISTRIES = {
 ALWAYS_HOSTS = ("api.anthropic.com",)
 # Rejestr reguł Semgrepa dla skanera w pętli talosa (Z8c, DZ11).
 SCANNER_HOSTS = ("semgrep.dev",)
+# Skaner talosa w klonie (mode-talos, Z8c-2): gdy jest, obraz fazy dostaje semgrep (PRB-29). Wersja przypięta,
+# opublikowana 2026-10-29 (karencja N10: co najmniej 7 dni), ta sama, którą talos sprawdzał reguły w sdlc-proba #25.
+TALOS_SCANNER = ".claude/skills/talos-story-run/scripts/security_scan.py"
+SEMGREP_VERSION = "1.183.0"
+SEMGREP_VENV = "/opt/semgrep"
 # Wywołania jądra zakazane w kontenerze fazy. Reszta dozwolona, w tym przestrzenie nazw użytkownika, których
 # potrzebuje sandbox Claude Code (bubblewrap); domyślny profil Dockera je blokuje (plan, „Sprawdzone lokalnie”).
 SECCOMP_DENY = (
@@ -166,9 +171,22 @@ def allowed_hosts(checkout: Path, env: Mapping[str, str]) -> list[str]:
     return hosts
 
 
-def dockerfile(version: str, packages: Sequence[str]) -> str:
-    """Dockerfile obrazu fazy: przypięta baza, Claude Code w wersji z sdlc-phase.yml, bez roota i bez sekretów."""
-    apt = " ".join([*BASE_PACKAGES, *packages])
+def dockerfile(version: str, packages: Sequence[str], *, semgrep: str | None = None) -> str:
+    """Dockerfile obrazu fazy: przypięta baza, Claude Code w wersji z sdlc-phase.yml, bez roota i bez sekretów.
+
+    `semgrep`: wersja skanera dla pętli talosa (Z8c-2), instalowana w osobnym venv jako root; None — bez skanera.
+    """
+    extra = ["python3-venv"] if semgrep and "python3-venv" not in packages else []
+    apt = " ".join([*BASE_PACKAGES, *packages, *extra])
+    scanner = (
+        [
+            f"RUN python3 -m venv {SEMGREP_VENV} \\",
+            f" && {SEMGREP_VENV}/bin/pip install --no-cache-dir semgrep=={semgrep} \\",
+            f" && ln -s {SEMGREP_VENV}/bin/semgrep /usr/local/bin/semgrep",
+        ]
+        if semgrep
+        else []
+    )
     onboarding = (
         'if [ -n "$HOME" ] && [ -w "$HOME" ] && [ ! -e "$HOME/.claude.json" ]; then '
         'echo "{\\"hasCompletedOnboarding\\": true}" > "$HOME/.claude.json"; fi'
@@ -179,6 +197,7 @@ def dockerfile(version: str, packages: Sequence[str]) -> str:
             "RUN apt-get update \\",
             f" && apt-get install -y --no-install-recommends {apt} \\",
             " && rm -rf /var/lib/apt/lists/*",
+            *scanner,
             f"RUN npm install -g @anthropic-ai/claude-code@{version} && npm cache clean --force",
             "RUN git config --system safe.directory '*'",
             f"RUN useradd --create-home --uid {CONTAINER_UID} pdi",
@@ -194,9 +213,13 @@ def dockerfile(version: str, packages: Sequence[str]) -> str:
     )
 
 
+def needs_scanner(checkout: Path) -> bool:
+    return (checkout / TALOS_SCANNER).is_file()
+
+
 def image_for(checkout: Path) -> Image:
     version = claude_version(checkout)
-    text = dockerfile(version, build_tools(checkout))
+    text = dockerfile(version, build_tools(checkout), semgrep=SEMGREP_VERSION if needs_scanner(checkout) else None)
     digest = hashlib.sha256((text + "\0" + _egress_source()).encode()).hexdigest()[:12]
     return Image(tag=f"{IMAGE}:{version}-{digest}", dockerfile=text)
 
@@ -217,6 +240,13 @@ def ensure_image(checkout: Path, *, run: Run, env: Mapping[str, str], force: boo
     if code != 0:
         tail = "\n".join(out.strip().splitlines()[-5:])
         raise SandboxError(f"docker build {image.tag} zakończony kodem {code}: {tail}")
+    if needs_scanner(checkout):  # PRB-29: bez semgrepa talos zatrzymuje kawałek na skanie, a faza kończy się bez cięć
+        code, out = run(["docker", "run", "--rm", image.tag, "semgrep", "--version"], checkout, docker_env)
+        if code != 0:
+            raise SandboxError(
+                f"obraz {image.tag} nie ma działającego semgrepa (kod {code}: {out.strip()[:200]}), a talos "
+                f"skanuje nim kawałki (Z8c-2). Sprawdź log budowy i ponów: uv run sdlc image --force."
+            )
     return image.tag, True
 
 
