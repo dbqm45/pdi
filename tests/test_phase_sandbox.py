@@ -4,8 +4,11 @@ Bez prawdziwego Dockera — podstawiony wykonawca zapisuje polecenia. Plan: docs
 """
 
 import json
+import os
 import re
 import shlex
+import subprocess
+import sys
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -410,10 +413,48 @@ def test_dockerfile_is_pinned_non_root_and_has_no_secrets(checkout: Path) -> Non
     for package in ("python3", "git", "bubblewrap", "socat", "ca-certificates"):
         assert package in text
     assert "\nUSER pdi" in text
-    assert "hasCompletedOnboarding" in text
     assert "COPY egress.py /opt/pdi/egress.py" in text
+    assert "COPY entrypoint.py /opt/pdi/entrypoint.py" in text
+    assert 'ENTRYPOINT ["python3", "-I", "/opt/pdi/entrypoint.py"]' in text
     for word in ("TOKEN", "API_KEY", "SECRET", "ARG "):
         assert word not in text
+
+
+def run_entrypoint(tmp_path: Path, home: Path) -> subprocess.CompletedProcess[str]:
+    script = tmp_path / "entrypoint.py"
+    script.write_text(phase_sandbox.ENTRYPOINT_SOURCE, encoding="utf-8")
+    work = tmp_path / "klon"
+    work.mkdir(exist_ok=True)
+    env = {"PATH": os.environ["PATH"], "HOME": str(home)}
+    return subprocess.run(
+        [sys.executable, "-I", str(script), "sh", "-c", 'echo "$PWD"'],
+        cwd=work, env=env, capture_output=True, text=True, check=True,
+    )  # fmt: skip
+
+
+def test_entrypoint_marks_onboarding_and_trusts_the_clone(tmp_path: Path) -> None:
+    """claude -p w niezaufanym folderze pomija permissions.allow repo (PRB-32); onboarding — claude-code#73403."""
+    home = tmp_path / "home"
+    home.mkdir()
+
+    done = run_entrypoint(tmp_path, home)
+
+    work = str(tmp_path / "klon")
+    assert done.stdout.strip() == work, "polecenie fazy dostaje exec w katalogu klonu"
+    config = json.loads((home / ".claude.json").read_text(encoding="utf-8"))
+    assert config == {"hasCompletedOnboarding": True, "projects": {work: {"hasTrustDialogAccepted": True}}}
+
+
+def test_entrypoint_leaves_an_existing_or_read_only_config_alone(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    home.mkdir()
+    (home / ".claude.json").write_text("{}", encoding="utf-8")
+    run_entrypoint(tmp_path, home)
+    assert (home / ".claude.json").read_text(encoding="utf-8") == "{}"
+
+    missing = tmp_path / "brak"  # kontener egress: HOME bez zapisu
+    run_entrypoint(tmp_path, missing)
+    assert not missing.exists()
 
 
 def test_dockerfile_installs_pinned_semgrep_only_when_asked() -> None:
@@ -525,7 +566,7 @@ def test_ensure_image_builds_only_when_missing(tmp_path: Path) -> None:
     assert built and tag2 == tag
     (build,) = run.find("docker", "build")
     assert run.calls[build][2:4] == ["-t", tag]
-    assert contexts == [{"Dockerfile", "egress.py"}]
+    assert contexts == [{"Dockerfile", "egress.py", "entrypoint.py"}]
 
     run = Recorder({"docker image inspect": (1, ""), "docker build": (1, "no space left")})
     with pytest.raises(phase_sandbox.SandboxError, match="docker build"):

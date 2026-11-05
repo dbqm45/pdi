@@ -44,6 +44,25 @@ HOME = "/home/pdi"
 TMP = "/tmp"  # noqa: S108 — tmpfs w kontenerze fazy, nie katalog hosta
 SETTINGS_IN_CONTAINER = "/etc/claude-code/managed-settings.json"
 EGRESS_IN_CONTAINER = "/opt/pdi/egress.py"
+ENTRYPOINT_IN_CONTAINER = "/opt/pdi/entrypoint.py"
+# Start kontenera: HOME to pusty tmpfs, więc ~/.claude.json powstaje tu. Onboarding oznaczony jako zrobiony
+# (anthropics/claude-code#73403: inaczej token jest pomijany) i zaufanie do katalogu roboczego, czyli klonu:
+# `claude -p` w niezaufanym folderze pomija permissions.allow z .claude/settings.json repo (PRB-32;
+# code.claude.com/docs/en/permissions, „What runs before you trust a folder”, 2026-11-05).
+# Kontener egress ma HOME bez zapisu — tam nic się nie zmienia.
+ENTRYPOINT_SOURCE = """\
+import json
+import os
+import sys
+
+home = os.environ.get("HOME", "")
+config = os.path.join(home, ".claude.json")
+if home and os.path.isdir(home) and os.access(home, os.W_OK) and not os.path.exists(config):
+    trusted = {os.getcwd(): {"hasTrustDialogAccepted": True}}
+    with open(config, "w", encoding="utf-8") as f:
+        json.dump({"hasCompletedOnboarding": True, "projects": trusted}, f)
+os.execvp(sys.argv[1], sys.argv[1:])
+"""
 CONTAINER_UID = 10001
 CPUS_ENV, MEMORY_ENV = "PDI_DISPATCH_CPUS", "PDI_DISPATCH_MEMORY"
 DEFAULT_CPUS, DEFAULT_MEMORY, PIDS = "4", "6g", "1024"
@@ -187,10 +206,6 @@ def dockerfile(version: str, packages: Sequence[str], *, semgrep: str | None = N
         if semgrep
         else []
     )
-    onboarding = (
-        'if [ -n "$HOME" ] && [ -w "$HOME" ] && [ ! -e "$HOME/.claude.json" ]; then '
-        'echo "{\\"hasCompletedOnboarding\\": true}" > "$HOME/.claude.json"; fi'
-    )
     return "\n".join(
         [
             f"FROM {BASE_IMAGE}",
@@ -202,12 +217,10 @@ def dockerfile(version: str, packages: Sequence[str], *, semgrep: str | None = N
             "RUN git config --system safe.directory '*'",
             f"RUN useradd --create-home --uid {CONTAINER_UID} pdi",
             f"COPY egress.py {EGRESS_IN_CONTAINER}",
-            # anthropics/claude-code#73403: token pomijany, dopóki onboarding nie jest oznaczony jako zrobiony.
-            f"RUN printf '%s\\n' '#!/bin/sh' '{onboarding}' 'exec \"$@\"' > /opt/pdi/entrypoint.sh \\",
-            " && chmod 755 /opt/pdi/entrypoint.sh",
+            f"COPY entrypoint.py {ENTRYPOINT_IN_CONTAINER}",
             "USER pdi",
             f"WORKDIR {HOME}",
-            'ENTRYPOINT ["/opt/pdi/entrypoint.sh"]',
+            f'ENTRYPOINT ["python3", "-I", "{ENTRYPOINT_IN_CONTAINER}"]',
             "",
         ]
     )
@@ -220,7 +233,7 @@ def needs_scanner(checkout: Path) -> bool:
 def image_for(checkout: Path) -> Image:
     version = claude_version(checkout)
     text = dockerfile(version, build_tools(checkout), semgrep=SEMGREP_VERSION if needs_scanner(checkout) else None)
-    digest = hashlib.sha256((text + "\0" + _egress_source()).encode()).hexdigest()[:12]
+    digest = hashlib.sha256((text + "\0" + _egress_source() + "\0" + ENTRYPOINT_SOURCE).encode()).hexdigest()[:12]
     return Image(tag=f"{IMAGE}:{version}-{digest}", dockerfile=text)
 
 
@@ -236,6 +249,7 @@ def ensure_image(checkout: Path, *, run: Run, env: Mapping[str, str], force: boo
     with tempfile.TemporaryDirectory(prefix="pdi-phase-") as context:
         (Path(context) / "Dockerfile").write_text(image.dockerfile, encoding="utf-8")
         (Path(context) / "egress.py").write_text(_egress_source(), encoding="utf-8")
+        (Path(context) / "entrypoint.py").write_text(ENTRYPOINT_SOURCE, encoding="utf-8")
         code, out = run(["docker", "build", "-t", image.tag, context], checkout, docker_env)
     if code != 0:
         tail = "\n".join(out.strip().splitlines()[-5:])
