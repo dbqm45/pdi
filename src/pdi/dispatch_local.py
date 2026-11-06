@@ -86,8 +86,13 @@ EXTRA_ENV_NAMES = "PDI_DISPATCH_ENV_PASS"  # noqa: S105 — nazwa zmiennej, nie 
 # klucze. Gdy żadnego klucza nie ma, second_review.py zapisze `status: unavailable, reason: no_api_key`, a phase_run.py
 # gate request pokaże to w prośbie o bramkę — niedostępność drugiego przeglądu zawsze jest widoczna, nigdy cichego OK.
 SECOND_REVIEW_PHASES = ("requirements", "architecture")
-SECOND_REVIEW_ENV = ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "PDI_SECOND_MODEL",
-                     "PDI_SECOND_MODEL_PRICE_IN", "PDI_SECOND_MODEL_PRICE_OUT")
+SECOND_REVIEW_ENV = (
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "PDI_SECOND_MODEL",
+    "PDI_SECOND_MODEL_PRICE_IN",
+    "PDI_SECOND_MODEL_PRICE_OUT",
+)
 
 _PREFIXES = contract.settings()["prefixes"]
 _CHANGE = re.compile(rf"^{_PREFIXES['change']}-[0-9]{{1,9}}$")
@@ -172,7 +177,7 @@ def last_progress_of(log: Path) -> dict[str, Any] | None:
         except ValueError:
             continue
         if _valid_progress(row):
-            return row
+            return dict(row)  # mypy: _valid_progress gwarantuje dict[str, Any]
     return None
 
 
@@ -575,9 +580,11 @@ def execute(
         # trafia do sidecara i stąd do prośby o bramkę jako `second_review: {status: unavailable, reason: …}`.
         if phase in SECOND_REVIEW_PHASES:
             review_env = {k: env[k] for k in SECOND_REVIEW_ENV if env.get(k)}
-            step("second-review",
-                 script("second_review.py", "artifact", "--change", change, "--phase", phase),
-                 extra=review_env)
+            step(
+                "second-review",
+                script("second_review.py", "artifact", "--change", change, "--phase", phase),
+                extra=review_env,
+            )
 
         if phase == "delivery":
             try:
@@ -768,7 +775,7 @@ def finish(spec: dict[str, Any], env: Mapping[str, str], *, run: Run) -> dict[st
                 for part in line.split("\n"):
                     if part.startswith(PROGRESS_PREFIX):
                         try:
-                            row = json.loads(part[len(PROGRESS_PREFIX):])
+                            row = json.loads(part[len(PROGRESS_PREFIX) :])
                         except ValueError:
                             continue
                         if _valid_progress(row):

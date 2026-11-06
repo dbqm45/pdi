@@ -60,8 +60,9 @@ def _write_change(registry: Registry, change: str, **state: Any) -> None:
     (registry.root / "changes" / f"{change}.yaml").write_text(json.dumps(base), encoding="utf-8")
 
 
-def _write_inbox_gate(registry: Registry, *, change: str = "CHG-1", gate: str = "B2",
-                      questions: Any = None, item_id: str = "evt-1") -> dict[str, Any]:
+def _write_inbox_gate(
+    registry: Registry, *, change: str = "CHG-1", gate: str = "B2", questions: Any = None, item_id: str = "evt-1"
+) -> dict[str, Any]:
     (registry.root / "inbox").mkdir(parents=True, exist_ok=True)
     item = {
         "id": item_id,
@@ -98,7 +99,7 @@ def _serve(deps: console.Deps, *, token: str = TOKEN) -> tuple[console.ThreadedH
 
 
 def _get(url: str) -> tuple[int, bytes, dict[str, str]]:
-    req = urllib.request.Request(url, method="GET")
+    req = urllib.request.Request(url, method="GET")  # noqa: S310 — localhost testowy
     try:
         with urllib.request.urlopen(req, timeout=5) as resp:  # noqa: S310 — localhost testowy
             return int(resp.status), resp.read(), {k.lower(): v for k, v in resp.headers.items()}
@@ -108,10 +109,12 @@ def _get(url: str) -> tuple[int, bytes, dict[str, str]]:
 
 def _post(url: str, data: dict[str, Any], *, extra_headers: dict[str, str] | None = None) -> tuple[int, bytes]:
     body = urllib.parse.urlencode(data).encode()
-    headers = {"content-type": "application/x-www-form-urlencoded",
-               "origin": f"http://127.0.0.1:{urllib.parse.urlsplit(url).port}"}
+    headers = {
+        "content-type": "application/x-www-form-urlencoded",
+        "origin": f"http://127.0.0.1:{urllib.parse.urlsplit(url).port}",
+    }
     headers.update(extra_headers or {})
-    req = urllib.request.Request(url, data=body, method="POST", headers=headers)
+    req = urllib.request.Request(url, data=body, method="POST", headers=headers)  # noqa: S310
     try:
         with urllib.request.urlopen(req, timeout=5) as resp:  # noqa: S310
             return int(resp.status), resp.read()
@@ -120,7 +123,9 @@ def _post(url: str, data: dict[str, Any], *, extra_headers: dict[str, str] | Non
 
 
 def test_board_lists_each_change_in_its_lane(registry: Registry) -> None:
-    _write_change(registry, "CHG-1", waiting=["B2"], dispatch={"mode": "local", "status": "done", "phase": "requirements"})
+    _write_change(
+        registry, "CHG-1", waiting=["B2"], dispatch={"mode": "local", "status": "done", "phase": "requirements"}
+    )
     _write_change(registry, "CHG-2", waiting=["B5"], dispatch={"mode": "local", "status": "done", "phase": "delivery"})
     _write_change(registry, "CHG-3", waiting=["B6"])
     deps = console.Deps(registry, checkout=None)
@@ -167,11 +172,17 @@ def test_inbox_page_renders_questions_as_text_fields(registry: Registry) -> None
 
 
 def test_inbox_page_renders_options_as_radio_for_n19(registry: Registry) -> None:
-    _write_inbox_gate(registry, questions=[
-        {"question": "Kto odpowiada?", "options": [{"value": "ops", "label": "Operacje"},
-                                                    {"value": "dev", "label": "Deweloperzy"}],
-         "recommended": "dev", "other": True},
-    ])
+    _write_inbox_gate(
+        registry,
+        questions=[
+            {
+                "question": "Kto odpowiada?",
+                "options": [{"value": "ops", "label": "Operacje"}, {"value": "dev", "label": "Deweloperzy"}],
+                "recommended": "dev",
+                "other": True,
+            },
+        ],
+    )
     deps = console.Deps(registry, checkout=None)
     server, url = _serve(deps)
     try:
@@ -219,8 +230,7 @@ def test_decide_refused_without_token(registry: Registry) -> None:
     deps = console.Deps(registry, checkout=None)
     server, url = _serve(deps)
     try:
-        status, _ = _post(f"{url}/inbox/{item['id']}/decide",
-                          {"statement": "x", "why": "x", "outcome": "approved"})
+        status, _ = _post(f"{url}/inbox/{item['id']}/decide", {"statement": "x", "why": "x", "outcome": "approved"})
         assert status == 404
     finally:
         server.shutdown()
@@ -234,8 +244,7 @@ def test_decide_refused_when_item_changed_since_load(registry: Registry) -> None
     try:
         status, body = _post(
             f"{url}/inbox/{item['id']}/decide?t={TOKEN}",
-            {"t": TOKEN, "loaded_at": "2020-01-01T00:00:00Z",
-             "statement": "x", "why": "x", "outcome": "approved"},
+            {"t": TOKEN, "loaded_at": "2020-01-01T00:00:00Z", "statement": "x", "why": "x", "outcome": "approved"},
         )
         assert status == 409
         assert b"zmieni" in body
@@ -245,16 +254,22 @@ def test_decide_refused_when_item_changed_since_load(registry: Registry) -> None
 
 def test_decide_with_unknown_option_is_refused(registry: Registry) -> None:
     _write_change(registry, "CHG-1", waiting=["B2"])
-    item = _write_inbox_gate(registry, questions=[
-        {"question": "Co?", "options": [{"value": "a", "label": "A"}], "other": False}
-    ])
+    item = _write_inbox_gate(
+        registry, questions=[{"question": "Co?", "options": [{"value": "a", "label": "A"}], "other": False}]
+    )
     deps = console.Deps(registry, checkout=None)
     server, url = _serve(deps)
     try:
         status, _ = _post(
             f"{url}/inbox/{item['id']}/decide?t={TOKEN}",
-            {"t": TOKEN, "loaded_at": item["received_at"], "statement": "x", "why": "x",
-             "outcome": "approved", "answer_0": "nieznana"},
+            {
+                "t": TOKEN,
+                "loaded_at": item["received_at"],
+                "statement": "x",
+                "why": "x",
+                "outcome": "approved",
+                "answer_0": "nieznana",
+            },
         )
         assert status == 403
     finally:
@@ -263,16 +278,23 @@ def test_decide_with_unknown_option_is_refused(registry: Registry) -> None:
 
 def test_decide_with_other_requires_text(registry: Registry) -> None:
     _write_change(registry, "CHG-1", waiting=["B2"])
-    item = _write_inbox_gate(registry, questions=[
-        {"question": "Co?", "options": [{"value": "a", "label": "A"}], "other": True}
-    ])
+    item = _write_inbox_gate(
+        registry, questions=[{"question": "Co?", "options": [{"value": "a", "label": "A"}], "other": True}]
+    )
     deps = console.Deps(registry, checkout=None)
     server, url = _serve(deps)
     try:
         status, _ = _post(
             f"{url}/inbox/{item['id']}/decide?t={TOKEN}",
-            {"t": TOKEN, "loaded_at": item["received_at"], "statement": "x", "why": "x",
-             "outcome": "approved", "answer_0": "__other__", "answer_0_other": ""},
+            {
+                "t": TOKEN,
+                "loaded_at": item["received_at"],
+                "statement": "x",
+                "why": "x",
+                "outcome": "approved",
+                "answer_0": "__other__",
+                "answer_0_other": "",
+            },
         )
         assert status == 403
     finally:
@@ -338,7 +360,8 @@ def test_files_panel_refuses_too_big(registry: Registry, checkout: Path) -> None
 
 def test_diff_uses_current_cut(registry: Registry, checkout: Path) -> None:
     _write_change(
-        registry, "CHG-1",
+        registry,
+        "CHG-1",
         dispatch={"cuts": [{"branch": "story/tsk-1", "pr": "https://x/pull/1"}], "ref": "main"},
     )
     git = FakeGit((0, "diff output\n"))
@@ -357,31 +380,29 @@ def test_progress_sse_streams_new_lines(registry: Registry, tmp_path: Path) -> N
     log = tmp_path / "runs" / "CHG-1-requirements.log"
     log.parent.mkdir()
     log.write_text("", encoding="utf-8")
-    _write_change(registry, "CHG-1", dispatch={"mode": "local", "status": "running",
-                                                "log": str(log), "phase": "requirements"})
+    _write_change(
+        registry, "CHG-1", dispatch={"mode": "local", "status": "running", "log": str(log), "phase": "requirements"}
+    )
     deps = console.Deps(registry, checkout=None)
     server, url = _serve(deps)
 
     def writer() -> None:
         time.sleep(0.6)
         with dispatch_local.progress_path(log).open("a", encoding="utf-8") as f:
-            f.write(json.dumps({"phase": "requirements", "status": "in_progress",
-                                "message": "pisze plik"}) + "\n")
+            f.write(json.dumps({"phase": "requirements", "status": "in_progress", "message": "pisze plik"}) + "\n")
             f.flush()
 
     threading.Thread(target=writer, daemon=True).start()
     sock = socket.create_connection(("127.0.0.1", server.server_port), timeout=5)
     try:
-        sock.sendall(
-            f"GET /sse/progress?change=CHG-1&t={TOKEN} HTTP/1.1\r\nHost: localhost\r\n\r\n".encode()
-        )
+        sock.sendall(f"GET /sse/progress?change=CHG-1&t={TOKEN} HTTP/1.1\r\nHost: localhost\r\n\r\n".encode())
         sock.settimeout(4)
         buf = b""
         deadline = time.monotonic() + 4
         while time.monotonic() < deadline and b"pisze plik" not in buf:
             try:
                 chunk = sock.recv(4096)
-            except socket.timeout:
+            except TimeoutError:
                 break
             if not chunk:
                 break
@@ -400,8 +421,7 @@ def test_decide_rejects_bad_origin(registry: Registry) -> None:
     try:
         status, _ = _post(
             f"{url}/inbox/{item['id']}/decide?t={TOKEN}",
-            {"t": TOKEN, "loaded_at": item["received_at"], "statement": "x", "why": "x",
-             "outcome": "approved"},
+            {"t": TOKEN, "loaded_at": item["received_at"], "statement": "x", "why": "x", "outcome": "approved"},
             extra_headers={"origin": "http://evil.example"},
         )
         assert status == 403

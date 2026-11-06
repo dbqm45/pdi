@@ -33,16 +33,16 @@ import secrets
 import socketserver
 import subprocess
 import sys
-import threading
 import time
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
-from pdi import autonomy, dispatch_local, trace as trace_mod
+from pdi import autonomy, dispatch_local
+from pdi import trace as trace_mod
 from pdi.changes import ChangeStore
 from pdi.inbox import Inbox, ItemClosed, ItemNotFound
 from pdi.registry import Decision, InvalidDecision, Registry
@@ -57,10 +57,14 @@ SSE_RETRY_MS = 2000
 # Mapowanie faza/bramka → pas (Z7a; makieta design/konsola/v2-klikalna/*).
 LANES: dict[str, int] = {
     "intake": 1,
-    "intent": 1, "B1": 1,
-    "requirements": 1, "B2": 1,
-    "architecture": 1, "B3": 1,
-    "design": 1, "design-review": 1,
+    "intent": 1,
+    "B1": 1,
+    "requirements": 1,
+    "B2": 1,
+    "architecture": 1,
+    "B3": 1,
+    "design": 1,
+    "design-review": 1,
     "approve-for-implementation": 1,
     "delivery": 1,
     "B4": 2,
@@ -104,15 +108,19 @@ h2{margin:20px 0 10px;font-size:17px}
 table{border-collapse:collapse;width:100%}
 th,td{padding:6px 10px;border-bottom:1px solid #EDF0F3;text-align:left;vertical-align:top}
 th{background:#F7F9FC;font-weight:600}
-pre{background:#0b0c0e;color:#eceef1;padding:10px;border-radius:8px;overflow:auto;font:12px/1.4 "IBM Plex Mono",ui-monospace,monospace}
+pre{background:#0b0c0e;color:#eceef1;padding:10px;border-radius:8px;overflow:auto;
+  font:12px/1.4 "IBM Plex Mono",ui-monospace,monospace}
 form .row{margin:12px 0}
 form label{display:block;font-weight:600;margin-bottom:4px}
-form textarea,form input[type=text]{width:100%;box-sizing:border-box;font:inherit;padding:8px;border:1px solid #BBC0C7;border-radius:6px}
+form textarea,form input[type=text]{width:100%;box-sizing:border-box;font:inherit;padding:8px;
+  border:1px solid #BBC0C7;border-radius:6px}
 form textarea{min-height:5em}
-button{font:inherit;padding:8px 14px;border-radius:6px;border:1px solid #2846B5;background:#2846B5;color:#fff;cursor:pointer}
+button{font:inherit;padding:8px 14px;border-radius:6px;border:1px solid #2846B5;
+  background:#2846B5;color:#fff;cursor:pointer}
 button.alt{background:#fff;color:#2846B5}
 button.warn{background:#fff;color:#A1271D;border-color:#A1271D}
-.side{position:sticky;top:0;background:#fff;border:1px solid #DDE3EA;border-radius:8px;padding:10px 12px;margin-left:16px;min-width:260px}
+.side{position:sticky;top:0;background:#fff;border:1px solid #DDE3EA;border-radius:8px;
+  padding:10px 12px;margin-left:16px;min-width:260px}
 .grid{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:flex-start}
 small{color:#5B6878}
 .err{color:#A1271D;font-weight:600}
@@ -182,8 +190,12 @@ class Deps:
 def _git_run(argv: list[str], cwd: Path) -> tuple[int, str]:
     """Uruchamia git w klonie produktu bez powłoki, z twardym timeoutem i obcięciem wyjścia do 1 MiB."""
     try:
-        done = subprocess.run(  # noqa: S603 — lista argumentów, bez powłoki
-            ["git", "-C", str(cwd), *argv], capture_output=True, text=True, timeout=5, check=False
+        done = subprocess.run(  # noqa: S603
+            ["git", "-C", str(cwd), *argv],  # noqa: S607 — lista argumentów; git z PATH
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
         )
     except FileNotFoundError:
         return 127, "brak polecenia git"
@@ -215,8 +227,11 @@ def _render_page(title: str, body: str, *, nonce: str) -> str:
 
 
 def _board_body(deps: Deps, token: str) -> str:
-    changes = [deps.changes.get(p.stem) for p in sorted((deps.registry.root / "changes").glob("*.yaml"))] \
-        if (deps.registry.root / "changes").is_dir() else []
+    changes = (
+        [deps.changes.get(p.stem) for p in sorted((deps.registry.root / "changes").glob("*.yaml"))]
+        if (deps.registry.root / "changes").is_dir()
+        else []
+    )
     inbox_open = [i for i in deps.inbox.items(status="open")]
     open_by_change: dict[str, list[dict[str, Any]]] = {}
     for item in inbox_open:
@@ -244,8 +259,8 @@ def _board_body(deps: Deps, token: str) -> str:
             if isinstance(progress, dict) and progress.get("message"):
                 cost = progress.get("cost_usd")
                 cost_label = f" · {cost:.2f} USD" if isinstance(cost, (int, float)) else ""
-                progress_line = f'<small>{_escape(progress["message"])}{cost_label}</small>'
-            link = f'/trace/{chg}?t={_escape(token)}'
+                progress_line = f"<small>{_escape(progress['message'])}{cost_label}</small>"
+            link = f"/trace/{chg}?t={_escape(token)}"
             cards.append(
                 f'<li><div class="card">'
                 f'<a href="{link}"><span class="chg">{chg}</span></a>'
@@ -253,16 +268,12 @@ def _board_body(deps: Deps, token: str) -> str:
                 f"{wait_line}{progress_line}"
                 "</div></li>"
             )
-        return "<ul>" + ("".join(cards) if cards else '<li><small>brak zmian</small></li>') + "</ul>"
+        return "<ul>" + ("".join(cards) if cards else "<li><small>brak zmian</small></li>") + "</ul>"
 
     lanes_html = "".join(
-        f'<div class="lane l{lane}"><h3>{lane}. {LANE_LABELS[lane]}</h3>{_cards(lane)}</div>'
-        for lane in (1, 2, 3)
+        f'<div class="lane l{lane}"><h3>{lane}. {LANE_LABELS[lane]}</h3>{_cards(lane)}</div>' for lane in (1, 2, 3)
     )
-    summary = (
-        f"<p><strong>Zmiany:</strong> {len(changes)} · "
-        f"<strong>Czeka na Ciebie:</strong> {len(inbox_open)}</p>"
-    )
+    summary = f"<p><strong>Zmiany:</strong> {len(changes)} · <strong>Czeka na Ciebie:</strong> {len(inbox_open)}</p>"
     return f"<h1>Tablica</h1>{summary}<section class='lanes'>{lanes_html}</section>"
 
 
@@ -313,20 +324,15 @@ def _files_section(deps: Deps, change: str, token: str) -> str:
     rows = []
     for name in ALLOWED_ARTIFACTS:
         link = f"/trace/{_escape(change)}/file?path={_escape(name)}&t={_escape(token)}"
-        rows.append(
-            f'<li><a href="{link}">{_escape(name)}</a></li>'
-        )
+        rows.append(f'<li><a href="{link}">{_escape(name)}</a></li>')
     diff_link = f"/trace/{_escape(change)}/diff?t={_escape(token)}"
-    return (
-        "<ul>" + "".join(rows) + "</ul>"
-        f'<p><a href="{diff_link}">diff bieżącego cięcia</a></p>'
-    )
+    return "<ul>" + "".join(rows) + f'</ul><p><a href="{diff_link}">diff bieżącego cięcia</a></p>'
 
 
 def _progress_panel(change: str, progress: dict[str, Any], token: str) -> str:
     sse = f"/sse/progress?change={_escape(change)}&t={_escape(token)}"
     cost = progress.get("cost_usd")
-    cost_line = f'<p><strong>Koszt do tej pory:</strong> {cost:.2f} USD</p>' if isinstance(cost, (int, float)) else ""
+    cost_line = f"<p><strong>Koszt do tej pory:</strong> {cost:.2f} USD</p>" if isinstance(cost, (int, float)) else ""
     status = _escape(progress.get("status") or "")
     message = _escape(_sanitize_text(progress.get("message"), limit=200))
     phase = _escape(progress.get("phase") or "")
@@ -336,7 +342,7 @@ def _progress_panel(change: str, progress: dict[str, Any], token: str) -> str:
         f"<p><strong>{status or 'bez danych'}</strong> {message}</p>"
         f"{cost_line}"
         f'<p><small>strumień: <a href="{sse}">SSE</a></small></p>'
-        '<p><small>Miejsce na kolejne liczby (OpenTelemetry, Z10c): koszt, tokeny, odmowy, błędy.</small></p>'
+        "<p><small>Miejsce na kolejne liczby (OpenTelemetry, Z10c): koszt, tokeny, odmowy, błędy.</small></p>"
     )
 
 
@@ -359,7 +365,7 @@ def _inbox_body(deps: Deps, token: str) -> str:
             f'<form method="post" action="/inbox/{_escape(item["id"])}/decide?t={_escape(token)}">'
             f'<input type="hidden" name="t" value="{_escape(token)}">'
             f'<input type="hidden" name="loaded_at" value="{_escape(item["received_at"])}">'
-            f'{q_html}'
+            f"{q_html}"
             '<div class="row"><label>Treść decyzji (statement)</label>'
             '<textarea name="statement" required maxlength="800"></textarea></div>'
             '<div class="row"><label>Dlaczego (why)</label>'
@@ -416,7 +422,7 @@ def _render_questions(item_id: str, questions: list[Any]) -> str:
             text = _escape(q.get("question") or "")
             recommended = q.get("recommended")
             options_html = ""
-            for j, opt in enumerate(q["options"]):
+            for opt in q["options"]:
                 if not isinstance(opt, dict):
                     continue
                 value = _escape(opt.get("value") or opt.get("label") or "")
@@ -431,9 +437,7 @@ def _render_questions(item_id: str, questions: list[Any]) -> str:
                     f'<label><input type="radio" name="answer_{i}" value="__other__" required> inne:</label> '
                     f'<input type="text" name="answer_{i}_other" maxlength="800">'
                 )
-            rows.append(
-                f'<div class="row"><label>{text}</label>{options_html}</div>'
-            )
+            rows.append(f'<div class="row"><label>{text}</label>{options_html}</div>')
         else:
             rows.append(
                 f'<div class="row"><label>{_escape(q)}</label>'
@@ -467,9 +471,7 @@ def _autonomy_body(deps: Deps, token: str) -> str:
     rows = []
     for name, cfg in sorted(types.items()):
         level = cfg.get("level") if isinstance(cfg, dict) else "?"
-        rows.append(
-            f"<tr><td>{_escape(name)}</td><td>{_escape(level)}</td></tr>"
-        )
+        rows.append(f"<tr><td>{_escape(name)}</td><td>{_escape(level)}</td></tr>")
     return (
         "<h1>Autonomia</h1>"
         "<table><thead><tr><th>Typ decyzji</th><th>Poziom</th></tr></thead>"
@@ -489,7 +491,7 @@ def _resolve_artifact(checkout: Path, change: str, name: str) -> Path:
     if not re.match(r"^CHG-[0-9]+$", change):
         raise Refused(f"klucz zmiany {change!r} niepoprawny")
     root = checkout.resolve(strict=False)
-    path = (root / "docs" / "project" / "changes" / change / name)
+    path = root / "docs" / "project" / "changes" / change / name
     resolved = path.resolve(strict=False)
     try:
         resolved.relative_to(root)
@@ -514,8 +516,9 @@ def _resolve_artifact(checkout: Path, change: str, name: str) -> Path:
     return resolved
 
 
-def _diff_of_current_cut(state: dict[str, Any], git: Callable[[list[str], Path], tuple[int, str]],
-                         checkout: Path) -> str:
+def _diff_of_current_cut(
+    state: dict[str, Any], git: Callable[[list[str], Path], tuple[int, str]], checkout: Path
+) -> str:
     """`git diff base..head` bieżącego cięcia; bez cięcia — pusty tekst."""
     dispatch = state.get("dispatch") or {}
     cuts = dispatch.get("cuts") or []
@@ -641,7 +644,7 @@ def make_server(
                 state = None
             log_path: Path | None = None
             if state is not None:
-                raw = ((state.get("dispatch") or {}).get("log") or "")
+                raw = (state.get("dispatch") or {}).get("log") or ""
                 if raw:
                     log_path = Path(raw)
             self.send_response(200)
@@ -716,22 +719,24 @@ def make_server(
                 return self._html(404, "<h1>404</h1>")
             loaded_at = one("loaded_at")
             if loaded_at and loaded_at != item.get("received_at"):
-                return self._html(
-                    409, "<h1>409</h1><p>Pozycja zmieniła się od czasu wczytania strony. Odśwież i spróbuj ponownie.</p>"
-                )
+                msg = "Pozycja zmieniła się od czasu wczytania strony. Odśwież i spróbuj ponownie."
+                return self._html(409, f"<h1>409</h1><p>{msg}</p>")
             outcome = one("outcome") or None
             statement = _sanitize_text(one("statement"), limit=800)
             why = _sanitize_text(one("why"), limit=2000)
             if not statement or not why:
                 return self._html(400, "<h1>400</h1><p>Brak treści decyzji albo powodu.</p>")
-            answers = _collect_answers(item, fields)
+            try:
+                answers = _collect_answers(item, fields)
+            except Refused as e:
+                return self._html(403, f"<h1>403</h1><p>{_escape(str(e))}</p>")
             draft: Decision = {
                 "statement": statement,
                 "why": why,
                 "decided_by": os.environ.get("PDI_DECIDED_BY") or "console",
                 "decided_at": clock().date().isoformat(),
+                # Kontrakt pdi: `draft_edited` tylko przy `drafted_by: ai` (decision.schema.json allOf, 2026-11-06).
                 "drafted_by": "human",
-                "draft_edited": False,
                 "kind": "other",
                 "source": {
                     "kind": "console",
