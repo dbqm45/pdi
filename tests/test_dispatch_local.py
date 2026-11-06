@@ -225,8 +225,8 @@ def test_delivery_pushes_new_cut_branches_and_opens_a_pr_for_each(checkout: Path
             "git rev-list --count": (0, "2\n"),
             f"git merge-base --is-ancestor {TSK1} {TSK2}": (0, ""),
             "git merge-base --is-ancestor": (1, ""),
-            f"gh pr create --fill --head {TSK1}": (0, cut_pr(TSK1) + "\n"),
-            f"gh pr create --fill --head {TSK2}": (0, cut_pr(TSK2) + "\n"),
+            f"gh pr create --head {TSK1}": (0, cut_pr(TSK1) + "\n"),
+            f"gh pr create --head {TSK2}": (0, cut_pr(TSK2) + "\n"),
         }
     )
 
@@ -242,8 +242,8 @@ def test_delivery_pushes_new_cut_branches_and_opens_a_pr_for_each(checkout: Path
     assert calls.index(REFS) < persona < calls.index(f"git push -u origin {TSK1}")
     assert f"git push -u origin {TSK2}" in calls
     assert "git push -u origin story/old" not in calls  # gałąź sprzed przebiegu zostaje
-    assert f"gh pr create --fill --head {TSK1} --base main" in calls
-    assert f"gh pr create --fill --head {TSK2} --base {TSK1}" in calls  # cięcie zbudowane na poprzednim
+    assert any(c.startswith(f"gh pr create --head {TSK1} --base main --title ") for c in calls)
+    assert any(c.startswith(f"gh pr create --head {TSK2} --base {TSK1} --title ") for c in calls)  # na poprzednim
     assert not any("phase_run.py gate" in c for c in calls)
 
 
@@ -273,6 +273,64 @@ def test_delivery_skips_the_decisions_commit_when_nothing_changed(checkout: Path
 
     assert result["status"] == "done"
     assert not any(c[:2] == ["git", "commit"] for c in run.calls)
+
+
+def cut_pr_call(run: FakeRun) -> tuple[list[str], str]:
+    (call,) = [c for c in run.calls if c[:3] == ["gh", "pr", "create"]]
+    return call, run.bodies[0]
+
+
+class BodyRun(FakeRun):
+    """Zapamiętuje treść pliku opisu PR w chwili wywołania (plik jest tymczasowy)."""
+
+    def __init__(self, responses: dict[str, Any]) -> None:
+        super().__init__(responses)
+        self.bodies: list[str] = []
+
+    def __call__(self, argv: list[str], cwd: Path, env: Mapping[str, str]) -> tuple[int, str]:
+        if argv[:3] == ["gh", "pr", "create"]:
+            self.bodies.append(Path(argv[argv.index("--body-file") + 1]).read_text(encoding="utf-8"))
+        return super().__call__(argv, cwd, env)
+
+
+def test_cut_pr_takes_its_title_from_the_first_talos_commit_and_its_body_from_the_report(
+    checkout: Path, tmp_path: Path
+) -> None:
+    # PRB-34: `gh pr create --fill` z dwoma commitami dawał tytuł z nazwy gałęzi („story/tsk 1 deploy counter”).
+    subjects = "feat(page): show deployments from the last 7 days\nfix(page): label\n"
+    report = "# TSK-1\n\n## Odłożone do decyzji\n- p95 dla NF-004\n"
+    run = BodyRun(
+        {
+            REFS: [(0, ""), (0, f"{TSK1}\n")],
+            "git rev-list --count": (0, "2"),
+            "git log --reverse --format=%s pdi/CHG-12-delivery..": (0, subjects),
+            f"git show {TSK1}:docs/project/changes/CHG-12/runs/TSK-1.md": (0, report),
+        }
+    )
+
+    result = delivery(checkout, tmp_path, run)
+
+    assert result["status"] == "done"
+    call, body = cut_pr_call(run)
+    assert call[call.index("--title") + 1] == "feat(page): show deployments from the last 7 days"
+    assert "--fill" not in call
+    assert body.startswith(report) and "Change: CHG-12" in body
+
+
+def test_cut_pr_without_a_report_lists_the_commits(checkout: Path, tmp_path: Path) -> None:
+    run = BodyRun(
+        {
+            REFS: [(0, ""), (0, f"{TSK1}\n")],
+            "git rev-list --count": (0, "1"),
+            "git log --reverse --format=%s pdi/CHG-12-delivery..": (0, "feat(page): counter\n"),
+            "git show": (128, "fatal: path does not exist"),
+        }
+    )
+
+    delivery(checkout, tmp_path, run)
+
+    _, body = cut_pr_call(run)
+    assert "- feat(page): counter" in body and "TSK-1.md" in body and "Change: CHG-12" in body
 
 
 def test_delivery_reuses_an_existing_cut_pr(checkout: Path, tmp_path: Path) -> None:

@@ -278,7 +278,10 @@ def claude_settings(hosts: Sequence[str], secret_names: Sequence[str]) -> dict[s
             "allowUnsandboxedCommands": False,
             "autoAllowBashIfSandboxed": False,
             "enableWeakerNestedSandbox": True,
-            "filesystem": {"denyRead": home_secrets, "allowWrite": [TMP]},
+            # Transkrypty tej sesji: `run_report.py finish` liczy z nich koszt przebiegu Talosa (PRB-34); węższa ścieżka
+            # w allowRead wygrywa z denyRead (code.claude.com/docs/en/sandboxing, odczyt 2026-11-06). Token idzie przez
+            # zmienną środowiskową, nie przez pliki w ~/.claude.
+            "filesystem": {"denyRead": home_secrets, "allowRead": ["~/.claude/projects"], "allowWrite": [TMP]},
             "network": {"allowedDomains": list(hosts), "allowManagedDomainsOnly": True},
             "credentials": {"envVars": [{"name": name, "mode": "deny"} for name in denied]},
         },
