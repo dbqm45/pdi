@@ -702,11 +702,14 @@ with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has 
 phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
 when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
 docs/project/changes/CHG-n/runs/TSK-n.md. Talos's per-cut report is docs/project/changes/CHG-n/runs/TSK-n.md; the check
-before B4 can read it.
+before B4 can read it. Checked for this prompt on 2026-11-06: the contract is still 0.11.0 (its last change was Z1)
+and Z2a is not merged, so 0.12.0 is free today; readiness_changed in event.schema.json has additionalProperties false
+and the fields change, readiness, open_questions, url.
 
 Read first: docs/plan-zespol-jednoosobowy.md §8.1 (Z7b), §8.3 (N4, N20), §8.5 (Z10a `slo`, Z10e performance and
 accessibility thresholds in `targets`); docs/plan-z1-decyzje-w-fazach.md; contract/release-plan.schema.json and
-contract/README.md; src/pdi/flow.py, src/pdi/inbox.py, src/pdi/trace.py; in tf the persona tomasz,
+contract/README.md; src/pdi/flow.py, src/pdi/inbox.py, src/pdi/trace.py; in tf the persona tomasz
+(packs/pack-it/personas/tomasz.yaml),
 packs/pack-it/skills/arch-tech-selection (it already asks for 2–3 candidates per area), modes/mode-pdi templates
 plan.md and release.yaml, decision_record.py (check_plan, check_release) and tools/pdi-contract.json.
 
@@ -728,6 +731,10 @@ results into findings (Z8c-1).
    two considered options with pros, cons and cost, the choice and why — check first what tomasz and
    arch-tech-selection already require and add only the missing part. plan.md and release.yaml templates and
    decision_record.py check validate targets against the contract copy and flag a plan with a single option.
+   Coverage and mutation tools (N4) run in the delivery phase under `claude --print`: every command Talos needs for
+   them must be in the settings template's `permissions.allow` (test_settings_coverage.py), a new dev dependency goes
+   through the lockfile and the N10 cooldown, and the tools must work offline after install in the phase container
+   (its egress allows only the package registries and listed hosts).
 4. pdi: the B3 gate shows the targets (and the options considered); approve-for-implementation and B4 show their status
    once ci_for_sdlc reports it (Z7b-1b); get_change and get_trace include them. A change of approved targets after B3
    should be a new decision (supersede), not a silent edit: propose in the plan how to detect it (e.g. the B3 entry
@@ -741,8 +748,9 @@ changed target after B3 if the plan includes it.
 Gates: pdi — uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src; tf — the
 repo's checks (workspace.py check --packs pack-it and --packs mode-pdi, the skill gates of changed skills). CI runs on
 the PRs again: wait for it to be green and say in the PRs what you ran locally.
-Coordination: other sessions may work in parallel on the contract (Z2a), flow.py and inbox.py in pdi and on
-decision_record.py and the tomasz persona in tf; keep your changes small, keep the branches up to date with main and
+Coordination: other sessions may work in parallel on the contract (Z2a), flow.py and inbox.py in pdi (A7 adds the
+browser console, whose B3 page should show the targets through the same read model; N1 adds second-review questions
+to gate requests) and on decision_record.py and the tomasz persona in tf; keep your changes small, keep the branches up to date with main and
 resolve conflicts keeping both behaviours.
 When the gates pass, commit, push and open PRs to main (pdi with the contract first, then the tf PR with the copy after
 the tag), but do not merge them. At the end report in Polish: PR links, gates and results, the contract version taken,
