@@ -371,6 +371,10 @@
           "items": {
             "type": "string"
           }
+        },
+        "targets": {
+          "type": "object",
+          "description": "Cele zmiany z release.yaml (Z7b-1a, 0.12.0): tf dokleja je do prośby o B3, żeby człowiek widział, co zatwierdza; po `approved` pdi zapisuje ich kopię w stanie zmiany. Opcjonalne — bramki inne niż B3 nie muszą ich podawać. Kształt: `release_plan.schema.json#/$defs/targets` (`coverage`, `mutation`, `performance`, `evaluations`)."
         }
       }
     },
