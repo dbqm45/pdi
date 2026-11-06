@@ -4,7 +4,11 @@ Schematy i zasady wspólne dla pdi, tf, ci_for_sdlc i ShipScope ([decyzja D1](..
 Wersjonowany wg SemVer 2.0.0 w [`contract.json`](contract.json); zmiana niezgodna wstecz podnosi wersję główną
 (w 0.x — drugą liczbę). Odbiorca zdarzeń przypina wersję przez pole `contract_version`.
 
-Wersja: `0.11.0`. Historia: 0.11.0 — opcjonalne pole `answers` w decyzji (`[{question, answer}]`: odpowiedzi
+Wersja: `0.12.0`. Historia: 0.12.0 — opcjonalne pole `targets` w planie wydania
+(`coverage`, `mutation`, `performance`, `evaluations`: cele zmiany zapisywane przez architekta `tomasza`
+w fazie `architecture` i zatwierdzane przez człowieka na B3; Z7b-1a, DZ6, DZ7, N4) i opcjonalne pole
+`targets_status` w `readiness.changed` (`overall`, `checked_at`, `details`: ci_for_sdlc raportuje wynik celów
+przed B4, Z7b-1b); 0.11.0 — opcjonalne pole `answers` w decyzji (`[{question, answer}]`: odpowiedzi
 człowieka na pytania z `## Pytania do bramki`, Z1, PRB-3); 0.10.0 — `source.kind: meeting` w decyzji (decyzje z transkrypcji spotkań, A5);
 0.9.0 — format tabeli ramek w `design.md` (etap 07 Design, F6): konwencje, schemat
 odczytanej tabeli, parser referencyjny `pdi.design`; 0.8.0 — eksport rekonstrukcji z kodu (format tf → ci_for_sdlc, F2) i wydania kontraktu
@@ -24,7 +28,7 @@ agenta; DA1, DA2), `source_reported_at` w nagłówku zmiany (lead time od zgłos
 | [`task.schema.json`](task.schema.json) | cięcie `TSK` z rodzicem `CHG` | `plan.md` zmiany | [`examples/task.json`](examples/task.json) |
 | [`event.schema.json`](event.schema.json) | koperta zdarzenia i treść dla każdego typu | wymiana między projektami | `examples/event-*.json` |
 | [`story.schema.json`](story.schema.json) | historyjka `US-n` (albo klucz z Jiry) ze scenariuszami `AC-n` w formacie `gwt`, `ears` albo `free` | eksport z tf, konektor repo ci_for_sdlc | [`examples/story.json`](examples/story.json) |
-| [`release-plan.schema.json`](release-plan.schema.json) | plan wydania zmiany: MVP z miarą, linie `R1…Rn` z cięciami, flagi z etapami udostępniania | `changes/CHG-n/release.yaml` | [`examples/release-plan.json`](examples/release-plan.json) |
+| [`release-plan.schema.json`](release-plan.schema.json) | plan wydania zmiany: MVP z miarą, linie `R1…Rn` z cięciami, flagi z etapami udostępniania; od 0.12.0 opcjonalnie `targets` (cele zmiany: pokrycie, mutacje, wydajność, ewaluacje AI) | `changes/CHG-n/release.yaml` | [`examples/release-plan.json`](examples/release-plan.json) i [`examples/release-plan-ai.json`](examples/release-plan-ai.json) |
 | [`autonomy.schema.json`](autonomy.schema.json) | polityka autonomii organizacji: typ decyzji → poziom 0–3, okno weta, warunek, progi obniżenia i podniesienia | konfiguracja organizacji (zmiana polityki to decyzja człowieka) | [`examples/autonomy.json`](examples/autonomy.json) |
 | [`triage-recommendation.schema.json`](triage-recommendation.schema.json) | rekomendacja triażu `PRB`: stan pdi z polami, których wymaga, i stan tf z tabeli mapowania; decyzję podejmuje człowiek w pdi | wyjście triażu tf (`triage_pdi.py recommend`) dla pdi | [`examples/triage-recommendation.json`](examples/triage-recommendation.json) |
 | [`reconstruction.schema.json`](reconstruction.schema.json) | eksport rekonstrukcji z kodu: reguły, wymagania i słownik z dowodami `plik:linia` (format `tf-reconstruction`, wersja 1) | `docs/project/00-reconstruction/reconstruction.json` w repo produktu; pisze tf (`recon_export.py`), czyta ci_for_sdlc (konektor rekonstrukcji) | [`examples/reconstruction.json`](examples/reconstruction.json) |
@@ -36,8 +40,30 @@ nazwy: `decision`, `problem`, `change`, `task`, `event`, `story`, `release_plan`
 `triage_recommendation`, `reconstruction`, `design_links`. Tabela z `design.md`: `from pdi.design import
 parse_design_md`.
 
-Zgodność wstecz: 0.11.0 dodaje tylko pole opcjonalne; 0.9.0 dodaje nowy schemat i konwencję; 0.8.0 dodaje tylko nowy schemat; 0.7.0 dodaje tylko nowy typ zdarzenia i wartość `source.kind`; 0.6.0 dodaje tylko nowy schemat; wszystkie pola dodane w 0.5.0 są opcjonalne, a zdarzenia
+Zgodność wstecz: 0.12.0 dodaje tylko pola opcjonalne (`release_plan.targets` i `readiness.changed.targets_status`);
+0.11.0 dodaje tylko pole opcjonalne; 0.9.0 dodaje nowy schemat i konwencję; 0.8.0 dodaje tylko nowy schemat; 0.7.0 dodaje tylko nowy typ zdarzenia i wartość `source.kind`; 0.6.0 dodaje tylko nowy schemat; wszystkie pola dodane w 0.5.0 są opcjonalne, a zdarzenia
 z `contract_version` 0.4.0–0.6.0 dalej przechodzą walidację. Zestaw wzorcowy `fixtures/story-shape/` ma wersję 0.4.0 — tę, w której zmienił się ostatnio.
+
+## Cele zmiany (`targets`, 0.12.0, decyzje [DZ6 i DZ7](../docs/decyzje.md))
+
+Plan wydania (`release.yaml`) może zawierać opcjonalne pole `targets` — mierzalne cele jakości zmiany, które
+proponuje architekt (persona `tomasz` w tf) w fazie `architecture`, a człowiek zatwierdza na bramce B3. Cele są
+sprawdzane przed B4 przez ci_for_sdlc (Z7b-1b) i zwracane do pdi w zdarzeniu `readiness.changed`
+jako `targets_status`. Zmiana zatwierdzonych celów po B3 powinna być nową decyzją (`supersedes`), nie cichą
+edycją pliku — pdi zapisuje kopię `approved_targets_at_b3` i porównuje ją przy
+`approve-for-implementation`.
+
+- **`coverage`** (N4): pokrycie zmienionych linii z jawnymi wyłączeniami (każde z powodem). Narzędzie jest polem
+  tekstowym (nie enum), żeby schemat nie wyścigał się z narzędziami: dziś `pytest-cov`, `jest --coverage`.
+- **`mutation`** (N4): próg testów mutacyjnych dla zmienionego kodu (`stryker` dla JS/TS, `mutmut` dla Pythona).
+  Cały projekt trwa za długo — stąd `kind: changed_lines` domyślnie.
+- **`performance`**: lista opcjonalnych budżetów wydajności dla zmienionych ścieżek — Z10e zapisuje tu p95 czasu
+  odpowiedzi i budżet rozmiaru paczki.
+- **`evaluations`** (DZ7): progi ewaluacji aplikacji AI (zestaw, metryka, próg minimalny). Obowiązkowość dla
+  produktu AI pilnuje tf (persona `tomasz`), nie ten schemat — kontrakt nie zna typu produktu.
+
+Pola `slo` (Z10a) i `accessibility` (Z10e) dojdą w swoich krokach jako opcjonalne pola `targets`; schemat
+pozostawia dla nich miejsce, ale dziś je odrzuca (żeby nie wślizgnęły się po cichu).
 
 ## Wydania i kopie u konsumentów (od 0.8.0)
 

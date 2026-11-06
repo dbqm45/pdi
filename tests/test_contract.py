@@ -34,6 +34,9 @@ def example(name: str) -> dict[str, Any]:
 def schema_for(path: Path) -> str:
     if path.stem.startswith("event-"):
         return "event"
+    # Warianty jednego schematu: `release-plan.json` i `release-plan-ai.json` oba do `release_plan`.
+    if path.stem.startswith("release-plan"):
+        return "release_plan"
     return path.stem.replace("-", "_")
 
 
@@ -45,7 +48,7 @@ def test_schema_is_valid_json_schema_2020_12(name: str) -> None:
 def test_settings_define_version_key_pattern_and_default_prefixes() -> None:
     settings = contract.settings()
 
-    assert settings["version"] == contract.CONTRACT_VERSION == "0.11.0"
+    assert settings["version"] == contract.CONTRACT_VERSION == "0.12.0"
     assert settings["prefixes"] == {"problem": "PRB", "change": "CHG", "task": "TSK", "decision": "DEC"}
     assert settings["key_pattern"] == "^[A-Z][A-Z0-9]+-[0-9]+$"
 
@@ -678,3 +681,114 @@ def test_decision_may_carry_answers_to_gate_questions() -> None:
 )
 def test_answers_need_a_question_and_an_answer(answers: object) -> None:
     assert contract.errors("decision", _decision_with(answers)) != []
+
+
+# --- kontrakt 0.12.0: cele zmiany `targets` i `targets_status` (Z7b-1a, DZ6, DZ7) ---
+
+
+def _targets_full() -> dict[str, Any]:
+    return {
+        "coverage": {"kind": "changed_lines", "min_percent": 90, "tool": "pytest-cov"},
+        "mutation": {"kind": "changed_lines", "tool": "mutmut", "min_score": 70},
+        "performance": [{"name": "p95_login", "metric": "response_time_p95_ms", "limit": "<= 400"}],
+        "evaluations": [{"name": "rag", "dataset": "eval/rag.jsonl", "metric": "faithfulness", "min": 0.9}],
+    }
+
+
+def test_release_plan_without_targets_remains_valid() -> None:
+    plan = example("release-plan")
+    without_targets = {k: v for k, v in plan.items() if k != "targets"}
+
+    assert contract.errors("release_plan", without_targets) == []
+
+
+def test_release_plan_with_full_targets_is_valid() -> None:
+    plan = {**example("release-plan"), "targets": _targets_full()}
+
+    assert contract.errors("release_plan", plan) == []
+
+
+def test_release_plan_ai_example_is_valid() -> None:
+    assert contract.errors("release_plan", example("release-plan-ai")) == []
+
+
+@pytest.mark.parametrize(
+    "patch",
+    [
+        pytest.param({"coverage": {"min_percent": 120}}, id="pokrycie-ponad-100"),
+        pytest.param({"coverage": {"min_percent": -1}}, id="pokrycie-ujemne"),
+        pytest.param({"coverage": {"kind": "all", "min_percent": 90}}, id="rodzaj-spoza-listy"),
+        pytest.param({"coverage": {}}, id="pokrycie-bez-progu"),
+        pytest.param(
+            {"coverage": {"min_percent": 90, "exclusions": [{"pattern": "src/x"}]}},
+            id="wyjatek-bez-powodu",
+        ),
+        pytest.param({"mutation": {"min_score": 101}}, id="mutacje-ponad-100"),
+        pytest.param({"mutation": {"tool": "mutmut"}}, id="mutacje-bez-progu"),
+        pytest.param(
+            {"performance": [{"name": "p95", "metric": "ms"}]},
+            id="wydajnosc-bez-limitu",
+        ),
+        pytest.param(
+            {"evaluations": [{"name": "r", "metric": "f", "min": 0.9}]},
+            id="ewaluacja-bez-zbioru",
+        ),
+        pytest.param({"unknown": True}, id="pole-nieznane-w-targets"),
+    ],
+)
+def test_invalid_targets_are_rejected(patch: dict[str, Any]) -> None:
+    plan = {**example("release-plan"), "targets": {**_targets_full(), **patch}}
+
+    assert contract.errors("release_plan", plan) != []
+
+
+def test_targets_leaves_room_for_future_optional_fields() -> None:
+    """`additionalProperties: false` nie blokuje kolejnych opcjonalnych pól w minorach (Z10a slo, Z10e accessibility).
+
+    Pola `slo` i `accessibility` dziś jeszcze nie są deklarowane i wchodzą tą samą drogą co `targets` — nowym
+    opcjonalnym polem w kolejnej wersji minor. Ten test pilnuje, że wartości dla `slo` i `accessibility` są dziś
+    odrzucane: dokładamy je dopiero wtedy, gdy ich kształt zostanie zapisany.
+    """
+    plan = {
+        **example("release-plan"),
+        "targets": {**_targets_full(), "slo": {"sli": "ok", "target": 99.5}},
+    }
+    assert contract.errors("release_plan", plan) != []  # dziś slo jeszcze nie ma — nie wślizgnie się po cichu
+
+
+def test_readiness_changed_without_targets_status_remains_valid() -> None:
+    event = example("event-readiness.changed")
+    without_status = {**event, "payload": {k: v for k, v in event["payload"].items() if k != "targets_status"}}
+
+    assert contract.errors("event", without_status) == []
+
+
+def test_readiness_changed_with_targets_status_is_valid() -> None:
+    event = example("event-readiness.changed")
+
+    assert contract.errors("event", event) == []
+    assert event["payload"]["targets_status"]["overall"] in ("met", "not_met", "unknown")
+
+
+@pytest.mark.parametrize(
+    "patch",
+    [
+        pytest.param({"overall": "maybe"}, id="overall-spoza-listy"),
+        pytest.param({"checked_at": "2026-10-23"}, id="data-bez-godziny"),
+        pytest.param(
+            {"details": [{"name": "c", "kind": "coverage"}]},
+            id="pozycja-bez-stanu",
+        ),
+        pytest.param(
+            {"details": [{"name": "c", "kind": "foo", "status": "met"}]},
+            id="pozycja-rodzaj-spoza-listy",
+        ),
+        pytest.param({"unknown": True}, id="pole-nieznane-w-stanie"),
+    ],
+)
+def test_invalid_targets_status_is_rejected(patch: dict[str, Any]) -> None:
+    event = example("event-readiness.changed")
+    payload = {**event["payload"], "targets_status": {**event["payload"]["targets_status"], **patch}}
+    bad = {**event, "payload": payload}
+
+    assert contract.errors("event", bad) != []
