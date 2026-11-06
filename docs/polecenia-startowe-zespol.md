@@ -19,8 +19,8 @@ wszystkie przed etapem 2.
 | [Z8a](#z8a--pdi--tf-fazy-w-kontenerze) | fazy w kontenerze (izolacja persony i talosa) | — | pdi + tf | `/Users/x/WebstormProjects/pdi` | zrobione (pdi #111, tf 5.56.0), [plan](plan-z8a-izolacja-faz.md) |
 | [Z8c-1](#z8c-1--ci_for_sdlc-wyniki-skanera-sarif-jako-ustalenia) | wyniki skanera (SARIF) jako ustalenia w ci_for_sdlc | — | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` | zrobione (ci_for_sdlc #109) |
 | [Z8c-2](#z8c-2--tf-skaner-w-pętli-kawałka-talosa-i-w-ci) | skaner w pętli kawałka talosa i w CI | Z8c-1 | tf | `/Users/x/WebstormProjects/tf` | zrobione (tf #138; kawałek talosa na sdlc-proba 2026-11-03, sdlc-proba #10, [wynik](przebieg-lokalny.md#wynik-przebiegu-2026-11-03-z8c-2-talos-na-sdlc-proba)) |
-| [A6](#a6--pdi--tf-shipscope-ci_for_sdlc-ponowny-przebieg-lokalny-na-sdlc-proba) | ponowny przebieg lokalny na `sdlc-proba`: jedna zmiana od zgłoszenia do oceny skutku, w kontenerze, bez obejść (bramka A6, DZ19) | Z1, Z8a, Z8c-1, Z8c-2 | pdi (+ tf, ShipScope, ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` | **wynik mieszany 2026-11-03–05** ([wynik](przebieg-lokalny.md#wynik-przebiegu-2026-11-03%E2%80%9305-a6)): §0–§3 zaliczone, delivery CHG-3 dwukrotnie `failed` — czeka na PRB-29 (semgrep w obrazie fazy, pdi) i PRB-28 (`detail` w `result.json`, tf); §5–§7 pominięte świadomie (bez zmian od 2026-10-31) |
-| [PRB-32](#prb-32--tf-talos-w-fazie-delivery-bez-interakcji) | Talos w fazie delivery bez interakcji: przebieg poza `.claude/`, polecenia git na liście `allow`, cięcie z kluczem zmiany (PRB-33), wynik persony przy sukcesie (PRB-28) | pdi #148 i zaufanie folderu w kontenerze fazy (pdi) | tf | `/Users/x/WebstormProjects/tf` | do zrobienia; blokuje delivery A6 |
+| [A6](#a6--pdi--tf-shipscope-ci_for_sdlc-ponowny-przebieg-lokalny-na-sdlc-proba) | ponowny przebieg lokalny na `sdlc-proba`: jedna zmiana od zgłoszenia do oceny skutku, w kontenerze, bez obejść (bramka A6, DZ19) | Z1, Z8a, Z8c-1, Z8c-2 | pdi (+ tf, ShipScope, ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` | **zaliczone 2026-11-06 w §0–§4** ([wynik](przebieg-lokalny.md#wynik-przebiegu-2026-11-03%E2%80%9305-a6)): delivery CHG-3 otworzyło PR cięcia sdlc-proba #34 po poprawkach PRB-29, PRB-31–34; §5–§7 pominięte świadomie |
+| [PRB-32](#prb-32--tf-talos-w-fazie-delivery-bez-interakcji) | Talos w fazie delivery bez interakcji: przebieg poza `.claude/`, polecenia git na liście `allow`, cięcie z kluczem zmiany (PRB-33), wynik persony przy sukcesie (PRB-28) | pdi #148 i zaufanie folderu w kontenerze fazy (pdi) | tf | `/Users/x/WebstormProjects/tf` | zrobione (tf #145, #146, 5.58.5–5.58.6; sdlc-proba #32, #33); delivery CHG-3 potwierdzone 2026-11-05 (sdlc-proba #34) |
 | [N1](#n1--tf-przegląd-drugim-modelem) | przegląd drugim modelem (wymagania, plan, uwagi z review) | Z1, A6 | tf (+ pdi, jeśli w kontenerze) | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [N5](#n5--tf-evale-przebiegu) | evale przebiegu na 20 prawdziwych zadaniach | Z1, A6 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [Z7b-1a](#z7b-1a--pdi--tf-cele-zmiany-w-kontrakcie-i-planie) | cele zmiany (`targets`) w kontrakcie i planie, B3 | Z1, A6 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
@@ -371,12 +371,11 @@ Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, che
 
 ## A6 — pdi (+ tf, ShipScope, ci_for_sdlc): ponowny przebieg lokalny na sdlc-proba
 
-**Stan 2026-11-05:** przebieg A6 uruchomiony na dbqm45/sdlc-proba, **wynik mieszany** —
-[wynik przebiegu 2026-11-03–05 (A6)](przebieg-lokalny.md#wynik-przebiegu-2026-11-03%E2%80%9305-a6). §0–§3 zaliczone
-(Z1 i PRB-2 potwierdzone), §4 delivery CHG-3 dwukrotnie `failed` na `step: cuts` — czeka na PRB-29 (semgrep w obrazie
-fazy `pdi-phase`) i PRB-28 (brak `detail` w `result.json` przy niepowodzeniu weryfikacji). §5–§7 pominięte świadomie:
-działały 2026-10-31 w CHG-1, kod bez zmian od tamtej pory. Dalsze kroki (A3–A5, A7) nie są zablokowane, ale pełna
-demonstracja Z8c-2 w pętli pdi wymaga PRB-29 i PRB-28.
+**Stan 2026-11-06:** bramka A6 **zaliczona w §0–§4** na dbqm45/sdlc-proba —
+[wynik przebiegu 2026-11-03–05 (A6)](przebieg-lokalny.md#wynik-przebiegu-2026-11-03%E2%80%9305-a6) z dokończeniem
+delivery. §0–§3 zaliczone 2026-11-03–05 (Z1 i PRB-2 potwierdzone); delivery CHG-3 po poprawkach PRB-29 i PRB-31–33
+otworzyło PR cięcia sdlc-proba #34 (Z8c-2 w pętli pdi potwierdzone); PRB-34 poprawione (pdi #151, tf 5.58.7), do
+sprawdzenia przy następnym delivery. §5–§7 pominięte świadomie: działały 2026-10-31 w CHG-1. A3–A5 i A7 mogą ruszać.
 
 Decyzja DZ19: bramka A6 idzie przed A3–A5. Przebieg robisz Ty na Macu (Docker, zalogowane `gh` i `claude`), a sesja
 Claude Code w klonie pdi prowadzi Cię przez [listę przebiegu lokalnego](przebieg-lokalny.md), uruchamia polecenia
