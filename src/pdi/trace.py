@@ -133,7 +133,11 @@ def _gates(g: _Builder, change: str, state: dict[str, Any] | None, items: list[d
         if item.get("decision"):
             g.edge(item["decision"], f"gate:{gate}", "decides")
     for gate, decision in approved.items():
-        g.node(f"gate:{gate}", "gate", gate, "approved")
+        extra: dict[str, Any] = {}
+        # Cele zatwierdzone na B3 widać w karcie bramki (Z7b-1a, DZ7).
+        if gate == "B3" and (state or {}).get("approved_targets_at_b3") is not None:
+            extra["data"] = {"targets": (state or {})["approved_targets_at_b3"]}
+        g.node(f"gate:{gate}", "gate", gate, "approved", **extra)
         g.edge(decision, f"gate:{gate}", "decides")
     for node in [n for n in g.nodes.values() if n["kind"] == "gate"]:
         g.edge(change, node["id"], "gate")

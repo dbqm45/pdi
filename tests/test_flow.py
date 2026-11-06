@@ -14,6 +14,7 @@ from pdi.flow import (
     missing_before,
     new_state,
     readiness_changed,
+    targets_changed_since_b3,
 )
 
 AT = "2026-10-26T10:00:00Z"
@@ -220,3 +221,72 @@ def test_done_change_still_takes_stage_gates_of_later_lines() -> None:
 
     assert run is None
     assert state["status"] == "done"
+
+
+# --- Z7b-1a: cele zmiany (DZ6, DZ7) ---
+
+
+def test_approved_b3_records_the_targets_snapshot() -> None:
+    targets = {"coverage": {"min_percent": 90}, "mutation": {"min_score": 70}}
+    state = gate_requested(approved("B1", "B2"), "B3", at=AT)
+
+    state, _ = gate_decided(state, "B3", "approved", "DEC-3", at=AT, targets=targets)
+
+    assert state["approved_targets_at_b3"] == targets
+
+
+def test_approved_b3_without_targets_records_none_as_baseline() -> None:
+    state = gate_requested(approved("B1", "B2"), "B3", at=AT)
+
+    state, _ = gate_decided(state, "B3", "approved", "DEC-3", at=AT)
+
+    # Jawne None: odróżnia „zatwierdzono bez celów” od „jeszcze nie zbadano”.
+    assert state["approved_targets_at_b3"] is None
+
+
+def test_changes_requested_on_b3_does_not_record_targets() -> None:
+    targets = {"coverage": {"min_percent": 90}}
+    state = gate_requested(approved("B1", "B2"), "B3", at=AT)
+
+    state, _ = gate_decided(state, "B3", "changes_requested", "DEC-3", at=AT, targets=targets)
+
+    assert "approved_targets_at_b3" not in state
+
+
+def test_targets_changed_since_b3_detects_edit_of_release_plan() -> None:
+    targets = {"coverage": {"min_percent": 90}, "mutation": {"min_score": 70}}
+    state = gate_requested(approved("B1", "B2"), "B3", at=AT)
+    state, _ = gate_decided(state, "B3", "approved", "DEC-3", at=AT, targets=targets)
+
+    assert targets_changed_since_b3(state, targets) is False
+    assert targets_changed_since_b3(state, {**targets, "coverage": {"min_percent": 85}}) is True
+    assert targets_changed_since_b3(state, None) is True  # cele zniknęły z planu
+
+
+def test_no_b3_baseline_means_no_change_detected() -> None:
+    state = new_state("CHG-12")
+
+    assert targets_changed_since_b3(state, {"coverage": {"min_percent": 90}}) is False
+
+
+def test_readiness_changed_records_targets_status() -> None:
+    status = {
+        "overall": "not_met",
+        "checked_at": "2026-11-06T09:00:00Z",
+        "details": [{"name": "coverage", "kind": "coverage", "status": "not_met"}],
+    }
+    state = readiness_changed(new_state("CHG-12"), "not_ready", at=AT, targets_status=status)
+
+    assert state["targets_status"] == status
+    assert state["history"][-1]["targets_status"] == "not_met"
+
+
+def test_readiness_changed_without_targets_status_keeps_the_old_one() -> None:
+    first = readiness_changed(
+        new_state("CHG-12"), "not_ready", at=AT, targets_status={"overall": "not_met", "checked_at": AT}
+    )
+
+    later = readiness_changed(first, "ready", at=AT)
+
+    # Bez nowego statusu stary zostaje: nie każde zdarzenie niesie świeży pomiar.
+    assert later["targets_status"]["overall"] == "not_met"

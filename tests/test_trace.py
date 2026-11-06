@@ -247,3 +247,28 @@ def test_cut_branch_without_a_task_key_hangs_on_the_change(registry: Registry) -
     graph = trace(registry, "CHG-12", live=False)
 
     assert ("CHG-12", f"pr:{CUT1}", "implemented_by") in edges(graph)
+
+
+def test_b3_approved_node_carries_the_targets_snapshot(registry: Registry, make_draft: Any) -> None:
+    """Węzeł `gate:B3` po `approved` ma `data.targets` z kopią zatwierdzonych celów (Z7b-1a, DZ7)."""
+    sample = {
+        "coverage": {"kind": "changed_lines", "min_percent": 90},
+        "mutation": {"kind": "changed_lines", "min_score": 70},
+    }
+    inbox = Inbox(registry)
+    for n, gate in enumerate(["B1", "B2", "B3"], start=1):
+        inbox.receive(
+            gate_event(
+                event_id=f"evt-gate-{n}",
+                gate=gate,
+                summary=f"{gate} gotowe.",
+                **({"targets": sample} if gate == "B3" else {}),
+            )
+        )
+        inbox.decide(f"evt-gate-{n}", make_draft(statement=f"{gate} OK."), outcome="approved")
+
+    graph = trace(registry, "CHG-12", shipscope=ShipScopeConfig(url=None), live=False)
+
+    b3 = by_id(graph)["gate:B3"]
+    assert b3["status"] == "approved"
+    assert b3["data"]["targets"] == sample

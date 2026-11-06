@@ -156,7 +156,9 @@ class Inbox:
         state = self.changes.load(change)
         gate = _gate_of(event)
         if event["type"] == "readiness.changed":
-            state = flow.readiness_changed(state, payload["readiness"], at=at)
+            state = flow.readiness_changed(
+                state, payload["readiness"], at=at, targets_status=payload.get("targets_status")
+            )
         if event["type"] == "feature.released":
             state = flow.feature_released(
                 state, payload.get("release"), payload["released_at"], at=at, tasks=payload.get("tasks")
@@ -195,11 +197,15 @@ class Inbox:
         }
         missing = flow.missing_before(state, gate)
         item.update(gate=gate, missing_before=missing)
-        for key in ("artifact", "url", "questions"):
+        for key in ("artifact", "url", "questions", "targets"):
             if key in payload:
                 item[key] = payload[key]
         if missing:
             item["summary"] += f" (poza kolejnością: brak {', '.join(missing)})"
+        # Sygnał dla człowieka na „approve-for-implementation” (Z7b-1a, DZ7): cele się zmieniły od B3.
+        if gate == flow.BASELINE_GATE and flow.targets_changed_since_b3(state, payload.get("targets")):
+            item["targets_changed_since_b3"] = True
+            item["summary"] += " (cele zmiany po B3 — rozważ supersede decyzji B3)"
         state = flow.gate_requested(state, gate, at=at)
         touched = self._supersede(change, gate, by=item["id"])
         self._dir.mkdir(parents=True, exist_ok=True)
@@ -519,7 +525,7 @@ class Inbox:
         gate: str = (item.get("gate") or _gate_of(item["event"]) or "") if item["kind"] == "gate" else ""
         if item["kind"] == "gate" and state is not None:
             try:  # najpierw sprawdzenie przejścia, żeby nie zapisać decyzji, której stan nie przyjmie
-                _, planned = flow.gate_decided(state, gate, outcome or "", "DEC-0", at=at)
+                _, planned = flow.gate_decided(state, gate, outcome or "", "DEC-0", at=at, targets=item.get("targets"))
             except flow.InvalidTransition as e:
                 raise InvalidDecision(str(e)) from e
             if planned:
@@ -554,7 +560,7 @@ class Inbox:
         touched = [self._path(item_id)]
         if item["kind"] == "gate":
             assert outcome is not None and state is not None  # noqa: S101 — zawężenie typu, sprawdzone wyżej
-            state, run = flow.gate_decided(state, gate, outcome, decision["id"], at=at)
+            state, run = flow.gate_decided(state, gate, outcome, decision["id"], at=at, targets=item.get("targets"))
             event = _gate_decided_event(item_id, item["change"], gate, outcome, decision["id"], at)
             touched.append(self._write_outbox(event))
             result["event"] = event

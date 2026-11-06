@@ -105,6 +105,11 @@ Skrócenie czasu:
   (np. DEC-0003 z poprzedniego przebiegu). Wymaga tf z Z1 (`decision import`, `decision gate --answers`) w repo próbnym.
 - [x] **B3 (architecture):** w PR jest `plan.md` i `release.yaml` z flagą (`owner`, `remove_by`, `rollout` z
   `min_days: 0`). Merge, decyzja (z `answers`, gdy są pytania) → faza `design`.
+- [ ] **B3 pokazuje cele zmiany i rozważone opcje (Z7b-1a, DZ6, DZ7):** prośba o B3 w skrzynce niesie `targets`
+  z `release.yaml` (pokrycie i mutacje zmienionego kodu, ewentualnie wydajność; dla produktu AI także progi
+  ewaluacji — wymagane); `plan.md` ma sekcję „Rozważone opcje” z co najmniej dwoma wariantami (N20). Decyzja
+  `approved` zatwierdza cele — od tej chwili są wiążące: `get_change` pokazuje `approved_targets_at_b3`, a edycja
+  `release.yaml` po B3 zapala `targets_changed_since_b3` na „Approve for implementation” z prośbą o `supersede`.
 - [x] **design-review:** PR, merge, decyzja (z `answers`, gdy są pytania).
 
 ## 3. Gotowość i zatwierdzenie do budowy
