@@ -811,8 +811,12 @@ def test_steps_get_only_the_variables_their_tools_need(checkout: Path, tmp_path:
         )
         assert ("GH_TOKEN" in step_env) == github, argv
         persona = argv[2:3] == ["run"]
-        for name in ("ANTHROPIC_API_KEY", "CLAUDE_CONFIG_DIR", "PDI_CLAUDE_BIN"):
+        for name in ("CLAUDE_CONFIG_DIR", "PDI_CLAUDE_BIN"):
             assert (name in step_env) == persona, (name, argv)
+        # ANTHROPIC_API_KEY idzie do persony i — jako zapasowy dostawca same-vendor (N1, DZ12) — do kroku
+        # „second-review" na hoście; w kontenerze persony Z8g i tak ma go wyprowadzić, a innych kroków nie dotyka.
+        second_review = argv[:2] == ["python3", f"{S}/second_review.py"]
+        assert ("ANTHROPIC_API_KEY" in step_env) == (persona or second_review), argv
 
 
 def test_bedrock_or_vertex_credentials_go_to_the_persona_only_when_switched_on(checkout: Path, tmp_path: Path) -> None:
@@ -1120,3 +1124,52 @@ def test_stream_run_stops_a_step_past_its_time(tmp_path: Path, monkeypatch: pyte
 
 def test_stream_run_without_the_command(tmp_path: Path) -> None:
     assert dispatch_local._stream_run(["nie-ma-takiego-polecenia"], tmp_path, {}, print)[0] == 127
+
+
+# Drugi przegląd (N1, DZ12): pdi dokłada osobny krok na hoście dla requirements/architecture.
+# Klucz OPENAI_API_KEY widoczny tylko dla tego kroku; w kontenerze fazy (Z8a/Z8g) nigdy nie występuje.
+def test_second_review_runs_for_requirements_with_provider_key_scoped_to_the_step(
+    checkout: Path, tmp_path: Path
+) -> None:
+    run = FakeRun()
+    result, _ = execute(
+        spec(checkout, tmp_path, phase="requirements"),
+        run,
+        env={"OPENAI_API_KEY": "sk-x", "PDI_SECOND_MODEL": "openai:gpt-4o-mini"},
+    )
+
+    assert result["status"] == "done"
+    review_idx = next(
+        i for i, call in enumerate(run.calls) if call[:3] == ["python3", f"{S}/second_review.py", "artifact"]
+    )
+    phase_run_idx = next(i for i, call in enumerate(run.calls) if call[:3] == ["python3", f"{S}/phase_run.py", "run"])
+    gate_idx = next(
+        i for i, call in enumerate(run.calls) if call[:4] == ["python3", f"{S}/phase_run.py", "gate", "request"]
+    )
+    assert phase_run_idx < review_idx < gate_idx
+    review_env = run.envs[review_idx]
+    assert review_env.get("OPENAI_API_KEY") == "sk-x"
+    assert review_env.get("PDI_SECOND_MODEL") == "openai:gpt-4o-mini"
+    # Klucz nie trafia do kroków sąsiednich (persona i gate request) — na hoście scope tylko dla second-review.
+    assert run.envs[phase_run_idx].get("OPENAI_API_KEY") is None
+    assert run.envs[gate_idx].get("OPENAI_API_KEY") is None
+
+
+def test_second_review_skipped_for_intent_design_and_delivery(checkout: Path, tmp_path: Path) -> None:
+    for phase in ("intent", "design"):
+        run = FakeRun()
+        execute(
+            spec(checkout, tmp_path, phase=phase, source="PRB-1" if phase == "intent" else None),
+            run,
+            env={"OPENAI_API_KEY": "sk-x"},
+        )
+        assert not any(c[:2] == ["python3", f"{S}/second_review.py"] for c in run.calls), phase
+
+
+def test_second_review_still_runs_without_a_provider_key(checkout: Path, tmp_path: Path) -> None:
+    # Bez kluczy second_review.py sam zgłosi `status: unavailable` do sidecara — i to lądowuje w prośbie o bramkę.
+    run = FakeRun()
+    result, _ = execute(spec(checkout, tmp_path, phase="architecture"), run, env={})
+
+    assert result["status"] == "done"
+    assert any(c[:3] == ["python3", f"{S}/second_review.py", "artifact"] for c in run.calls)
