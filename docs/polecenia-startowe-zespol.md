@@ -1,13 +1,13 @@
 # Polecenia startowe planu „zespół jednoosobowy”: grupa A i Z2
 
-**Data:** 2026-11-02, odświeżone 2026-11-03 · **Źródło:** [plan „zespół jednoosobowy”](plan-zespol-jednoosobowy.md) §8,
-§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `2eded12` (kontrakt 0.11.0), tf 5.58.4 (kopia
+**Data:** 2026-11-02, odświeżone 2026-11-03, polecenia A3–A5 i A7 odświeżone 2026-11-06 po A6 · **Źródło:** [plan „zespół jednoosobowy”](plan-zespol-jednoosobowy.md) §8,
+§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `7048263` (kontrakt 0.11.0), tf 5.58.7 (kopia
 kontraktu 0.11.0), ShipScope 0.2.67 (stan z 2026-11-02) · Wszystkie niezrobione polecenia mają nad sobą
 własny stan przed startem z 2026-11-03.
 
 Każde polecenie wklejasz jako pierwszą wiadomość nowej sesji Claude Code w katalogu z tabeli. Zrobione są Z1, Z8a,
-Z8c-1 i Z8c-2 (kolumna „Stan”). Dalej: Z2a, potem Z2b (po tagu kontraktu z Z2a); zgodnie z DZ5 Z2 idzie przed etapem 3
-([etapy](polecenia-startowe-sdlc-lokalnie.md)). Najpierw przebieg A6 na `sdlc-proba` (DZ19, [polecenie](#a6--pdi--tf-shipscope-ci_for_sdlc-ponowny-przebieg-lokalny-na-sdlc-proba)); po nim N1, N5 i Z7b-1a, Z7b-1b po Z7b-1a,
+Z8c-1, Z8c-2, PRB-32 i bramka A6 (kolumna „Stan”). Dalej: Z2a, potem Z2b (po tagu kontraktu z Z2a); zgodnie z DZ5 Z2 idzie przed etapem 3
+([etapy](polecenia-startowe-sdlc-lokalnie.md)). Przebieg A6 na `sdlc-proba` (DZ19, [polecenie](#a6--pdi--tf-shipscope-ci_for_sdlc-ponowny-przebieg-lokalny-na-sdlc-proba)) zaliczony 2026-11-06; teraz N1, N5 i Z7b-1a, Z7b-1b po Z7b-1a,
 N2 po N1, N12, N13 i N15 po A6 (po kolei z N2, bo zmieniają te same pliki), a równolegle Z3-lokalnie;
 wszystkie przed etapem 2.
 
@@ -523,7 +523,7 @@ version.
 ## N1 — tf: przegląd drugim modelem
 
 Startuje po A6 (DZ19) i po Z1 (zrobione). Sesja w klonie tf; mała część pdi, jeśli przegląd działa w kontenerze fazy.
-**Stan przed startem (2026-11-03):** tf 5.58.3 (kopia kontraktu pdi 0.11.0), pdi `0845e63`. Od pierwszej wersji tego
+**Stan przed startem (2026-11-06, po A6):** pdi `7048263` (kontrakt 0.11.0), tf 5.58.7; zmiany z A6 opisuje akapit „State on 2026-11-06” w poleceniu. Wcześniej, 2026-11-03: tf 5.58.3 (kopia kontraktu pdi 0.11.0), pdi `0845e63`. Od pierwszej wersji tego
 polecenia weszły: Z1 (decyzje zmiany i rozstrzygnięte pytania w prompcie, odmowa przy powtórzonym pytaniu), Z8a (krok
 `run` w kontenerze z listą dozwolonych hostów i sandboxem Claude Code, tokeny niewidoczne dla persony), Z8c-2, a w
 planie N14 (oznaczanie treści z zewnątrz) i N17 (reguły sędziego); CI na GitHubie znowu działa.
@@ -532,7 +532,7 @@ planie N14 (oznaczanie treści z zewnątrz) i N17 (reguły sędziego); CI na Git
 Implement N1 of docs/plan-zespol-jednoosobowy.md (§8.3) in dbqm45/tf, under decision DZ12 in pdi docs/decyzje.md: the
 second model comes from another vendor (own API key, cost inside the phase budget); without that key, another Claude
 model with a separate reviewer prompt, marked in the output as a same-vendor review. If the review needs a change in
-pdi (see 4), make it a small separate PR in dbqm45/pdi. Start when A6 is done (DZ19). Answer me in Polish; code,
+pdi (see 4), make it a small separate PR in dbqm45/pdi. A6 is done (2026-11-06). Answer me in Polish; code,
 commits and PR titles in English, Conventional Commits.
 
 Goal: before a gate request for B2 (requirements) and B3 (architecture), a second model reads the artifact against
@@ -540,6 +540,17 @@ intent.md, requirements and the change's decisions and lists gaps (missing error
 contradictions with a decision, slices that cannot be verified). The findings go into the gate request as questions,
 marked as coming from the second review. The same function validates review comments for N2: a comment the second model
 does not confirm goes to the human instead of to a fix.
+
+State on 2026-11-06 (after the A6 run, pdi docs/przebieg-lokalny.md, A6 result): pdi main 7048263 (contract 0.11.0), tf
+5.58.7. A6 settled how personas run under `claude --print` in the phase container: Claude Code denies writes to
+`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or Talos runs
+must be in the settings template (tf core/tests/test_settings_coverage.py checks it); pdi marks the clone as trusted in
+the container, so the repository's allow list applies there; Talos keeps its run in `tmp/talos/runs/` and starts a cut
+with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has committed the change's decisions;
+phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
+when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
+docs/project/changes/CHG-n/runs/TSK-n.md. A second-review step that runs a model in the phase container follows the same
+rules.
 
 Read first: pdi docs/plan-zespol-jednoosobowy.md §8.3 (N1, N2, N14, N17), docs/plan-z1-decyzje-w-fazach.md and
 docs/plan-z8a-izolacja-faz.md; in tf modes/mode-pdi/skills/pdi-decisions/scripts/phase_run.py (build_prompt,
@@ -592,19 +603,29 @@ Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, che
 
 ## N5 — tf: evale przebiegu
 
-Startuje po A6 (DZ19) i po Z1 (zrobione), razem z N17 (reguły sędziego). Sesja w klonie tf. **Stan przed startem
-(2026-11-03):** tf 5.58.3, pdi `dbd3bb5`. Od pierwszej wersji tego polecenia weszły: Z1 (`repeated_question` jako
+Startuje po A6 (DZ19) i po Z1 (zrobione), razem z N17 (reguły sędziego). Sesja w klonie tf. **Stan przed startem (2026-11-06, po A6):** pdi `7048263` (kontrakt 0.11.0), tf 5.58.7; zmiany z A6 opisuje akapit „State on 2026-11-06” w poleceniu. Wcześniej, 2026-11-03: tf 5.58.3, pdi `dbd3bb5`. Od pierwszej wersji tego polecenia weszły: Z1 (`repeated_question` jako
 sprawdzalny wynik fazy), Z8a (krok `run` w kontenerze budowanym przez pdi), Z8c-2 (ustalenia skanera w delivery),
 a w planie N16 (uczenie z logów faz, które czyta wyniki evali) i N17; CI na GitHubie znowu działa.
 
 ```text
 Implement N5 of docs/plan-zespol-jednoosobowy.md (§8.3) in dbqm45/tf, with N17 (judge rules), under decision DZ13 in
 pdi docs/decyzje.md: start with 20 real tasks from dbqm45/sdlc-proba and sprintdeck, a budget per run set in tf, grow to
-about 200 after the first results. Start when A6 is done (DZ19). Answer me in Polish; code, commits and PR title in
+about 200 after the first results. A6 is done (2026-11-06). Answer me in Polish; code, commits and PR title in
 English, Conventional Commits.
 
 Goal: a change of model, skill, persona or phase prompt does not land without running the flow evals, and the report
 compares result and cost with the previous run.
+
+State on 2026-11-06 (after the A6 run, pdi docs/przebieg-lokalny.md, A6 result): pdi main 7048263 (contract 0.11.0), tf
+5.58.7. A6 settled how personas run under `claude --print` in the phase container: Claude Code denies writes to
+`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or Talos runs
+must be in the settings template (tf core/tests/test_settings_coverage.py checks it); pdi marks the clone as trusted in
+the container, so the repository's allow list applies there; Talos keeps its run in `tmp/talos/runs/` and starts a cut
+with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has committed the change's decisions;
+phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
+when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
+docs/project/changes/CHG-n/runs/TSK-n.md. Use the A6 delivery attempts on CHG-3 (PRB-28 to PRB-34) as eval tasks: each
+had one clear cause.
 
 Read first: pdi docs/plan-zespol-jednoosobowy.md §8.3 (N5, N16, N17), docs/przebieg-lokalny.md (the 2026-10-31 run and
 the A6 rerun), docs/plan-z1-decyzje-w-fazach.md and docs/plan-z8a-izolacja-faz.md; in tf the skill evals
@@ -652,7 +673,7 @@ Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, che
 ## Z7b-1a — pdi + tf: cele zmiany w kontrakcie i planie
 
 Startuje po A6 (DZ19), po Z1 (zrobione) i Z8c-1 (zrobione), razem z N4 (pokrycie i testy mutacyjne) i N20 (co
-najmniej dwie opcje w planie). Sesja w klonie pdi; część tf osobnym PR-em. **Stan przed startem (2026-11-03):** pdi
+najmniej dwie opcje w planie). Sesja w klonie pdi; część tf osobnym PR-em. **Stan przed startem (2026-11-06, po A6):** pdi `7048263` (kontrakt 0.11.0), tf 5.58.7; zmiany z A6 opisuje akapit „State on 2026-11-06” w poleceniu. Wcześniej, 2026-11-03: pdi
 `b6f12b8` (kontrakt 0.11.0), tf 5.58.3 (kopia kontraktu 0.11.0). Od pierwszej wersji tego polecenia weszły: Z1
 (decyzje z bramek wiążą kolejne fazy, `decision import`), Z8a, Z8c-1 i Z8c-2, a w planie N20 i Z10 (SLO i progi
 wydajności oraz dostępności, które później dojdą do `targets`); CI na GitHubie znowu działa.
@@ -662,10 +683,21 @@ Implement part 1a of Z7b of docs/plan-zespol-jednoosobowy.md (§8.1, row A4 in �
 dbqm45/tf (attach it with push access), together with N4 (coverage and mutation targets on changed code) and N20 (at
 least two options in plan.md), under decisions DZ6 and DZ7 in docs/decyzje.md: the architect persona (tomasz)
 proposes the change's targets in the plan, the human approves them at B3; for AI products evaluation thresholds are
-mandatory. Start when A6 is done (DZ19). Answer me in Polish; code, commits and PR titles in English.
+mandatory. A6 is done (2026-11-06). Answer me in Polish; code, commits and PR titles in English.
 
 Goal: every change carries measurable quality targets, approved at B3 and checked before B4, instead of judging PRs by
 eye.
+
+State on 2026-11-06 (after the A6 run, pdi docs/przebieg-lokalny.md, A6 result): pdi main 7048263 (contract 0.11.0), tf
+5.58.7. A6 settled how personas run under `claude --print` in the phase container: Claude Code denies writes to
+`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or Talos runs
+must be in the settings template (tf core/tests/test_settings_coverage.py checks it); pdi marks the clone as trusted in
+the container, so the repository's allow list applies there; Talos keeps its run in `tmp/talos/runs/` and starts a cut
+with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has committed the change's decisions;
+phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
+when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
+docs/project/changes/CHG-n/runs/TSK-n.md. Talos's per-cut report is docs/project/changes/CHG-n/runs/TSK-n.md; the check
+before B4 can read it.
 
 Read first: docs/plan-zespol-jednoosobowy.md §8.1 (Z7b), §8.3 (N4, N20), §8.5 (Z10a `slo`, Z10e performance and
 accessibility thresholds in `targets`); docs/plan-z1-decyzje-w-fazach.md; contract/release-plan.schema.json and
@@ -716,7 +748,7 @@ Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, che
 ## Z7b-1b — ci_for_sdlc: sprawdzanie celów zmiany
 
 Startuje po Z7b-1a (cele w kontrakcie i jego tag) i Z8c-1 (zrobione). Sesja w klonie ci_for_sdlc; szablon
-`change-check.yml` jest w tf (mode-pdi), więc jego kroki idą małym PR-em w tf. **Stan przed startem (2026-11-03):** pdi
+`change-check.yml` jest w tf (mode-pdi), więc jego kroki idą małym PR-em w tf. **Stan przed startem (2026-11-06, po A6):** pdi `7048263` (kontrakt 0.11.0), tf 5.58.7; zmiany z A6 opisuje akapit „State on 2026-11-06” w poleceniu. Wcześniej, 2026-11-03: pdi
 `18432c1` (kontrakt 0.11.0), tf 5.58.3; w ci_for_sdlc czytnik SARIF z Z8c-1 (#109) i odpowiedzi na ustalenia z PRB-16
 (#107). CI na GitHubie znowu działa.
 
@@ -729,6 +761,16 @@ merged and its contract tag exists. Answer me in Polish; code, commits and PR ti
 
 Goal: the gate checks a change's `targets` against real reports, the way it reads JUnit (--tests) and SARIF (--sarif)
 today, so a change below its targets is not ready for B4.
+
+State on 2026-11-06 (after the A6 run, pdi docs/przebieg-lokalny.md, A6 result): pdi main 7048263 (contract 0.11.0), tf
+5.58.7. A6 settled how personas run under `claude --print` in the phase container: Claude Code denies writes to
+`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or Talos runs
+must be in the settings template (tf core/tests/test_settings_coverage.py checks it); pdi marks the clone as trusted in
+the container, so the repository's allow list applies there; Talos keeps its run in `tmp/talos/runs/` and starts a cut
+with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has committed the change's decisions;
+phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
+when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
+docs/project/changes/CHG-n/runs/TSK-n.md. Cut PR bodies now carry Talos's run report and a `Change: CHG-n` line.
 
 Read first: in ci_for_sdlc the SARIF reader and rules of Z8c-1 (#109: readers with size limits, findings on the items
 they touch, annotations) and the decisions that answer findings (#107, PRB-16: `decision add --finding` in the
@@ -777,14 +819,14 @@ Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, che
 
 Startuje po A6 (DZ19), Z8a (zrobione) i N1. Sesja w klonie pdi; część tf osobnym PR-em. W tej samej grupie A5 są N12,
 N13 i N15 — mają osobne polecenia, bo dotykają tych samych plików, więc sesje trzeba prowadzić po
-kolei albo uzgadniać zmiany. **Stan przed startem (2026-11-03):** pdi `d170ecb` (kontrakt 0.11.0), tf 5.58.3. Od
+kolei albo uzgadniać zmiany. **Stan przed startem (2026-11-06, po A6):** pdi `7048263` (kontrakt 0.11.0), tf 5.58.7; zmiany z A6 opisuje akapit „State on 2026-11-06” w poleceniu. Wcześniej, 2026-11-03: pdi `d170ecb` (kontrakt 0.11.0), tf 5.58.3. Od
 pierwszej wersji tego polecenia weszły: Z1 (decyzje zmiany wiążą poprawki), Z8a (persona w kontenerze; push, PR i
 tokeny GitHuba tylko na hoście), Z8c-2 (ustalenia skanera blokują kawałek, skan PR w CI), a w planie rozszerzenie N2
 (wcześniejsze wyjście po progu wagi uwag, „Przewodnik dokończenia” w PR, wspólny z N7); CI na GitHubie znowu działa.
 
 ```text
 Implement N2 of docs/plan-zespol-jednoosobowy.md (§8.3) in dbqm45/pdi, with the tf part in dbqm45/tf (attach it with
-push access). Start when A6 is done (DZ19) and N1 (second review) is merged: read N1's plan and its PR's final report
+push access). A6 is done (2026-11-06); start when N1 (second review) is merged: read N1's plan and its PR's final report
 for the names of the review script, its commands and output fields. Answer me in Polish; code, commits and PR titles
 in English.
 
@@ -792,6 +834,17 @@ Goal: a talos PR reaches the human only with green checks and closed review comm
 N rounds" and the reason, and always with a completion guide. Background: Spotify's Honk opens a PR only after full
 verification kept apart from the agent (engineering.atspotify.com, 2025-11); verify the details before relying on
 them.
+
+State on 2026-11-06 (after the A6 run, pdi docs/przebieg-lokalny.md, A6 result): pdi main 7048263 (contract 0.11.0), tf
+5.58.7. A6 settled how personas run under `claude --print` in the phase container: Claude Code denies writes to
+`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or Talos runs
+must be in the settings template (tf core/tests/test_settings_coverage.py checks it); pdi marks the clone as trusted in
+the container, so the repository's allow list applies there; Talos keeps its run in `tmp/talos/runs/` and starts a cut
+with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has committed the change's decisions;
+phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
+when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
+docs/project/changes/CHG-n/runs/TSK-n.md. N2 builds on the cut PRs pdi now opens (title from the commit, body from the
+report); keep that format.
 
 Read first: docs/plan-zespol-jednoosobowy.md §8.3 (N2, N7, N12, N13), docs/plan-z1-decyzje-w-fazach.md,
 docs/plan-z8a-izolacja-faz.md and N1's plan; src/pdi/dispatch_local.py (delivery: `_publish_cuts`, PRs opened on the
@@ -841,7 +894,7 @@ Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, che
 ## N12 — tf: weryfikacja przed zakończeniem fazy
 
 Grupa A5. Startuje po A6 (DZ19); N3 jest zrobione z Z8c-2. Sesja w klonie tf. Dotyka tych samych plików co N2, N13 i
-N15 (talos, `phase_run.py`): prowadź po kolei albo uzgadniaj zmiany. **Stan przed startem (2026-11-03):** pdi `aadfbf9` (kontrakt 0.11.0), tf 5.58.4. Już jest: Z1, Z8a (krok `run`
+N15 (talos, `phase_run.py`): prowadź po kolei albo uzgadniaj zmiany. **Stan przed startem (2026-11-06, po A6):** pdi `7048263` (kontrakt 0.11.0), tf 5.58.7; zmiany z A6 opisuje akapit „State on 2026-11-06” w poleceniu. Wcześniej, 2026-11-03: pdi `aadfbf9` (kontrakt 0.11.0), tf 5.58.4. Już jest: Z1, Z8a (krok `run`
 w kontenerze z sandboxem Claude Code), Z8c-2 z N3 (jedno polecenie weryfikacji w pierwszej linii CLAUDE.md produktu,
 wzór `templates/verify.sh` w talos-story-run); CI na GitHubie działa.
 
@@ -852,6 +905,17 @@ in Polish; code, commits and PR title in English, Conventional Commits.
 Goal: the delivery phase and a talos slice cannot end as a success when the code changed after the last verification:
 there must be a fresh result of the product's verification command (N3) for the current commit. A missing result turns
 "done" into a continuation with the instruction to run the verification, visible in the log.
+
+State on 2026-11-06 (after the A6 run, pdi docs/przebieg-lokalny.md, A6 result): pdi main 7048263 (contract 0.11.0), tf
+5.58.7. A6 settled how personas run under `claude --print` in the phase container: Claude Code denies writes to
+`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or Talos runs
+must be in the settings template (tf core/tests/test_settings_coverage.py checks it); pdi marks the clone as trusted in
+the container, so the repository's allow list applies there; Talos keeps its run in `tmp/talos/runs/` and starts a cut
+with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has committed the change's decisions;
+phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
+when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
+docs/project/changes/CHG-n/runs/TSK-n.md. The verification command a phase runs must be an allowed command, or it is
+denied silently in -p.
 
 Read first: pdi docs/plan-zespol-jednoosobowy.md §8.3 (N3, N12, N13) and docs/plan-z8a-izolacja-faz.md; in tf
 modes/mode-talos/skills/talos-story-run (SKILL.md: the slice loop, `BRAMKA K<n>: PASS|FAIL`, templates/verify.sh,
@@ -890,7 +954,7 @@ fields.
 ## N13 — tf + pdi: limity tur i czasu, zapętlenie trafia do skrzynki
 
 Grupa A5. Startuje po A6 (DZ19). Sesja w klonie tf; część pdi (pozycja w skrzynce) osobnym PR-em. Dotyka tych samych
-plików co N2, N12 i N15: prowadź po kolei albo uzgadniaj zmiany. **Stan przed startem (2026-11-03):** pdi `aadfbf9` (kontrakt 0.11.0), tf 5.58.4. Już jest: Z1, Z8a (krok `run`
+plików co N2, N12 i N15: prowadź po kolei albo uzgadniaj zmiany. **Stan przed startem (2026-11-06, po A6):** pdi `7048263` (kontrakt 0.11.0), tf 5.58.7; zmiany z A6 opisuje akapit „State on 2026-11-06” w poleceniu. Wcześniej, 2026-11-03: pdi `aadfbf9` (kontrakt 0.11.0), tf 5.58.4. Już jest: Z1, Z8a (krok `run`
 w kontenerze z sandboxem Claude Code), Z8c-2 z N3 (jedno polecenie weryfikacji w pierwszej linii CLAUDE.md produktu,
 wzór `templates/verify.sh` w talos-story-run); CI na GitHubie działa.
 
@@ -901,6 +965,17 @@ part in dbqm45/pdi (attach both with push access). Answer me in Polish; code, co
 Goal: cheap limits stop a phase that runs away, with a readable reason, and a loop goes to the pdi inbox instead of
 using up the budget: a turn limit next to the cost limit, a time limit, and a counter of identical tool calls (three in
 a row → an inbox item "faza się powtarza" with the last steps).
+
+State on 2026-11-06 (after the A6 run, pdi docs/przebieg-lokalny.md, A6 result): pdi main 7048263 (contract 0.11.0), tf
+5.58.7. A6 settled how personas run under `claude --print` in the phase container: Claude Code denies writes to
+`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or Talos runs
+must be in the settings template (tf core/tests/test_settings_coverage.py checks it); pdi marks the clone as trusted in
+the container, so the repository's allow list applies there; Talos keeps its run in `tmp/talos/runs/` and starts a cut
+with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has committed the change's decisions;
+phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
+when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
+docs/project/changes/CHG-n/runs/TSK-n.md. result.json's `persona` (status, cost_usd, detail, permission_denials) is an
+input for loop and limit detection.
 
 Read first: pdi docs/plan-zespol-jednoosobowy.md §8.3 (N13, N12, N16) and docs/plan-z8a-izolacja-faz.md; in tf
 modes/mode-pdi/skills/pdi-decisions/scripts/phase_run.py (how claude is started: --print, --max-budget-usd from
@@ -940,7 +1015,7 @@ exact names of the settings, statuses, hook and inbox item kind.
 ## N15 — tf + pdi: zakres zapisu fazy
 
 Grupa A5. Startuje po A6 (DZ19). Sesja w klonie tf; lista ścieżek fazy w kontrakcie pdi osobnym PR-em. Dotyka tych
-samych plików co N2, N12 i N13 (hooki, persony): prowadź po kolei albo uzgadniaj zmiany. **Stan przed startem (2026-11-03):** pdi `aadfbf9` (kontrakt 0.11.0), tf 5.58.4. Już jest: Z1, Z8a (krok `run`
+samych plików co N2, N12 i N13 (hooki, persony): prowadź po kolei albo uzgadniaj zmiany. **Stan przed startem (2026-11-06, po A6):** pdi `7048263` (kontrakt 0.11.0), tf 5.58.7; zmiany z A6 opisuje akapit „State on 2026-11-06” w poleceniu. Wcześniej, 2026-11-03: pdi `aadfbf9` (kontrakt 0.11.0), tf 5.58.4. Już jest: Z1, Z8a (krok `run`
 w kontenerze z sandboxem Claude Code), Z8c-2 z N3 (jedno polecenie weryfikacji w pierwszej linii CLAUDE.md produktu,
 wzór `templates/verify.sh` w talos-story-run); CI na GitHubie działa.
 
@@ -952,6 +1027,17 @@ Goal: a phase can write only its own files. guard_paths gets a list of allowed p
 change's intent.md; requirements: requirements.md; architecture: plan.md, release.yaml and architecture.md; design:
 design.md; delivery: code, tests and the change's run report); every phase may also add entries to decisions.md only
 through decision_record.py. A write outside the scope is a refusal in the log, not a silent skip.
+
+State on 2026-11-06 (after the A6 run, pdi docs/przebieg-lokalny.md, A6 result): pdi main 7048263 (contract 0.11.0), tf
+5.58.7. A6 settled how personas run under `claude --print` in the phase container: Claude Code denies writes to
+`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or Talos runs
+must be in the settings template (tf core/tests/test_settings_coverage.py checks it); pdi marks the clone as trusted in
+the container, so the repository's allow list applies there; Talos keeps its run in `tmp/talos/runs/` and starts a cut
+with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has committed the change's decisions;
+phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
+when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
+docs/project/changes/CHG-n/runs/TSK-n.md. The delivery write scope must include `tmp/talos/runs/` and
+docs/project/changes/<CHG>/runs/; `.claude/` is already unwritable in -p.
 
 Read first: pdi docs/plan-zespol-jednoosobowy.md §8.3 (N15), contract/contract.json (conventions) and
 contract/change.schema.json; in tf core/hooks/guard_paths.py (secrets, guardrails, context economy), how hooks are
@@ -989,7 +1075,7 @@ names of the contract field, the environment variable and the refusal message.
 
 Decyzje DZ14 i DZ18, z częścią konsoli kroku N19 (opcje pytań jako przyciski). Startuje po A6 (ponowny przebieg na
 `sdlc-proba`), przed etapem 2. Sesja w klonie pdi; część tf osobnym PR-em. Wygląd: `design/konsola/v2-klikalna/` (trzy
-pasy). **Stan przed startem (2026-11-03, sprawdzony ponownie):** pdi `e3f4d50` (kontrakt 0.11.0), tf 5.58.4; pytania
+pasy). **Stan przed startem (2026-11-06, po A6):** pdi `7048263` (kontrakt 0.11.0), tf 5.58.7; zmiany z A6 opisuje akapit „State on 2026-11-06” w poleceniu. Wcześniej, 2026-11-03: pdi `e3f4d50` (kontrakt 0.11.0), tf 5.58.4; pytania
 z opcjami (N19) wprowadza kontrakt z Z2a. Od pierwszej wersji tego polecenia weszły: Z1 (odpowiedzi na pytania bramki, decyzje
 zmiany w fazie), Z8a (krok `run` w kontenerze Docker), Z8c-2 (skaner w pętli talosa); CI na GitHubie znowu działa.
 
@@ -1002,6 +1088,17 @@ in English.
 Goal: on my Mac I follow and drive a whole change in the browser instead of the Claude console: I see where each change
 is (the three lanes), its steps, what runs in the background right now with a live progress indicator, and I decide at
 gates with buttons. No production service yet (that is Z3 after DA4), no chat, no notifications.
+
+State on 2026-11-06 (after the A6 run, pdi docs/przebieg-lokalny.md, A6 result): pdi main 7048263 (contract 0.11.0), tf
+5.58.7. A6 settled how personas run under `claude --print` in the phase container: Claude Code denies writes to
+`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or Talos runs
+must be in the settings template (tf core/tests/test_settings_coverage.py checks it); pdi marks the clone as trusted in
+the container, so the repository's allow list applies there; Talos keeps its run in `tmp/talos/runs/` and starts a cut
+with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has committed the change's decisions;
+phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
+when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
+docs/project/changes/CHG-n/runs/TSK-n.md. Show result.json's `persona` (detail, permission_denials, cost) in the change
+trace when a delivery fails.
 
 Read first: docs/plan-zespol-jednoosobowy.md §0, §5, §8.1 (Z7a, the three lanes) and §6; design/konsola/README.md and the
 clickable mock-ups in design/konsola/v2-klikalna/ (Main = board in three lanes, Slad = change trace with steps,
@@ -1098,7 +1195,7 @@ pdi; część tf tylko wtedy, gdy zmienia się szablon `sdlc-phase.yml`. **Stan 
 
 ```text
 Implement step Z8g of docs/plan-zespol-jednoosobowy.md (§8.2) in dbqm45/pdi: a credential proxy, so the real Claude
-token never enters the phase container. Start when A6 is done. Answer me in Polish; code, commits and PR title in
+token never enters the phase container. A6 is done (2026-11-06). Answer me in Polish; code, commits and PR title in
 English. If the tf template sdlc-phase.yml has to change, make that a small separate PR in dbqm45/tf (attach it with
 push access).
 
