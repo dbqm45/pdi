@@ -864,19 +864,25 @@ with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has 
 phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
 when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
 docs/project/changes/CHG-n/runs/TSK-n.md. N2 builds on the cut PRs pdi now opens (title from the commit, body from the
-report); keep that format.
+report); keep that format. Checked for this prompt on 2026-11-06: tf has no REVIEW.md of its own, it ships a template
+(core/skills/core-git-workflow/references/review-md.md, with przeglad-ai-w-ci.md) and dbqm45/sdlc-proba has no
+REVIEW.md yet; sdlc-proba has no CI job that runs the product's tests on a code PR (change-check.yml runs only on
+docs/project/changes/**, team-factory.yml only on factory/ and .claude/). N1 is not merged yet: if it still is not when
+you start, stop and tell me.
 
 Read first: docs/plan-zespol-jednoosobowy.md §8.3 (N2, N7, N12, N13), docs/plan-z1-decyzje-w-fazach.md,
 docs/plan-z8a-izolacja-faz.md and N1's plan; src/pdi/dispatch_local.py (delivery: `_publish_cuts`, PRs opened on the
 host), src/pdi/phase_sandbox.py, src/pdi/changes.py, src/pdi/inbox.py, src/pdi/trace.py; in tf the talos skills
-(talos-story-run), REVIEW.md, modes/mode-pdi phase_run.py, templates/sdlc-phase.yml and change-check.yml (Z8c-2).
+(talos-story-run), the REVIEW.md template and przeglad-ai-w-ci.md in core/skills/core-git-workflow/references/,
+modes/mode-pdi phase_run.py, templates/sdlc-phase.yml and change-check.yml (Z8c-2).
 
 Already done (do not redo): talos's slices go to PRs from the host (pdi, PRB-4); the persona runs in a container
 without GitHub tokens (Z8a); security findings block a slice and PRs are scanned in CI (Z8c-2); the change's decisions
 reach every phase (Z1); N1 validates review comments with a second model.
 
 1. Plan first in docs/plan-n2-petla-pr.md (pdi): files in both repos, order, tests, sources with dates. TDD.
-2. After delivery, per talos PR: AI review (tf REVIEW.md) → comment validation by the second model (N1) → talos fixes
+2. After delivery, per talos PR: AI review (the product's REVIEW.md; when it is missing, add one from the tf template
+   as part of the product scaffold) → comment validation by the second model (N1) → talos fixes
    only the validated comments → re-review; at most 2 rounds (as DZ6), then the PR goes to the human with the open
    comments. The loop ends early when only comments below a severity threshold remain (no blocking or important
    ones); those go into the PR as a list. Unvalidated comments go to the human as questions, not to a fix, and so does
@@ -884,10 +890,13 @@ reach every phase (Z1); N1 validates review comments with a second model.
 3. Red checks: CI runs on PRs again. The host reads the failing check's log (gh, with the token that stays on the host;
    locally the verification script of N3 as a fallback), passes it to talos as quoted data (it is external content),
    talos fixes, the host pushes and waits for green; the same round limit. Every fix round runs in the container of
-   Z8a; pushing and reading CI stay on the host.
+   Z8a; pushing and reading CI stay on the host. A PR with no checks at all is not green: decide in the plan whether N2
+   adds a job that runs the product's tests on code PRs to the mode-pdi templates (change-check.yml or a new one) or
+   relies on the N3 verification script run on the host, and say which counts as "green".
 4. Completion guide (shared with N7): every talos PR has a fixed section "Przewodnik dokończenia" — what is done, what
    is left for the human (files, steps), decisions taken outside the plan with a request to approve them, risks; it is
-   updated after each round.
+   updated after each round. The PR body already holds Talos's run report (pdi #151): the host edits only that
+   section (gh pr edit with a body file) and keeps the report and the `Change:` line.
 5. pdi: the change state gets `pr_loop` per PR (round, status: reviewing | fixing | green | needs_human, last reason);
    the inbox shows "PR gotowy do Twojego przeglądu" only when green or when the limit is reached; get_trace shows the
    rounds; cost per round in the phase report and within the phase budget. If the local console (Z3-lokalnie) is
@@ -903,7 +912,8 @@ one real review finding and one false one: the real one is fixed, the false one 
 Gates: pdi — uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src; tf — the
 repo's checks (workspace.py check --packs pack-it and --packs mode-pdi, skill gates of changed skills). CI runs on the
 PRs again: wait for it to be green and say in the PRs what you ran locally.
-Coordination: N12, N13 and N15 change the same files (phase_run.py, talos, dispatch_local.py); keep your changes small,
+Coordination: N12, N13 and N15 change the same files (phase_run.py, talos, dispatch_local.py), A7 switches the persona
+run to stream-json and adds the console (show pr_loop there), N1 owns the review script; keep your changes small,
 keep the branches up to date with main and resolve conflicts keeping both behaviours.
 When the gates pass, commit, push and open PRs to main (tf first if pdi depends on it), but do not merge them. At the
 end report in Polish: PR links, gates and results, the merge order, and the exact names of the new state fields,
