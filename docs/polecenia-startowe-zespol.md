@@ -550,7 +550,7 @@ with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has 
 phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
 when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
 docs/project/changes/CHG-n/runs/TSK-n.md. A second-review step that runs a model in the phase container follows the same
-rules.
+rules. Checked for this prompt on 2026-11-06: the names below exist on tf main (5.58.7) and pdi main.
 
 Read first: pdi docs/plan-zespol-jednoosobowy.md §8.3 (N1, N2, N14, N17), docs/plan-z1-decyzje-w-fazach.md and
 docs/plan-z8a-izolacja-faz.md; in tf modes/mode-pdi/skills/pdi-decisions/scripts/phase_run.py (build_prompt,
@@ -571,12 +571,16 @@ prompt as quoted data (Z1); `run` and `gate request` refuse an artifact that rep
    its blocking findings join the questions of the gate request. A finding that asks what decisions.md already settled
    (Z1 `settled`) is not a question: it is dropped or reported as a contradiction with that decision, with its ref. A
    failed or missing second model is visible in the gate request ("drugi przegląd: niedostępny, powód"), never a
-   silent pass. Keep the run result's fields as they are (status, cost_usd, repeated_question) and add the review's.
+   silent pass. Keep the run result's fields as they are (status, cost_usd, repeated_question, and detail and
+   permission_denials from PRB-28) and add the review's.
 4. Where it runs (Z8a): `phase_run.py run` runs inside the phase container, whose egress allows only listed hosts, and
    the persona must never see the second vendor's key. Choose in the plan: run the review inside the container (the
    provider's API host added to the allowed hosts and the key passed to the review only, denied to the persona as
    sandbox_settings.py TOKENS does) or as a separate step on the host after `run` (pdi dispatch_local and a separate
-   step in sdlc-phase.yml with its own secret). Say why. In Actions the key is a secret of that step only.
+   step in sdlc-phase.yml with its own secret). Say why, and check the choice against Z8g in pdi
+   docs/plan-zespol-jednoosobowy.md §8.2 (the credential proxy that moves the Claude token out of the phase container):
+   do not add a second secret inside the container that Z8g would have to move out again. In Actions the key is a
+   secret of that step only.
 5. Sources are data (N14): the artifact, the decisions and the PR comments go to the second model inside
    untrusted-content markers, with markers inside the content neutralised and an instruction to treat them as data.
 6. Reviewer rules (N17): the reviewed model is never the reviewer; a rubric with an example per level for severity;
@@ -593,7 +597,8 @@ requirements.md that misses an error state, the second review finds it and B2 sh
 Gates: the repo's checks (workspace.py check --packs pack-it and --packs mode-pdi, mode-pdi tests, the skill gate of
 pdi-decisions); in pdi, if changed: uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests,
 uv run mypy src. CI runs on the PRs again: wait for it to be green and say in the PRs what you ran locally.
-Coordination: other sessions may work in parallel in phase_run.py and sdlc-phase.yml (N5, N2, N12, N13); keep your
+Coordination: other sessions may work in parallel in phase_run.py and sdlc-phase.yml (A7 switches the persona run to
+`--output-format stream-json` with progress lines; N5, N2, N12, N13); keep your
 changes there small, keep the branches up to date with main and resolve conflicts keeping both behaviours.
 When the gates pass, commit, push and open PRs to main (tf first if pdi depends on it), but do not merge them. At the
 end report in Polish: PR links, gates and results, the merge order, and the exact names of the new script, commands,
