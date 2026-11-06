@@ -81,6 +81,18 @@ CLAUDE_PREFIXES = ("ANTHROPIC_", "CLAUDE_")
 # Claude Code przez Bedrock albo Vertex: dane chmury tylko z włączonym przełącznikiem.
 CLOUD_PREFIXES = {"CLAUDE_CODE_USE_BEDROCK": ("AWS_",), "CLAUDE_CODE_USE_VERTEX": ("GOOGLE_", "CLOUD_ML_", "GCLOUD_")}
 EXTRA_ENV_NAMES = "PDI_DISPATCH_ENV_PASS"  # noqa: S105 — nazwa zmiennej, nie hasło
+# Drugi przegląd (pdi plan-zespol-jednoosobowy §8.3 N1, DZ12): klucz dostawcy widoczny TYLKO dla kroku „second-review"
+# na hoście, nigdy w kontenerze persony (Z8g). PDI_SECOND_MODEL* — konfiguracja, OPENAI_API_KEY/ANTHROPIC_API_KEY —
+# klucze. Gdy żadnego klucza nie ma, second_review.py zapisze `status: unavailable, reason: no_api_key`, a phase_run.py
+# gate request pokaże to w prośbie o bramkę — niedostępność drugiego przeglądu zawsze jest widoczna, nigdy cichego OK.
+SECOND_REVIEW_PHASES = ("requirements", "architecture")
+SECOND_REVIEW_ENV = (
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "PDI_SECOND_MODEL",
+    "PDI_SECOND_MODEL_PRICE_IN",
+    "PDI_SECOND_MODEL_PRICE_OUT",
+)
 
 _PREFIXES = contract.settings()["prefixes"]
 _CHANGE = re.compile(rf"^{_PREFIXES['change']}-[0-9]{{1,9}}$")
@@ -508,6 +520,17 @@ def execute(
                                     {**problem_env, **claude_env})  # fmt: skip
         else:
             _, ran = step("run", script("phase_run.py", "run", *args), extra={**problem_env, **claude_env})
+
+        # Drugi przegląd (N1, DZ12): osobny krok na hoście, tylko dla requirements/architecture; klucz dostawcy nie
+        # wchodzi do kontenera fazy (Z8g). Krok sam nie zawodzi fazy — second_review.py zawsze kończy 0; niedostępność
+        # trafia do sidecara i stąd do prośby o bramkę jako `second_review: {status: unavailable, reason: …}`.
+        if phase in SECOND_REVIEW_PHASES:
+            review_env = {k: env[k] for k in SECOND_REVIEW_ENV if env.get(k)}
+            step(
+                "second-review",
+                script("second_review.py", "artifact", "--change", change, "--phase", phase),
+                extra=review_env,
+            )
 
         if phase == "delivery":
             try:

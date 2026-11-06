@@ -53,6 +53,28 @@ Skrócenie czasu:
   `# UWAGA: PDI_DISPATCH_SANDBOX=none`. **A6: pokryte testem `pytest tests/test_phase_sandbox.py` (12 passed), nie
   na żywo — pozostawione `[ ]` do przebiegu na komputerze właściciela.**
 
+### 0b. Drugi przegląd (N1, DZ12) — wymaga Twojego Maca
+
+- [ ] `~/.sdlc/env` ma `PDI_SECOND_MODEL=openai:gpt-4o-mini` i `OPENAI_API_KEY=sk-…` (albo zostaw puste — fallback
+  na zapasowy model Claude oznaczy wynik `same_vendor: true`). W repo próbnym `dbqm45/sdlc-proba`, w CHG-n,
+  przygotuj celowo niekompletny `requirements.md`: pozostaw tylko szczęśliwą ścieżkę, bez stanu błędu dla pliku
+  przekraczającego limit ani dla pliku z błędnym nagłówkiem.
+- [ ] Uruchom fazę `requirements` (przez pdi `decide_inbox_item` albo `dispatch_phase`). Oczekiwane:
+    - w logu przebiegu jest krok `second-review` po `run`, a przed `gate`;
+    - `docs/project/changes/CHG-n/requirements.md` kończy się sekcją `## Przegląd drugim modelem` z pozycją o braku
+      stanu błędu dla pliku > limit;
+    - `docs/project/changes/CHG-n/.review/requirements.json` ma `status: ok`, co najmniej jeden `blocker` lub
+      `major` z `kind: missing_error_state`, a `cost_usd` jest dodatnie (albo 0.0, gdy nie ustawiono
+      `PDI_SECOND_MODEL_PRICE_IN/_OUT`);
+    - prośba o bramkę B2 (pozycja w skrzynce pdi) zawiera pytanie z prefiksem `[drugi przegląd] …` (brak stanu
+      błędu dla pliku > limit) i pole `second_review.status = ok`.
+- [ ] Dla zapasowego dostawcy same-vendor (tymczasowo usuń `OPENAI_API_KEY` i zostaw `ANTHROPIC_API_KEY`):
+  sidecar ma `provider: claude, model: claude-sonnet-4-5-20251022, same_vendor: true`; sekcja w artefakcie i w
+  prośbie o bramkę ma dopisek „— same_vendor".
+- [ ] Niedostępność: celowo wyłącz oba klucze (puste `OPENAI_API_KEY` i `ANTHROPIC_API_KEY`); sidecar ma
+  `status: unavailable, reason: no_api_key`, prośba o bramkę pokazuje `second_review: {status: unavailable,
+  reason: no_api_key}` — nigdy cichego OK.
+
 ## 1. Zgłoszenie i triaż
 
 - [x] **T** `uv run sdlc open` → formularz zgłoszeń. Wpisz zgłoszenie z README repo próbnego (albo **C**
