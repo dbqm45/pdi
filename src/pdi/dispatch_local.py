@@ -25,6 +25,7 @@ import re
 import shlex
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from collections.abc import Callable, Iterator, Mapping
@@ -56,6 +57,7 @@ DECISION_TEXT_MAX = 2000
 # Gałęzie cięć talosa (`talos-story-run`: story/<slug>); persona w trybie --print nie może ich wypchnąć (PRB-4).
 CUT_REFS = "refs/heads/story/"
 _CUT = re.compile(r"^story/[A-Za-z0-9_][A-Za-z0-9._/-]{0,199}$")
+_CUT_TASK = re.compile(r"^story/(tsk-[0-9]+)(?:-|$)", re.IGNORECASE)  # klucz cięcia z nazwy gałęzi Talosa
 # Log przebiegu zmienia się przy każdym kroku; bez zmian dłużej niż to — przebieg uznaje się za przerwany.
 STALE_SECONDS = 3 * 60 * 60
 LOCK_STALE_SECONDS = 60
@@ -509,7 +511,7 @@ def execute(
 
         if phase == "delivery":
             try:
-                cuts = _publish_cuts(step, cuts_before, ref, branch, github_env)
+                cuts = _publish_cuts(step, cuts_before, ref, branch, github_env, change)
             except _StepFailed as e:
                 e.persona = _persona_report(ran)
                 raise
@@ -586,8 +588,26 @@ def _cuts(step: Step) -> set[str]:
     return {b for b in out.split() if _CUT.match(b) and ".." not in b}
 
 
+def _cut_pr_text(step: Step, branch: str, start: str, change: str) -> tuple[str, str]:
+    """Tytuł i opis PR cięcia (PRB-34): tytuł z pierwszego commitu Talosa (Conventional Commits), opis z raportu
+    przebiegu `docs/project/changes/<CHG>/runs/<TSK>.md` z gałęzi cięcia, a bez niego lista commitów."""
+    _, out = step("pr", ["git", "log", "--reverse", "--format=%s", f"{start}..{branch}"], quiet=True)
+    subjects = [line for line in out.splitlines() if line.strip()]
+    title = subjects[0] if subjects else branch
+    match = _CUT_TASK.match(branch)
+    report = f"docs/project/changes/{change}/runs/{match.group(1).upper()}.md" if match else None
+    body = ""
+    if report:
+        code, text = step("pr", ["git", "show", f"{branch}:{report}"], ok=(0, 128), quiet=True)
+        body = text.strip() if code == 0 else ""
+    if not body:
+        missing = f" (raportu `{report}` nie ma na gałęzi)" if report else ""
+        body = "Commity cięcia" + missing + ":\n\n" + "\n".join(f"- {s}" for s in subjects)
+    return title, f"{body}\n\nChange: {change}\n"
+
+
 def _publish_cuts(
-    step: Step, before: set[str], ref: str, start: str, github_env: Mapping[str, str]
+    step: Step, before: set[str], ref: str, start: str, github_env: Mapping[str, str], change: str
 ) -> list[dict[str, str]]:
     """Wypycha nowe gałęzie cięć z commitami ponad `start` (gałąź fazy z decyzjami) i otwiera dla każdej PR do `ref`.
 
@@ -617,7 +637,14 @@ def _publish_cuts(
         code, out = step("pr", ["gh", "pr", "view", branch, "--json", "url", "-q", ".url"], ok=(0, 1), extra=github_env)
         url = _url(out) if code == 0 else None
         if not url:
-            _, out = step("pr", ["gh", "pr", "create", "--fill", "--head", branch, "--base", base], extra=github_env)
+            title, body = _cut_pr_text(step, branch, start, change)
+            with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".md", delete=False) as f:
+                f.write(body)
+            try:
+                argv = ["gh", "pr", "create", "--head", branch, "--base", base, "--title", title, "--body-file", f.name]
+                _, out = step("pr", argv, extra=github_env)
+            finally:
+                os.unlink(f.name)
             url = _url(out)
         if not url:
             raise _StepFailed("pr", f"Krok pr: gh nie podał adresu PR dla {branch} — szczegóły w logu.")

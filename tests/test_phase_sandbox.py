@@ -589,6 +589,7 @@ def test_claude_settings_turn_on_the_strict_sandbox_with_the_host_list() -> None
         "allowManagedDomainsOnly": True,
     }
     assert "~/.ssh" in sandbox["filesystem"]["denyRead"] and "~/.sdlc" in sandbox["filesystem"]["denyRead"]
+    assert sandbox["filesystem"]["allowRead"] == ["~/.claude/projects"], "transkrypty dla run_report.py finish (PRB-34)"
     denied = {e["name"] for e in sandbox["credentials"]["envVars"] if e["mode"] == "deny"}
     assert {"CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"} <= denied
     assert "Read(//proc/**)" in settings["permissions"]["deny"]
