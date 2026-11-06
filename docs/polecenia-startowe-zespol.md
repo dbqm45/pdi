@@ -630,13 +630,18 @@ with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has 
 phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
 when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
 docs/project/changes/CHG-n/runs/TSK-n.md. Use the A6 delivery attempts on CHG-3 (PRB-28 to PRB-34) as eval tasks: each
-had one clear cause.
+had one clear cause. Checked for this prompt on 2026-11-06: the skill evals (core/tests/run_skill_evals.py,
+core/tests/skill_evals, tf #102, #127, #130) and requirements_lint.py (packs/pack-it/skills/proc-requirements-shaping)
+are on tf main. The phase logs and result.json files of both runs are in my private registry on the Mac
+(PDI_REGISTRY_PATH, runs/), not on GitHub: build the tasks from the repos (sdlc-proba history, the change folders and
+PRs) and the run tables in pdi docs/przebieg-lokalny.md, and list in the plan what you would take from the logs so I
+can export it.
 
 Read first: pdi docs/plan-zespol-jednoosobowy.md §8.3 (N5, N16, N17), docs/przebieg-lokalny.md (the 2026-10-31 run and
 the A6 rerun), docs/plan-z1-decyzje-w-fazach.md and docs/plan-z8a-izolacja-faz.md; in tf the skill evals
 (core/tests/run_skill_evals.py, core/tests/skill_evals, the holdout sets and result-vs-cost reports of #102, #127,
 #130), modes/mode-pdi/skills/pdi-decisions/scripts/phase_run.py (the run result: status, cost_usd, error such as
-repeated_question) and the mode-pdi tests. Attach dbqm45/sprintdeck read-only if you take tasks from its history.
+repeated_question, detail and permission_denials) and the mode-pdi tests. Attach dbqm45/sprintdeck read-only if you take tasks from its history.
 
 1. Plan first in docs/plans/ (files, order, tests, sources with dates). Reuse what tf already has for skill evals
    instead of a second framework.
@@ -667,7 +672,9 @@ session has no model credentials, add it as a checklist item for me in pdi docs/
 and cost in the PR.
 Gates: the repo's checks (workspace.py check --packs pack-it and --packs mode-pdi, the skill gate, skill evals
 validation). CI runs on the PR again: wait for it to be green and say in the PR what you ran locally.
-Coordination: other sessions may work in parallel in phase_run.py (N1, N2, N12, N13); keep your changes there small,
+Coordination: other sessions may work in parallel in phase_run.py (A7 switches the persona run to
+`--output-format stream-json` with progress lines, N1 adds the second review and its cost to the result; N2, N12,
+N13); read the run result through one function so those changes do not break the runner; keep your changes there small,
 keep the branch up to date with main and resolve conflicts keeping both behaviours.
 When the gates pass, commit, push and open a PR to main, but do not merge it. At the end report in Polish: the PR link,
 gates and results, and the exact names of the new command, CI job, files, task fields and report fields (inputs for
