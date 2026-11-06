@@ -1098,7 +1098,9 @@ with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has 
 phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
 when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
 docs/project/changes/CHG-n/runs/TSK-n.md. Show result.json's `persona` (detail, permission_denials, cost) in the change
-trace when a delivery fails.
+trace when a delivery fails. Checked for this prompt on 2026-11-06: Z2a is not merged, so gate questions are still
+plain strings (`options` in contract/decision.schema.json are decision alternatives, not question options); `sdlc open`
+today opens ShipScope and the problem form, add the console there.
 
 Read first: docs/plan-zespol-jednoosobowy.md §0, §5, §8.1 (Z7a, the three lanes) and §6; design/konsola/README.md and the
 clickable mock-ups in design/konsola/v2-klikalna/ (Main = board in three lanes, Slad = change trace with steps,
@@ -1123,7 +1125,9 @@ slices with security findings (Z8c-2).
    plain words ("czyta plik X", "uruchamia testy", "pisze PR"). Because the run step is in a container that cannot see
    runs/ (Z8a), print the progress lines to stdout with a fixed prefix (one JSON object per line); pdi on the host
    picks them out of the streamed output. The final JSON result of `phase_run.py run` (status, cost_usd, detail,
-   repeated_question from Z1) must stay exactly as today. Never put prompt text, file contents, decision texts or
+   repeated_question from Z1, and detail and permission_denials from PRB-28) must stay exactly as today, and so must
+   pdi's `_persona_report` in dispatch_local.py, which reads the last JSON object of the run step's output (keep the
+   progress prefix so a progress line never parses as that object). Never put prompt text, file contents, decision texts or
    secrets into progress lines. Keep sdlc-phase.yml working (the progress lines simply go to the job log there).
 3. pdi (progress on the host): dispatch_local writes the prefixed lines from the run step into
    runs/<…>.progress.jsonl next to the log (validated against run_progress, anything else ignored) and keeps them out
