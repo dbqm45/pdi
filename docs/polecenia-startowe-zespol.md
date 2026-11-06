@@ -1124,8 +1124,8 @@ slices with security findings (Z8c-2).
    `run.progress` (started / in_progress / waiting_gate / done / failed), elapsed time, cost so far, the last action in
    plain words ("czyta plik X", "uruchamia testy", "pisze PR"). Because the run step is in a container that cannot see
    runs/ (Z8a), print the progress lines to stdout with a fixed prefix (one JSON object per line); pdi on the host
-   picks them out of the streamed output. The final JSON result of `phase_run.py run` (status, cost_usd, detail,
-   repeated_question from Z1, and detail and permission_denials from PRB-28) must stay exactly as today, and so must
+   picks them out of the streamed output. The final JSON result of `phase_run.py run` (status, cost_usd,
+   repeated_question from Z1, detail and permission_denials from PRB-28) must stay exactly as today, and so must
    pdi's `_persona_report` in dispatch_local.py, which reads the last JSON object of the run step's output (keep the
    progress prefix so a progress line never parses as that object). Never put prompt text, file contents, decision texts or
    secrets into progress lines. Keep sdlc-phase.yml working (the progress lines simply go to the job log there).
