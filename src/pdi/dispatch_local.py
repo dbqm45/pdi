@@ -81,6 +81,13 @@ CLAUDE_PREFIXES = ("ANTHROPIC_", "CLAUDE_")
 # Claude Code przez Bedrock albo Vertex: dane chmury tylko z włączonym przełącznikiem.
 CLOUD_PREFIXES = {"CLAUDE_CODE_USE_BEDROCK": ("AWS_",), "CLAUDE_CODE_USE_VERTEX": ("GOOGLE_", "CLOUD_ML_", "GCLOUD_")}
 EXTRA_ENV_NAMES = "PDI_DISPATCH_ENV_PASS"  # noqa: S105 — nazwa zmiennej, nie hasło
+# Drugi przegląd (pdi plan-zespol-jednoosobowy §8.3 N1, DZ12): klucz dostawcy widoczny TYLKO dla kroku „second-review"
+# na hoście, nigdy w kontenerze persony (Z8g). PDI_SECOND_MODEL* — konfiguracja, OPENAI_API_KEY/ANTHROPIC_API_KEY —
+# klucze. Gdy żadnego klucza nie ma, second_review.py zapisze `status: unavailable, reason: no_api_key`, a phase_run.py
+# gate request pokaże to w prośbie o bramkę — niedostępność drugiego przeglądu zawsze jest widoczna, nigdy cichego OK.
+SECOND_REVIEW_PHASES = ("requirements", "architecture")
+SECOND_REVIEW_ENV = ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "PDI_SECOND_MODEL",
+                     "PDI_SECOND_MODEL_PRICE_IN", "PDI_SECOND_MODEL_PRICE_OUT")
 
 _PREFIXES = contract.settings()["prefixes"]
 _CHANGE = re.compile(rf"^{_PREFIXES['change']}-[0-9]{{1,9}}$")
@@ -100,12 +107,18 @@ class _StepFailed(Exception):
 
 
 PERSONA_KEYS = ("status", "cost_usd", "detail", "permission_denials")
+# Linia postępu fazy (Z3-lokalnie, A7): tf wypisuje `PDI-PROGRESS: {json}` na stdout kroku `run`.
+# pdi po stronie hosta łapie je i zapisuje obok logu — konsola czyta je strumieniem (SSE).
+PROGRESS_PREFIX = "PDI-PROGRESS: "
+PROGRESS_STATUSES = ("started", "in_progress", "waiting_gate", "done", "failed")
 
 
 def _persona_report(output: str) -> dict[str, Any] | None:
-    """Wynik `phase_run.py run` (ostatni obiekt JSON w wyjściu kroku): status, koszt, końcówka odpowiedzi persony
-    i odmowy uprawnień. Bez tego `result.json` nieudanego delivery nie mówi, dlaczego Talos nie zostawił cięć."""
-    lines = output.splitlines()
+    """Wynik `phase_run.py run` (ostatni obiekt JSON w wyjściu kroku, pomijając linie `PDI-PROGRESS:`): status, koszt,
+    końcówka odpowiedzi persony i odmowy uprawnień. Bez tego `result.json` nieudanego delivery nie mówi, dlaczego Talos
+    nie zostawił cięć. Linie postępu nigdy nie zaczynają się od `{` — rzetelnie je pomijamy przy wyszukiwaniu końcowego
+    obiektu JSON."""
+    lines = [ln for ln in output.splitlines() if not ln.startswith(PROGRESS_PREFIX)]
     for i in range(len(lines) - 1, -1, -1):
         if lines[i].startswith("{"):
             try:
@@ -115,6 +128,51 @@ def _persona_report(output: str) -> dict[str, Any] | None:
             if isinstance(data, dict):
                 kept = {k: data[k] for k in PERSONA_KEYS if data.get(k) is not None}
                 return kept or None
+    return None
+
+
+def progress_path(log: Path) -> Path:
+    """Plik linii postępu obok logu przebiegu (jedna linia = jeden słownik JSON)."""
+    return log.with_name(log.stem + ".progress.jsonl")
+
+
+def _valid_progress(row: Any) -> bool:
+    """Minimalny checker linii postępu (`run_progress`): wymagane `phase`, `status`; typy pól opcjonalnych."""
+    if not isinstance(row, dict):
+        return False
+    if not isinstance(row.get("phase"), str) or not row["phase"]:
+        return False
+    if row.get("status") not in PROGRESS_STATUSES:
+        return False
+    for key in ("cost_usd", "budget_usd"):
+        value = row.get(key)
+        if value is not None and (not isinstance(value, (int, float)) or value < 0):
+            return False
+    for key in ("change", "task", "slice", "message", "url"):
+        value = row.get(key)
+        if value is not None and not isinstance(value, str):
+            return False
+    return True
+
+
+def last_progress_of(log: Path) -> dict[str, Any] | None:
+    """Ostatnia poprawna linia z `<log>.progress.jsonl` (słownik), albo None."""
+    path = progress_path(log)
+    if not path.is_file():
+        return None
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    for line in reversed(text.splitlines()):
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if _valid_progress(row):
+            return row
     return None
 
 
@@ -250,8 +308,11 @@ def settle(state: dict[str, Any]) -> dict[str, Any]:
     else:
         outcome = {"status": "failed", "error": "Przebieg nie zostawił wyniku (przerwany?) — szczegóły w logu."}
     new = copy.deepcopy(state)
-    keep = ("status", "finished_at", "pr", "prs", "cuts", "step", "error")
+    keep = ("status", "finished_at", "pr", "prs", "cuts", "step", "error", "persona")
     new["dispatch"] = {**dispatch, **{k: outcome[k] for k in keep if outcome.get(k)}}
+    progress = last_progress_of(log)  # Z3-lokalnie: ostatnia linia postępu dla panelu konsoli (DZ18).
+    if progress is not None:
+        new["dispatch"]["last_progress"] = progress
     entry = {"at": outcome.get("finished_at") or dispatch.get("at"), "what": f"dispatch.{new['dispatch']['status']}"}
     # PR-y w historii zostają, gdy następne uruchomienie fazy nadpisze `dispatch` (ślad zmiany, PRB-5).
     prs = {k: outcome[k] for k in ("pr", "cuts") if outcome.get(k)}
@@ -509,6 +570,15 @@ def execute(
         else:
             _, ran = step("run", script("phase_run.py", "run", *args), extra={**problem_env, **claude_env})
 
+        # Drugi przegląd (N1, DZ12): osobny krok na hoście, tylko dla requirements/architecture; klucz dostawcy nie
+        # wchodzi do kontenera fazy (Z8g). Krok sam nie zawodzi fazy — second_review.py zawsze kończy 0; niedostępność
+        # trafia do sidecara i stąd do prośby o bramkę jako `second_review: {status: unavailable, reason: …}`.
+        if phase in SECOND_REVIEW_PHASES:
+            review_env = {k: env[k] for k in SECOND_REVIEW_ENV if env.get(k)}
+            step("second-review",
+                 script("second_review.py", "artifact", "--change", change, "--phase", phase),
+                 extra=review_env)
+
         if phase == "delivery":
             try:
                 cuts = _publish_cuts(step, cuts_before, ref, branch, github_env, change)
@@ -673,15 +743,38 @@ def _heartbeat(name: str, log: Callable[[str], None]) -> Iterator[None]:
 
 
 def finish(spec: dict[str, Any], env: Mapping[str, str], *, run: Run) -> dict[str, Any]:
-    """Wykonuje przebieg z logiem w `spec["log"]` i zapisuje wynik obok; zwraca wynik."""
+    """Wykonuje przebieg z logiem w `spec["log"]` i zapisuje wynik obok; zwraca wynik.
+
+    Linie postępu fazy (`PDI-PROGRESS: {json}`, Z3-lokalnie A7) idą do `<log>.progress.jsonl`
+    po walidacji (`_valid_progress`), a reszta wyjścia — do logu. Linie błędne są pomijane,
+    żeby nie hałasować ani w logu, ani w strumieniu konsoli.
+    """
     log_path = Path(spec["log"])
+    progress = progress_path(log_path)
     lock = threading.Lock()
-    with log_path.open("a", encoding="utf-8") as f:
+    with log_path.open("a", encoding="utf-8") as f, progress.open("a", encoding="utf-8") as pf:
+
+        def _write_log(text: str) -> None:
+            f.write(text + "\n")
+            f.flush()
+
+        def _write_progress(row: dict[str, Any]) -> None:
+            pf.write(json.dumps(row, ensure_ascii=False) + "\n")
+            pf.flush()
 
         def log(line: str) -> None:
             with lock:  # wpisy znaku życia przychodzą z innego wątku
-                f.write(line + "\n")
-                f.flush()
+                # Kompozytowe linie (FakeRun w testach, `_stream_run` przekazuje po jednej) rozbij na wiersze.
+                for part in line.split("\n"):
+                    if part.startswith(PROGRESS_PREFIX):
+                        try:
+                            row = json.loads(part[len(PROGRESS_PREFIX):])
+                        except ValueError:
+                            continue
+                        if _valid_progress(row):
+                            _write_progress(row)
+                        continue
+                    _write_log(part)
 
         log(f"# pdi: {spec['change']} faza {spec['phase']} w {spec['checkout']}")
         try:

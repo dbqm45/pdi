@@ -470,6 +470,124 @@ def test_prompt_output_with_the_problem_stays_out_of_the_log(checkout: Path, tmp
     assert "$ git fetch origin" in log
 
 
+# --- Z3-lokalnie (A7): router linii postępu i settle z last_progress ---
+
+
+def _finish(checkout: Path, tmp_path: Path, run: FakeRun, **overrides: Any) -> tuple[Path, dict[str, Any]]:
+    """Pełny przebieg przez `finish(spec, env, run=run)` — tam działa router linii postępu."""
+    log = tmp_path / "runs" / "CHG-12-requirements-20261030T100000Z.log"
+    log.parent.mkdir(exist_ok=True)
+    log.write_text("", encoding="utf-8")
+    s = spec(checkout, tmp_path, **overrides)
+    s["log"] = str(log)
+    result = dispatch_local.finish(s, env={**HOST}, run=run)
+    return log, result
+
+
+PROGRESS = (
+    'PDI-PROGRESS: {"phase":"requirements","status":"started","change":"CHG-12"}\n'
+    'PDI-PROGRESS: {"phase":"requirements","status":"in_progress","change":"CHG-12",'
+    '"message":"czyta plik docs/project/changes/CHG-12/intent.md"}\n'
+    'PDI-PROGRESS: {"phase":"requirements","status":"waiting_gate","change":"CHG-12","cost_usd":0.42}\n'
+    '{\n  "change": "CHG-12",\n  "phase": "requirements",\n  "persona": "ewa",\n'
+    '  "gate": "B2",\n  "status": "waiting_gate",\n  "cost_usd": 0.42\n}'
+)
+
+
+def test_progress_lines_from_run_go_to_progress_file_not_log(checkout: Path, tmp_path: Path) -> None:
+    run = FakeRun({f"python3 {S}/phase_run.py run": (0, PROGRESS)})
+
+    log, _ = _finish(checkout, tmp_path, run)
+
+    progress_file = dispatch_local.progress_path(log)
+    rows = [json.loads(line) for line in progress_file.read_text(encoding="utf-8").splitlines() if line.strip()]
+    statuses = [row["status"] for row in rows]
+    assert statuses == ["started", "in_progress", "waiting_gate"]
+    assert rows[1]["message"] == "czyta plik docs/project/changes/CHG-12/intent.md"
+    log_text = log.read_text(encoding="utf-8")
+    assert "PDI-PROGRESS" not in log_text
+    assert '"persona": "ewa"' in log_text  # końcowy obiekt JSON wyniku zostaje w logu
+    assert "czyta plik" not in log_text  # wiadomość z linii postępu nie wycieka do logu
+
+
+def test_invalid_progress_lines_are_ignored(checkout: Path, tmp_path: Path) -> None:
+    bad = (
+        'PDI-PROGRESS: {"phase":"requirements","status":"oops"}\n'
+        'PDI-PROGRESS: {"phase":"","status":"started"}\n'
+        "PDI-PROGRESS: nie-json\n"
+        'PDI-PROGRESS: {"phase":"requirements","status":"started","message":123}\n'
+        'PDI-PROGRESS: {"phase":"requirements","status":"done","cost_usd":0.1}\n'
+        "{}"
+    )
+    run = FakeRun({f"python3 {S}/phase_run.py run": (0, bad)})
+
+    log, _ = _finish(checkout, tmp_path, run)
+
+    progress_file = dispatch_local.progress_path(log)
+    rows = [json.loads(line) for line in progress_file.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert [row["status"] for row in rows] == ["done"]
+
+
+def test_settle_adds_last_progress_from_file(checkout: Path, tmp_path: Path) -> None:
+    log = tmp_path / "runs" / "CHG-12-requirements.log"
+    log.parent.mkdir()
+    log.write_text("", encoding="utf-8")
+    dispatch_local.progress_path(log).write_text(
+        '{"phase":"requirements","status":"in_progress","change":"CHG-12","message":"pisze plik"}\n'
+        '{"phase":"requirements","status":"waiting_gate","change":"CHG-12","cost_usd":0.5}\n',
+        encoding="utf-8",
+    )
+    outcome = {"status": "done"}
+    dispatch_local.result_path(log).write_text(json.dumps(outcome), encoding="utf-8")
+    running = {"mode": "local", "status": "running", "log": str(log), "phase": "requirements"}
+    state = {"change": "CHG-12", "dispatch": running, "history": []}
+
+    settled = dispatch_local.settle(state)
+
+    assert settled["dispatch"]["last_progress"]["status"] == "waiting_gate"
+    assert settled["dispatch"]["last_progress"]["cost_usd"] == 0.5
+
+
+def test_settle_without_progress_file_still_works(checkout: Path, tmp_path: Path) -> None:
+    log = tmp_path / "runs" / "CHG-12-intent.log"
+    log.parent.mkdir()
+    log.write_text("", encoding="utf-8")
+    dispatch_local.result_path(log).write_text(json.dumps({"status": "done"}), encoding="utf-8")
+    running = {"mode": "local", "status": "running", "log": str(log), "phase": "intent"}
+
+    settled = dispatch_local.settle({"change": "CHG-12", "dispatch": running, "history": []})
+
+    assert "last_progress" not in settled["dispatch"]
+
+
+def test_persona_report_still_reads_the_final_json_object_past_progress_lines() -> None:
+    # Przy nieudanym delivery wyjście kroku `run` mieszane: linie postępu + końcowy obiekt wyniku persony.
+    persona = {
+        "change": "CHG-3",
+        "phase": "delivery",
+        "persona": "talos",
+        "status": "done",
+        "cost_usd": 0.72,
+        "detail": "semgrep: brak zapisywalnego HOME",
+        "permission_denials": [{"tool_name": "Bash"}],
+    }
+    mixed = (
+        'PDI-PROGRESS: {"phase":"delivery","status":"started","change":"CHG-3"}\n'
+        'PDI-PROGRESS: {"phase":"delivery","status":"in_progress","message":"uruchamia polecenie"}\n'
+        + json.dumps(persona, ensure_ascii=False, indent=2)
+        + "\n"
+    )
+
+    report = dispatch_local._persona_report(mixed)
+
+    assert report == {
+        "status": "done",
+        "cost_usd": 0.72,
+        "detail": "semgrep: brak zapisywalnego HOME",
+        "permission_denials": [{"tool_name": "Bash"}],
+    }
+
+
 # --- start ---
 
 
@@ -811,8 +929,12 @@ def test_steps_get_only_the_variables_their_tools_need(checkout: Path, tmp_path:
         )
         assert ("GH_TOKEN" in step_env) == github, argv
         persona = argv[2:3] == ["run"]
-        for name in ("ANTHROPIC_API_KEY", "CLAUDE_CONFIG_DIR", "PDI_CLAUDE_BIN"):
+        for name in ("CLAUDE_CONFIG_DIR", "PDI_CLAUDE_BIN"):
             assert (name in step_env) == persona, (name, argv)
+        # ANTHROPIC_API_KEY idzie do persony i — jako zapasowy dostawca same-vendor (N1, DZ12) — do kroku
+        # „second-review" na hoście; w kontenerze persony Z8g i tak ma go wyprowadzić, a innych kroków nie dotyka.
+        second_review = argv[:2] == ["python3", f"{S}/second_review.py"]
+        assert ("ANTHROPIC_API_KEY" in step_env) == (persona or second_review), argv
 
 
 def test_bedrock_or_vertex_credentials_go_to_the_persona_only_when_switched_on(checkout: Path, tmp_path: Path) -> None:
@@ -1120,3 +1242,6 @@ def test_stream_run_stops_a_step_past_its_time(tmp_path: Path, monkeypatch: pyte
 
 def test_stream_run_without_the_command(tmp_path: Path) -> None:
     assert dispatch_local._stream_run(["nie-ma-takiego-polecenia"], tmp_path, {}, print)[0] == 127
+
+
+# (Testy drugiego przeglądu N1/DZ12 żyją w osobnej gałęzi — tu nie dotyczą Z3-lokalnie.)
