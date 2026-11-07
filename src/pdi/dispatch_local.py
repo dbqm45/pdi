@@ -109,6 +109,7 @@ class _StepFailed(Exception):
         self.step = step
         self.error = error
         self.persona: dict[str, Any] | None = None  # co persona zgłosiła, gdy faza padła po kroku run (PRB-32)
+        self.pr: str | None = None  # PR fazy, gdy padła dopiero prośba o bramkę (retry ponawia tylko ją)
 
 
 PERSONA_KEYS = ("status", "cost_usd", "detail", "permission_denials")
@@ -606,14 +607,45 @@ def execute(
         if not url:
             raise _StepFailed("pr", "Krok pr: gh nie podał adresu PR — szczegóły w logu.")
         gate_args = ["--change", change, "--phase", phase, "--url", url]
-        step("gate", script("phase_run.py", "gate", "request", *gate_args), extra=gate_env)
+        try:
+            step("gate", script("phase_run.py", "gate", "request", *gate_args), extra=gate_env)
+        except _StepFailed as e:
+            e.pr = url
+            raise
         return {"status": "done", "pr": url}
     except _StepFailed as e:
         log(f"# błąd: {e.error}")
         failed: dict[str, Any] = {"status": "failed", "step": e.step, "error": e.error}
         if e.persona:
             failed["persona"] = e.persona
+        if e.pr:
+            failed["pr"] = e.pr
         return failed
+
+
+def request_gate(
+    *, checkout: Path, change: str, phase: str, url: str, env: Mapping[str, str], run: Run, log: Path
+) -> dict[str, Any]:
+    """Ponawia sam krok `gate` (prośbę o bramkę dla gotowego PR fazy), bez ponownego uruchamiania persony.
+
+    Gdy przy końcu fazy odbiornik pdi nie działał (np. `sdlc down`/`up`), PR fazy już jest, a brakuje tylko
+    `gate.requested`; ponowienie całej fazy napisałoby artefakt od nowa i otworzyło drugi PR.
+    """
+    passed = {name.strip() for name in (env.get(EXTRA_ENV_NAMES) or "").split(",") if name.strip()}
+    base = {k: v for k, v in env.items() if k in SYSTEM_ENV or k.startswith(SYSTEM_PREFIXES) or k in passed}
+    step_env = {**base, **{k: env[k] for k in GATE_ENV if k in env}}
+    argv = ["python3", f"{SCRIPTS}/phase_run.py", "gate", "request", "--change", change, "--phase", phase, "--url", url]
+    code, out = run(argv, checkout, step_env)
+    log.parent.mkdir(parents=True, exist_ok=True)
+    with log.open("a", encoding="utf-8") as f:
+        f.write(f"# pdi: ponowienie samej prośby o bramkę ({change} {phase})\n$ {shlex.join(argv)}\n")
+        if out.strip():
+            f.write(out.rstrip("\n") + "\n")
+        f.write(f"# koniec: {'done' if code == 0 else 'failed'}\n")
+    if code != 0:
+        error = f"Krok gate: `{shlex.join(argv)}` zakończone kodem {code} — szczegóły w logu."
+        return {"status": "failed", "step": "gate", "error": error, "pr": url}
+    return {"status": "done", "pr": url}
 
 
 Step = Callable[..., tuple[int, str]]
@@ -868,3 +900,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+default_run = _run  # domyślny wykonawca kroków (subprocess), dla wywołań spoza przebiegu
+is_fresh = _fresh  # „log zmieniany niedawno” — dla `sdlc down` (ostrzeżenie o fazie w toku)

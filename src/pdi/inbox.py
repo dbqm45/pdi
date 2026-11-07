@@ -17,6 +17,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import os
 import re
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -687,6 +688,27 @@ class Inbox:
             raise InvalidDecision(f"{change}: nie ma uruchomienia fazy ani wysyłki do ci_for_sdlc do ponowienia.")
         at = _iso(self.registry.now())
         out: dict[str, Any] = {"change": change}
+        gate_only = (
+            redo_run and self._dispatch.local and self._dispatch.checkout
+            and last.get("step") == "gate" and isinstance(last.get("pr"), str)
+        )  # fmt: skip
+        if gate_only:
+            log = Path(last.get("log") or self.registry.root / "runs" / f"{change}-{last['phase']}-gate.log")
+            result = dispatch_local.request_gate(
+                checkout=Path(str(self._dispatch.checkout)),
+                change=change,
+                phase=last["phase"],
+                url=last["pr"],
+                env=os.environ,
+                run=self._local_run or dispatch_local.default_run,
+                log=log,
+            )
+            state = self.changes.get(change)  # odbiornik mógł właśnie zapisać prośbę o bramkę
+            kept = {k: v for k, v in (state.get("dispatch") or last).items() if k not in ("step", "error")}
+            state["dispatch"] = {**kept, **result}
+            state["history"].append({"at": at, "what": "dispatch.gate_retried", "status": result["status"]})
+            out["dispatch"] = state["dispatch"]
+            redo_run = False
         if redo_run:
             run = {
                 "phase": last["phase"],

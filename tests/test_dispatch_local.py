@@ -1291,3 +1291,69 @@ def test_second_review_still_runs_without_a_provider_key(checkout: Path, tmp_pat
 
     assert result["status"] == "done"
     assert any(c[:3] == ["python3", f"{S}/second_review.py", "artifact"] for c in run.calls)
+
+
+# --- ponowienie samej prośby o bramkę (CHG-4 na Macu, 2026-11-07) ---
+
+GATE_CMD = f"python3 {S}/phase_run.py gate request"
+
+
+def test_failed_gate_request_keeps_the_pr_url(checkout: Path, tmp_path: Path) -> None:
+    """Odbiornik nie działał (restart stosu): PR jest, prośby o B1 nie ma — wynik musi pamiętać adres PR."""
+    run = FakeRun({GATE_CMD: (1, "✗ brak połączenia z pdi ([Errno 61] Connection refused)")})
+
+    result, _ = execute(spec(checkout, tmp_path), run)
+
+    assert (result["status"], result["step"], result["pr"]) == ("failed", "gate", PR)
+
+
+def test_request_gate_runs_only_the_gate_step(checkout: Path, tmp_path: Path) -> None:
+    run = FakeRun()
+    log = tmp_path / "runs" / "CHG-12-requirements-retry.log"
+    env = {**HOST, "PDI_TF_SIGNING_SECRET": "s", "PDI_EVENTS_URL": "http://127.0.0.1:8787", "GH_TOKEN": TOKEN}
+
+    result = dispatch_local.request_gate(
+        checkout=checkout, change="CHG-12", phase="requirements", url=PR, env=env, run=run, log=log
+    )
+
+    assert result == {"status": "done", "pr": PR}
+    assert [" ".join(c) for c in run.calls] == [f"{GATE_CMD} --change CHG-12 --phase requirements --url {PR}"]
+    step_env = run.envs[0]
+    assert step_env["PDI_TF_SIGNING_SECRET"] == "s"  # noqa: S105 — sekret testowy
+    assert "GH_TOKEN" not in step_env
+    assert "gate request" in log.read_text(encoding="utf-8")
+
+    failing = FakeRun({GATE_CMD: (1, "✗ brak połączenia")})
+    again = dispatch_local.request_gate(
+        checkout=checkout, change="CHG-12", phase="requirements", url=PR, env=env, run=failing, log=log
+    )
+    assert (again["status"], again["step"], again["pr"]) == ("failed", "gate", PR)
+
+
+def test_retry_dispatch_after_a_failed_gate_resends_only_the_gate(checkout: Path, tmp_path: Path) -> None:
+    from pdi.changes import ChangeStore
+    from pdi.inbox import Inbox
+    from pdi.registry import Registry
+
+    registry = Registry(tmp_path / "rejestr")
+    registry.root.mkdir(parents=True)
+    failed = {"mode": "local", "status": "failed", "phase": "intent", "rework": False, "step": "gate",
+              "error": "Krok gate: … kodem 1", "pr": PR, "gate": "triage", "outcome": "accepted",
+              "decision": "DEC-0018", "log": str(tmp_path / "runs" / "CHG-12-intent.log")}  # fmt: skip
+    ChangeStore(registry).save({"change": "CHG-12", "status": "open", "history": [], "dispatch": failed})
+    spawn, run = FakeSpawn(), FakeRun()
+    inbox = Inbox(
+        registry,
+        dispatch=DispatchConfig(repo=None, mode="local", checkout=str(checkout)),
+        local_spawn=spawn,
+        local_run=run,
+    )
+
+    out = inbox.retry_dispatch("CHG-12")
+
+    assert not spawn.specs, "faza nie startuje od nowa — PR fazy jest, brakuje tylko prośby o bramkę"
+    assert [" ".join(c) for c in run.calls] == [f"{GATE_CMD} --change CHG-12 --phase intent --url {PR}"]
+    assert out["dispatch"]["status"] == "done" and out["dispatch"]["pr"] == PR
+    stored = ChangeStore(registry).get("CHG-12")
+    assert stored["dispatch"]["status"] == "done" and "step" not in stored["dispatch"]
+    assert stored["history"][-1]["what"] == "dispatch.gate_retried"
