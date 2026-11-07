@@ -21,6 +21,8 @@ Zapisz w rejestrze pdi decyzję z tej rozmowy. $ARGUMENTS
      `hypothesis` albo `ai_inference` (Twój wniosek, nie człowieka);
    - `assumptions` — założenia, na których decyzja stoi; `load_bearing: true`, gdy ich upadek zmienia decyzję,
      `invalidated_if` — konkretny sygnał, że założenie przestało być prawdziwe;
+   - `consequences` — skutki z `effect` `good` / `bad` / `neutral`, i `confirmation` — jak sprawdzić, że decyzję
+     wykonano (`how`, opcjonalnie `kind` i `ref`, np. id testu) — tylko jeśli padły w rozmowie;
    - `kind`, `tags`, `dependencies`, `success_metric`, `review_by`, `links` — tylko jeśli wynikają z rozmowy;
    - `source`: `{kind: "claude-cli", excerpt: <krótki cytat z rozmowy, w którym zapadła decyzja>}`;
      `drafted_by: "ai"`.

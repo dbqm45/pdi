@@ -55,6 +55,9 @@ drobnego, wpisz `/record-decision`, zatwierdź szkic. W `~/pdi-decisions/decisio
 z commitem (`git -C ~/pdi-decisions log`). Push robisz sam: `git -C ~/pdi-decisions push`.
 
 Aktualizacja pdi później: `cd ~/pdi && git pull && uv sync`.
+Po aktualizacji do wersji z kontraktem 0.14.0 jednorazowo: `PDI_REGISTRY_PATH=~/pdi-decisions uv run --directory ~/pdi
+pdi-records migrate` — dopisuje znacznik Decision Record (`record: decision`) w starszych plikach rejestru, jednym
+commitem; nowe decyzje dostają go same.
 
 Opcjonalnie dopisz [`CLAUDE-fragment.md`](CLAUDE-fragment.md) do `~/.claude/CLAUDE.md` — Claude będzie sprawdzał
 wcześniejsze decyzje, zanim coś zaproponuje.
