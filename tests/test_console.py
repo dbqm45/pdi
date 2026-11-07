@@ -168,6 +168,32 @@ def test_board_lists_each_change_in_its_lane(registry: Registry) -> None:
         server.shutdown()
 
 
+@pytest.mark.parametrize(
+    ("waiting", "expected"),
+    [
+        pytest.param(["design-review"], "czeka na bramkę design-review", id="bramka-otwarta"),
+        pytest.param([], "bramka design-review rozstrzygnięta", id="bramka-rozstrzygnieta"),
+    ],
+)
+def test_board_card_separates_phase_from_progress(registry: Registry, waiting: list[str], expected: str) -> None:
+    progress = {"phase": "design", "status": "waiting_gate", "message": "design-review", "cost_usd": 0.42}
+    _write_change(
+        registry,
+        "CHG-4",
+        waiting=waiting,
+        dispatch={"mode": "local", "status": "done", "phase": "design", "last_progress": progress},
+    )
+    deps = console.Deps(registry, checkout=None)
+    server, url = _serve(deps)
+    try:
+        _, body, _ = _get(f"{url}/board?t={TOKEN}")
+        card = body.decode("utf-8").split('<span class="chg">CHG-4</span>')[1].split("</li>")[0]
+        assert '<span class="phase">design</span>' in card
+        assert f'<div class="progress"><small>{expected} · 0.42 USD</small></div>' in card
+    finally:
+        server.shutdown()
+
+
 def test_board_requires_token(registry: Registry) -> None:
     deps = console.Deps(registry, checkout=None)
     server, url = _serve(deps)
