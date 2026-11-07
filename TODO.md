@@ -138,3 +138,20 @@ najlepiej udokumentowanym sygnałem wyprzedzającym przy kodzie od agentów jest
     tydzień (zespół), miesiąc, kwartał.
 
   Rozstrzygnięcie G7 zapisać jako decyzję w rejestrze.
+
+## Format Decision Record (przyjęte 2026-11-07, DR1–DR4)
+
+Ustalenia: [propozycja](docs/propozycja-decision-record.md), decyzje DR1–DR4 w [`decyzje.md`](docs/decyzje.md).
+Kroki (TDD, wersja kontraktu wg SemVer, tag `contract-v…` po merge'u):
+- [ ] **Kontrakt 0.14.0:** opcjonalne `record` (`decision`), `schema` i `contract_version` w `decision.schema.json`;
+  opcjonalne `consequences` (dobre i złe skutki) i `confirmation` (jak sprawdzić wykonanie) — razem z polem `verify`
+  z sekcji „Decyzje przypięte do kodu” wyżej, żeby nie były dwoma polami o tym samym. Przykład, README kontraktu.
+- [ ] **Specyfikacja `contract/decision-record.md`:** znacznik, reguła rozpoznania (`.md` z `record: decision`),
+  łańcuch zastąpień, katalogi, wersjonowanie, przykład.
+- [ ] **Zapis ze znacznikiem:** rejestr pdi (`registry.py`) i tf `decision_record.py` (pozycja w tf przy następnej
+  zmianie `mode-pdi`); skrypt dopisujący znacznik w istniejących rejestrach (jeden commit). Nazwy plików bez zmian (DR2).
+- [ ] **Walidator `pdi-validate <plik|katalog>`:** plik bez znacznika = nie Decision Record; ze znacznikiem —
+  nagłówek przechodzi schemat; kod wyjścia dla CI.
+- [ ] **Eksport do MADR** (DR3) decyzji `kind: technical` do `docs/decisions/nnnn-title.md`: najpierw ustalić wersję
+  docelową (4.0.0 albo układ 2.1.2 / 3.x, który czytają adr-log, ADR Manager, Log4brains, pyadr i Backstage —
+  `adr.github.io/adr-tooling/`, 2026-11-07). Import ADR-ów — dopiero przy zespole z istniejącymi ADR.
