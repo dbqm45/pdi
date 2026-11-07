@@ -48,7 +48,7 @@ def test_schema_is_valid_json_schema_2020_12(name: str) -> None:
 def test_settings_define_version_key_pattern_and_default_prefixes() -> None:
     settings = contract.settings()
 
-    assert settings["version"] == contract.CONTRACT_VERSION == "0.13.0"
+    assert settings["version"] == contract.CONTRACT_VERSION == "0.14.0"
     assert settings["prefixes"] == {"problem": "PRB", "change": "CHG", "task": "TSK", "decision": "DEC"}
     assert settings["key_pattern"] == "^[A-Z][A-Z0-9]+-[0-9]+$"
 
@@ -845,3 +845,45 @@ def test_gate_request_accepts_second_review_sent_by_tf(review: object) -> None:
 )
 def test_gate_request_rejects_malformed_second_review(review: object) -> None:
     assert contract.errors("event", _gate_with_review(review)) != []
+
+
+# --- kontrakt 0.14.0: Decision Record (znacznik w nagłówku, DR1) i pola z MADR (DR4) ---
+
+
+def test_decision_example_is_a_decision_record() -> None:
+    d = example("decision")
+
+    assert (d["record"], d["contract_version"]) == ("decision", contract.CONTRACT_VERSION)
+    assert d["schema"].endswith("/contract/decision.schema.json")
+    assert {c["effect"] for c in d["consequences"]} <= {"good", "bad", "neutral"}
+    assert d["confirmation"]["how"]
+    assert contract.errors("decision", d) == []
+
+
+def test_decision_without_record_fields_is_still_valid() -> None:
+    new = ("record", "schema", "contract_version", "consequences", "confirmation")
+    d = {k: v for k, v in example("decision").items() if k not in new}
+
+    assert contract.errors("decision", d) == []
+
+
+@pytest.mark.parametrize(
+    "patch",
+    [
+        pytest.param({"record": "adr"}, id="record-inny"),
+        pytest.param({"schema": "decision.schema.json"}, id="schema-bez-https"),
+        pytest.param({"contract_version": "0.14"}, id="wersja-nie-semver"),
+        pytest.param({"consequences": [{"text": "x", "effect": "great"}]}, id="effect-spoza-listy"),
+        pytest.param({"consequences": [{"effect": "good"}]}, id="skutek-bez-tekstu"),
+        pytest.param({"confirmation": {"kind": "test"}}, id="confirmation-bez-how"),
+        pytest.param({"confirmation": {"how": "x", "kind": "vibes"}}, id="kind-spoza-listy"),
+        pytest.param({"confirmation": {"how": "x", "extra": 1}}, id="nieznane-pole"),
+    ],
+)
+def test_decision_record_fields_reject_bad_values(patch: dict[str, Any]) -> None:
+    assert contract.errors("decision", {**example("decision"), **patch}) != []
+
+
+def test_events_from_contract_0_13_0_are_still_valid() -> None:
+    for t in EVENT_TYPES:
+        assert contract.errors("event", {**example(f"event-{t}"), "contract_version": "0.13.0"}) == []

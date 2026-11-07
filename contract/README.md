@@ -4,7 +4,10 @@ Schematy i zasady wspólne dla pdi, tf, ci_for_sdlc i ShipScope ([decyzja D1](..
 Wersjonowany wg SemVer 2.0.0 w [`contract.json`](contract.json); zmiana niezgodna wstecz podnosi wersję główną
 (w 0.x — drugą liczbę). Odbiorca zdarzeń przypina wersję przez pole `contract_version`.
 
-Wersja: `0.13.0`. Historia: 0.13.0 — opcjonalne pole `second_review` w `gate.requested` (`status`, `reason`,
+Wersja: `0.14.0`. Historia: 0.14.0 — format Decision Record w decyzji: znacznik `record: decision`, `schema`
+i `contract_version` (DR1) oraz pola z MADR `consequences` (skutki `good` / `bad` / `neutral`) i `confirmation`
+(`how`, `kind`, `ref`: jak sprawdzić, że decyzję wykonano; DR4) — [propozycja](../docs/propozycja-decision-record.md);
+0.13.0 — opcjonalne pole `second_review` w `gate.requested` (`status`, `reason`,
 `provider`, `model`, `same_vendor`, `cost_usd`, `findings_total`, `blocking`, `contradictions`: streszczenie
 drugiego przeglądu artefaktu przed B2 i B3, N1; tf wysyłał je od 5.64, a pdi 0.12.0 odrzucał prośbę kodem 400);
 0.12.0 — opcjonalne pole `targets` w planie wydania
@@ -43,7 +46,7 @@ nazwy: `decision`, `problem`, `change`, `task`, `event`, `story`, `release_plan`
 `triage_recommendation`, `reconstruction`, `design_links`. Tabela z `design.md`: `from pdi.design import
 parse_design_md`.
 
-Zgodność wstecz: 0.13.0 dodaje tylko pole opcjonalne (`gate.requested.second_review`); 0.12.0 dodaje tylko pola opcjonalne (`release_plan.targets` i `readiness.changed.targets_status`);
+Zgodność wstecz: 0.14.0 dodaje tylko pola opcjonalne decyzji (`record`, `schema`, `contract_version`, `consequences`, `confirmation`); 0.13.0 dodaje tylko pole opcjonalne (`gate.requested.second_review`); 0.12.0 dodaje tylko pola opcjonalne (`release_plan.targets` i `readiness.changed.targets_status`);
 0.11.0 dodaje tylko pole opcjonalne; 0.9.0 dodaje nowy schemat i konwencję; 0.8.0 dodaje tylko nowy schemat; 0.7.0 dodaje tylko nowy typ zdarzenia i wartość `source.kind`; 0.6.0 dodaje tylko nowy schemat; wszystkie pola dodane w 0.5.0 są opcjonalne, a zdarzenia
 z `contract_version` 0.4.0–0.6.0 dalej przechodzą walidację. Zestaw wzorcowy `fixtures/story-shape/` ma wersję 0.4.0 — tę, w której zmienił się ostatnio.
 

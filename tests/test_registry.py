@@ -376,6 +376,18 @@ def test_autonomy_fields_survive_record_and_get(registry: Registry, make_draft: 
     assert (got["decision_type"], got["draft_edited"], got["automation"]["level"]) == ("flag.stage_advance", True, 2)
 
 
+def test_decision_record_fields_survive_record_and_get(registry: Registry, make_draft: Draft) -> None:
+    consequences = [
+        {"text": "Marża dostawy zostaje dodatnia.", "effect": "good"},
+        {"text": "Część klientów porzuci koszyk poniżej progu.", "effect": "bad"},
+    ]
+    confirmation = {"how": "Raport marży dostawy co miesiąc", "kind": "metric", "ref": "marza_dostawy"}
+    registry.record(make_draft(consequences=consequences, confirmation=confirmation))
+
+    got = registry.get("DEC-0001")
+    assert (got["consequences"], got["confirmation"]) == (consequences, confirmation)
+
+
 # --- pomiar szkiców AI (DA2, PRB-21) ---
 
 

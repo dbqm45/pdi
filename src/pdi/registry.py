@@ -22,6 +22,9 @@ SCHEMA_PATH = contract.schema_path("decision")
 
 REGISTRY_FIELDS = ("id", "status", "recorded_at", "supersedes", "superseded_by")
 FIELD_ORDER = (
+    "record",
+    "schema",
+    "contract_version",
     "id",
     "statement",
     "why",
@@ -42,6 +45,8 @@ FIELD_ORDER = (
     "dependencies",
     "answers",
     "success_metric",
+    "consequences",
+    "confirmation",
     "review_by",
     "supersedes",
     "superseded_by",
