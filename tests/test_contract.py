@@ -48,7 +48,7 @@ def test_schema_is_valid_json_schema_2020_12(name: str) -> None:
 def test_settings_define_version_key_pattern_and_default_prefixes() -> None:
     settings = contract.settings()
 
-    assert settings["version"] == contract.CONTRACT_VERSION == "0.12.0"
+    assert settings["version"] == contract.CONTRACT_VERSION == "0.13.0"
     assert settings["prefixes"] == {"problem": "PRB", "change": "CHG", "task": "TSK", "decision": "DEC"}
     assert settings["key_pattern"] == "^[A-Z][A-Z0-9]+-[0-9]+$"
 
@@ -792,3 +792,56 @@ def test_invalid_targets_status_is_rejected(patch: dict[str, Any]) -> None:
     bad = {**event, "payload": payload}
 
     assert contract.errors("event", bad) != []
+
+
+# --- kontrakt 0.13.0: streszczenie drugiego przeglądu `second_review` w `gate.requested` (N1) ---
+
+
+def _gate_with_review(review: object) -> dict[str, Any]:
+    event = example("event-gate.requested")
+    event["payload"] = {**event["payload"], "gate": "B2", "second_review": review}
+    return event
+
+
+def test_gate_request_without_second_review_remains_valid() -> None:
+    assert contract.errors("event", example("event-gate.requested")) == []
+
+
+@pytest.mark.parametrize(
+    "review",
+    [
+        pytest.param(
+            {
+                "status": "ok",
+                "provider": "claude",
+                "model": "reviewer-model",
+                "same_vendor": True,
+                "cost_usd": 0.12,
+                "findings_total": 3,
+                "blocking": 1,
+                "contradictions": 0,
+            },
+            id="przeglad-wykonany",
+        ),
+        pytest.param({"status": "unavailable", "reason": "not_run"}, id="przeglad-nieuruchomiony"),
+        pytest.param(
+            {"status": "unavailable", "reason": "no_key", "provider": None, "model": None},
+            id="brak-dostawcy",
+        ),
+    ],
+)
+def test_gate_request_accepts_second_review_sent_by_tf(review: object) -> None:
+    assert contract.errors("event", _gate_with_review(review)) == []
+
+
+@pytest.mark.parametrize(
+    "review",
+    [
+        pytest.param({"provider": "claude"}, id="bez-statusu"),
+        pytest.param({"status": "ok", "blocking": -1}, id="ujemna-liczba"),
+        pytest.param({"status": "ok", "same_vendor": "yes"}, id="zly-typ"),
+        pytest.param("ok", id="nie-obiekt"),
+    ],
+)
+def test_gate_request_rejects_malformed_second_review(review: object) -> None:
+    assert contract.errors("event", _gate_with_review(review)) != []

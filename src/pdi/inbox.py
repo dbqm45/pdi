@@ -198,7 +198,7 @@ class Inbox:
         }
         missing = flow.missing_before(state, gate)
         item.update(gate=gate, missing_before=missing)
-        for key in ("artifact", "url", "questions", "targets"):
+        for key in ("artifact", "url", "questions", "targets", "second_review"):
             if key in payload:
                 item[key] = payload[key]
         if missing:
