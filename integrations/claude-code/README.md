@@ -58,6 +58,8 @@ Aktualizacja pdi później: `cd ~/pdi && git pull && uv sync`.
 Po aktualizacji do wersji z kontraktem 0.14.0 jednorazowo: `PDI_REGISTRY_PATH=~/pdi-decisions uv run --directory ~/pdi
 pdi-records migrate` — dopisuje znacznik Decision Record (`record: decision`) w starszych plikach rejestru, jednym
 commitem; nowe decyzje dostają go same.
+Sprawdzenie rejestru (np. przed pushem albo w CI): `uv run --directory ~/pdi pdi-validate ~/pdi-decisions` — wg
+[specyfikacji Decision Record](../../contract/decision-record.md); kod wyjścia 1 przy błędzie.
 
 Opcjonalnie dopisz [`CLAUDE-fragment.md`](CLAUDE-fragment.md) do `~/.claude/CLAUDE.md` — Claude będzie sprawdzał
 wcześniejsze decyzje, zanim coś zaproponuje.

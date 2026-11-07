@@ -29,6 +29,7 @@ agenta; DA1, DA2), `source_reported_at` w nagłówku zmiany (lead time od zgłos
 | Plik | Obiekt | Gdzie żyje | Przykład |
 |---|---|---|---|
 | [`decision.schema.json`](decision.schema.json) | decyzja `DEC` (pola: [dokument 14 §4.1](../docs/14-pdi-standalone.md#41-schemat-decyzji-contractdecisionschemajson)) | rejestr pdi; nagłówki wpisów w `changes/CHG-n/decisions.md` | [`examples/decision.json`](examples/decision.json) |
+| [`decision-record.md`](decision-record.md) | **Decision Record** — specyfikacja pliku decyzji: rozpoznanie po `record: decision`, znacznik, nazwa pliku, katalogi, zastąpienia, wersjonowanie; walidator `pdi-validate` | każdy plik decyzji, także poza pdi | przykład w §10 |
 | [`problem.schema.json`](problem.schema.json) | zgłoszenie `PRB`: kto nie może czego → skutek, stan triażu | baza pdi | [`examples/problem.json`](examples/problem.json) |
 | [`change.schema.json`](change.schema.json) | nagłówek YAML artefaktu w `docs/project/changes/CHG-n/` (nagłówek tf + `change`, `source`, od 0.5.0 opcjonalnie `source_reported_at`, `tasks`) | repo zmiany | [`examples/change.json`](examples/change.json) |
 | [`task.schema.json`](task.schema.json) | cięcie `TSK` z rodzicem `CHG` | `plan.md` zmiany | [`examples/task.json`](examples/task.json) |

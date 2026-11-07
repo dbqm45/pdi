@@ -15,6 +15,7 @@ dependencies = [
 pdi-mcp = "pdi.mcp_server:main"
 pdi-stats = "pdi.stats:main"
 pdi-records = "pdi.records:main"
+pdi-validate = "pdi.validate:cli"
 pdi-receiver = "pdi.receiver:main"
 pdi-console = "pdi.console:main"
 pdi-impact-review = "pdi.impact:main"

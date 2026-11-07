@@ -149,15 +149,17 @@ Kroki (TDD, wersja kontraktu wg SemVer, tag `contract-v…` po merge'u):
   „Decyzje przypięte do kodu” (zostaje tam tylko `reversibility`). Rejestr zapisuje nowe pola; przyjmowanie ich
   w narzędziach MCP (`record_decision`, `decide_inbox_item`) i wyświetlanie w treści pliku — razem z krokiem „Zapis
   ze znacznikiem”.
-- [ ] **Specyfikacja `contract/decision-record.md`:** znacznik, reguła rozpoznania (`.md` z `record: decision`),
-  łańcuch zastąpień, katalogi, wersjonowanie, przykład.
+- [x] **Specyfikacja `contract/decision-record.md`** (2026-11-07, [plan](docs/plan-spec-i-walidator-dr.md)):
+  plik, rozpoznanie po `record: decision`, znacznik, pola, nazwa pliku, katalogi, zastąpienia, wersjonowanie,
+  sprawdzanie, przykład (test pilnuje, że przechodzi walidator). Do opisania: znaczenie `status: reverted`.
 - [x] **Zapis ze znacznikiem** (2026-11-07, [plan](docs/plan-zapis-decision-record.md)): rejestr pdi nadaje znacznik
   przy każdym zapisie (klient go nie podaje); `pdi-records migrate` dopisuje go w istniejących rejestrach w miejscu,
   jednym commitem; treść pliku pokazuje „Skutki” i „Jak sprawdzić”; `record_decision`, `supersede_decision`
   i `decide_inbox_item` przyjmują `consequences` i `confirmation`. tf bez zmian: `decisions.md` zmiany to dziennik
   wpisów, do rejestru trafia eksportem i wtedy dostaje znacznik od pdi.
-- [ ] **Walidator `pdi-validate <plik|katalog>`:** plik bez znacznika = nie Decision Record; ze znacznikiem —
-  nagłówek przechodzi schemat; kod wyjścia dla CI.
+- [x] **Walidator `pdi-validate <plik|katalog>...`** (2026-11-07): katalogi rekurencyjnie (pliki bez `record`
+  pomijane), plik podany wprost musi być DR; nagłówek, znacznik, wersja nie nowsza niż walidator, schemat, nazwa
+  pliku; powtórzone `id` i spójność zastąpień; komunikaty bez treści decyzji; kod wyjścia 1 dla CI.
 - [ ] **Eksport do MADR** (DR3) decyzji `kind: technical` do `docs/decisions/nnnn-title.md`: najpierw ustalić wersję
   docelową (4.0.0 albo układ 2.1.2 / 3.x, który czytają adr-log, ADR Manager, Log4brains, pyadr i Backstage —
   `adr.github.io/adr-tooling/`, 2026-11-07). Import ADR-ów — dopiero przy zespole z istniejącymi ADR.
