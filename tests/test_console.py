@@ -627,3 +627,20 @@ def test_newer_phase_branch_wins(registry: Registry, checkout: Path) -> None:
         assert _get(f"{url}/trace/CHG-1/file?path=intent.md&t={TOKEN}")[1] == b"# intent v2\n"
     finally:
         server.shutdown()
+
+
+def test_pages_let_the_browser_send_a_real_origin_on_post(registry: Registry) -> None:
+    """Na Macu „approve” dawało 403 origin (2026-11-07): przy `Referrer-Policy: no-referrer` przeglądarka wysyła
+    `Origin: null` w POST formularza (Fetch Standard, „serializing a request origin”), a konsola słusznie to odrzuca.
+    `same-origin` zostawia Origin i Referer tylko dla własnych żądań, token z adresu nie wychodzi na zewnątrz."""
+    deps = console.Deps(registry, checkout=None)
+    server, url = _serve(deps)
+    try:
+        _, _, headers = _get(f"{url}/inbox?t={TOKEN}")
+        assert headers["referrer-policy"] == "same-origin"
+        item = _write_inbox_gate(registry, questions=None)
+        form = {"t": TOKEN, "loaded_at": item["received_at"], "statement": "x", "why": "y", "outcome": "approved"}
+        status, _ = _post(f"{url}/inbox/{item['id']}/decide?t={TOKEN}", form, extra_headers={"origin": "null"})
+        assert status == 403  # Origin: null dalej odrzucone
+    finally:
+        server.shutdown()
