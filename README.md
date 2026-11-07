@@ -96,6 +96,26 @@ Pozostałe zmienne z powłoki pdi też są zawężone do tego, czego potrzebuje 
   `TMPDIR`, `SSH_AUTH_SOCK`, `XDG_*`, proxy hosta, `PDI_CLAUDE_BIN`), za to z tożsamością git z klonu
   (`GIT_AUTHOR_*`, `GIT_COMMITTER_*`) dla commitów talosa.
 
+**Pętla PR talosa (N2).** Po `delivery` pdi prowadzi każdy PR cięcia przez rundy: przegląd AI według `REVIEW.md`
+produktu (`pr_loop.py review` w kontenerze fazy) → walidacja uwag drugim modelem (`second_review.py comments`, N1, na
+komputerze z kluczem drugiego modelu) → talos poprawia tylko potwierdzone uwagi `critical`/`important` i czerwone
+checki (`pr_loop.py fix` w kontenerze; log CI z `gh run view --log-failed` idzie jako dane cytowane) → push i ponowny
+przegląd; najwyżej 2 rundy poprawek (DZ6). Uwagi niepotwierdzone, przy niedostępnym drugim modelu (np. `no_api_key`)
+i sprzeczne z decyzją zmiany idą do Ciebie jako pytania, drobne — jako lista w PR. **Zielone** = co najmniej jeden
+check CI na głowie PR i wszystkie `pass`/`skipping` (`change-check.yml` z tf uruchamia `./verify.sh`, N3); PR bez
+checków nigdy nie jest zielony (lokalna weryfikacja N3 w kontenerze daje tylko log do poprawki). Opis PR dostaje
+sekcję „Przewodnik dokończenia”, którą pdi podmienia po każdej rundzie (`gh pr edit --body-file`), a stan zmiany
+`pr_loop` (per PR: `round`, `status` `reviewing | fixing | green | needs_human`, `reason`, `rounds`, `cost_usd`).
+Koszt pętli liczy się do `PDI_PHASE_BUDGET_USD`. Skrzynka pokazuje „PR gotowy do Twojego przeglądu” dopiero przy
+`green` albo `needs_human`. Plan: [docs/plan-n2-petla-pr.md](docs/plan-n2-petla-pr.md).
+
+| Zmienna | Znaczenie |
+|---|---|
+| `PDI_PR_LOOP` | `off` wyłącza pętlę PR (domyślnie włączona) |
+| `PDI_PR_LOOP_ROUNDS` | limit rund poprawek, domyślnie `2` (najwyżej 5) |
+| `PDI_PR_LOOP_CHECKS_WAIT`, `PDI_PR_LOOP_CHECKS_GRACE`, `PDI_PR_LOOP_CHECKS_INTERVAL` | sekundy: oczekiwanie na koniec checków (1200), na pojawienie się pierwszego checku (120), odstęp odczytów (30) |
+| `PDI_SECOND_MODEL`, `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | drugi model do walidacji uwag (N1); tylko krok walidacji na komputerze, nigdy kontener |
+
 Inne klucze (chmura, bazy danych, API) do kroków nie trafiają; potrzebne przepuszczasz przez `PDI_DISPATCH_ENV_PASS`.
 pdi nie zapisuje w logu ani w stanie tokenów i treści zgłoszenia. Na produkcji fazy
 dalej idą przez GitHub Actions (R4) — `PDI_DISPATCH` zostaje nieustawione.

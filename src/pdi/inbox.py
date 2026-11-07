@@ -48,6 +48,10 @@ IMPACT_OUTCOMES = impact.OUTCOMES
 PROBLEM_OUTCOMES = ("accepted", "rejected")
 AUTONOMY_OUTCOMES = ("approved", "rejected")
 CAPTURE_OUTCOMES = ("approved", "rejected")
+# PR cięcia talosa po pętli PR (N2): pozycja informacyjna, zamykana bez wpisu w rejestrze (decyzję o scaleniu
+# podejmuje człowiek w GitHubie).
+PR_READY_OUTCOMES = ("reviewed",)
+PR_READY_STATUSES = ("green", "needs_human")
 SIGNATURE_TOLERANCE_SECONDS = 300
 MVP_RELEASE = "R1"
 SEEN_EVENTS_KEPT = 200
@@ -295,6 +299,59 @@ class Inbox:
         warning = self.registry.commit([self._path(item["id"])], f"inbox {item['id']}: szkic odrzucony")
         return {"item": item, "decision": None, "change": None, **({"warning": warning} if warning else {})}
 
+    def _close_pr_ready(self, item: Item, draft: Decision) -> dict[str, Any]:
+        """Człowiek przejrzał PR cięcia: pozycja zamknięta, bez wpisu w rejestrze (scalenie zostaje w GitHubie)."""
+        at = _iso(self.registry.now())
+        item = {**item, "status": "decided", "outcome": "reviewed", "decision": None, "decided_at": at}
+        if draft.get("why"):
+            item["note"] = draft["why"]
+        self._write(item, overwrite=True)
+        warning = self.registry.commit([self._path(item["id"])], f"inbox {item['id']}: PR przejrzany")
+        return {"item": item, "decision": None, "change": None, **({"warning": warning} if warning else {})}
+
+    # --- pętla PR (N2) ---
+
+    def open_ready_prs(self) -> list[Item]:
+        """„PR gotowy do Twojego przeglądu” — pozycja dla PR-ów cięć, których pętla PR skończyła się zielonymi
+        checkami albo przekazaniem człowiekowi (`needs_human`, np. limit rund). PR w toku pozycji nie ma."""
+        opened: list[Item] = []
+        for state in self.changes.all(status=None):
+            loop = state.get("pr_loop") or {}
+            for url, entry in loop.items() if isinstance(loop, dict) else []:
+                if not isinstance(entry, dict) or entry.get("status") not in PR_READY_STATUSES:
+                    continue
+                number = re.search(r"/pull/([0-9]+)", str(url))
+                item_id = f"pr-ready-{state['change']}-{number.group(1) if number else len(opened) + 1}"
+                if self._known(item_id):
+                    continue
+                at = _iso(self.registry.now())
+                verdict = "zielone CI, uwagi zamknięte" if entry["status"] == "green" else str(entry.get("reason"))
+                item: Item = {
+                    "id": item_id,
+                    "kind": "pr_ready",
+                    "status": "open",
+                    "change": state["change"],
+                    "source": "pdi",
+                    "release": None,
+                    "summary": (
+                        f"PR gotowy do Twojego przeglądu: {state['change']} PR #{number.group(1) if number else '?'}"
+                        f" ({entry.get('branch')}) — {verdict[:200]}"
+                    ),
+                    "received_at": at,
+                    "url": url,
+                    "pr_loop": {k: entry.get(k) for k in ("status", "round", "max_rounds", "reason", "cost_usd")},
+                    # nie `questions`: tamto pole to pytania bramki z odpowiedziami w decyzji (Z1)
+                    "open_questions": [q.get("text") for q in entry.get("questions") or [] if isinstance(q, dict)],
+                }
+                self._dir.mkdir(parents=True, exist_ok=True)
+                try:
+                    self._write(item, overwrite=False)
+                except FileExistsError:
+                    continue
+                warning = self.registry.commit([self._path(item_id)], f"inbox {item_id}: {item['summary']}")
+                opened.append({**item, **({"warning": warning} if warning else {})})
+        return opened
+
     def _plan_review(self, change: str, released_at: str) -> dict[str, Any]:
         intent = impact.intent_decision(self.registry, change)
         due, basis = impact.due_date(released_at, intent)
@@ -506,6 +563,10 @@ class Inbox:
             raise InvalidDecision(f"Szkic z rozmowy wymaga outcome: {' albo '.join(CAPTURE_OUTCOMES)}.")
         if item["kind"] == "capture" and outcome == "rejected":
             return self._dismiss_capture(item, draft)
+        if item["kind"] == "pr_ready":
+            if outcome not in PR_READY_OUTCOMES:
+                raise InvalidDecision("PR gotowy do przeglądu zamyka outcome: reviewed (bez wpisu w rejestrze).")
+            return self._close_pr_ready(item, draft)
         if "answers" in draft:
             checked = _checked_answers(item, draft["answers"])
             draft = {k: v for k, v in draft.items() if k != "answers"} | ({"answers": checked} if checked else {})

@@ -113,6 +113,11 @@ Narzędzia i ograniczenia: `packages/mcp/README.md` w ci_for_sdlc, `adapters/mcp
 - „Które decyzje są gotowe do automatyzacji?” — `autonomy_report`: dla każdego typu decyzji odsetek szkiców AI
   zatwierdzonych bez zmian i rekomendacja poziomu (próg: 95% z ostatnich 30). `propose_autonomy_changes` wkłada
   propozycje do skrzynki; zmiana poziomu to Twoja decyzja (`decide_inbox_item`), zapisana w `autonomy.yaml` rejestru.
+- „Które PR-y są gotowe?” — `list_inbox`: pozycja „PR gotowy do Twojego przeglądu” (kind `pr_ready`) pojawia się
+  dopiero, gdy pętla PR talosa (N2) skończyła się zielonymi checkami i zamkniętymi uwagami albo przekazaniem do
+  Ciebie (`needs_human`, np. „nie udało się po 2 rundach”). Pytania z pętli są w polu `open_questions` i w sekcji
+  „Przewodnik dokończenia” opisu PR; po przejrzeniu zamknij pozycję `decide_inbox_item` z `outcome: reviewed`
+  (bez wpisu w rejestrze — scalasz w GitHubie). Rundy, koszt i powód: `get_change` (`pr_loop`) i `get_trace`.
 - „Kiedy będzie CHG-12?” — `forecast_change` (cięcia z ShipScope × tempo dostarczonych zmian, z przedziałem
   i wątpliwościami); „Jak trafne są prognozy?” — `forecast_report`.
 - Plik decyzji: `$PDI_REGISTRY_PATH/decisions/<projekt>/DEC-nnnn.md` (frontmatter YAML + czytelna treść);

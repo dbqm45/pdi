@@ -1190,3 +1190,47 @@ def test_readiness_changed_with_targets_status_saves_it_on_the_change(inbox: Inb
 
     change = inbox.changes.get("CHG-12")
     assert change["targets_status"] == status
+
+
+# --- pętla PR (N2): „PR gotowy do Twojego przeglądu” ---
+
+
+def _loop_state(inbox: Inbox, **entries: dict[str, Any]) -> None:
+    state = inbox.changes.load("CHG-12")
+    state["pr_loop"] = {f"https://github.com/dbqm45/sklep/pull/{n}": e for n, e in entries.items()}
+    inbox.changes.save(state)
+
+
+def test_ready_pr_items_only_for_green_or_needs_human(inbox: Inbox) -> None:
+    _loop_state(
+        inbox,
+        **{
+            "41": {"branch": "story/tsk-1-a", "status": "green", "round": 1, "max_rounds": 2, "cost_usd": 0.2},
+            "42": {"branch": "story/tsk-2-b", "status": "fixing", "round": 1, "max_rounds": 2},
+            "43": {
+                "branch": "story/tsk-3-c",
+                "status": "needs_human",
+                "round": 3,
+                "max_rounds": 2,
+                "reason": "nie udało się po 2 rundach: zostały 1 uwag",
+                "questions": [{"id": "R2", "text": "[niepotwierdzone] `a.js:3` x"}],
+            },
+        },
+    )
+    opened = inbox.open_ready_prs()
+    assert [i["id"] for i in opened] == ["pr-ready-CHG-12-41", "pr-ready-CHG-12-43"]
+    assert opened[0]["summary"].startswith("PR gotowy do Twojego przeglądu: CHG-12 PR #41")
+    assert "nie udało się po 2 rundach" in opened[1]["summary"]
+    assert opened[1]["open_questions"] == ["[niepotwierdzone] `a.js:3` x"]
+    assert inbox.open_ready_prs() == []  # bez duplikatów
+
+
+def test_ready_pr_item_closes_with_reviewed_without_a_registry_entry(inbox: Inbox, make_draft: Draft) -> None:
+    _loop_state(inbox, **{"41": {"branch": "story/tsk-1-a", "status": "green", "round": 1, "max_rounds": 2}})
+    (item,) = inbox.open_ready_prs()
+    before = len(inbox.registry.decisions())
+    with pytest.raises(InvalidDecision, match="reviewed"):
+        inbox.decide(item["id"], make_draft(), outcome="approved")
+    out = inbox.decide(item["id"], make_draft(), outcome="reviewed")
+    assert out["item"]["status"] == "decided" and out["decision"] is None
+    assert len(inbox.registry.decisions()) == before

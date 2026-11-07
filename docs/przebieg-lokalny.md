@@ -173,6 +173,28 @@ prowadzony wyłącznie w konsoli, od zgłoszenia do pierwszej bramki (B1) z decy
   2026-11-03, semgrep 1.183.0: 560 reguł), ale zestaw jest węższy niż po `semgrep login` — `node:sqlite`
   i `tainted-sql-string` (Express) w nim nie ma; wzorce spoza rejestru produkt dopisuje w `.semgrep.yml`
   (sdlc-proba ma regułę dla `node:sqlite`), a szerszy zestaw w CI daje token `SEMGREP_APP_TOKEN`.
+- [ ] **N2 — pętla PR talosa ([plan](plan-n2-petla-pr.md); tf: mode-pdi 0.9.0, mode-talos 1.3.0) — wymaga Twojego
+  Maca.** Przygotowanie w `dbqm45/sdlc-proba`: fabryka z tf z N2, `REVIEW.md` (`python3
+  .claude/skills/pdi-decisions/scripts/pr_loop.py scaffold`), `verify.sh` z komendami stosu (np. `npm test`) i
+  `change-check.yml` na nowo (`phase_run.py workflow install --workflow change-check --force`, krok „Weryfikacja
+  produktu (N3)”); klucz drugiego modelu w `~/.sdlc/env` (`ANTHROPIC_API_KEY` albo `OPENAI_API_KEY` z
+  `PDI_SECOND_MODEL`) — bez niego wariant „niedostępny” niżej. Cięcie talosa z jednym **prawdziwym** błędem do
+  wykrycia (np. brak obsługi pustej wartości na ścieżce testu) i jednym miejscem, które prowokuje **fałszywą** uwagę
+  (np. „brak walidacji” tam, gdzie waliduje wywołujący). Oczekiwane po `delivery`:
+  - log przebiegu ma `# pdi: pętla PR (N2)` i kroki `pr_loop.py review` / `fix` w kontenerze (`docker run`), a
+    `gh pr checks`, `gh run view`, `git push origin story/…` i `gh pr edit` na hoście;
+  - prawdziwa uwaga: `confirmed: true` w walidacji, commit `fix(…)` z `Runda pętli PR 1` i `Change: TSK-n`, po pushu
+    zielony check „Definition check”; fałszywa: w sekcji „Przewodnik dokończenia” → „Zostaje dla Ciebie” jako
+    `[niepotwierdzone] … — <powód drugiego modelu>`, bez poprawki;
+  - opis PR: raport talosa i `Change: CHG-n` bez zmian, sekcja „Przewodnik dokończenia” (Stan, Zrobione, Zostaje dla
+    Ciebie, Decyzje poza planem — do zatwierdzenia, Ryzyka, ew. Drobne uwagi) zaktualizowana po każdej rundzie;
+  - `get_change`: `pr_loop.<url PR>.status` = `needs_human` (jest pytanie) z `round` 2 i kosztem rund w `rounds`;
+    karta na tablicy konsoli „PR #n: needs_human (runda 2/2)”, tabela „Pętla PR” na stronie śladu; w skrzynce „PR
+    gotowy do Twojego przeglądu” dopiero po końcu pętli; zamknięcie przyciskiem „przejrzane”;
+  - wariant bez klucza: obie uwagi jako `[niepotwierdzone: drugi przegląd niedostępny (no_api_key)]`, żadnej
+    poprawki, ryzyko w przewodniku;
+  - sprawdzić na żywo: pole `structured_output` w `claude -p --output-format json --json-schema` (plan,
+    „Niezweryfikowane”) i czas, po którym `gh pr checks` widzi check po pushu.
 - [ ] **SS** zakładka Changes (repo): CHG-1 z tytułem z intencji. Release plan: linia R1.
 
 ## 5. Wdrożenia

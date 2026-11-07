@@ -292,6 +292,7 @@ def _board_body(deps: Deps, token: str) -> str:
                 text = _escape(_progress_text(progress, waiting))
                 progress_line = f'<div class="progress"><small>{text}{cost_label}</small></div>'
             link = f"/trace/{chg}?t={_escape(token)}"
+            progress_line += _pr_loop_line(state.get("pr_loop"))
             cards.append(
                 f'<li><div class="card">'
                 f'<a href="{link}"><span class="chg">{chg}</span></a>'
@@ -345,10 +346,70 @@ def _trace_body(deps: Deps, change: str, token: str) -> str:
         "<div class='grid'><div>"
         f"<h2>Kroki</h2>{steps_html}"
         f"<h2>Pliki zmiany</h2>{files}"
+        f"{_pr_loop_table(state.get('pr_loop'))}"
         "</div>"
         f"<aside class='side'>{progress_html}</aside>"
         "</div>"
     )
+
+
+def _pr_loop_line(loop: Any) -> str:
+    """Linia na karcie tablicy: każdy PR cięcia z pętli PR (N2) — numer, status, runda."""
+    if not isinstance(loop, dict) or not loop:
+        return ""
+    parts = []
+    for url, entry in loop.items():
+        if not isinstance(entry, dict):
+            continue
+        number = re.search(r"/pull/([0-9]+)", str(url))
+        label = f"PR #{number.group(1)}" if number else "PR"
+        parts.append(f"{label}: {entry.get('status')} (runda {entry.get('round')}/{entry.get('max_rounds')})")
+    return f'<div class="progress"><small>{_escape(" · ".join(parts))}</small></div>' if parts else ""
+
+
+def _pr_loop_table(loop: Any) -> str:
+    """Rundy pętli PR na stronie śladu zmiany: przegląd, poprawki, pytania, checki, koszt."""
+    if not isinstance(loop, dict) or not loop:
+        return ""
+    rows = []
+    for url, entry in loop.items():
+        if not isinstance(entry, dict):
+            continue
+        for r in entry.get("rounds") or []:
+            if not isinstance(r, dict):
+                continue
+            raw_checks = r.get("checks")
+            checks: dict[str, Any] = raw_checks if isinstance(raw_checks, dict) else {}
+            cost = r.get("cost_usd")
+            rows.append(
+                f"<tr><td>{_escape(_pr_label_of(url))}</td><td>{_escape(r.get('round'))}</td>"
+                f"<td>{_escape(r.get('findings'))}</td><td>{_escape(', '.join(r.get('fixed') or []) or '—')}</td>"
+                f"<td>{_escape(', '.join(r.get('questions') or []) or '—')}</td>"
+                f"<td>{_escape(checks.get('state') or '—')}</td>"
+                f"<td>{_escape(f'{cost:.2f}' if isinstance(cost, (int, float)) else '—')}</td></tr>"
+            )
+        rows.append(
+            f"<tr><td colspan=7><small>{_escape(_pr_label_of(url))}: <strong>{_escape(entry.get('status'))}</strong>"
+            f" — {_escape(_sanitize_text(entry.get('reason'), limit=200))}</small></td></tr>"
+        )
+    head = (
+        "<thead><tr><th>PR</th><th>Runda</th><th>Uwagi</th><th>Poprawione</th><th>Do Ciebie</th>"
+        "<th>Checki</th><th>USD</th></tr></thead>"
+    )
+    return f"<h2>Pętla PR</h2><table>{head}<tbody>{''.join(rows)}</tbody></table>"
+
+
+def _pr_label_of(url: Any) -> str:
+    number = re.search(r"/pull/([0-9]+)", str(url))
+    return f"PR #{number.group(1)}" if number else str(url)
+
+
+def _pr_ready_html(item: dict[str, Any]) -> str:
+    url = str(item.get("url") or "")
+    link = f'<p><a href="{_escape(url)}">{_escape(_pr_label_of(url))}</a></p>' if url.startswith("https://") else ""
+    questions = [q for q in item.get("open_questions") or [] if isinstance(q, str)]
+    listing = "".join(f"<li>{_escape(_sanitize_text(q, limit=400))}</li>" for q in questions)
+    return link + (f"<p>Do Ciebie (odpowiedz w PR):</p><ul>{listing}</ul>" if listing else "")
 
 
 def _files_section(deps: Deps, change: str, token: str) -> str:
@@ -426,12 +487,14 @@ def _progress_panel(change: str, progress: dict[str, Any], token: str) -> str:
 
 
 def _inbox_body(deps: Deps, token: str) -> str:
+    deps.inbox.open_ready_prs()  # PR-y cięć po pętli PR (N2): pozycja dopiero przy green albo needs_human
     items = deps.inbox.items(status="open")
     rows = []
     for item in items:
         lane = _lane_of(item.get("gate") or item.get("kind"), None, kind=item.get("kind"))
         questions = item.get("questions") or []
-        q_html = _render_questions(item["id"], questions)
+        # pytania z pętli PR (N2) odpowiada się w PR, nie w formularzu bramki
+        q_html = _pr_ready_html(item) if item["kind"] == "pr_ready" else _render_questions(item["id"], questions)
         action_buttons = _action_buttons_for(item["kind"])
         link = f"/inbox/{_escape(item['id'])}?t={_escape(token)}"
         rows.append(
@@ -528,6 +591,8 @@ def _action_buttons_for(kind: str) -> str:
             '<button class="warn" name="outcome" value="rejected">reject</button>'
             "</div>"
         )
+    if kind == "pr_ready":
+        return '<div class="row"><button name="outcome" value="reviewed">przejrzane</button></div>'
     if kind in ("autonomy", "capture"):
         return (
             '<div class="row">'
@@ -887,10 +952,13 @@ def make_server(
                 return self._html(404, f"<h1>404</h1><p>{_escape(str(e))}</p>")
             back = f"/inbox?t={given_token(given=one('t'))}"
             warning = result.get("warning")
-            info = (
-                f"<h1>Decyzja zapisana</h1><p>{_escape(result['decision']['id'])}: "
-                f"{_escape(result['decision']['statement'])}</p>"
-            )
+            if result.get("decision") is None:  # pozycja zamknięta bez wpisu w rejestrze (pr_ready, odrzucony szkic)
+                info = f"<h1>Pozycja zamknięta</h1><p>{_escape(item_id)}: {_escape(result['item'].get('outcome'))}</p>"
+            else:
+                info = (
+                    f"<h1>Decyzja zapisana</h1><p>{_escape(result['decision']['id'])}: "
+                    f"{_escape(result['decision']['statement'])}</p>"
+                )
             if warning:
                 info += f"<p class='warn'>{_escape(warning)}</p>"
             info += f'<p><a href="{back}">wróć do skrzynki</a></p>'
