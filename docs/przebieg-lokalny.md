@@ -25,10 +25,10 @@ Skrócenie czasu:
 
 ### 0b. Konsola pdi w przeglądarce (Z3-lokalnie, A7, DZ14, DZ18)
 
-- [ ] **T** `uv run sdlc open` → przeglądarka otwiera `http://127.0.0.1:8788/board?t=<PDI_CONSOLE_TOKEN>` (plus
+- [x] **T** `uv run sdlc open` → przeglądarka otwiera `http://127.0.0.1:8788/board?t=<PDI_CONSOLE_TOKEN>` (plus
   ShipScope i formularz zgłoszeń). Tablica pokazuje trzy pasy („Zaprojektuj i zbuduj”, „Oceń i wydaj”, „Wdróż,
   obserwuj, ulepszaj”).
-- [ ] **Przeglądarka** nawigacja: Tablica → Ślad zmiany (po kliknięciu karty CHG) → Skrzynka → Decyzje → Autonomia.
+- [x] **Przeglądarka** nawigacja: Tablica → Ślad zmiany (po kliknięciu karty CHG) → Skrzynka → Decyzje → Autonomia.
   Skrzynka pokazuje pozycje bramek z pytaniami jako polami odpowiedzi.
 - [ ] **Przeglądarka** panel „Pliki” w śladzie zmiany pokazuje `intent.md`, `requirements.md`, `plan.md`, `design.md`,
   `release.yaml` (biała lista). Klik „diff bieżącego cięcia” pokazuje `git diff`.
@@ -39,17 +39,17 @@ Skrócenie czasu:
 **Lista kontrolna dla właściciela (do zrobienia na Macu z Dockerem, `gh`, `claude`)**: pełny przebieg jednej zmiany
 prowadzony wyłącznie w konsoli, od zgłoszenia do pierwszej bramki (B1) z decyzją przyciskiem.
 
-- [ ] **T** `uv run sdlc up` → „gotowe”.
-- [ ] **T** `uv run sdlc open` → konsola otwarta.
+- [x] **T** `uv run sdlc up` → „gotowe”.
+- [x] **T** `uv run sdlc open` → konsola otwarta.
 - [ ] **Przeglądarka** → formularz zgłoszeń (`/problems/new?t=…`): zgłoś problem; wraca strona dziękująca z
   numerem `PRB-n`.
 - [ ] **Przeglądarka** (konsola) → Skrzynka: nowa pozycja triażu. Wpisz treść decyzji, dlaczego, outcome `accepted` →
   „Decyzja zapisana” (zakłada `CHG-n` i rusza fazę `intent`).
-- [ ] **Przeglądarka** → Tablica: nowa karta `CHG-n` w pasie 1, kolumna fazy `intent`. Boczny panel postępu pokazuje
+- [x] **Przeglądarka** → Tablica: nowa karta `CHG-n` w pasie 1, kolumna fazy `intent`. Boczny panel postępu pokazuje
   bieżącą czynność persony (SSE).
-- [ ] **Przeglądarka** → Ślad zmiany `/trace/CHG-n`: panel „Pliki” dostaje `intent.md` po zakończeniu fazy; prośba o
+- [x] **Przeglądarka** → Ślad zmiany `/trace/CHG-n`: panel „Pliki” dostaje `intent.md` po zakończeniu fazy; prośba o
   bramkę B1 pojawia się w Skrzynce.
-- [ ] **Przeglądarka** (konsola) → Skrzynka → pozycja B1: odpowiedz na pytania bramki (z opcji przyciskiem, gdy Z2a
+- [x] **Przeglądarka** (konsola) → (2026-11-07: od B2; B1 przez MCP, zob. wynik niżej) Skrzynka → pozycja B1: odpowiedz na pytania bramki (z opcji przyciskiem, gdy Z2a
   wprowadzi opcje; inaczej wpisz w polach), wpisz treść decyzji i dlaczego, outcome `approved`. Następna faza
   (`requirements`) rusza i jest widoczna live na Tablicy.
 
@@ -103,7 +103,7 @@ prowadzony wyłącznie w konsoli, od zgłoszenia do pierwszej bramki (B1) z decy
 - [ ] Dla zapasowego dostawcy same-vendor (tymczasowo usuń `OPENAI_API_KEY` i zostaw `ANTHROPIC_API_KEY`):
   sidecar ma `provider: claude, model: claude-sonnet-5-5, same_vendor: true`; sekcja w artefakcie i w
   prośbie o bramkę ma dopisek „— same_vendor".
-- [ ] Niedostępność: celowo wyłącz oba klucze (puste `OPENAI_API_KEY` i `ANTHROPIC_API_KEY`); sidecar ma
+- [x] Niedostępność: celowo wyłącz oba klucze (puste `OPENAI_API_KEY` i `ANTHROPIC_API_KEY`); sidecar ma
   `status: unavailable, reason: no_api_key`, prośba o bramkę pokazuje `second_review: {status: unavailable,
   reason: no_api_key}` — nigdy cichego OK.
 
@@ -154,7 +154,7 @@ prowadzony wyłącznie w konsoli, od zgłoszenia do pierwszej bramki (B1) z decy
 
 ## 4. Dostarczenie (talos)
 
-- [ ] Cięcia jako PR-y, a commity mają `Change: TSK-n` i `Flag: show_last_deployed`. W klonie `npm test` przechodzi.
+- [x] Cięcia jako PR-y, a commity mają `Change: TSK-n` i `Flag: show_last_deployed`. W klonie `npm test` przechodzi.
   Merge po przeglądzie. Gałęzie `story/*` wypycha i PR-y otwiera pdi po przebiegu talosa (`get_change`:
   `dispatch.prs`, w `get_trace` przy zadaniach); cięcie zbudowane na poprzednim ma PR do niego. Bez gałęzi z commitami faza kończy się krokiem `cuts`.
 - [ ] **Z8c-2 — skan bezpieczeństwa w pętli kawałka (tf #138: mode-talos 1.2.0, mode-pdi 0.7.0):** w repo
@@ -374,3 +374,38 @@ zamknięte w rejestrze; PRB-28 i PRB-29 domknięte poprawkami (tf #145, pdi #147
 - `pdi-decisions` (PDI_REGISTRY_PATH) jest prywatnym rejestrem D-S1: zapisy decyzji (`decision_record.py`) i logi
   (`runs/`) tu lądują, ale **repozytorium nie ma `origin`** — nie zakładamy tam PR-ów, wszystkie zmiany rejestru
   zostają lokalnie i są włączane przez workflow pdi.
+
+## Wynik przebiegu 2026-11-07 (konsola A7, CHG-4)
+
+Jedna zmiana poprowadzona w konsoli pdi (`http://127.0.0.1:8788`, Z3-lokalnie) od zgłoszenia do wdrożenia na test
+i prod: PRB-36 → CHG-4 „znacznik środowiska TEST/PROD” w `dbqm45/sdlc-proba`. Fabryka tf 5.64.1 → 5.64.5 w trakcie
+(sdlc-proba #36, #37, #40, #42), fazy w kontenerze (Z8a), rejestr prywatny (`PDI_REGISTRY_PATH`). Bramki, merge'e
+PR-ów faz i wdrożenia — właściciel. **Wynik: §0b (konsola), §1–§5 zaliczone; §6–§7 czekają** (etap `test` min.
+3 dni, włączenie `env_badge` na prod osobną zmianą po decyzji właściciela, DEC-0021). Drugi przegląd (N1) się nie
+odbył (`no_api_key`, brak klucza API przy logowaniu tokenem subskrypcji) — scenariusz „niedostępny” potwierdzony,
+scenariusz z ustaleniem drugiego modelu czeka na klucz.
+
+| Krok | Wynik | Co wymagało poprawki |
+|---|---|---|
+| Triaż PRB-36 | `accepted` → CHG-4 (DEC-0018) | konsola nie pokazywała zgłoszeń do triażu, menu gubiło token (404), decyzja z konsoli nie uruchamiała fazy — pdi #165; triaż tej zmiany zrobiony przez MCP `triage_problem` |
+| intent → B1 | PR #38, B1 `approved` (DEC-0019) | panel „Pliki” czytał drzewo robocze zamiast gałęzi fazy (403) — pdi #166; approve → `403 origin` (`Referrer-Policy: no-referrer` daje `Origin: null`) — pdi #167; prośba o B1 przepadła, bo stos restartował w trakcie fazy (`Connection refused`) — ponowienie samej prośby `retry_dispatch` (pdi #168) i ostrzeżenie w `sdlc down`; B1 zatwierdzone przez MCP |
+| requirements → B2 | PR #39, B2 przyciskiem (DEC-0020) | `gate.requested` odrzucone `400`: tf (N1) wysyła `second_review`, kontrakt 0.12.0 go nie znał — kontrakt 0.13.0 (pdi #169, tag `contract-v0.13.0`), tf #160 → 5.64.4 (kopia kontraktu i test zgodności prośby ze schematem pdi) |
+| architecture → B3 | PR #41, B3 przyciskiem z 3 odpowiedziami (DEC-0021): opcja A z trzech, cel pokrycie zmienionych linii ≥ 90%, bez progu mutacji (ADR-3) | approve przed merge'em PR-a fazy → `409` (zamierzone, PRB-2); sekcja „Przegląd drugim modelem” pisała „brak blokujących ustaleń” przy niedostępnym przeglądzie — tf #161 → 5.64.5 (`drugi przegląd: niedostępny (<powód>)` w artefakcie i w opisie prośby) |
+| design → design-review | PR #43, design-review przyciskiem z 9 odpowiedziami (DEC-0022), bez ramek Figmy; kontrast sprawdzony skryptem wg WCAG: TEST 11,93:1, PROD 6,54:1 | karta na tablicy „designdesign-review” — pdi #170 (postęp w osobnej linii, „bramka … rozstrzygnięta”) |
+| gotowość → approve for implementation | `sdlc check` → `readiness.changed CHG-4 ready`, bramka przyciskiem | — |
+| delivery → TSK-1 | PR #44 (tytuł z commitu, opis z `runs/TSK-1.md` — PRB-34 potwierdzone), commity `Change: TSK-1`, `Flag: env_badge`; `npm test` 60/0 (1 pominięty: semgrep poza kontenerem), 10 testów akceptacyjnych E-01A…E-05C, pokrycie `page.js` 100%, całość 98,56% (cel B3 spełniony); `BRAMKA K1: PASS`; Talos 2 min 7 s, 0,35 USD | — |
+| wdrożenia | `sdlc deploy test` (wdrożenie 7625747490, `17207ff` = merge #44) — znacznik „TEST” i `[TEST]` w karcie; `sdlc deploy prod` — strona bez znacznika (flaga off); ShipScope: wdrożenia test i prod, TSK-1 „Deployed (hidden)” na PROD | — |
+
+**Do zrobienia po przebiegu (zgłoszone właścicielowi 2026-11-07):**
+- tf: `decision_record.py check` sprawdza wszystkie zmiany i pada na starych artefaktach CHG-1 i CHG-3 — ma
+  sprawdzać bieżącą zmianę; persona dostaje `permission_denials` za złożone polecenia Bash (prompt fazy: Read, Grep,
+  Glob, jedno polecenie na wywołanie); przy braku pliku Figmy faza design zamienia każdy wiersz bez ramki w osobne
+  pytanie bramki (tu 7 z 9) — jedno pytanie zbiorcze; raport Talosa pisze „Plan: 0/1 kawałków”, choć kawałek ma
+  commit.
+- sdlc-proba: GitHub Actions nie uruchomiły się w repo ani razu (0 przebiegów), więc PR-y nie mają CI — przed N2
+  do decyzji właściciela (Settings → Actions). Kroki `team-factory.yml` uruchamiane ręcznie przy PR-ach fabryki.
+- N1 na żywo: klucz `ANTHROPIC_API_KEY` albo `OPENAI_API_KEY` w `~/.sdlc/env` (decyzja i koszt właściciela).
+- Zaległe zgłoszenia PRB-2…35 w skrzynce — do decyzji właściciela (triaż zbiorczy albo filtr w konsoli).
+- Nie potwierdzone na żywo w §0b: „diff bieżącego cięcia” w panelu „Pliki”, odświeżanie panelu postępu przez SSE,
+  404 bez tokenu (te pokrywają testy `tests/test_console.py`); triaż i B1 przyciskiem (zrobione przez MCP przed
+  poprawkami #165 i #167; od B2 wszystkie bramki przyciskiem).
