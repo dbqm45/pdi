@@ -6,7 +6,8 @@ orkiestracja etapów, graf śladu od zgłoszenia do wydania na PROD i ocena skut
 
 Stan (2026-10-28): **rejestr decyzji z serwerem MCP i komendami `/record-decision` oraz `/decisions-from`**
 (decyzje z wątków Slacka i transkrypcji spotkań jako szkice z cytatami w skrzynce, A5;
-[instalacja w Claude Code](integrations/claude-code/README.md)), **skrzynka bramek z orkiestracją zmian, intake
+[instalacja w Claude Code](integrations/claude-code/README.md)); każda decyzja to plik
+[Decision Record](contract/decision-record.md), sprawdzany przez `pdi-validate`, **skrzynka bramek z orkiestracją zmian, intake
 i triaż zgłoszeń, ocena skutku, graf śladu i prognoza zmiany** (niżej). Fazy F0–F5
 [planu jednego flow](docs/plan-jeden-flow-sdlc.md) są zrobione we wszystkich czterech aplikacjach; stan faz i luk
 G1–G8: tamże, §8.
