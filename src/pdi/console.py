@@ -41,10 +41,13 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
-from pdi import autonomy, dispatch_local
+from pdi import autonomy, dispatch_local, pr_state
 from pdi import trace as trace_mod
 from pdi.changes import ChangeStore
+from pdi.dispatch import DispatchConfig
+from pdi.impact import ShipScopeConfig
 from pdi.inbox import Inbox, ItemClosed, ItemNotFound
+from pdi.notify import NotifyConfig, ReporterNotifyConfig
 from pdi.registry import Decision, InvalidDecision, Registry
 
 DEFAULT_HOST = "127.0.0.1"
@@ -175,9 +178,10 @@ class Deps:
         *,
         checkout: Path | None,
         git: Callable[[list[str], Path], tuple[int, str]] | None = None,
+        inbox: Inbox | None = None,
     ) -> None:
         self.registry = registry
-        self.inbox = Inbox(registry)
+        self.inbox = inbox or Inbox(registry)
         self.changes = ChangeStore(registry)
         self.checkout = checkout
         self.git = git or _git_run
@@ -185,6 +189,22 @@ class Deps:
     def trace(self, change: str) -> dict[str, Any]:
         """Graf śladu zmiany (bez `live`, żeby konsola nie biła do ShipScope)."""
         return trace_mod.trace(self.registry, change, live=False)
+
+
+def inbox_from_env(registry: Registry) -> Inbox:
+    """Skrzynka z tymi samymi ustawieniami co w serwerze MCP: uruchamianie faz, sprawdzenie PR (PRB-2), powiadomienia.
+
+    Bez tego decyzja przyciskiem zapisywała się, ale nie ruszała następnej fazy tf ani nie sprawdzała merge'a PR.
+    """
+    config = DispatchConfig.from_env()
+    return Inbox(
+        registry,
+        dispatch=config,
+        notify=NotifyConfig.from_env(),
+        shipscope=ShipScopeConfig.from_env(),
+        reporters=ReporterNotifyConfig.from_env(),
+        pr_state=pr_state.checker(config),
+    )
 
 
 def _git_run(argv: list[str], cwd: Path) -> tuple[int, str]:
@@ -208,8 +228,19 @@ def _git_run(argv: list[str], cwd: Path) -> tuple[int, str]:
 # --- odczyt (strony) ---
 
 
-def _render_page(title: str, body: str, *, nonce: str) -> str:
-    """Wrapuje `body` w szkielet HTML ze stałym CSP. Bez inline-JS: jedyny JS ma `script-src 'self' 'nonce-<los>'`."""
+def _nav(token: str) -> str:
+    """Menu z tokenem w każdym linku (bez tokenu strony zwracają 404); bez tokenu — samo menu bez linków."""
+    if not token:
+        return "<nav></nav>"
+    t = _escape(token)
+    pages = (("board", "Tablica"), ("inbox", "Skrzynka"), ("decisions", "Decyzje"), ("autonomy", "Autonomia"))
+    return "<nav>" + "".join(f'<a href="/{path}?t={t}">{label}</a>' for path, label in pages) + "</nav>"
+
+
+def _render_page(title: str, body: str, *, nonce: str, token: str = "") -> str:
+    """Wrapuje `body` w szkielet HTML ze stałym CSP. Bez inline-JS: jedyny JS ma `script-src 'self' 'nonce-<los>'`.
+
+    `token` trafia tylko do linków menu stron, na które wszedł ktoś z poprawnym tokenem (nie do stron błędów)."""
     return (
         '<!doctype html><html lang="pl"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -217,10 +248,7 @@ def _render_page(title: str, body: str, *, nonce: str) -> str:
         f"<style>{_STYLE}</style>"
         "</head><body>"
         f'<header><span class="brand">pdi</span> <strong>Konsola</strong>'
-        '<nav><a href="?nav=board">Tablica</a>'
-        '<a href="?nav=inbox">Skrzynka</a>'
-        '<a href="?nav=decisions">Decyzje</a>'
-        '<a href="?nav=autonomy">Autonomia</a></nav>'
+        f"{_nav(token)}"
         "</header>"
         f"<main>{body}</main></body></html>"
     )
@@ -373,8 +401,55 @@ def _inbox_body(deps: Deps, token: str) -> str:
             f"{action_buttons}"
             "</form></section>"
         )
-    body = "".join(rows) if rows else "<p><small>pusto</small></p>"
-    return f"<h1>Skrzynka</h1>{body}"
+    triage = _triage_cards(deps, token)
+    body = "".join(rows) if rows else "<p><small>brak pozycji bramek i ocen</small></p>"
+    return f"<h1>Skrzynka</h1>{triage}{body}"
+
+
+TRIAGE_OPEN = ("new", "clarifying", "ready_for_triage")
+REJECTION_REASONS = (
+    ("out_of_strategy", "poza strategią"),
+    ("works_as_designed", "działa zgodnie z założeniem"),
+    ("cost_disproportionate", "koszt nieproporcjonalny"),
+    ("already_exists", "już istnieje"),
+    ("out_of_scope_recorded", "poza zakresem (zapisane)"),
+    ("other", "inny powód"),
+)
+
+
+def _triage_cards(deps: Deps, token: str) -> str:
+    """Zgłoszenia z formularza czekające na triaż (ta sama ścieżka co `triage_problem` w MCP)."""
+    waiting = [p for p in deps.inbox.problems.all() if p.get("status") in TRIAGE_OPEN]
+    if not waiting:
+        return ""
+    t = _escape(token)
+    reasons = "".join(f'<option value="{v}">{_escape(label)}</option>' for v, label in REJECTION_REASONS)
+    cards = []
+    for p in waiting:
+        pid = _escape(p["id"])
+        facts = "".join(
+            f"<li><strong>{label}:</strong> {_escape(p.get(key))}</li>"
+            for key, label in (("who", "kto"), ("cannot", "czego nie może"), ("impact", "skutek"))
+            if p.get(key)
+        )
+        cards.append(
+            f'<section class="card"><h2>{pid} <span class="pill">triaż</span> '
+            f'<span class="pill open">czeka</span></h2>'
+            f"<p><strong>{_escape(p.get('title'))}</strong></p><ul>{facts}</ul>"
+            f'<form method="post" action="/problems/{pid}/triage?t={t}">'
+            f'<input type="hidden" name="t" value="{t}">'
+            '<div class="row"><label>Treść decyzji (statement)</label>'
+            '<textarea name="statement" required maxlength="800"></textarea></div>'
+            '<div class="row"><label>Dlaczego (why)</label>'
+            '<textarea name="why" required maxlength="2000"></textarea></div>'
+            f'<div class="row"><label>Powód odrzucenia (tylko przy reject)</label>'
+            f'<select name="rejection_reason"><option value="">—</option>{reasons}</select></div>'
+            '<div class="row">'
+            '<button name="outcome" value="accepted">accept (załóż CHG)</button> '
+            '<button class="warn" name="outcome" value="rejected">reject</button>'
+            "</div></form></section>"
+        )
+    return "<h2>Zgłoszenia do triażu</h2>" + "".join(cards)
 
 
 def _action_buttons_for(kind: str) -> str:
@@ -586,13 +661,17 @@ def make_server(
             path = url.path
             try:
                 if path == "/" or path == "/board":
-                    return self._html(200, _render_page("Tablica", _board_body(deps, token), nonce=nonce))
+                    return self._html(200, _render_page("Tablica", _board_body(deps, token), nonce=nonce, token=token))
                 if path == "/inbox":
-                    return self._html(200, _render_page("Skrzynka", _inbox_body(deps, token), nonce=nonce))
+                    return self._html(200, _render_page("Skrzynka", _inbox_body(deps, token), nonce=nonce, token=token))
                 if path == "/decisions":
-                    return self._html(200, _render_page("Decyzje", _decisions_body(deps, token), nonce=nonce))
+                    return self._html(
+                        200, _render_page("Decyzje", _decisions_body(deps, token), nonce=nonce, token=token)
+                    )
                 if path == "/autonomy":
-                    return self._html(200, _render_page("Autonomia", _autonomy_body(deps, token), nonce=nonce))
+                    return self._html(
+                        200, _render_page("Autonomia", _autonomy_body(deps, token), nonce=nonce, token=token)
+                    )
                 if path.startswith("/trace/"):
                     return self._trace_route(path, params, token)
                 if path == "/sse/progress":
@@ -612,7 +691,9 @@ def make_server(
             if not re.match(r"^CHG-[0-9]+$", change):
                 return self._html(404, "<h1>404</h1>")
             if len(parts) == 3:
-                return self._html(200, _render_page(f"Ślad {change}", _trace_body(deps, change, token), nonce=nonce))
+                return self._html(
+                    200, _render_page(f"Ślad {change}", _trace_body(deps, change, token), nonce=nonce, token=token)
+                )
             action = parts[3]
             if action == "file":
                 if deps.checkout is None:
@@ -687,9 +768,10 @@ def make_server(
 
         def do_POST(self) -> None:  # noqa: N802
             url = urlsplit(self.path)
-            # /inbox/<ID>/decide
+            # /inbox/<ID>/decide albo /problems/<PRB>/triage
             match = re.match(r"^/inbox/([A-Za-z0-9._-]{1,128})/decide$", url.path)
-            if match is None:
+            triage = re.match(r"^/problems/(PRB-[0-9]{1,9})/triage$", url.path)
+            if match is None and triage is None:
                 return self._html(404, "<h1>404</h1>")
             origin = self.headers.get("origin") or ""
             referer = self.headers.get("referer") or ""
@@ -711,6 +793,10 @@ def make_server(
                 return values[0] if values else ""
 
             if not _token_ok(token, one("t")):
+                return self._html(404, "<h1>404</h1>")
+            if triage is not None:
+                return self._triage(triage.group(1), one)
+            if match is None:  # pragma: no cover — jedno z dwóch dopasowań jest zawsze ustawione
                 return self._html(404, "<h1>404</h1>")
             item_id = match.group(1)
             try:
@@ -761,7 +847,50 @@ def make_server(
             if warning:
                 info += f"<p class='warn'>{_escape(warning)}</p>"
             info += f'<p><a href="{back}">wróć do skrzynki</a></p>'
-            return self._html(200, _render_page("Decyzja zapisana", info, nonce=nonce))
+            return self._html(200, _render_page("Decyzja zapisana", info, nonce=nonce, token=token))
+
+        def _triage(self, problem_id: str, one: Callable[[str], str]) -> None:
+            """Triaż zgłoszenia przyciskiem: ten sam `ProblemStore.triage` co narzędzie MCP `triage_problem`."""
+            outcome = one("outcome")
+            if outcome not in ("accepted", "rejected"):
+                return self._html(400, "<h1>400</h1><p>outcome: accepted albo rejected.</p>")
+            statement = _sanitize_text(one("statement"), limit=800)
+            why = _sanitize_text(one("why"), limit=2000)
+            if not statement or not why:
+                return self._html(400, "<h1>400</h1><p>Brak treści decyzji albo powodu.</p>")
+            reason = one("rejection_reason") or None
+            if outcome == "rejected" and reason not in {v for v, _ in REJECTION_REASONS}:
+                return self._html(409, "<h1>409</h1><p>Odrzucenie wymaga powodu z listy.</p>")
+            draft: Decision = {
+                "statement": statement,
+                "why": why,
+                "decided_by": os.environ.get("PDI_DECIDED_BY") or "console",
+                "decided_at": clock().date().isoformat(),
+                "drafted_by": "human",
+                "kind": "triage",
+                "source": {"kind": "console", "url": f"http://{host}:{port}/inbox", "excerpt": problem_id},
+            }
+            try:
+                result = deps.inbox.problems.triage(
+                    problem_id,
+                    outcome,
+                    draft,
+                    rejection_reason=reason if outcome == "rejected" else None,
+                    rejection_note=why if outcome == "rejected" else None,
+                )
+            except InvalidDecision as e:
+                return self._html(409, f"<h1>409</h1><p>{_escape(str(e))}</p>")
+            except LookupError as e:
+                return self._html(404, f"<h1>404</h1><p>{_escape(str(e))}</p>")
+            decision = result.get("decision") or {}
+            change = result.get("change") or (result.get("problem") or {}).get("change")
+            info = (
+                f"<h1>Decyzja zapisana</h1><p>{_escape(decision.get('id'))}: {_escape(decision.get('statement'))}</p>"
+            )
+            if change:
+                info += f'<p>Zmiana <a href="/trace/{_escape(change)}?t={_escape(token)}">{_escape(change)}</a>.</p>'
+            info += f'<p><a href="/inbox?t={_escape(token)}">wróć do skrzynki</a></p>'
+            return self._html(200, _render_page("Decyzja zapisana", info, nonce=nonce, token=token))
 
         def _html(self, status: int, body: str) -> None:
             page = body if body.startswith("<!doctype") else _render_page("pdi", body, nonce=nonce)
@@ -846,7 +975,7 @@ def main() -> None:
         raise SystemExit(str(e)) from e
     checkout_raw = os.environ.get("PDI_DISPATCH_CHECKOUT")
     checkout = Path(checkout_raw) if checkout_raw else None
-    deps = Deps(registry, checkout=checkout)
+    deps = Deps(registry, checkout=checkout, inbox=inbox_from_env(registry))
     server = make_server(deps, token=token, port=port)
     sys.stderr.write(f"pdi-console: nasłuchuje na http://{DEFAULT_HOST}:{port}/\n")
     try:

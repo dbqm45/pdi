@@ -454,3 +454,121 @@ def test_main_rejects_missing_token(monkeypatch: pytest.MonkeyPatch, tmp_path: P
     monkeypatch.delenv("PDI_CONSOLE_TOKEN", raising=False)
     with pytest.raises(SystemExit):
         console.main()
+
+
+# --- poprawki po pierwszym przebiegu na Macu (2026-11-07) ---
+
+
+def _problem_draft(**overrides: Any) -> dict[str, Any]:
+    base: dict[str, Any] = {
+        "kind": "problem",
+        "category": "enhancement",
+        "title": "Nie widać, na którym środowisku jest strona",
+        "who": "odwiedzający stronę",
+        "cannot": "rozpoznać, czy patrzy na test, czy na prod",
+        "impact": "pomylone zgłoszenia test/prod",
+        "reporter": "dbqm45",
+        "channel": "form",
+    }
+    base.update(overrides)
+    return base
+
+
+def test_menu_links_keep_the_token(registry: Registry) -> None:
+    """Menu miało `?nav=…` bez tokenu — każde kliknięcie dawało 404."""
+    import re
+
+    deps = console.Deps(registry, checkout=None)
+    server, url = _serve(deps)
+    try:
+        status, body, _ = _get(f"{url}/board?t={TOKEN}")
+        assert status == 200
+        nav = body.decode().split("<nav>", 1)[1].split("</nav>", 1)[0]
+        links = re.findall(r'href="([^"]+)"', nav)
+        assert [link.split("?")[0] for link in links] == ["/board", "/inbox", "/decisions", "/autonomy"]
+        for link in links:
+            assert f"t={TOKEN}" in link
+            assert _get(f"{url}{link.replace('&amp;', '&')}")[0] == 200
+    finally:
+        server.shutdown()
+
+
+def test_inbox_lists_problems_waiting_for_triage(registry: Registry) -> None:
+    from pdi.problems import ProblemStore
+
+    ProblemStore(registry).record(_problem_draft())
+    done = ProblemStore(registry).record(_problem_draft(title="Inne"))
+    ProblemStore(registry).triage(done["id"], "rejected", {**_draft_for_test(), "kind": "triage"},
+                                  rejection_reason="other", rejection_note="test")  # fmt: skip
+    deps = console.Deps(registry, checkout=None)
+    server, url = _serve(deps)
+    try:
+        _, body, _ = _get(f"{url}/inbox?t={TOKEN}")
+        page = body.decode()
+        assert "PRB-1" in page and "Nie widać, na którym środowisku jest strona" in page
+        assert "/problems/PRB-1/triage" in page and "accept (załóż CHG)" in page
+        assert "/problems/PRB-2/triage" not in page  # już po triażu
+    finally:
+        server.shutdown()
+
+
+def _draft_for_test() -> dict[str, Any]:
+    return {
+        "statement": "Odrzucone w teście.",
+        "why": "Test.",
+        "decided_by": "test",
+        "decided_at": "2026-11-07",
+        "drafted_by": "human",
+        "source": {"kind": "manual", "excerpt": "test"},
+    }
+
+
+def test_triage_by_button_accepts_and_opens_a_change(registry: Registry) -> None:
+    from pdi.problems import ProblemStore
+
+    ProblemStore(registry).record(_problem_draft())
+    deps = console.Deps(registry, checkout=None)
+    server, url = _serve(deps)
+    try:
+        form = {
+            "t": TOKEN,
+            "statement": "Przyjmujemy PRB-1.",
+            "why": "Mały, sprawdzalny problem.",
+            "outcome": "accepted",
+        }
+        status, body = _post(f"{url}/problems/PRB-1/triage?t={TOKEN}", form)
+        assert status == 200, body
+        stored = ProblemStore(registry).get("PRB-1")
+        assert stored["status"] == "accepted" and stored["change"].startswith("CHG-")
+        decision = registry.get(stored["triage_decision"])
+        assert decision["kind"] == "triage" and decision["source"]["kind"] == "console"
+        assert decision["links"]["prb"] == "PRB-1"
+        assert _post(f"{url}/problems/PRB-1/triage?t={TOKEN}", form)[0] == 409  # drugi raz: już po triażu
+    finally:
+        server.shutdown()
+
+
+def test_triage_reject_needs_a_reason_and_a_token(registry: Registry) -> None:
+    from pdi.problems import ProblemStore
+
+    ProblemStore(registry).record(_problem_draft())
+    deps = console.Deps(registry, checkout=None)
+    server, url = _serve(deps)
+    try:
+        form = {"t": TOKEN, "statement": "Odrzucamy.", "why": "Poza zakresem.", "outcome": "rejected"}
+        assert _post(f"{url}/problems/PRB-1/triage?t={TOKEN}", form)[0] == 409  # bez rejection_reason
+        assert _post(f"{url}/problems/PRB-1/triage", {**form, "t": "zly"})[0] == 404
+        status, _ = _post(f"{url}/problems/PRB-1/triage?t={TOKEN}", {**form, "rejection_reason": "out_of_strategy"})
+        assert status == 200
+        assert ProblemStore(registry).get("PRB-1")["status"] == "rejected"
+    finally:
+        server.shutdown()
+
+
+def test_main_builds_the_inbox_like_the_mcp_server(registry: Registry, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Konsola tworzyła Inbox bez konfiguracji: decyzja przyciskiem nie uruchamiała następnej fazy ani nie sprawdzała
+    PR (PRB-2). Teraz te same ustawienia ze środowiska co serwer MCP."""
+    monkeypatch.setenv("PDI_DISPATCH", "local")
+    inbox = console.inbox_from_env(registry)
+    assert inbox._dispatch.local
+    assert inbox.problems._dispatch.local
