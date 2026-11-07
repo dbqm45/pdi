@@ -173,13 +173,20 @@ def test_env_is_generated_once_private_and_never_overwritten(tmp_path: Path) -> 
     root = tmp_path / ".sdlc"
     env, created = home.ensure_env(root)
 
-    assert set(created) == {"PDI_TF_SIGNING_SECRET", "PDI_CI_FOR_SDLC_SIGNING_SECRET", "PDI_FORM_TOKEN"}
-    assert (env["PDI_EVENTS_URL"], env["PDI_DISPATCH"], env["PDI_PHASE_BUDGET_USD"]) == (
-        "http://127.0.0.1:8787",
-        "local",
-        "3",
-    )
+    assert set(created) == {
+        "PDI_TF_SIGNING_SECRET",
+        "PDI_CI_FOR_SDLC_SIGNING_SECRET",
+        "PDI_FORM_TOKEN",
+        "PDI_CONSOLE_TOKEN",
+    }
+    assert (
+        env["PDI_EVENTS_URL"],
+        env["PDI_DISPATCH"],
+        env["PDI_PHASE_BUDGET_USD"],
+        env["PDI_CONSOLE_PORT"],
+    ) == ("http://127.0.0.1:8787", "local", "3", "8788")
     assert len(env["PDI_TF_SIGNING_SECRET"]) >= 40
+    assert len(env["PDI_CONSOLE_TOKEN"]) >= 20
     assert stat.S_IMODE((root / "env").stat().st_mode) == 0o600
     assert stat.S_IMODE(root.stat().st_mode) == 0o700
 
@@ -217,13 +224,18 @@ def test_first_up_asks_for_the_paths_once_then_starts_everything_in_order(world:
     assert config is not None
     assert (config.shipscope, config.checkout) == (world.projects / "evdt-service-shipscope", world.projects / "sklep")
     names = [name for name, _, _ in world.spawned]
-    assert names == ["shipscope", "pdi-receiver", "pdi-receiver"], "odbiornik restartowany po połączeniu"
+    assert names == ["shipscope", "pdi-receiver", "pdi-receiver", "pdi-console"], (
+        "odbiornik restartowany po połączeniu, konsola na końcu"
+    )
     shipscope_argv = world.spawned[0][1]
     assert shipscope_argv == ["node", "server/scripts/dev.js"]
     assert world.spawned[0][2]["SYNC_INTERVAL_MINUTES"] == "1"
     assert world.spawned[1][1] == ["uv", "run", "--directory", str(world.projects / "pdi"), "pdi-receiver"]
+    assert world.spawned[3][1] == ["uv", "run", "--directory", str(world.projects / "pdi"), "pdi-console"]
+    assert world.spawned[3][2]["PDI_CONSOLE_TOKEN"]  # token sesji w env konsoli
     assert world.text().rstrip().endswith("gotowe")
     assert "http://localhost:3000" in world.text() and "http://127.0.0.1:8787" in world.text()
+    assert "http://127.0.0.1:8788" in world.text(), "linia z adresem konsoli w podsumowaniu"
 
 
 def test_up_stops_when_a_process_it_did_not_start_holds_the_shipscope_port(world: World) -> None:
@@ -274,8 +286,9 @@ def test_the_connection_waits_for_a_workspace_and_writes_the_three_variables(wor
     assert world.text().count("utwórz przestrzeń") == 1, "prośba o logowanie raz, nie przy każdej próbie"
     connects = [r for r in world.runs if r[0][:3] == ["node", "server/scripts/local-pdi.js", "connect"]]
     assert connects[0][0][3:] == ["--receiver", "http://127.0.0.1:8787"]
-    restarted = world.spawned[-1]
-    assert (restarted[0], restarted[2]["PDI_SHIPSCOPE_TOKEN"]) == ("pdi-receiver", TOKEN)
+    # Ostatnie spawn to pdi-console (po połączeniu); restartowany receiver tuż przed nim.
+    restarted = next(s for s in reversed(world.spawned) if s[0] == "pdi-receiver")
+    assert restarted[2]["PDI_SHIPSCOPE_TOKEN"] == TOKEN
     tests = [r for r in world.runs if r[0][:3] == ["node", "server/scripts/local-pdi.js", "test"]]
     assert len(tests) == 1
     assert "connected" in world.text()
@@ -406,7 +419,8 @@ def test_no_secret_in_argv_or_output(world: World) -> None:
     cli.main(["open"], ctx=world.ctx())
 
     secrets = [v for k, v in env_file(world).items() if k in home.SECRET_KEYS]
-    assert len(secrets) == 5
+    # 4 wygenerowane sekrety (tf signing, ci_for_sdlc signing, form token, console token) + 2 ShipScope
+    assert len(secrets) == 6
     seen = world.argv_text() + world.text()
     for value in secrets:
         assert value not in seen
@@ -495,13 +509,14 @@ def test_status_says_queued_for_undelivered_readiness(world: World) -> None:
     assert "ci_for_sdlc → pdi: queued 1" in world.text()
 
 
-def test_open_opens_shipscope_and_the_form(world: World) -> None:
+def test_open_opens_console_shipscope_and_the_form(world: World) -> None:
     assert up(world) == 0
 
     cli.main(["open"], ctx=world.ctx())
 
-    assert world.opened[0] == "http://localhost:3000/"
-    assert world.opened[1].startswith("http://127.0.0.1:8787/problems/new?t=")
+    assert world.opened[0].startswith("http://127.0.0.1:8788/board?t=")
+    assert world.opened[1] == "http://localhost:3000/"
+    assert world.opened[2].startswith("http://127.0.0.1:8787/problems/new?t=")
 
 
 def test_down_stops_processes_and_postgres_but_keeps_the_volume(world: World) -> None:

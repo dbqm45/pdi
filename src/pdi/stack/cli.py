@@ -38,6 +38,8 @@ Spawn = Callable[[str, list[str], Path, Mapping[str, str], Path], int]
 Http = Callable[[str, Mapping[str, str]], tuple[int, bytes]]
 
 RECEIVER_URL = "http://127.0.0.1:8787"
+CONSOLE_HOST = "127.0.0.1"
+CONSOLE_URL_TEMPLATE = "http://127.0.0.1:{port}"
 PG_CONTAINER = "shipscope-dev-pg"  # nazwa kontenera i wolumenu z ShipScope server/scripts/dev.js
 LOCAL_PDI = "server/scripts/local-pdi.js"
 INSTALL = {
@@ -49,7 +51,7 @@ INSTALL = {
     "uv": "curl -LsSf https://astral.sh/uv/install.sh | sh",
 }
 FIRST_RUN_WAIT = 15 * 60
-START_WAIT = {"shipscope": 3 * 60, "pdi-receiver": 30}
+START_WAIT = {"shipscope": 3 * 60, "pdi-receiver": 30, "pdi-console": 30}
 POLL_SECONDS = 2.0
 WORKSPACE_POLL_SECONDS = 5.0
 DEPLOY_ENVIRONMENTS = {"prod": "production", "test": "test"}
@@ -224,6 +226,28 @@ def start_receiver(ctx: Ctx, config: home.Config, secrets: Mapping[str, str]) ->
     ensure_port_free(ctx, "pdi-receiver", RECEIVER_URL)
     start(ctx, "pdi-receiver", argv, config.pdi, pdi_env(ctx, config, secrets))
     wait_for(ctx, "pdi-receiver", f"{RECEIVER_URL}/", seconds=START_WAIT["pdi-receiver"], any_status=True)
+
+
+def console_port(secrets: Mapping[str, str]) -> int:
+    """Port konsoli z env albo domyślny; wartość spoza zakresu daje domyślny."""
+    try:
+        port = int(secrets.get("PDI_CONSOLE_PORT", str(home.DEFAULTS["PDI_CONSOLE_PORT"])))
+    except ValueError:
+        return int(home.DEFAULTS["PDI_CONSOLE_PORT"])
+    return port if 1 <= port <= 65535 else int(home.DEFAULTS["PDI_CONSOLE_PORT"])
+
+
+def console_url(secrets: Mapping[str, str]) -> str:
+    return CONSOLE_URL_TEMPLATE.format(port=console_port(secrets))
+
+
+def start_console(ctx: Ctx, config: home.Config, secrets: Mapping[str, str]) -> None:
+    """Konsola pdi w przeglądarce (Z3-lokalnie, A7): proces odłączony obok pdi-receiver, tylko 127.0.0.1."""
+    argv = ["uv", "run", "--directory", str(config.pdi), "pdi-console"]
+    url = console_url(secrets)
+    ensure_port_free(ctx, "pdi-console", url)
+    start(ctx, "pdi-console", argv, config.pdi, pdi_env(ctx, config, secrets))
+    wait_for(ctx, "pdi-console", f"{url}/", seconds=START_WAIT["pdi-console"], any_status=True)
 
 
 # --- polecenia ---
@@ -407,9 +431,13 @@ def cmd_up(ctx: Ctx) -> int:
     if sandbox == "docker":
         ensure_phase_image(ctx, config, secrets)
     register_mcp(ctx, config)
+    if pid_of(ctx, "pdi-console") is None:
+        start_console(ctx, config, secrets)
+    console = console_url(secrets)
     ctx.out("")
     ctx.out(f"  ShipScope       {url}/")
-    ctx.out(f"  pdi-receiver    {RECEIVER_URL}/events/<shipscope|tf|ci_for_sdlc>, formularz: sdlc open")
+    ctx.out(f"  pdi-receiver    {RECEIVER_URL}/events/<shipscope|tf|ci_for_sdlc>")
+    ctx.out(f"  pdi-console     {console}/ — otwórz: sdlc open")
     ctx.out("  MCP w Claude    pdi, shipscope")
     ctx.out("  stan            uv run sdlc status")
     ctx.out("gotowe")
@@ -423,7 +451,11 @@ def cmd_status(ctx: Ctx) -> int:
         return 1
     secrets = home.read_env(ctx.root / "env")
     url = shipscope_url(config)
-    for name, address in (("shipscope", f"{url}/"), ("pdi-receiver", f"{RECEIVER_URL}/")):
+    for name, address in (
+        ("shipscope", f"{url}/"),
+        ("pdi-receiver", f"{RECEIVER_URL}/"),
+        ("pdi-console", f"{console_url(secrets)}/"),
+    ):
         pid = pid_of(ctx, name)
         ctx.out(f"{name}: {'działa, pid ' + str(pid) if pid else 'nie działa'} — {address}")
     code, out, _ = ctx.run(["docker", "inspect", "-f", "{{.State.Running}}", PG_CONTAINER], None, ctx.environ, None)
@@ -589,15 +621,18 @@ def cmd_open(ctx: Ctx) -> int:
     config = home.load_config(ctx.root / "config.toml")
     if config is None:
         raise Stop("Najpierw: uv run sdlc up")
-    form = home.read_env(ctx.root / "env").get("PDI_FORM_TOKEN", "")
+    env = home.read_env(ctx.root / "env")
+    form = env.get("PDI_FORM_TOKEN", "")
+    console_token = env.get("PDI_CONSOLE_TOKEN", "")
+    ctx.open_url(f"{console_url(env)}/board?t={console_token}")
     ctx.open_url(f"{shipscope_url(config)}/")
     ctx.open_url(f"{RECEIVER_URL}/problems/new?t={form}")
-    ctx.out("Otwieram ShipScope i formularz zgłoszeń.")
+    ctx.out("Otwieram konsolę pdi, ShipScope i formularz zgłoszeń.")
     return 0
 
 
 def cmd_down(ctx: Ctx) -> int:
-    for name in ("pdi-receiver", "shipscope"):
+    for name in ("pdi-console", "pdi-receiver", "shipscope"):
         ctx.out(f"{name}: {'zatrzymany' if stop(ctx, name) else 'nie działał'}")
     ctx.run(["docker", "stop", PG_CONTAINER], None, ctx.environ, None)
     ctx.out(f"Postgres zatrzymany; dane zostają w wolumenie {PG_CONTAINER}.")

@@ -12,9 +12,14 @@ from dataclasses import dataclass
 from pathlib import Path
 
 # Generowane raz i nigdy nie nadpisywane.
-GENERATED = ("PDI_TF_SIGNING_SECRET", "PDI_CI_FOR_SDLC_SIGNING_SECRET", "PDI_FORM_TOKEN")
+GENERATED = ("PDI_TF_SIGNING_SECRET", "PDI_CI_FOR_SDLC_SIGNING_SECRET", "PDI_FORM_TOKEN", "PDI_CONSOLE_TOKEN")
 # Ustawienia domyślne; użytkownik może je zmienić w pliku, `sdlc` ich nie nadpisuje.
-DEFAULTS = {"PDI_EVENTS_URL": "http://127.0.0.1:8787", "PDI_DISPATCH": "local", "PDI_PHASE_BUDGET_USD": "3"}
+DEFAULTS = {
+    "PDI_EVENTS_URL": "http://127.0.0.1:8787",
+    "PDI_DISPATCH": "local",
+    "PDI_PHASE_BUDGET_USD": "3",
+    "PDI_CONSOLE_PORT": "8788",
+}
 # Trzy zmienne z połączenia z ShipScope (`local-pdi.js connect`).
 SHIPSCOPE_KEYS = ("PDI_SHIPSCOPE_URL", "PDI_SHIPSCOPE_TOKEN", "PDI_SHIPSCOPE_SIGNING_SECRET")
 SECRET_KEYS = (*GENERATED, "PDI_SHIPSCOPE_TOKEN", "PDI_SHIPSCOPE_SIGNING_SECRET")

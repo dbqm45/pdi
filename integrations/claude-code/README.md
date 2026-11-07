@@ -4,6 +4,13 @@ Serwer MCP `pdi` (narzędzia `record_decision`, `find_decisions`, `get_decision`
 `list_inbox`, `decide_inbox_item`, `list_changes`, `get_change`, `retry_dispatch`)
 i komenda `/record-decision`. Specyfikacja: [dokument 14](../../docs/14-pdi-standalone.md).
 
+**Konsola w przeglądarce (Z3-lokalnie, DZ14).** Gdy pracujesz lokalnie z `sdlc up`, obok serwera MCP działa konsola
+`pdi-console` na `http://127.0.0.1:8788/` (port z `PDI_CONSOLE_PORT`, domyślnie 8788; token sesji w URL). Konsola i
+MCP czytają to samo (rejestr, skrzynkę, logi przebiegów), a decyzje z konsoli i z `decide_inbox_item` idą tą samą
+ścieżką przez `Inbox.decide` (ten sam kod, te same sprawdzenia PR-a, ten sam zapis w rejestrze). `sdlc open` otwiera
+Tablicę konsoli, a `sdlc status` pokazuje, czy konsola działa. Konsola pokazuje trzy pasy, ślad zmiany z panelem
+„Pliki” i bocznym postępem fazy na żywo (z `run.progress`); nic nie pisze do klonu produktu. Plan: [docs/plan-z3-lokalnie.md](../../docs/plan-z3-lokalnie.md).
+
 ## Instalacja krok po kroku (macOS / Linux)
 
 **1. Zainstaluj uv** (menedżer Pythona; jeśli `uv --version` już działa, pomiń):
