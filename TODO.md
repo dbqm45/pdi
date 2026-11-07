@@ -56,8 +56,8 @@ ani bramka nie wiedzą, że zmiana rusza obszar objęty decyzją.
 - [ ] **`applies_to` przy zapisie decyzji** — `record_decision` przyjmuje pole; tf `decision add` je przekazuje (pozycja
   w tf przy następnej zmianie `mode-pdi`).
 - [ ] **Sposób weryfikacji i odwracalność decyzji** (źródło: J. Wąsowski, „SDD — Missing Spec Decisions: The
-  Two-Implementations Technique and a Decision Register”, 2026-10): opcjonalne pola `verify` (rodzaj: test /
-  fitness function w CI / punkt przeglądu, plus odwołanie, np. id testu) i `reversibility` (`local` — agent decyduje
+  Two-Implementations Technique and a Decision Register”, 2026-10): sposób weryfikacji jest już w kontrakcie 0.14.0
+  jako `confirmation` (`kind`: test / ci_check / review…, `ref`: np. id testu); zostaje opcjonalne `reversibility` (`local` — agent decyduje
   i zapisuje; `broad` — agent proponuje, człowiek akceptuje; `one_way` — właściciel rozstrzyga przed implementacją:
   usuwanie danych, migracja, uprawnienia produkcyjne, publiczny kontrakt API). Decyzja bez sposobu weryfikacji to
   życzenie; ci_for_sdlc może sprawdzić, że `verify` wskazuje istniejący test. Klasy decyzji, o które pytać, gdy
@@ -143,9 +143,12 @@ najlepiej udokumentowanym sygnałem wyprzedzającym przy kodzie od agentów jest
 
 Ustalenia: [propozycja](docs/propozycja-decision-record.md), decyzje DR1–DR4 w [`decyzje.md`](docs/decyzje.md).
 Kroki (TDD, wersja kontraktu wg SemVer, tag `contract-v…` po merge'u):
-- [ ] **Kontrakt 0.14.0:** opcjonalne `record` (`decision`), `schema` i `contract_version` w `decision.schema.json`;
-  opcjonalne `consequences` (dobre i złe skutki) i `confirmation` (jak sprawdzić wykonanie) — razem z polem `verify`
-  z sekcji „Decyzje przypięte do kodu” wyżej, żeby nie były dwoma polami o tym samym. Przykład, README kontraktu.
+- [x] **Kontrakt 0.14.0** (2026-11-07, [plan](docs/plan-kontrakt-0140.md)): opcjonalne `record` (`decision`),
+  `schema` i `contract_version`; `consequences` (`text`, `effect`: good / bad / neutral) i `confirmation` (`how`,
+  `kind`: test / ci_check / review / metric / manual, `ref`) — `confirmation` obejmuje planowane `verify` z sekcji
+  „Decyzje przypięte do kodu” (zostaje tam tylko `reversibility`). Rejestr zapisuje nowe pola; przyjmowanie ich
+  w narzędziach MCP (`record_decision`, `decide_inbox_item`) i wyświetlanie w treści pliku — razem z krokiem „Zapis
+  ze znacznikiem”.
 - [ ] **Specyfikacja `contract/decision-record.md`:** znacznik, reguła rozpoznania (`.md` z `record: decision`),
   łańcuch zastąpień, katalogi, wersjonowanie, przykład.
 - [ ] **Zapis ze znacznikiem:** rejestr pdi (`registry.py`) i tf `decision_record.py` (pozycja w tf przy następnej
