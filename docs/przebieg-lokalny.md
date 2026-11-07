@@ -14,12 +14,44 @@ Skrócenie czasu:
 ## 0. Start
 
 - [x] **T** `uv run sdlc up` → kończy się „gotowe”. Za pierwszym razem są dwa kroki w przeglądarce: kliknięcie, które
-  zakłada aplikację GitHub ShipScope, oraz zalogowanie się i utworzenie przestrzeni.
+  zakłada aplikację GitHub ShipScope, oraz zalogowanie się i utworzenie przestrzeni. Linia podsumowania pokazuje też
+  `pdi-console http://127.0.0.1:8788/ — otwórz: sdlc open`.
 - [x] **T** `uv run sdlc sandbox sdlc-proba` → „gotowe”, adres repo i klonu. Za pierwszym razem: SS Settings → GitHub
   → Install, z dostępem do repo próbnego, potem Enter.
-- [x] **T** `uv run sdlc status` → `ShipScope ↔ pdi: connected`, ci_for_sdlc → pdi `configured` (zmian jeszcze nie ma).
+- [x] **T** `uv run sdlc status` → `ShipScope ↔ pdi: connected`, `pdi-console: działa, pid … — http://127.0.0.1:8788/`,
+  ci_for_sdlc → pdi `configured` (zmian jeszcze nie ma).
 - [x] **SS** Settings → GitHub: repo `sdlc-proba` śledzone. Settings → Sources: źródło z kodu `config/flags.{env}.json`.
 - [x] Nowa sesja **C** w klonie repo próbnego (`claude`); `/mcp` pokazuje `pdi` i `shipscope`.
+
+### 0b. Konsola pdi w przeglądarce (Z3-lokalnie, A7, DZ14, DZ18)
+
+- [ ] **T** `uv run sdlc open` → przeglądarka otwiera `http://127.0.0.1:8788/board?t=<PDI_CONSOLE_TOKEN>` (plus
+  ShipScope i formularz zgłoszeń). Tablica pokazuje trzy pasy („Zaprojektuj i zbuduj”, „Oceń i wydaj”, „Wdróż,
+  obserwuj, ulepszaj”).
+- [ ] **Przeglądarka** nawigacja: Tablica → Ślad zmiany (po kliknięciu karty CHG) → Skrzynka → Decyzje → Autonomia.
+  Skrzynka pokazuje pozycje bramek z pytaniami jako polami odpowiedzi.
+- [ ] **Przeglądarka** panel „Pliki” w śladzie zmiany pokazuje `intent.md`, `requirements.md`, `plan.md`, `design.md`,
+  `release.yaml` (biała lista). Klik „diff bieżącego cięcia” pokazuje `git diff`.
+- [ ] **Przeglądarka** boczny panel postępu w śladzie zmiany: podczas trwającej fazy odświeża się w czasie
+  rzeczywistym (SSE); wyświetla bieżącą czynność i koszt (`run.progress.message` / `cost_usd`).
+- [ ] **Przeglądarka** żądanie bez tokenu w URL → 404 (konsola nie zdradza, że strona istnieje).
+
+**Lista kontrolna dla właściciela (do zrobienia na Macu z Dockerem, `gh`, `claude`)**: pełny przebieg jednej zmiany
+prowadzony wyłącznie w konsoli, od zgłoszenia do pierwszej bramki (B1) z decyzją przyciskiem.
+
+- [ ] **T** `uv run sdlc up` → „gotowe”.
+- [ ] **T** `uv run sdlc open` → konsola otwarta.
+- [ ] **Przeglądarka** → formularz zgłoszeń (`/problems/new?t=…`): zgłoś problem; wraca strona dziękująca z
+  numerem `PRB-n`.
+- [ ] **Przeglądarka** (konsola) → Skrzynka: nowa pozycja triażu. Wpisz treść decyzji, dlaczego, outcome `accepted` →
+  „Decyzja zapisana” (zakłada `CHG-n` i rusza fazę `intent`).
+- [ ] **Przeglądarka** → Tablica: nowa karta `CHG-n` w pasie 1, kolumna fazy `intent`. Boczny panel postępu pokazuje
+  bieżącą czynność persony (SSE).
+- [ ] **Przeglądarka** → Ślad zmiany `/trace/CHG-n`: panel „Pliki” dostaje `intent.md` po zakończeniu fazy; prośba o
+  bramkę B1 pojawia się w Skrzynce.
+- [ ] **Przeglądarka** (konsola) → Skrzynka → pozycja B1: odpowiedz na pytania bramki (z opcji przyciskiem, gdy Z2a
+  wprowadzi opcje; inaczej wpisz w polach), wpisz treść decyzji i dlaczego, outcome `approved`. Następna faza
+  (`requirements`) rusza i jest widoczna live na Tablicy.
 
 ### 0a. Fazy w kontenerze (Z8a, [plan](plan-z8a-izolacja-faz.md))
 

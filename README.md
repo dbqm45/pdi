@@ -207,11 +207,11 @@ przepisywania sekretów (decyzje DL2, DL3; plan: [`docs/plan-l4-sdlc.md`](docs/p
 (`evdt-service-shipscope`) i ci_for_sdlc obok siebie. ShipScope musi mieć `server/scripts/local-pdi.js`.
 
 ```bash
-uv run sdlc up          # startuje i łączy wszystko; kończy się linią „gotowe”
+uv run sdlc up          # startuje i łączy wszystko (plus konsolę pdi); kończy się linią „gotowe”
 uv run sdlc status      # procesy, ShipScope ↔ pdi, ci_for_sdlc → pdi, sekrety (tylko ustawione/brak), skrzynka
 uv run sdlc deploy prod # GitHub Deployment HEAD main repo próbnego (też: test; --repo właściciel/nazwa)
-uv run sdlc open        # ShipScope i formularz zgłoszeń w przeglądarce
-uv run sdlc down        # zatrzymuje procesy i Postgresa; dane zostają
+uv run sdlc open        # otwiera konsolę pdi (/board?t=…), ShipScope i formularz zgłoszeń w przeglądarce
+uv run sdlc down        # zatrzymuje procesy (konsolę, odbiornik, ShipScope) i Postgresa; dane zostają
 uv run sdlc check       # ponownie: gotowość zmian CHG z repo produktu do pdi (ci_for_sdlc --send-to-pdi)
 uv run sdlc impact-review # oceny skutku, których termin minął (pdi-impact-review ze zmiennymi z ~/.sdlc/env)
 uv run sdlc forecast    # wyniki prognoz i czas przepływu dostarczonych zmian (pdi-forecast, jak wyżej)
@@ -234,13 +234,21 @@ Pierwsze `sdlc up`:
 - prosi o zalogowanie się w ShipScope i utworzenie przestrzeni.
 
 Resztę robi sam:
-- generuje sekrety;
-- startuje ShipScope (`npm run dev`: Postgres w Dockerze, web i worker) i `pdi-receiver` w tle;
+- generuje sekrety (w tym `PDI_CONSOLE_TOKEN` sesji konsoli);
+- startuje ShipScope (`npm run dev`: Postgres w Dockerze, web i worker), `pdi-receiver` i `pdi-console` w tle;
 - łączy ShipScope z pdi bez przeglądarki (`local-pdi.js connect` i `test` w trybie lokalnym ShipScope);
 - wysyła gotowość zmian z ci_for_sdlc;
 - sprawdza Dockera i buduje obraz kontenera faz `pdi-phase` (Z8a; pierwszy raz kilka minut), a gdy w `~/.sdlc/env`
   nie ma tokenu Claude, mówi, jak go dodać (`claude setup-token`);
 - rejestruje serwery MCP `pdi` i `shipscope` w Claude Code.
+
+Konsola pdi w przeglądarce (Z3-lokalnie, DZ14) żyje na `http://127.0.0.1:8788/` (port z `PDI_CONSOLE_PORT`); otwiera się
+jednym `sdlc open` razem z tokenem sesji w URL. Trzy pasy („Zaprojektuj i zbuduj”, „Oceń i wydaj”, „Wdróż, obserwuj,
+ulepszaj”), ślad zmiany z panelem „Pliki” i bocznym postępem na żywo z `run.progress` (DZ18), skrzynka z przyciskami
+decyzji. Decyzje z konsoli idą tą samą ścieżką co `decide_inbox_item` (ten sam kod, te same sprawdzenia PR-a).
+Bezpieczeństwo: nasłuch na `127.0.0.1` z hardcode, token w URL i w POST (bez tokenu odpowiada 404), CSP bez
+`unsafe-inline`, same-origin, bez wrzucania treści, która wygląda na sekret. Rozmowa, wywiad, powiadomienia i usługa
+na produkcji zostają w Z3 (po DA4).
 
 Kolejne `sdlc up` startuje tylko to, co nie działa.
 
@@ -249,7 +257,7 @@ Pliki w `~/.sdlc` (katalog 700):
 | Plik | Co zawiera |
 |---|---|
 | `config.toml` | ścieżki klonów i opcjonalnie `[deploy] repo` |
-| `env` (600) | `PDI_TF_SIGNING_SECRET`, `PDI_CI_FOR_SDLC_SIGNING_SECRET`, `PDI_FORM_TOKEN`, `PDI_EVENTS_URL`, `PDI_DISPATCH=local`, `PDI_PHASE_BUDGET_USD=3` i po połączeniu trzy `PDI_SHIPSCOPE_*`; wygenerowane raz, nigdy nadpisywane |
+| `env` (600) | `PDI_TF_SIGNING_SECRET`, `PDI_CI_FOR_SDLC_SIGNING_SECRET`, `PDI_FORM_TOKEN`, `PDI_CONSOLE_TOKEN`, `PDI_EVENTS_URL`, `PDI_CONSOLE_PORT=8788`, `PDI_DISPATCH=local`, `PDI_PHASE_BUDGET_USD=3` i po połączeniu trzy `PDI_SHIPSCOPE_*`; wygenerowane raz, nigdy nadpisywane |
 | `logs/` | logi ShipScope i odbiornika |
 | `run/` | pliki pid i wynik ostatniego sprawdzenia ci_for_sdlc |
 | `ci-data/` | `CI_DATA_DIR` CLI ci_for_sdlc |
