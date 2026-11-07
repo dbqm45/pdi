@@ -61,6 +61,11 @@ commitem; nowe decyzje dostają go same.
 Sprawdzenie rejestru (np. przed pushem albo w CI): `uv run --directory ~/pdi pdi-validate ~/pdi-decisions` — wg
 [specyfikacji Decision Record](../../contract/decision-record.md); kod wyjścia 1 przy błędzie.
 
+Decyzje techniczne jako ADR w repo projektu (MADR 4.0.0; `--format 2` dla narzędzi czytających MADR 2.1.2, np.
+Log4brains, adr-log, pyadr): `PDI_REGISTRY_PATH=~/pdi-decisions uv run --directory ~/pdi pdi-records export-madr
+--out ~/sklep/docs/decisions --project sklep`. Eksport nadpisuje tylko pliki, które sam wygenerował (komentarz
+`<!-- pdi: DEC-n -->`); ADR-y napisane ręcznie zostawia i zgłasza jako konflikt.
+
 Opcjonalnie dopisz [`CLAUDE-fragment.md`](CLAUDE-fragment.md) do `~/.claude/CLAUDE.md` — Claude będzie sprawdzał
 wcześniejsze decyzje, zanim coś zaproponuje.
 
