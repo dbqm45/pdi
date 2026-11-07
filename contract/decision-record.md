@@ -84,7 +84,15 @@ i opisy w schemacie; od 0.14.0 także `consequences` (skutki `good` / `bad` / `n
 
 Komunikaty podają plik i regułę, bez treści decyzji. Kod wyjścia 1 przy błędzie, 0 bez błędów (do CI).
 
-## 10. Przykład
+## 10. Eksport do MADR
+
+`pdi-records export-madr --out <katalog> [--project P] [--format 4|2]` zapisuje decyzje `kind: technical`
+(`recorded`, `superseded`) jako ADR w formacie MADR 4.0.0 (domyślnie) albo 2.1.2 (dla narzędzi, które czytają
+tylko ten układ): plik `NNNN-<slug>.md` z numeru decyzji. To widok dla ludzi i narzędzi ADR, nie Decision Record:
+źródłem prawdy zostaje plik decyzji. Mapowanie pól: [propozycja §4.1](../docs/propozycja-decision-record.md#41-pole-po-polu),
+plan: [`docs/plan-eksport-madr.md`](../docs/plan-eksport-madr.md).
+
+## 11. Przykład
 
 ```markdown
 ---

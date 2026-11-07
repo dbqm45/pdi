@@ -160,6 +160,11 @@ Kroki (TDD, wersja kontraktu wg SemVer, tag `contract-v…` po merge'u):
 - [x] **Walidator `pdi-validate <plik|katalog>...`** (2026-11-07): katalogi rekurencyjnie (pliki bez `record`
   pomijane), plik podany wprost musi być DR; nagłówek, znacznik, wersja nie nowsza niż walidator, schemat, nazwa
   pliku; powtórzone `id` i spójność zastąpień; komunikaty bez treści decyzji; kod wyjścia 1 dla CI.
-- [ ] **Eksport do MADR** (DR3) decyzji `kind: technical` do `docs/decisions/nnnn-title.md`: najpierw ustalić wersję
-  docelową (4.0.0 albo układ 2.1.2 / 3.x, który czytają adr-log, ADR Manager, Log4brains, pyadr i Backstage —
-  `adr.github.io/adr-tooling/`, 2026-11-07). Import ADR-ów — dopiero przy zespole z istniejącymi ADR.
+- [x] **Eksport do MADR** (DR3, 2026-11-07, [plan](docs/plan-eksport-madr.md)): `pdi-records export-madr --out
+  <katalog> [--project P] [--format 4|2]` — decyzje `kind: technical` jako `NNNN-<slug>.md`; domyślnie MADR 4.0.0,
+  `--format 2` układ 2.1.2 dla adr-log, ADR Manager, Log4brains, pyadr i Backstage (`adr.github.io/adr-tooling/`,
+  2026-11-07; 3.x nie osobno). Nadpisuje tylko własne pliki (komentarz `<!-- pdi: DEC-n -->`). Log4brains woli
+  nazwy bez numerów — jeśli zespół go użyje, dodać opcję nazwy bez `NNNN-`. Import ADR-ów — dopiero przy zespole
+  z istniejącymi ADR.
+- [ ] **Znaczenie `status: reverted`** (specyfikacja §7): opisać albo usunąć z kontraktu; dziś pdi go nie nadaje,
+  a eksport MADR go pomija.
