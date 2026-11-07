@@ -631,7 +631,29 @@ def cmd_open(ctx: Ctx) -> int:
     return 0
 
 
+def _running_phases(registry: Path) -> list[str]:
+    """Logi faz bez wyniku, zmieniane niedawno — faza w toku (jak `dispatch_local.running`, dla wszystkich zmian)."""
+    from pdi import dispatch_local
+
+    runs = registry / "runs"
+    if not runs.is_dir():
+        return []
+    found = []
+    for log in sorted(runs.glob("CHG-*.log")):
+        if not dispatch_local.result_path(log).exists() and dispatch_local.is_fresh(log):
+            found.append(log.stem)
+    return found
+
+
 def cmd_down(ctx: Ctx) -> int:
+    config = home.load_config(ctx.root / "config.toml")
+    for stem in _running_phases(config.registry) if config else []:
+        change = stem.split("-", 2)[:2]
+        ctx.out(
+            f"Uwaga: trwa faza {stem} — bez odbiornika pdi prośba o bramkę na jej końcu się nie powiedzie. "
+            f"Po `sdlc up` sprawdź `get_change {'-'.join(change)}`; przy `step: gate` ponów ją: "
+            f"`retry_dispatch {'-'.join(change)}` (wysyła tylko prośbę o bramkę)."
+        )
     for name in ("pdi-console", "pdi-receiver", "shipscope"):
         ctx.out(f"{name}: {'zatrzymany' if stop(ctx, name) else 'nie działał'}")
     ctx.run(["docker", "stop", PG_CONTAINER], None, ctx.environ, None)

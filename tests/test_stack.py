@@ -983,3 +983,21 @@ def test_sdlc_image_reports_a_failed_build(world: World) -> None:
 
     assert cli.main(["image", "--force"], ctx=world.ctx()) == 1
     assert "no space left on device" in world.text()
+
+
+def test_down_warns_when_a_phase_is_running(world: World) -> None:
+    """Restart w trakcie fazy (CHG-4, 2026-11-07): prośba o bramkę na końcu fazy trafia w wyłączony odbiornik."""
+    assert up(world) == 0
+    runs = world.home / "pdi-decisions" / "runs"
+    runs.mkdir(parents=True, exist_ok=True)
+    (runs / "CHG-4-intent-20261107T142514Z.log").write_text("# pdi: CHG-4 faza intent\n", encoding="utf-8")
+    done = runs / "CHG-3-delivery-20261105T120000Z.log"
+    done.write_text("# koniec: done\n", encoding="utf-8")
+    done.with_name(done.stem + ".result.json").write_text('{"status": "done"}\n', encoding="utf-8")
+    start = len(world.output)
+
+    assert cli.main(["down"], ctx=world.ctx()) == 0
+
+    out = "\n".join(world.output[start:])
+    assert "CHG-4" in out and "trwa faza" in out and "retry_dispatch" in out
+    assert "CHG-3" not in out
