@@ -86,6 +86,8 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
     assert {"statement", "why", "kind", "source", "drafted_by", "assumptions", "project"} <= set(record_params)
     assert {"decision_type", "draft_edited"} <= set(record_params)
     assert {"decision_type", "draft_edited"} <= set(tools["decide_inbox_item"].input_schema["properties"])
+    for name in ("record_decision", "supersede_decision", "decide_inbox_item"):
+        assert {"consequences", "confirmation"} <= set(tools[name].input_schema["properties"]), name
     assert "project" in tools["find_decisions"].input_schema["properties"]
 
 
@@ -368,3 +370,21 @@ async def test_ai_draft_needs_draft_edited_and_triage_keeps_it(
 def test_instructions_say_how_to_fill_drafted_by_and_draft_edited(server: Any) -> None:
     assert "draft_edited" in server.instructions
     assert "kto napisał tekst szkicu" in server.instructions
+
+
+async def test_consequences_and_confirmation_through_record_decision(
+    server: Any, registry: Registry, make_draft: Draft
+) -> None:
+    saved = await call(
+        server,
+        "record_decision",
+        make_draft(
+            consequences=[{"text": "Marża zostaje dodatnia.", "effect": "good"}],
+            confirmation={"how": "Raport marży", "kind": "metric"},
+        ),
+    )
+
+    got = registry.get(saved["id"])
+    assert got["consequences"] == [{"text": "Marża zostaje dodatnia.", "effect": "good"}]
+    assert got["confirmation"] == {"how": "Raport marży", "kind": "metric"}
+    assert got["record"] == "decision"

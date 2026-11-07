@@ -120,6 +120,17 @@ class Answer(TypedDict):
     answer: str
 
 
+class Consequence(TypedDict):
+    text: str
+    effect: Literal["good", "bad", "neutral"]
+
+
+class Confirmation(TypedDict):
+    how: str
+    kind: NotRequired[Literal["test", "ci_check", "review", "metric", "manual"]]
+    ref: NotRequired[str]
+
+
 class SuccessMetric(TypedDict):
     metric: str
     target: str
@@ -151,6 +162,8 @@ DRAFT_FIELDS = (
     "dependencies",
     "answers",
     "success_metric",
+    "consequences",
+    "confirmation",
     "review_by",
     "links",
     "tags",
@@ -203,6 +216,8 @@ def build_server(
         assumptions: list[Assumption] | None = None,
         dependencies: list[str] | None = None,
         success_metric: SuccessMetric | None = None,
+        consequences: list[Consequence] | None = None,
+        confirmation: Confirmation | None = None,
         review_by: str | None = None,
         links: Links | None = None,
         tags: list[str] | None = None,
@@ -218,7 +233,10 @@ def build_server(
         decided_at: RRRR-MM-DD (domyślnie dziś); decided_by:
         domyślnie PDI_DECIDED_BY. evidence.epistemic_status odróżnia obserwację od interpretacji, hipotezy
         i wniosku AI. assumptions: założenia; load_bearing=true, gdy ich upadek zmienia decyzję; invalidated_if:
-        sygnał, po którym założenie przestaje być prawdziwe. Ponowienie identycznego zapisu zwraca istniejący wpis.
+        sygnał, po którym założenie przestaje być prawdziwe. consequences: skutki (effect good / bad / neutral)
+        i confirmation: jak sprawdzić, że decyzję wykonano (how; kind test / ci_check / review / metric / manual; ref
+        np. id testu) — tylko gdy padły w rozmowie. Plik dostaje znacznik Decision Record od rejestru (nie podawaj
+        record, schema, contract_version). Ponowienie identycznego zapisu zwraca istniejący wpis.
         """
         draft = _draft(locals())
         reg = open_registry()
@@ -276,6 +294,8 @@ def build_server(
         assumptions: list[Assumption] | None = None,
         dependencies: list[str] | None = None,
         success_metric: SuccessMetric | None = None,
+        consequences: list[Consequence] | None = None,
+        confirmation: Confirmation | None = None,
         review_by: str | None = None,
         links: Links | None = None,
         tags: list[str] | None = None,
@@ -322,6 +342,8 @@ def build_server(
         assumptions: list[Assumption] | None = None,
         dependencies: list[str] | None = None,
         success_metric: SuccessMetric | None = None,
+        consequences: list[Consequence] | None = None,
+        confirmation: Confirmation | None = None,
         review_by: str | None = None,
         links: Links | None = None,
         tags: list[str] | None = None,

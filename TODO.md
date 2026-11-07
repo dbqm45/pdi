@@ -151,8 +151,11 @@ Kroki (TDD, wersja kontraktu wg SemVer, tag `contract-v…` po merge'u):
   ze znacznikiem”.
 - [ ] **Specyfikacja `contract/decision-record.md`:** znacznik, reguła rozpoznania (`.md` z `record: decision`),
   łańcuch zastąpień, katalogi, wersjonowanie, przykład.
-- [ ] **Zapis ze znacznikiem:** rejestr pdi (`registry.py`) i tf `decision_record.py` (pozycja w tf przy następnej
-  zmianie `mode-pdi`); skrypt dopisujący znacznik w istniejących rejestrach (jeden commit). Nazwy plików bez zmian (DR2).
+- [x] **Zapis ze znacznikiem** (2026-11-07, [plan](docs/plan-zapis-decision-record.md)): rejestr pdi nadaje znacznik
+  przy każdym zapisie (klient go nie podaje); `pdi-records migrate` dopisuje go w istniejących rejestrach w miejscu,
+  jednym commitem; treść pliku pokazuje „Skutki” i „Jak sprawdzić”; `record_decision`, `supersede_decision`
+  i `decide_inbox_item` przyjmują `consequences` i `confirmation`. tf bez zmian: `decisions.md` zmiany to dziennik
+  wpisów, do rejestru trafia eksportem i wtedy dostaje znacznik od pdi.
 - [ ] **Walidator `pdi-validate <plik|katalog>`:** plik bez znacznika = nie Decision Record; ze znacznikiem —
   nagłówek przechodzi schemat; kod wyjścia dla CI.
 - [ ] **Eksport do MADR** (DR3) decyzji `kind: technical` do `docs/decisions/nnnn-title.md`: najpierw ustalić wersję

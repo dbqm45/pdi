@@ -1,6 +1,8 @@
 """Rejestr decyzji: pliki `decisions/DEC-nnnn.md`.
 
-Frontmatter YAML jest źródłem prawdy; treść pod nim to widok dla człowieka, generowany przy każdym zapisie.
+Frontmatter YAML jest źródłem prawdy; treść pod nim to widok dla człowieka, generowany przy każdym zapisie. Każdy
+zapisany plik jest Decision Record (DR1, kontrakt 0.14.0): nagłówek zaczyna się od `record: decision`, `schema`
+i `contract_version`, które nadaje rejestr.
 """
 
 from __future__ import annotations
@@ -20,7 +22,8 @@ from pdi import contract
 
 SCHEMA_PATH = contract.schema_path("decision")
 
-REGISTRY_FIELDS = ("id", "status", "recorded_at", "supersedes", "superseded_by")
+MARKER_FIELDS = ("record", "schema", "contract_version")
+REGISTRY_FIELDS = (*MARKER_FIELDS, "id", "status", "recorded_at", "supersedes", "superseded_by")
 FIELD_ORDER = (
     "record",
     "schema",
@@ -256,8 +259,25 @@ class Registry:
                 return d
         return None
 
-    def _write(self, decision: Decision, *, overwrite: bool) -> None:
-        path = self._path(decision)
+    def add_record_markers(self) -> dict[str, Any]:
+        """Dopisuje znacznik Decision Record w plikach, które go nie mają (rejestry sprzed kontraktu 0.14.0).
+
+        Plik zostaje tam, gdzie leży; pola decyzji bez zmian. Jeden commit; ponowne wywołanie niczego nie zmienia.
+        """
+        marked = []
+        for path in self._files():
+            decision = _read(path)
+            if all(decision.get(k) is not None for k in MARKER_FIELDS):
+                continue
+            self._write(decision, overwrite=True, path=path)
+            marked.append(path)
+        warning = self.commit(marked, f"znacznik Decision Record w {len(marked)} decyzjach") if marked else None
+        return {"marked": marked, **({"warning": warning} if warning else {})}
+
+    def _write(self, decision: Decision, *, overwrite: bool, path: Path | None = None) -> None:
+        """Zapisuje plik decyzji; uzupełnia w `decision` znacznik Decision Record (bieżąca wersja kontraktu)."""
+        decision.update(record_marker())
+        path = path or self._path(decision)
         path.parent.mkdir(parents=True, exist_ok=True)
         ordered = {k: decision[k] for k in FIELD_ORDER if k in decision}
         head = yaml.safe_dump(ordered, sort_keys=False, allow_unicode=True, width=1000)
@@ -337,6 +357,18 @@ def _summary(d: Decision) -> Decision:
     return summary
 
 
+def record_marker() -> dict[str, str]:
+    """Znacznik Decision Record (DR1): rozpoznanie pliku decyzji po nagłówku, wersja kontraktu zapisu."""
+    return {
+        "record": "decision",
+        "schema": str(contract.load("decision")["$id"]),
+        "contract_version": contract.CONTRACT_VERSION,
+    }
+
+
+_EFFECT = {"good": "dobry", "bad": "zły", "neutral": "neutralny"}
+
+
 def _render_body(d: Decision) -> str:
     lines = [f"\n# {d['id']}: {d['statement']}\n", f"**Dlaczego:** {d['why']}\n"]
     project = d.get("project", "ogólna (bez projektu)")
@@ -358,6 +390,16 @@ def _render_body(d: Decision) -> str:
     if d.get("answers"):
         lines.append("## Odpowiedzi na pytania\n")
         lines += [f"- {a['question']} → {a['answer']}" for a in d["answers"]]
+        lines.append("")
+    if d.get("consequences"):
+        lines.append("## Skutki\n")
+        lines += [f"- [{_EFFECT[c['effect']]}] {c['text']}" for c in d["consequences"]]
+        lines.append("")
+    if d.get("confirmation"):
+        c = d["confirmation"]
+        detail = ": ".join(x for x in (c.get("kind"), c.get("ref")) if x)
+        lines.append("## Jak sprawdzić\n")
+        lines.append(f"- {c['how']}" + (f" ({detail})" if detail else ""))
         lines.append("")
     if d.get("evidence"):
         lines.append("## Dowody\n")
