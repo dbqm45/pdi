@@ -21,15 +21,15 @@ wszystkie przed etapem 2.
 | [Z8c-2](#z8c-2--tf-skaner-w-pętli-kawałka-talosa-i-w-ci) | skaner w pętli kawałka talosa i w CI | Z8c-1 | tf | `/Users/x/WebstormProjects/tf` | zrobione (tf #138; kawałek talosa na sdlc-proba 2026-11-03, sdlc-proba #10, [wynik](przebieg-lokalny.md#wynik-przebiegu-2026-11-03-z8c-2-talos-na-sdlc-proba)) |
 | [A6](#a6--pdi--tf-shipscope-ci_for_sdlc-ponowny-przebieg-lokalny-na-sdlc-proba) | ponowny przebieg lokalny na `sdlc-proba`: jedna zmiana od zgłoszenia do oceny skutku, w kontenerze, bez obejść (bramka A6, DZ19) | Z1, Z8a, Z8c-1, Z8c-2 | pdi (+ tf, ShipScope, ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` | **zaliczone 2026-11-06 w §0–§4** ([wynik](przebieg-lokalny.md#wynik-przebiegu-2026-11-03%E2%80%9305-a6)): delivery CHG-3 otworzyło PR cięcia sdlc-proba #34 po poprawkach PRB-29, PRB-31–34; §5–§7 pominięte świadomie |
 | [PRB-32](#prb-32--tf-talos-w-fazie-delivery-bez-interakcji) | Talos w fazie delivery bez interakcji: przebieg poza `.claude/`, polecenia git na liście `allow`, cięcie z kluczem zmiany (PRB-33), wynik persony przy sukcesie (PRB-28) | pdi #148 i zaufanie folderu w kontenerze fazy (pdi) | tf | `/Users/x/WebstormProjects/tf` | zrobione (tf #145, #146, 5.58.5–5.58.6; sdlc-proba #32, #33); delivery CHG-3 potwierdzone 2026-11-05 (sdlc-proba #34) |
-| [N1](#n1--tf-przegląd-drugim-modelem) | przegląd drugim modelem (wymagania, plan, uwagi z review) | Z1, A6 | tf (+ pdi, jeśli w kontenerze) | `/Users/x/WebstormProjects/tf` | do zrobienia |
-| [N5](#n5--tf-evale-przebiegu) | evale przebiegu na 20 prawdziwych zadaniach | Z1, A6 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
+| [N1](#n1--tf-przegląd-drugim-modelem) | przegląd drugim modelem (wymagania, plan, uwagi z review) | Z1, A6 | tf (+ pdi, jeśli w kontenerze) | `/Users/x/WebstormProjects/tf` | **zrobione 2026-11-07** (tf #149 → 5.59.0, pdi #159); zapasowy model poprawiony w tf #158; sprawdzenie na Macu na liście przebiegu lokalnego |
+| [N5](#n5--tf-evale-przebiegu) | evale przebiegu na 20 prawdziwych zadaniach | Z1, A6 | tf | `/Users/x/WebstormProjects/tf` | **zrobione 2026-11-07** (tf #150, #153, #155, #157); pełny płatny przebieg 18 zadań (ok. 11 USD) za zgodą |
 | [Z7b-1a](#z7b-1a--pdi--tf-cele-zmiany-w-kontrakcie-i-planie) | cele zmiany (`targets`) w kontrakcie i planie, B3 | Z1, A6 | pdi + tf | `/Users/x/WebstormProjects/pdi` | **zrobione 2026-11-06** (pdi #160 → 0.12.0, tf #151 i tf #152 scalone) |
 | [Z7b-1b](#z7b-1b--ci_for_sdlc-sprawdzanie-celów-zmiany) | sprawdzanie celów (pokrycie, testy mutacyjne) w ci_for_sdlc | Z7b-1a, Z8c-1 | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` | **zrobione 2026-11-07** (ci_for_sdlc #110: pin 0.12.0, TGT-001…TGT-004, CLI `--coverage` / `--mutation`, `readiness.changed.targets_status`; tf #156: szablon `change-check.yml`) |
-| [N2](#n2--pdi--tf-pętla-budujący-recenzent-na-pr-i-samonaprawa-ci) | pętla budujący–recenzent na PR i samonaprawa CI | Z8a, N1 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
+| [N2](#n2--pdi--tf-pętla-budujący-recenzent-na-pr-i-samonaprawa-ci) | pętla budujący–recenzent na PR i samonaprawa CI | Z8a, N1 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia, odblokowane (N1 scalone 2026-11-07) |
 | [N12](#n12--tf-weryfikacja-przed-zakończeniem-fazy) | weryfikacja przed zakończeniem fazy (świeży wynik N3 dla commita) | A6 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [N13](#n13--tf--pdi-limity-tur-i-czasu-zapętlenie-trafia-do-skrzynki) | limity tur i czasu, zapętlenie trafia do skrzynki | A6 | tf + pdi | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [N15](#n15--tf--pdi-zakres-zapisu-fazy) | zakres zapisu fazy (`guard_paths` i sandbox) | A6 | tf + pdi (kontrakt) | `/Users/x/WebstormProjects/tf` | do zrobienia |
-| [Z3-lokalnie](#z3-lokalnie--pdi--tf-konsola-w-przeglądarce-na-macu) | konsola w przeglądarce na Macu: trzy pasy, ślad z panelem plików, postęp na żywo, decyzje przyciskami (DZ14, DZ18), opcje pytań jako przyciski (N19) | A6 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
+| [Z3-lokalnie](#z3-lokalnie--pdi--tf-konsola-w-przeglądarce-na-macu) | konsola w przeglądarce na Macu: trzy pasy, ślad z panelem plików, postęp na żywo, decyzje przyciskami (DZ14, DZ18), opcje pytań jako przyciski (N19) | A6 | pdi + tf | `/Users/x/WebstormProjects/pdi` | **zrobione 2026-11-07** (pdi #162, tf #154); sprawdzenie na Macu na liście przebiegu lokalnego |
 | [Z8g](#z8g--pdi-proxy-poświadczeń-token-claude-poza-kontenerem-fazy) | proxy poświadczeń: prawdziwy token Claude poza kontenerem fazy | A6 (grupa B3, przed etapem 3) | pdi (+ tf, jeśli szablon) | `/Users/x/WebstormProjects/pdi` | do zrobienia |
 
 ## Z1 — pdi + tf: wszystkie decyzje zmiany w każdej fazie (domknięcie PRB-3)
@@ -846,7 +846,7 @@ tokeny GitHuba tylko na hoście), Z8c-2 (ustalenia skanera blokują kawałek, sk
 
 ```text
 Implement N2 of docs/plan-zespol-jednoosobowy.md (§8.3) in dbqm45/pdi, with the tf part in dbqm45/tf (attach it with
-push access). A6 is done (2026-11-06); start when N1 (second review) is merged: read N1's plan and its PR's final report
+push access). A6 is done (2026-11-06) and N1 (second review) is merged: read N1's plan and its PR's final report
 for the names of the review script, its commands and output fields. Answer me in Polish; code, commits and PR titles
 in English.
 
@@ -867,8 +867,8 @@ docs/project/changes/CHG-n/runs/TSK-n.md. N2 builds on the cut PRs pdi now opens
 report); keep that format. Checked for this prompt on 2026-11-06: tf has no REVIEW.md of its own, it ships a template
 (core/skills/core-git-workflow/references/review-md.md, with przeglad-ai-w-ci.md) and dbqm45/sdlc-proba has no
 REVIEW.md yet; sdlc-proba has no CI job that runs the product's tests on a code PR (change-check.yml runs only on
-docs/project/changes/**, team-factory.yml only on factory/ and .claude/). N1 is not merged yet: if it still is not when
-you start, stop and tell me.
+docs/project/changes/**, team-factory.yml only on factory/ and .claude/). N1 is merged (tf #149, pdi #159, 2026-11-07):
+the review script is second_review.py and pdi runs it as a host step after `run`.
 
 Read first: docs/plan-zespol-jednoosobowy.md §8.3 (N2, N7, N12, N13), docs/plan-z1-decyzje-w-fazach.md,
 docs/plan-z8a-izolacja-faz.md and N1's plan; src/pdi/dispatch_local.py (delivery: `_publish_cuts`, PRs opened on the
@@ -924,7 +924,7 @@ Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, che
 ## N12 — tf: weryfikacja przed zakończeniem fazy
 
 Grupa A5. Startuje po A6 (DZ19); N3 jest zrobione z Z8c-2. Sesja w klonie tf. Dotyka tych samych plików co N2, N13 i
-N15 (talos, `phase_run.py`): prowadź po kolei albo uzgadniaj zmiany. **Stan przed startem (2026-11-06, po A6):** pdi `7048263` (kontrakt 0.11.0), tf 5.58.7; zmiany z A6 opisuje akapit „State on 2026-11-06” w poleceniu. Wcześniej, 2026-11-03: pdi `aadfbf9` (kontrakt 0.11.0), tf 5.58.4. Już jest: Z1, Z8a (krok `run`
+N15 (talos, `phase_run.py`): prowadź po kolei albo uzgadniaj zmiany. **Stan przed startem (sprawdzony 2026-11-07):** pdi po #163 (kontrakt 0.12.0), tf 5.64.1; zmiany z A6 opisuje akapit „State on 2026-11-06” w poleceniu. Wcześniej, 2026-11-03: pdi `aadfbf9` (kontrakt 0.11.0), tf 5.58.4. Już jest: Z1, Z8a (krok `run`
 w kontenerze z sandboxem Claude Code), Z8c-2 z N3 (jedno polecenie weryfikacji w pierwszej linii CLAUDE.md produktu,
 wzór `templates/verify.sh` w talos-story-run); CI na GitHubie działa.
 
@@ -946,6 +946,11 @@ phase_run.py keeps `detail` and `permission_denials` on success too, and pdi put
 when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
 docs/project/changes/CHG-n/runs/TSK-n.md. The verification command a phase runs must be an allowed command, or it is
 denied silently in -p.
+Checked for this prompt on 2026-11-07 (tf 5.64.1, pdi after #163, contract 0.12.0): phase_run.py now runs the persona
+with `--print --verbose --output-format stream-json` and prints prefixed progress lines (A7, tf #154); the run result is
+read through modes/mode-pdi/skills/pdi-decisions/scripts/phase_result.py (N5) — extend it instead of parsing the output
+again; pdi runs the second review (N1, second_review.py) as a host step after `run` (pdi #159); the next free contract
+version is 0.13.0 (check open pdi PRs first).
 
 Read first: pdi docs/plan-zespol-jednoosobowy.md §8.3 (N3, N12, N13) and docs/plan-z8a-izolacja-faz.md; in tf
 modes/mode-talos/skills/talos-story-run (SKILL.md: the slice loop, `BRAMKA K<n>: PASS|FAIL`, templates/verify.sh,
@@ -984,7 +989,7 @@ fields.
 ## N13 — tf + pdi: limity tur i czasu, zapętlenie trafia do skrzynki
 
 Grupa A5. Startuje po A6 (DZ19). Sesja w klonie tf; część pdi (pozycja w skrzynce) osobnym PR-em. Dotyka tych samych
-plików co N2, N12 i N15: prowadź po kolei albo uzgadniaj zmiany. **Stan przed startem (2026-11-06, po A6):** pdi `7048263` (kontrakt 0.11.0), tf 5.58.7; zmiany z A6 opisuje akapit „State on 2026-11-06” w poleceniu. Wcześniej, 2026-11-03: pdi `aadfbf9` (kontrakt 0.11.0), tf 5.58.4. Już jest: Z1, Z8a (krok `run`
+plików co N2, N12 i N15: prowadź po kolei albo uzgadniaj zmiany. **Stan przed startem (sprawdzony 2026-11-07):** pdi po #163 (kontrakt 0.12.0), tf 5.64.1; zmiany z A6 opisuje akapit „State on 2026-11-06” w poleceniu. Wcześniej, 2026-11-03: pdi `aadfbf9` (kontrakt 0.11.0), tf 5.58.4. Już jest: Z1, Z8a (krok `run`
 w kontenerze z sandboxem Claude Code), Z8c-2 z N3 (jedno polecenie weryfikacji w pierwszej linii CLAUDE.md produktu,
 wzór `templates/verify.sh` w talos-story-run); CI na GitHubie działa.
 
@@ -1006,6 +1011,12 @@ phase_run.py keeps `detail` and `permission_denials` on success too, and pdi put
 when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
 docs/project/changes/CHG-n/runs/TSK-n.md. result.json's `persona` (status, cost_usd, detail, permission_denials) is an
 input for loop and limit detection.
+Checked for this prompt on 2026-11-07 (tf 5.64.1, pdi after #163, contract 0.12.0): phase_run.py now runs the persona
+with `--print --verbose --output-format stream-json` and prints prefixed progress lines (A7, tf #154); the run result is
+read through modes/mode-pdi/skills/pdi-decisions/scripts/phase_result.py (N5) — extend it instead of parsing the output
+again; pdi runs the second review (N1, second_review.py) as a host step after `run` (pdi #159); the next free contract
+version is 0.13.0 (check open pdi PRs first). Today --max-budget-usd is the only limit flag phase_run.py passes; pdi's
+STEP_TIMEOUT_SECONDS is 2 h.
 
 Read first: pdi docs/plan-zespol-jednoosobowy.md §8.3 (N13, N12, N16) and docs/plan-z8a-izolacja-faz.md; in tf
 modes/mode-pdi/skills/pdi-decisions/scripts/phase_run.py (how claude is started: --print, --max-budget-usd from
@@ -1045,7 +1056,7 @@ exact names of the settings, statuses, hook and inbox item kind.
 ## N15 — tf + pdi: zakres zapisu fazy
 
 Grupa A5. Startuje po A6 (DZ19). Sesja w klonie tf; lista ścieżek fazy w kontrakcie pdi osobnym PR-em. Dotyka tych
-samych plików co N2, N12 i N13 (hooki, persony): prowadź po kolei albo uzgadniaj zmiany. **Stan przed startem (2026-11-06, po A6):** pdi `7048263` (kontrakt 0.11.0), tf 5.58.7; zmiany z A6 opisuje akapit „State on 2026-11-06” w poleceniu. Wcześniej, 2026-11-03: pdi `aadfbf9` (kontrakt 0.11.0), tf 5.58.4. Już jest: Z1, Z8a (krok `run`
+samych plików co N2, N12 i N13 (hooki, persony): prowadź po kolei albo uzgadniaj zmiany. **Stan przed startem (sprawdzony 2026-11-07):** pdi po #163 (kontrakt 0.12.0), tf 5.64.1; zmiany z A6 opisuje akapit „State on 2026-11-06” w poleceniu. Wcześniej, 2026-11-03: pdi `aadfbf9` (kontrakt 0.11.0), tf 5.58.4. Już jest: Z1, Z8a (krok `run`
 w kontenerze z sandboxem Claude Code), Z8c-2 z N3 (jedno polecenie weryfikacji w pierwszej linii CLAUDE.md produktu,
 wzór `templates/verify.sh` w talos-story-run); CI na GitHubie działa.
 
@@ -1068,6 +1079,12 @@ phase_run.py keeps `detail` and `permission_denials` on success too, and pdi put
 when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
 docs/project/changes/CHG-n/runs/TSK-n.md. The delivery write scope must include `tmp/talos/runs/` and
 docs/project/changes/<CHG>/runs/; `.claude/` is already unwritable in -p.
+Checked for this prompt on 2026-11-07 (tf 5.64.1, pdi after #163, contract 0.12.0): phase_run.py now runs the persona
+with `--print --verbose --output-format stream-json` and prints prefixed progress lines (A7, tf #154); the run result is
+read through modes/mode-pdi/skills/pdi-decisions/scripts/phase_result.py (N5) — extend it instead of parsing the output
+again; pdi runs the second review (N1, second_review.py) as a host step after `run` (pdi #159); the next free contract
+version is 0.13.0 (check open pdi PRs first). The second review writes docs/project/changes/<CHG>/.review/<phase>.json
+and appends a section to the artifact on the host; the delivery scope also covers Talos's run report.
 
 Read first: pdi docs/plan-zespol-jednoosobowy.md §8.3 (N15), contract/contract.json (conventions) and
 contract/change.schema.json; in tf core/hooks/guard_paths.py (secrets, guardrails, context economy), how hooks are
