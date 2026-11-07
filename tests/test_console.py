@@ -31,15 +31,39 @@ def registry(tmp_path: Path) -> Registry:
     return r
 
 
+def _git(repo: Path, *args: str) -> None:
+    import subprocess
+
+    env = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t",
+           "HOME": str(repo), "PATH": "/usr/bin:/bin:/usr/local/bin"}  # fmt: skip
+    subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, env=env)  # noqa: S603, S607
+
+
+def _commit_on(repo: Path, branch: str, files: dict[str, bytes], *, link: tuple[str, str] | None = None) -> None:
+    """Commit artefaktów CHG-1 na gałęzi fazy; katalog roboczy wraca na `main` (jak klon po przebiegu)."""
+    _git(repo, "switch", "-q", "-C", branch, "main")
+    folder = repo / "docs/project/changes/CHG-1"
+    folder.mkdir(parents=True, exist_ok=True)
+    for name, data in files.items():
+        (folder / name).write_bytes(data)
+    if link:
+        (folder / link[0]).symlink_to(link[1])
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", f"phase {branch}")
+    _git(repo, "switch", "-q", "main")
+
+
 @pytest.fixture
 def checkout(tmp_path: Path) -> Path:
+    """Klon produktu jak po fazie: artefakty tylko na gałęzi `pdi/CHG-1-intent`, katalog roboczy na `main`."""
     co = tmp_path / "sklep"
-    (co / ".git").mkdir(parents=True)
-    changes = co / "docs/project/changes/CHG-1"
-    changes.mkdir(parents=True)
-    (changes / "intent.md").write_text("# intent\n", encoding="utf-8")
-    (changes / "requirements.md").write_text("# requirements\n", encoding="utf-8")
-    (changes / "plan.md").write_text("# plan\n", encoding="utf-8")
+    co.mkdir()
+    _git(co, "init", "-q", "-b", "main")
+    (co / "README.md").write_text("produkt\n", encoding="utf-8")
+    _git(co, "add", "-A")
+    _git(co, "commit", "-q", "-m", "init")
+    _commit_on(co, "pdi/CHG-1-intent", {"intent.md": b"# intent\n", "requirements.md": b"# requirements\n",
+                                        "plan.md": b"# plan\n"})  # fmt: skip
     return co
 
 
@@ -324,9 +348,8 @@ def test_files_panel_refuses_path_outside_whitelist(registry: Registry, checkout
 
 
 def test_files_panel_refuses_symlink(registry: Registry, checkout: Path, tmp_path: Path) -> None:
-    changes = checkout / "docs/project/changes/CHG-1"
     (tmp_path / "secret.md").write_text("tajne", encoding="utf-8")
-    (changes / "design.md").symlink_to(tmp_path / "secret.md")
+    _commit_on(checkout, "pdi/CHG-1-design", {}, link=("design.md", str(tmp_path / "secret.md")))
     deps = console.Deps(registry, checkout=checkout)
     server, url = _serve(deps)
     try:
@@ -337,7 +360,7 @@ def test_files_panel_refuses_symlink(registry: Registry, checkout: Path, tmp_pat
 
 
 def test_files_panel_refuses_binary(registry: Registry, checkout: Path) -> None:
-    (checkout / "docs/project/changes/CHG-1/design.md").write_bytes(b"binarny \x00 plik")
+    _commit_on(checkout, "pdi/CHG-1-design", {"design.md": b"binarny \x00 plik"})
     deps = console.Deps(registry, checkout=checkout)
     server, url = _serve(deps)
     try:
@@ -348,7 +371,7 @@ def test_files_panel_refuses_binary(registry: Registry, checkout: Path) -> None:
 
 
 def test_files_panel_refuses_too_big(registry: Registry, checkout: Path) -> None:
-    (checkout / "docs/project/changes/CHG-1/design.md").write_bytes(b"x" * (console.FILE_SIZE_LIMIT + 1))
+    _commit_on(checkout, "pdi/CHG-1-design", {"design.md": b"x" * (console.FILE_SIZE_LIMIT + 1)})
     deps = console.Deps(registry, checkout=checkout)
     server, url = _serve(deps)
     try:
@@ -572,3 +595,35 @@ def test_main_builds_the_inbox_like_the_mcp_server(registry: Registry, monkeypat
     inbox = console.inbox_from_env(registry)
     assert inbox._dispatch.local
     assert inbox.problems._dispatch.local
+
+
+def test_files_come_from_the_phase_branch_not_the_working_tree(registry: Registry, checkout: Path) -> None:
+    """Na Macu: klon na `main`, intent.md tylko na gałęzi fazy → 403 „plik nie istnieje” (2026-11-07)."""
+    assert not (checkout / "docs/project/changes/CHG-1/intent.md").exists()
+    (checkout / "docs/project/changes/CHG-1").mkdir(parents=True)
+    (checkout / "docs/project/changes/CHG-1/design.md").write_text("niezacommitowane\n", encoding="utf-8")
+    _write_change(registry, "CHG-1", waiting=["B1"])
+    deps = console.Deps(registry, checkout=checkout)
+    server, url = _serve(deps)
+    try:
+        _, body, _ = _get(f"{url}/trace/CHG-1?t={TOKEN}")
+        page = body.decode()
+        files = page.split("Pliki zmiany", 1)[1]
+        assert "intent.md" in files and "requirements.md" in files and "plan.md" in files
+        assert "design.md" not in files and "release.yaml" not in files  # nie ma ich na żadnej gałęzi zmiany
+        assert "pdi/CHG-1-intent" in files  # skąd plik i który commit
+        assert _get(f"{url}/trace/CHG-1/file?path=intent.md&t={TOKEN}")[1] == b"# intent\n"
+        status, _, _ = _get(f"{url}/trace/CHG-1/file?path=design.md&t={TOKEN}")
+        assert status == 403  # lokalny, niezacommitowany plik nie jest pokazywany
+    finally:
+        server.shutdown()
+
+
+def test_newer_phase_branch_wins(registry: Registry, checkout: Path) -> None:
+    _commit_on(checkout, "pdi/CHG-1-requirements", {"intent.md": b"# intent v2\n"})
+    deps = console.Deps(registry, checkout=checkout)
+    server, url = _serve(deps)
+    try:
+        assert _get(f"{url}/trace/CHG-1/file?path=intent.md&t={TOKEN}")[1] == b"# intent v2\n"
+    finally:
+        server.shutdown()

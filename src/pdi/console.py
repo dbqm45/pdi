@@ -214,6 +214,8 @@ def _git_run(argv: list[str], cwd: Path) -> tuple[int, str]:
             ["git", "-C", str(cwd), *argv],  # noqa: S607 — lista argumentów; git z PATH
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=5,
             check=False,
         )
@@ -349,12 +351,51 @@ def _trace_body(deps: Deps, change: str, token: str) -> str:
 
 
 def _files_section(deps: Deps, change: str, token: str) -> str:
+    """Artefakty zmiany z gita (gałąź fazy i commit), a nie z katalogu roboczego klonu — tylko te, które istnieją."""
+    found = _find_artifacts(deps, change) if deps.checkout is not None else {}
     rows = []
     for name in ALLOWED_ARTIFACTS:
+        if name not in found:
+            continue
+        ref, _, blob = found[name]
         link = f"/trace/{_escape(change)}/file?path={_escape(name)}&t={_escape(token)}"
-        rows.append(f'<li><a href="{link}">{_escape(name)}</a></li>')
+        rows.append(
+            f'<li><a href="{link}">{_escape(name)}</a> <small>{_escape(ref)} · {_escape(blob[:7])}</small></li>'
+        )
+    listing = "<ul>" + "".join(rows) + "</ul>" if rows else "<p><small>brak artefaktów na gałęziach zmiany</small></p>"
     diff_link = f"/trace/{_escape(change)}/diff?t={_escape(token)}"
-    return "<ul>" + "".join(rows) + f'</ul><p><a href="{diff_link}">diff bieżącego cięcia</a></p>'
+    return listing + f'<p><a href="{diff_link}">diff bieżącego cięcia</a></p>'
+
+
+PHASES_NEWEST_FIRST = ("delivery", "design", "architecture", "requirements", "intent")
+
+
+def _artifact_refs(change: str) -> list[str]:
+    """Gałęzie, na których szukamy artefaktów: najpierw najnowsza faza (lokalna, potem z origin), na końcu main."""
+    local = [f"pdi/{change}-{phase}" for phase in PHASES_NEWEST_FIRST]
+    remote = [f"origin/{ref}" for ref in local]
+    return [*local, *remote, "main", "origin/main"]
+
+
+def _find_artifacts(deps: Deps, change: str) -> dict[str, tuple[str, str, str]]:
+    """`{nazwa: (gałąź, tryb, sha blobu)}` z `git ls-tree` — pierwsza gałąź z listy, na której plik jest."""
+    if deps.checkout is None or not re.match(r"^CHG-[0-9]+$", change):
+        return {}
+    found: dict[str, tuple[str, str, str]] = {}
+    folder = f"docs/project/changes/{change}/"
+    for ref in _artifact_refs(change):
+        code, out = deps.git(["ls-tree", ref, folder], Path(deps.checkout))
+        if code != 0:
+            continue
+        for line in out.splitlines():
+            meta, _, path = line.partition("\t")
+            parts = meta.split()
+            name = path.rsplit("/", 1)[-1]
+            if len(parts) == 3 and name in ALLOWED_ARTIFACTS and name not in found:
+                found[name] = (ref, parts[0], parts[2])
+        if len(found) == len(ALLOWED_ARTIFACTS):
+            break
+    return found
 
 
 def _progress_panel(change: str, progress: dict[str, Any], token: str) -> str:
@@ -557,38 +598,35 @@ def _autonomy_body(deps: Deps, token: str) -> str:
 # --- pliki artefaktów i diff ---
 
 
-def _resolve_artifact(checkout: Path, change: str, name: str) -> Path:
-    """Ścieżka pliku artefaktu zmiany w klonie — po walidacji białej listy i bez symlinków."""
+def _read_artifact(deps: Deps, change: str, name: str) -> bytes:
+    """Treść artefaktu z gita (gałąź fazy zmiany), po białej liście; bez symlinków, binariów i za dużych plików."""
     if name not in ALLOWED_ARTIFACTS:
         raise Refused(f"plik {name!r} spoza białej listy")
     if _SECRETISH.search(name):
         raise Refused(f"plik {name!r} wygląda na sekret")
     if not re.match(r"^CHG-[0-9]+$", change):
         raise Refused(f"klucz zmiany {change!r} niepoprawny")
-    root = checkout.resolve(strict=False)
-    path = root / "docs" / "project" / "changes" / change / name
-    resolved = path.resolve(strict=False)
-    try:
-        resolved.relative_to(root)
-    except ValueError as e:
-        raise Refused("ścieżka poza klonem") from e
-    for part in (resolved, *resolved.parents):
-        if part == root:
-            break
-        if part.is_symlink():
-            raise Refused("symlink odrzucony")
-    if not resolved.is_file():
-        raise Refused("plik nie istnieje")
-    size = resolved.stat().st_size
-    if size > FILE_SIZE_LIMIT:
-        raise Refused(f"plik za duży: {size} > {FILE_SIZE_LIMIT}")
-    with resolved.open("rb") as f:
-        head = f.read(BINARY_PEEK)
-    if b"\x00" in head:
+    found = _find_artifacts(deps, change).get(name)
+    if found is None:
+        raise Refused("plik nie istnieje na żadnej gałęzi zmiany")
+    _, mode, blob = found
+    if mode == "120000":
+        raise Refused("symlink odrzucony")
+    if mode not in ("100644", "100755"):
+        raise Refused("to nie jest zwykły plik")
+    if deps.checkout is None:  # pragma: no cover — _find_artifacts zwraca {} bez klonu
+        raise Refused("brak klonu produktu")
+    code, size = deps.git(["cat-file", "-s", blob], Path(deps.checkout))
+    if code != 0 or not size.strip().isdigit():
+        raise Refused("nie da się odczytać pliku z gita")
+    if int(size) > FILE_SIZE_LIMIT:
+        raise Refused(f"plik za duży: {size.strip()} > {FILE_SIZE_LIMIT}")
+    code, text = deps.git(["cat-file", "blob", blob], Path(deps.checkout))
+    if code != 0:
+        raise Refused("nie da się odczytać pliku z gita")
+    if "\x00" in text[:BINARY_PEEK]:
         raise Refused("plik wygląda na binarny")
-    if _SECRETISH.search(name):
-        raise Refused("nazwa pliku wygląda na sekret")
-    return resolved
+    return text.encode("utf-8")
 
 
 def _diff_of_current_cut(
@@ -699,10 +737,9 @@ def make_server(
                 if deps.checkout is None:
                     return self._html(404, "<h1>404</h1><p>brak klonu produktu</p>")
                 try:
-                    resolved = _resolve_artifact(Path(deps.checkout), change, params.get("path", ""))
+                    data = _read_artifact(deps, change, params.get("path", ""))
                 except Refused as e:
                     return self._html(403, f"<h1>403</h1><p>{_escape(str(e))}</p>")
-                data = resolved.read_bytes()
                 return self._raw(200, data, "text/plain; charset=utf-8")
             if action == "diff":
                 if deps.checkout is None:
