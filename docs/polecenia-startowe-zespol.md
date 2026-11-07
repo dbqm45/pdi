@@ -1,13 +1,13 @@
 # Polecenia startowe planu „zespół jednoosobowy”: grupa A i Z2
 
 **Data:** 2026-11-02, odświeżone 2026-11-03, polecenia A3–A5 i A7 odświeżone 2026-11-06 po A6 · **Źródło:** [plan „zespół jednoosobowy”](plan-zespol-jednoosobowy.md) §8,
-§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `7048263` (kontrakt 0.11.0), tf 5.58.7 (kopia
-kontraktu 0.11.0), ShipScope 0.2.67 (stan z 2026-11-02) · Wszystkie niezrobione polecenia mają nad sobą
+§8.2, decyzje DZ1–DZ14 ([decyzje](decyzje.md)) · **Stan dziś:** pdi `8361ee3` (kontrakt 0.12.0, po Z7b-1a), tf 5.62.x (kopia
+kontraktu 0.12.0), ShipScope 0.2.67 (stan z 2026-11-02) · Wszystkie niezrobione polecenia mają nad sobą
 własny stan przed startem z 2026-11-03.
 
 Każde polecenie wklejasz jako pierwszą wiadomość nowej sesji Claude Code w katalogu z tabeli. Zrobione są Z1, Z8a,
-Z8c-1, Z8c-2, PRB-32 i bramka A6 (kolumna „Stan”). Dalej: Z2a, potem Z2b (po tagu kontraktu z Z2a); zgodnie z DZ5 Z2 idzie przed etapem 3
-([etapy](polecenia-startowe-sdlc-lokalnie.md)). Przebieg A6 na `sdlc-proba` (DZ19, [polecenie](#a6--pdi--tf-shipscope-ci_for_sdlc-ponowny-przebieg-lokalny-na-sdlc-proba)) zaliczony 2026-11-06; teraz N1, N5 i Z7b-1a, Z7b-1b po Z7b-1a,
+Z8c-1, Z8c-2, PRB-32, bramka A6 i Z7b-1a (kolumna „Stan”). Dalej: Z2a, potem Z2b (po tagu kontraktu z Z2a); zgodnie z DZ5 Z2 idzie przed etapem 3
+([etapy](polecenia-startowe-sdlc-lokalnie.md)). Przebieg A6 na `sdlc-proba` (DZ19, [polecenie](#a6--pdi--tf-shipscope-ci_for_sdlc-ponowny-przebieg-lokalny-na-sdlc-proba)) zaliczony 2026-11-06; Z7b-1a zrobione 2026-11-06 (pdi #160 → 0.12.0, tf #151 i tf #152); teraz N1, N5 i Z7b-1b po Z7b-1a,
 N2 po N1, N12, N13 i N15 po A6 (po kolei z N2, bo zmieniają te same pliki), a równolegle Z3-lokalnie;
 wszystkie przed etapem 2.
 
@@ -23,7 +23,7 @@ wszystkie przed etapem 2.
 | [PRB-32](#prb-32--tf-talos-w-fazie-delivery-bez-interakcji) | Talos w fazie delivery bez interakcji: przebieg poza `.claude/`, polecenia git na liście `allow`, cięcie z kluczem zmiany (PRB-33), wynik persony przy sukcesie (PRB-28) | pdi #148 i zaufanie folderu w kontenerze fazy (pdi) | tf | `/Users/x/WebstormProjects/tf` | zrobione (tf #145, #146, 5.58.5–5.58.6; sdlc-proba #32, #33); delivery CHG-3 potwierdzone 2026-11-05 (sdlc-proba #34) |
 | [N1](#n1--tf-przegląd-drugim-modelem) | przegląd drugim modelem (wymagania, plan, uwagi z review) | Z1, A6 | tf (+ pdi, jeśli w kontenerze) | `/Users/x/WebstormProjects/tf` | do zrobienia |
 | [N5](#n5--tf-evale-przebiegu) | evale przebiegu na 20 prawdziwych zadaniach | Z1, A6 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
-| [Z7b-1a](#z7b-1a--pdi--tf-cele-zmiany-w-kontrakcie-i-planie) | cele zmiany (`targets`) w kontrakcie i planie, B3 | Z1, A6 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
+| [Z7b-1a](#z7b-1a--pdi--tf-cele-zmiany-w-kontrakcie-i-planie) | cele zmiany (`targets`) w kontrakcie i planie, B3 | Z1, A6 | pdi + tf | `/Users/x/WebstormProjects/pdi` | **zrobione 2026-11-06** (pdi #160 → 0.12.0, tf #151 i tf #152 scalone) |
 | [Z7b-1b](#z7b-1b--ci_for_sdlc-sprawdzanie-celów-zmiany) | sprawdzanie celów (pokrycie, testy mutacyjne) w ci_for_sdlc | Z7b-1a, Z8c-1 | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` | do zrobienia |
 | [N2](#n2--pdi--tf-pętla-budujący-recenzent-na-pr-i-samonaprawa-ci) | pętla budujący–recenzent na PR i samonaprawa CI | Z8a, N1 | pdi + tf | `/Users/x/WebstormProjects/pdi` | do zrobienia |
 | [N12](#n12--tf-weryfikacja-przed-zakończeniem-fazy) | weryfikacja przed zakończeniem fazy (świeży wynik N3 dla commita) | A6 | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |

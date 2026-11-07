@@ -85,6 +85,28 @@ prowadzony wyłącznie w konsoli, od zgłoszenia do pierwszej bramki (B1) z decy
   `# UWAGA: PDI_DISPATCH_SANDBOX=none`. **A6: pokryte testem `pytest tests/test_phase_sandbox.py` (12 passed), nie
   na żywo — pozostawione `[ ]` do przebiegu na komputerze właściciela.**
 
+### 0b. Drugi przegląd (N1, DZ12) — wymaga Twojego Maca
+
+- [ ] `~/.sdlc/env` ma `PDI_SECOND_MODEL=openai:gpt-4o-mini` i `OPENAI_API_KEY=sk-…` (albo zostaw puste — fallback
+  na zapasowy model Claude oznaczy wynik `same_vendor: true`). W repo próbnym `dbqm45/sdlc-proba`, w CHG-n,
+  przygotuj celowo niekompletny `requirements.md`: pozostaw tylko szczęśliwą ścieżkę, bez stanu błędu dla pliku
+  przekraczającego limit ani dla pliku z błędnym nagłówkiem.
+- [ ] Uruchom fazę `requirements` (przez pdi `decide_inbox_item` albo `dispatch_phase`). Oczekiwane:
+    - w logu przebiegu jest krok `second-review` po `run`, a przed `gate`;
+    - `docs/project/changes/CHG-n/requirements.md` kończy się sekcją `## Przegląd drugim modelem` z pozycją o braku
+      stanu błędu dla pliku > limit;
+    - `docs/project/changes/CHG-n/.review/requirements.json` ma `status: ok`, co najmniej jeden `blocker` lub
+      `major` z `kind: missing_error_state`, a `cost_usd` jest dodatnie (albo 0.0, gdy nie ustawiono
+      `PDI_SECOND_MODEL_PRICE_IN/_OUT`);
+    - prośba o bramkę B2 (pozycja w skrzynce pdi) zawiera pytanie z prefiksem `[drugi przegląd] …` (brak stanu
+      błędu dla pliku > limit) i pole `second_review.status = ok`.
+- [ ] Dla zapasowego dostawcy same-vendor (tymczasowo usuń `OPENAI_API_KEY` i zostaw `ANTHROPIC_API_KEY`):
+  sidecar ma `provider: claude, model: claude-sonnet-4-5-20251022, same_vendor: true`; sekcja w artefakcie i w
+  prośbie o bramkę ma dopisek „— same_vendor".
+- [ ] Niedostępność: celowo wyłącz oba klucze (puste `OPENAI_API_KEY` i `ANTHROPIC_API_KEY`); sidecar ma
+  `status: unavailable, reason: no_api_key`, prośba o bramkę pokazuje `second_review: {status: unavailable,
+  reason: no_api_key}` — nigdy cichego OK.
+
 ## 1. Zgłoszenie i triaż
 
 - [x] **T** `uv run sdlc open` → formularz zgłoszeń. Wpisz zgłoszenie z README repo próbnego (albo **C**
@@ -115,6 +137,11 @@ prowadzony wyłącznie w konsoli, od zgłoszenia do pierwszej bramki (B1) z decy
   (np. DEC-0003 z poprzedniego przebiegu). Wymaga tf z Z1 (`decision import`, `decision gate --answers`) w repo próbnym.
 - [x] **B3 (architecture):** w PR jest `plan.md` i `release.yaml` z flagą (`owner`, `remove_by`, `rollout` z
   `min_days: 0`). Merge, decyzja (z `answers`, gdy są pytania) → faza `design`.
+- [ ] **B3 pokazuje cele zmiany i rozważone opcje (Z7b-1a, DZ6, DZ7):** prośba o B3 w skrzynce niesie `targets`
+  z `release.yaml` (pokrycie i mutacje zmienionego kodu, ewentualnie wydajność; dla produktu AI także progi
+  ewaluacji — wymagane); `plan.md` ma sekcję „Rozważone opcje” z co najmniej dwoma wariantami (N20). Decyzja
+  `approved` zatwierdza cele — od tej chwili są wiążące: `get_change` pokazuje `approved_targets_at_b3`, a edycja
+  `release.yaml` po B3 zapala `targets_changed_since_b3` na „Approve for implementation” z prośbą o `supersede`.
 - [x] **design-review:** PR, merge, decyzja (z `answers`, gdy są pytania).
 
 ## 3. Gotowość i zatwierdzenie do budowy

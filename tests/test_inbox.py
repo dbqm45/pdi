@@ -1076,3 +1076,109 @@ def test_actions_mode_sends_answers_and_linked_decisions_as_inputs(registry: Reg
     assert json.loads(inputs["answers"]) == answers
     assert [d["id"] for d in json.loads(inputs["decisions"])] == ["DEC-0001"]
     assert inputs["decision_text"].startswith(make_draft()["statement"])
+
+
+# --- Z7b-1a: cele zmiany (DZ6, DZ7) ---
+
+
+SAMPLE_TARGETS = {
+    "coverage": {"kind": "changed_lines", "min_percent": 90, "tool": "pytest-cov"},
+    "mutation": {"kind": "changed_lines", "tool": "mutmut", "min_score": 70},
+}
+
+
+def test_gate_request_carries_targets_to_the_inbox_item(inbox: Inbox) -> None:
+    inbox.receive(gate_event(gate="B3", summary="Architektura.", targets=SAMPLE_TARGETS))
+
+    item = inbox.get("evt-gate-1")
+    assert item["targets"] == SAMPLE_TARGETS
+
+
+def test_b3_approval_records_approved_targets_on_the_change(registry: Registry, make_draft: Draft) -> None:
+    github = FakeGitHub()
+    inbox = dispatching(registry, github)
+    inbox.receive(gate_event(gate="B3", summary="Architektura.", targets=SAMPLE_TARGETS))
+
+    result = inbox.decide("evt-gate-1", make_draft(), outcome="approved")
+
+    assert result["change"]["approved_targets_at_b3"] == SAMPLE_TARGETS
+
+
+def test_b3_approval_without_targets_still_records_a_baseline(registry: Registry, make_draft: Draft) -> None:
+    github = FakeGitHub()
+    inbox = dispatching(registry, github)
+    inbox.receive(gate_event(gate="B3", summary="Architektura."))
+
+    result = inbox.decide("evt-gate-1", make_draft(), outcome="approved")
+
+    assert "approved_targets_at_b3" in result["change"]
+    assert result["change"]["approved_targets_at_b3"] is None
+
+
+def test_approve_for_implementation_flags_target_change_after_b3(registry: Registry, make_draft: Draft) -> None:
+    github = FakeGitHub()
+    inbox = dispatching(registry, github)
+    # Historia bramek: B1 i B2 zatwierdzone, B3 zatwierdzone z celami.
+    for n, gate in enumerate(["B1", "B2", "B3"], start=1):
+        inbox.receive(
+            gate_event(
+                event_id=f"evt-gate-{n}",
+                gate=gate,
+                summary=f"{gate} gotowe.",
+                **({"targets": SAMPLE_TARGETS} if gate == "B3" else {}),
+            )
+        )
+        inbox.decide(f"evt-gate-{n}", make_draft(), outcome="approved")
+    # Po B3 ktoś zmienił próg mutacji — tf składa prośbę o approve-for-implementation z nowymi `targets`.
+    changed = {**SAMPLE_TARGETS, "mutation": {"kind": "changed_lines", "tool": "mutmut", "min_score": 50}}
+    inbox.receive(
+        gate_event(
+            event_id="evt-gate-afi",
+            gate="approve-for-implementation",
+            summary="Gotowe do wdrożenia.",
+            targets=changed,
+        )
+    )
+
+    item = inbox.get("evt-gate-afi")
+    assert item["targets_changed_since_b3"] is True
+    assert "supersede" in item["summary"]
+
+
+def test_approve_for_implementation_without_change_has_no_flag(registry: Registry, make_draft: Draft) -> None:
+    github = FakeGitHub()
+    inbox = dispatching(registry, github)
+    for n, gate in enumerate(["B1", "B2", "B3"], start=1):
+        inbox.receive(
+            gate_event(
+                event_id=f"evt-gate-{n}",
+                gate=gate,
+                summary=f"{gate} gotowe.",
+                **({"targets": SAMPLE_TARGETS} if gate == "B3" else {}),
+            )
+        )
+        inbox.decide(f"evt-gate-{n}", make_draft(), outcome="approved")
+    inbox.receive(
+        gate_event(
+            event_id="evt-gate-afi",
+            gate="approve-for-implementation",
+            summary="Gotowe do wdrożenia.",
+            targets=SAMPLE_TARGETS,
+        )
+    )
+
+    item = inbox.get("evt-gate-afi")
+    assert "targets_changed_since_b3" not in item
+
+
+def test_readiness_changed_with_targets_status_saves_it_on_the_change(inbox: Inbox) -> None:
+    status = {
+        "overall": "not_met",
+        "checked_at": "2026-11-06T09:00:00Z",
+        "details": [{"name": "coverage", "kind": "coverage", "status": "not_met"}],
+    }
+
+    inbox.receive(readiness_event("not_ready", targets_status=status))
+
+    change = inbox.changes.get("CHG-12")
+    assert change["targets_status"] == status

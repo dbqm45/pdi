@@ -71,10 +71,23 @@ def gate_requested(state: State, gate: str, *, at: str) -> State:
     return new
 
 
+_B3_GATE = "B3"
+
+
 def gate_decided(
-    state: State, gate: str, outcome: str, decision: str, *, at: str
+    state: State,
+    gate: str,
+    outcome: str,
+    decision: str,
+    *,
+    at: str,
+    targets: dict[str, Any] | None = None,
 ) -> tuple[State, dict[str, Any] | None]:
-    """Zapisuje decyzję na bramce; zwraca nowy stan i fazę do uruchomienia (`{"phase", "rework"}`) albo None."""
+    """Zapisuje decyzję na bramce; zwraca nowy stan i fazę do uruchomienia (`{"phase", "rework"}`) albo None.
+
+    `targets` z prośby o bramkę (tf dokleja do B3): przy `approved` na B3 kopia trafia do
+    `state["approved_targets_at_b3"]` — punkt odniesienia dla detekcji zmiany celów po bramce (Z7b-1a, DZ7).
+    """
     if outcome not in OUTCOMES:
         raise InvalidTransition(f"outcome musi być jednym z {', '.join(OUTCOMES)}.")
     # Odrzucona zmiana jest zamknięta; po ocenie skutku MVP (`done`) dalsze linie wydania mają jeszcze swoje bramki.
@@ -94,17 +107,46 @@ def gate_decided(
     new["approved"][gate] = decision
     if gate == BASELINE_GATE:
         new["baseline_drift"] = False
+    if gate == _B3_GATE and targets is not None:
+        new["approved_targets_at_b3"] = copy.deepcopy(targets)
+    elif gate == _B3_GATE:
+        # `approved_targets_at_b3` może być None (bramka bez celów) — zapisujemy jawnie, żeby odróżnić „nie zbadano”
+        # od „zatwierdzono bez celów”.
+        new["approved_targets_at_b3"] = None
     phase = spec.next_phase if spec else None
     return new, ({"phase": phase, "rework": False} if phase else None)
 
 
-def readiness_changed(state: State, readiness: str, *, at: str) -> State:
+def readiness_changed(
+    state: State,
+    readiness: str,
+    *,
+    at: str,
+    targets_status: dict[str, Any] | None = None,
+) -> State:
+    """Zmiana gotowości; opcjonalnie `targets_status` (Z7b-1b) zachowany w stanie dla widoków i bramki B4."""
     new = _copy(state)
     new["readiness"] = readiness
     # Rozjazd po „Approve for implementation” to rozjazd z baseline; wcześniejszy to zwykły brak gotowości.
     new["baseline_drift"] = readiness == "drift" and BASELINE_GATE in new["approved"]
-    new["history"].append({"at": at, "what": "readiness.changed", "readiness": readiness})
+    if targets_status is not None:
+        new["targets_status"] = copy.deepcopy(targets_status)
+    entry: dict[str, Any] = {"at": at, "what": "readiness.changed", "readiness": readiness}
+    if targets_status is not None:
+        entry["targets_status"] = targets_status.get("overall")
+    new["history"].append(entry)
     return new
+
+
+def targets_changed_since_b3(state: State, current: dict[str, Any] | None) -> bool:
+    """Czy bieżące `targets` (z `release.yaml` / prośby) różnią się od zatwierdzonych na B3.
+
+    Zmiana po B3 ma być nową decyzją (supersede), nie cichą edycją pliku (DZ7). Funkcja daje tylko sygnał; decyzję
+    o `supersede` zapisuje człowiek. Brak zatwierdzonych celów na B3 → False (nie ma punktu odniesienia).
+    """
+    if "approved_targets_at_b3" not in state:
+        return False
+    return bool(state["approved_targets_at_b3"] != current)
 
 
 def feature_released(
