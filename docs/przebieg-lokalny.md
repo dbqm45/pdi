@@ -101,7 +101,7 @@ prowadzony wyłącznie w konsoli, od zgłoszenia do pierwszej bramki (B1) z decy
     - prośba o bramkę B2 (pozycja w skrzynce pdi) zawiera pytanie z prefiksem `[drugi przegląd] …` (brak stanu
       błędu dla pliku > limit) i pole `second_review.status = ok`.
 - [ ] Dla zapasowego dostawcy same-vendor (tymczasowo usuń `OPENAI_API_KEY` i zostaw `ANTHROPIC_API_KEY`):
-  sidecar ma `provider: claude, model: claude-sonnet-4-5-20251022, same_vendor: true`; sekcja w artefakcie i w
+  sidecar ma `provider: claude, model: claude-sonnet-5-5, same_vendor: true`; sekcja w artefakcie i w
   prośbie o bramkę ma dopisek „— same_vendor".
 - [ ] Niedostępność: celowo wyłącz oba klucze (puste `OPENAI_API_KEY` i `ANTHROPIC_API_KEY`); sidecar ma
   `status: unavailable, reason: no_api_key`, prośba o bramkę pokazuje `second_review: {status: unavailable,
