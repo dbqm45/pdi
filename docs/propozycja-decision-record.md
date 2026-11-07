@@ -1,6 +1,6 @@
 # Propozycja: Decision Record jako wspólny format pliku decyzji
 
-**Data:** 2026-11-07 · **Status:** propozycja do decyzji właściciela · **Kontrakt:** 0.13.0
+**Data:** 2026-11-07 · **Status:** przyjęta 2026-11-07 (decyzje DR1–DR4 w [`decyzje.md`](decyzje.md)), do realizacji ([`TODO.md`](../TODO.md)) · **Kontrakt:** 0.13.0
 
 ## 1. Problem
 
@@ -93,8 +93,12 @@ epistemiczny; [test v2](../eval/v2-pamiec-decyzji/wyniki/raport.md)), i automaty
 - **przejąć z MADR dwa pola** jako opcjonalne: `consequences` (dobre i złe skutki) i `confirmation` / `verify`
   (już w planie w `TODO.md`), a z nagłówka `consulted` i `informed`.
 
-Które narzędzia ADR czytają MADR (np. log4brains, adr-tools) i w jakim zakresie, nie sprawdziłem —
-strona `adr.github.io` była niedostępna z tej sesji [niezweryfikowane].
+**Narzędzia** (tabela „MADR template” na `adr.github.io/adr-tooling/`, odczyt 2026-11-07): adr-log, ADR Manager
+(strona i rozszerzenie VS Code), Hugo Markdown ADR Tools, Log4brains (bez numerów w nazwie pliku) i pyadr obsługują
+MADR **2.1.2**, wtyczka ADR do Backstage — 2.1.2 i 3.x; żadne nie jest tam wpisane dla 4.0.0. adr-tools (bash, z
+przepisaniami na Node.js, C# i Pythona) używa szablonu Nygarda, nie MADR. Eksport do MADR musi więc wybrać wersję:
+4.0.0 dla ludzi i najnowszych zasad albo układ zgodny z 2.1.2 / 3.x, jeśli zespół korzysta z tych narzędzi —
+do ustalenia w planie eksportu.
 
 ## 5. Koszt i zgodność
 
@@ -107,7 +111,9 @@ strona `adr.github.io` była niedostępna z tej sesji [niezweryfikowane].
 
 ## 6. Do decyzji
 
-| # | Pytanie | Rekomendacja |
+Wszystkie przyjęte 2026-11-07 według rekomendacji.
+
+| # | Pytanie | Decyzja |
 |---|---|---|
 | DR1 | Czy wprowadzamy nazwany format „Decision Record” ze znacznikiem w nagłówku? | tak (kontrakt 0.14.0, specyfikacja i walidator) |
 | DR2 | Nazwa pliku: `DEC-n.md` czy `DEC-n.dr.md`? | `DEC-n.md` + znacznik; bez zmiany nazw istniejących plików |
