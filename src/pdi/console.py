@@ -289,7 +289,8 @@ def _board_body(deps: Deps, token: str) -> str:
             if isinstance(progress, dict) and progress.get("message"):
                 cost = progress.get("cost_usd")
                 cost_label = f" · {cost:.2f} USD" if isinstance(cost, (int, float)) else ""
-                progress_line = f"<small>{_escape(progress['message'])}{cost_label}</small>"
+                text = _escape(_progress_text(progress, waiting))
+                progress_line = f'<div class="progress"><small>{text}{cost_label}</small></div>'
             link = f"/trace/{chg}?t={_escape(token)}"
             cards.append(
                 f'<li><div class="card">'
@@ -396,6 +397,15 @@ def _find_artifacts(deps: Deps, change: str) -> dict[str, tuple[str, str, str]]:
         if len(found) == len(ALLOWED_ARTIFACTS):
             break
     return found
+
+
+def _progress_text(progress: dict[str, Any], waiting: list[str]) -> str:
+    """Ostatnia linia postępu po ludzku: przy `waiting_gate` wiadomość to nazwa bramki, która mogła już zostać
+    rozstrzygnięta, więc sama nazwa obok fazy myli („designdesign-review”)."""
+    message = _sanitize_text(progress.get("message"), limit=60)
+    if progress.get("status") == "waiting_gate":
+        return f"czeka na bramkę {message}" if message in waiting else f"bramka {message} rozstrzygnięta"
+    return message
 
 
 def _progress_panel(change: str, progress: dict[str, Any], token: str) -> str:
