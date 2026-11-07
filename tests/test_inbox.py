@@ -423,6 +423,14 @@ def test_gate_request_from_tf_becomes_gate_item_and_waits_on_change(inbox: Inbox
     assert state["waiting"] == ["B1"]
 
 
+def test_gate_item_keeps_second_review_summary(inbox: Inbox) -> None:
+    review = {"status": "unavailable", "reason": "not_run"}
+
+    item = inbox.receive(gate_event(gate="B2", second_review=review))["item"]
+
+    assert item["second_review"] == review
+
+
 def test_out_of_order_request_is_shown_not_refused(inbox: Inbox) -> None:
     item = inbox.receive(gate_event(gate="B3", summary="Plan cięć."))["item"]
 
