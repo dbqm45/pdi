@@ -839,7 +839,7 @@ Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, che
 
 Startuje po A6 (DZ19), Z8a (zrobione) i N1. Sesja w klonie pdi; część tf osobnym PR-em. W tej samej grupie A5 są N12,
 N13 i N15 — mają osobne polecenia, bo dotykają tych samych plików, więc sesje trzeba prowadzić po
-kolei albo uzgadniać zmiany. **Stan przed startem (2026-11-06, po A6):** pdi `7048263` (kontrakt 0.11.0), tf 5.58.7; zmiany z A6 opisuje akapit „State on 2026-11-06” w poleceniu. Wcześniej, 2026-11-03: pdi `d170ecb` (kontrakt 0.11.0), tf 5.58.3. Od
+kolei albo uzgadniać zmiany. **Stan przed startem (2026-11-07, po przebiegu CHG-4 w konsoli):** pdi `63dc2d7` (kontrakt 0.14.0), tf 5.65.0, fabryka w `sdlc-proba` 5.65.0; zmiany opisuje akapit „State on 2026-11-07” w poleceniu. Wcześniej, 2026-11-06 (po A6): pdi `7048263` (kontrakt 0.11.0), tf 5.58.7. Wcześniej, 2026-11-03: pdi `d170ecb` (kontrakt 0.11.0), tf 5.58.3. Od
 pierwszej wersji tego polecenia weszły: Z1 (decyzje zmiany wiążą poprawki), Z8a (persona w kontenerze; push, PR i
 tokeny GitHuba tylko na hoście), Z8c-2 (ustalenia skanera blokują kawałek, skan PR w CI), a w planie rozszerzenie N2
 (wcześniejsze wyjście po progu wagi uwag, „Przewodnik dokończenia” w PR, wspólny z N7); CI na GitHubie znowu działa.
@@ -869,6 +869,20 @@ report); keep that format. Checked for this prompt on 2026-11-06: tf has no REVI
 REVIEW.md yet; sdlc-proba has no CI job that runs the product's tests on a code PR (change-check.yml runs only on
 docs/project/changes/**, team-factory.yml only on factory/ and .claude/). N1 is merged (tf #149, pdi #159, 2026-11-07):
 the review script is second_review.py and pdi runs it as a host step after `run`.
+
+State on 2026-11-07 (after the CHG-4 run driven from the local console, pdi docs/przebieg-lokalny.md, "Wynik przebiegu
+2026-11-07"): pdi main 63dc2d7 (contract 0.14.0: 0.13.0 added the optional `second_review` in gate.requested, pdi #169;
+0.14.0 the Decision Record format, pdi #173-#176), tf 5.65.0 (its pinned contract copy is 0.13.0), sdlc-proba on factory
+5.65.0. GitHub Actions in dbqm45/sdlc-proba were disabled until 2026-11-07 (no run ever); they are on now and
+team-factory.yml runs on PRs, on push to main and by hand (workflow_dispatch, tf #163). There is still no job that
+runs the product's tests on a code PR, so the decision in step 3 stands. On the owner's Mac the second model has no
+API key: second_review.py reports `status: unavailable, reason: no_api_key`, the artifact section and the gate request
+summary say "drugi przegląd: niedostępny (no_api_key)" (tf #161); N2 must treat comment validation that is
+unavailable like an unvalidated comment (to the human as a question, never to a fix) and say so in the guide. The cut
+PR format is confirmed live (sdlc-proba #44: title from Talos's first commit, body = runs/TSK-1.md with the
+"Bezpieczeństwo" section); Talos's report now counts committed pieces (tf #162); the phase prompt asks for one Bash
+command per call (compound commands are denied under --print) and `decision_record.py check --change CHG-n`. The
+console (A7) is merged and in use: show pr_loop on the board card and in the change trace.
 
 Read first: docs/plan-zespol-jednoosobowy.md §8.3 (N2, N7, N12, N13), docs/plan-z1-decyzje-w-fazach.md,
 docs/plan-z8a-izolacja-faz.md and N1's plan; src/pdi/dispatch_local.py (delivery: `_publish_cuts`, PRs opened on the
