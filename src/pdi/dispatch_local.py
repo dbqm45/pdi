@@ -33,7 +33,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from pdi import contract, flow, phase_sandbox
+from pdi import contract, flow, phase_sandbox, pr_loop
 
 Run = Callable[[list[str], Path, Mapping[str, str]], tuple[int, str]]
 # Jak Run, ale każdą linię wyjścia oddaje od razu (do logu), zanim krok się skończy (PRB-6).
@@ -93,6 +93,21 @@ SECOND_REVIEW_ENV = (
     "PDI_SECOND_MODEL_PRICE_IN",
     "PDI_SECOND_MODEL_PRICE_OUT",
 )
+
+# Pętla PR talosa po delivery (N2, docs/plan-n2-petla-pr.md): przegląd, poprawki i lokalna weryfikacja w kontenerze
+# fazy, walidacja uwag drugim modelem, push, checki i opis PR na hoście. PDI_PR_LOOP=off wyłącza pętlę.
+PR_LOOP_ENV = "PDI_PR_LOOP"
+PR_LOOP_ROUNDS_ENV = "PDI_PR_LOOP_ROUNDS"
+CHECKS_WAIT_ENV, CHECKS_GRACE_ENV, CHECKS_INTERVAL_ENV = (
+    "PDI_PR_LOOP_CHECKS_WAIT",
+    "PDI_PR_LOOP_CHECKS_GRACE",
+    "PDI_PR_LOOP_CHECKS_INTERVAL",
+)
+CHECKS_WAIT_SECONDS, CHECKS_GRACE_SECONDS, CHECKS_INTERVAL_SECONDS = 1200, 120, 30
+CI_LOG_LINES, CI_LOG_MAX = 200, 20_000
+CONTEXT_LINES = 12  # wiersze kodu wokół uwagi dla drugiego modelu (walidacja ma widzieć, czego uwaga dotyczy)
+_PR_NUMBER = re.compile(r"/pull/([0-9]{1,9})/?$")
+ANY_CODE = tuple(range(256))
 
 _PREFIXES = contract.settings()["prefixes"]
 _CHANGE = re.compile(rf"^{_PREFIXES['change']}-[0-9]{{1,9}}$")
@@ -301,6 +316,7 @@ def settle(state: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(dispatch, dict) or dispatch.get("mode") != "local" or dispatch.get("status") != "running":
         return state
     log = Path(str(dispatch.get("log") or ""))
+    loop = read_pr_loop(log)
     outcome: dict[str, Any]
     if result_path(log).is_file():
         try:
@@ -310,12 +326,19 @@ def settle(state: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(outcome, dict) or outcome.get("status") not in ("done", "failed"):
             outcome = {"status": "failed", "error": "Uszkodzony plik wyniku przebiegu — szczegóły w logu."}
     elif _fresh(log):
-        return state
+        if not loop:
+            return state
+        live = copy.deepcopy(state)  # pętla PR w toku — runda i status widać na tablicy przed końcem przebiegu
+        live["pr_loop"] = {**(state.get("pr_loop") or {}), **loop}
+        return live
     else:
         outcome = {"status": "failed", "error": "Przebieg nie zostawił wyniku (przerwany?) — szczegóły w logu."}
     new = copy.deepcopy(state)
-    keep = ("status", "finished_at", "pr", "prs", "cuts", "step", "error", "persona")
+    keep = ("status", "finished_at", "pr", "prs", "cuts", "step", "error", "persona", "pr_loop_cost_usd")
     new["dispatch"] = {**dispatch, **{k: outcome[k] for k in keep if outcome.get(k)}}
+    final_loop = outcome.get("pr_loop") if isinstance(outcome.get("pr_loop"), dict) else loop
+    if final_loop:
+        new["pr_loop"] = {**(state.get("pr_loop") or {}), **final_loop}
     progress = last_progress_of(log)  # Z3-lokalnie: ostatnia linia postępu dla panelu konsoli (DZ18).
     if progress is not None:
         new["dispatch"]["last_progress"] = progress
@@ -593,7 +616,16 @@ def execute(
             except _StepFailed as e:
                 e.persona = _persona_report(ran)
                 raise
-            return {"status": "done", "prs": [c["pr"] for c in cuts], "cuts": cuts}
+            done: dict[str, Any] = {"status": "done", "prs": [c["pr"] for c in cuts], "cuts": cuts}
+            if (env.get(PR_LOOP_ENV) or "").strip().lower() not in ("off", "0", "false", "no"):
+                persona = _persona_report(ran) or {}
+                spent = persona.get("cost_usd") if isinstance(persona.get("cost_usd"), (int, float)) else 0.0
+                budget = float(spec["budget_usd"]) - float(spent or 0.0) if spec.get("budget_usd") else None
+                steps = _LoopSteps(spec, step, log, env, base, passed, claude_env, github_env, sandbox, branch)
+                loop = steps.run([pr_loop.Cut(c["branch"], c["pr"], branch) for c in cuts], budget)
+                done["pr_loop"] = loop
+                done["pr_loop_cost_usd"] = round(sum(e.get("cost_usd") or 0.0 for e in loop.values()), 6)
+            return done
         step("commit", ["git", "add", "-A"])
         code, _ = step("commit", ["git", "diff", "--cached", "--quiet"], ok=(0, 1))
         if code == 1:
@@ -759,6 +791,247 @@ def _publish_cuts(
             raise _StepFailed("pr", f"Krok pr: gh nie podał adresu PR dla {branch} — szczegóły w logu.")
         prs.append({"branch": branch, "pr": url})
     return prs
+
+
+def pr_loop_path(log: Path) -> Path:
+    """Stan pętli PR na żywo obok logu przebiegu (konsola widzi rundę przed końcem przebiegu)."""
+    return log.with_name(log.stem + ".pr_loop.json")
+
+
+def read_pr_loop(log: Path) -> dict[str, Any] | None:
+    path = pr_loop_path(log)
+    try:
+        data = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
+    except (OSError, ValueError):
+        return None
+    return data if isinstance(data, dict) and data else None
+
+
+def _last_json(out: str) -> dict[str, Any] | None:
+    for line in reversed(out.splitlines()):
+        if line.startswith("{"):
+            try:
+                data = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(data, dict):
+                return data
+    return None
+
+
+def _seconds(env: Mapping[str, str], name: str, default: int) -> int:
+    value = (env.get(name) or "").strip()
+    return int(value) if value.isdigit() and int(value) <= 24 * 3600 else default
+
+
+class _LoopSteps:
+    """Prawdziwe kroki pętli PR (`pr_loop.Steps`): co wykonuje kod produktu — w kontenerze fazy (Z8a), bez tokenów
+    GitHuba; co potrzebuje poświadczeń (walidacja kluczem drugiego modelu, push, `gh`) — na hoście."""
+
+    def __init__(
+        self,
+        spec: Mapping[str, Any],
+        step: Step,
+        log: Callable[[str], None],
+        env: Mapping[str, str],
+        base: Mapping[str, str],
+        passed: set[str],
+        claude_env: Mapping[str, str],
+        github_env: Mapping[str, str],
+        sandbox: str,
+        phase_branch: str,
+        *,
+        sleep: Callable[[float], None] | None = None,
+        clock: Callable[[], float] | None = None,
+    ) -> None:
+        self.spec, self.step, self.log, self.env, self.base, self.passed = spec, step, log, env, base, passed
+        self.claude_env, self.github_env, self.sandbox, self.phase_branch = (
+            claude_env,
+            github_env,
+            sandbox,
+            phase_branch,
+        )
+        self.review_env = {k: env[k] for k in SECOND_REVIEW_ENV if env.get(k)}
+        self.change = str(spec["change"])
+        self.sleep, self.clock = sleep or time.sleep, clock or time.monotonic
+        self.wait = _seconds(env, CHECKS_WAIT_ENV, CHECKS_WAIT_SECONDS)
+        self.grace = _seconds(env, CHECKS_GRACE_ENV, CHECKS_GRACE_SECONDS)
+        self.interval = max(_seconds(env, CHECKS_INTERVAL_ENV, CHECKS_INTERVAL_SECONDS), 1)
+        rounds = (env.get(PR_LOOP_ROUNDS_ENV) or "").strip()
+        self.rounds = int(rounds) if rounds.isdigit() and int(rounds) <= 5 else pr_loop.MAX_ROUNDS
+
+    def run(self, cuts: list[pr_loop.Cut], budget: float | None) -> dict[str, Any]:
+        path = pr_loop_path(Path(self.spec["log"]))
+
+        def update(state: dict[str, Any]) -> None:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(state, ensure_ascii=False) + "\n", encoding="utf-8")
+            tmp.replace(path)
+            for url, entry in state.items():
+                row = {
+                    "phase": "delivery",
+                    "status": "in_progress",
+                    "change": self.change,
+                    "url": url,
+                    "message": f"PR {url.rsplit('/', 1)[-1]}: runda {entry['round']}, {entry['status']}",
+                }
+                self.log(PROGRESS_PREFIX + json.dumps(row, ensure_ascii=False))
+
+        self.log(f"# pdi: pętla PR (N2) dla {len(cuts)} PR, najwyżej {self.rounds} rundy poprawek")
+        try:
+            return pr_loop.run_loop(cuts, self, max_rounds=self.rounds, budget_usd=budget, on_update=update)
+        finally:
+            self.step("pr-loop", ["git", "switch", self.phase_branch], ok=ANY_CODE, quiet=True)
+
+    # --- w kontenerze fazy ---
+
+    def _container(self, argv: list[str], extra: Mapping[str, str] | None = None) -> dict[str, Any]:
+        run_env = {**self.claude_env, **(extra or {})}  # bez GH_TOKEN/GITHUB_TOKEN i kluczy drugiego modelu
+        try:
+            if self.sandbox == "docker":
+                out = _run_in_container(self.spec, self.step, self.log, self.env, self.base, self.passed, argv, run_env)
+            else:
+                out = self.step("pr-loop", argv, extra=run_env, ok=ANY_CODE)[1]
+        except _StepFailed as e:
+            return {"status": "failed", "reason": e.error}
+        return _last_json(out) or {"status": "failed", "reason": "brak wyniku JSON kroku pętli PR"}
+
+    def _switch(self, cut: pr_loop.Cut) -> bool:
+        return self.step("pr-loop", ["git", "switch", cut.branch], ok=ANY_CODE, quiet=True)[0] == 0
+
+    def _script(self, name: str, *args: str) -> list[str]:
+        return ["python3", f"{SCRIPTS}/{name}", *args]
+
+    @staticmethod
+    def _budget(budget: float | None) -> list[str]:
+        return ["--budget-usd", f"{max(budget, 0.01):.2f}"] if budget is not None else []
+
+    def review(self, cut: pr_loop.Cut, round_no: int, budget: float | None) -> dict[str, Any]:
+        if not self._switch(cut):
+            return {"status": "failed", "reason": f"git switch {cut.branch}"}
+        argv = self._script(
+            "pr_loop.py",
+            "review",
+            "--change",
+            self.change,
+            "--branch",
+            cut.branch,
+            "--base",
+            cut.base,
+            *self._budget(budget),
+        )
+        return self._container(argv)
+
+    def fix(self, cut: pr_loop.Cut, round_no: int, data: dict[str, Any], budget: float | None) -> dict[str, Any]:
+        if not self._switch(cut):
+            return {"status": "failed", "reason": f"git switch {cut.branch}"}
+        argv = self._script(
+            "pr_loop.py",
+            "fix",
+            "--change",
+            self.change,
+            "--branch",
+            cut.branch,
+            "--round",
+            str(round_no),
+            *self._budget(budget),
+        )
+        return self._container(argv, {"PDI_PR_LOOP_INPUT": json.dumps(data, ensure_ascii=False)})
+
+    def verify(self, cut: pr_loop.Cut) -> dict[str, Any]:
+        if not self._switch(cut):
+            return {"status": "failed", "reason": f"git switch {cut.branch}"}
+        return self._container(self._script("pr_loop.py", "verify", "--base", cut.base))
+
+    # --- na hoście ---
+
+    def validate(self, cut: pr_loop.Cut, findings: list[dict[str, Any]]) -> dict[str, Any]:
+        comments = []
+        for f in findings:
+            comment: dict[str, Any] = {k: f[k] for k in ("id", "severity", "file", "line", "body") if k in f}
+            context = self._context(cut, f)
+            if context:
+                comment["context"] = context
+            comments.append(comment)
+        match = _PR_NUMBER.search(cut.pr)
+        name = f"pr-loop-{match.group(1) if match else 'x'}-comments"
+        path = _data_file(dict(self.spec), name, comments)
+        argv = self._script(
+            "second_review.py", "comments", "--pr", match.group(1) if match else "0", "--input", str(path)
+        )
+        try:
+            _, out = self.step("pr-loop", argv, extra=self.review_env, ok=ANY_CODE, quiet=True)
+        except _StepFailed as e:
+            return {"status": "unavailable", "reason": e.error}
+        return _last_json(out) or {"status": "unavailable", "reason": "brak wyniku second_review.py"}
+
+    def _context(self, cut: pr_loop.Cut, f: dict[str, Any]) -> str:
+        file, line = str(f.get("file") or ""), f.get("line")
+        if not file or ".." in file or file.startswith(("/", "-")):
+            return ""
+        code, text = self.step("pr-loop", ["git", "show", f"{cut.branch}:{file}"], ok=ANY_CODE, quiet=True)
+        if code != 0:
+            return ""
+        rows = text.splitlines()
+        at = line - 1 if isinstance(line, int) and 0 < line <= len(rows) else 0
+        lo, hi = max(at - CONTEXT_LINES, 0), min(at + CONTEXT_LINES + 1, len(rows))
+        return "\n".join(f"{i + 1}: {rows[i]}" for i in range(lo, hi))
+
+    def checks(self, cut: pr_loop.Cut) -> dict[str, Any]:
+        argv = ["gh", "pr", "checks", cut.pr, "--json", "name,state,bucket,link,workflow"]
+        started = self.clock()
+        while True:
+            _, out = self.step("pr-loop", argv, ok=ANY_CODE, quiet=True, extra=self.github_env)
+            try:
+                rows = json.loads(out) if out.strip().startswith("[") else []
+            except ValueError:
+                rows = []
+            rows = [r for r in rows if isinstance(r, dict)]
+            state = pr_loop.checks_state(rows)
+            elapsed = self.clock() - started
+            if state in ("green", "red") or (state == "none" and elapsed >= self.grace) or elapsed >= self.wait:
+                return {"state": state, "checks": rows}
+            self.sleep(self.interval)
+
+    def ci_log(self, cut: pr_loop.Cut, checks: dict[str, Any]) -> str:
+        parts = []
+        for row in checks.get("checks") or []:
+            run_id = pr_loop.run_id_of(str(row.get("link") or "")) if row.get("bucket") in ("fail", "cancel") else None
+            if not run_id:
+                continue
+            code, out = self.step(
+                "pr-loop", ["gh", "run", "view", run_id, "--log-failed"], ok=ANY_CODE, quiet=True, extra=self.github_env
+            )
+            if code == 0 and out.strip():
+                parts.append(
+                    f"== {row.get('workflow') or ''} / {row.get('name') or ''}\n"
+                    + "\n".join(out.splitlines()[-CI_LOG_LINES:])
+                )
+        return "\n\n".join(parts)[-CI_LOG_MAX:]
+
+    def push(self, cut: pr_loop.Cut) -> None:
+        self.step("push", ["git", "push", "origin", cut.branch], extra=self.github_env)
+
+    def commits(self, cut: pr_loop.Cut) -> list[str]:
+        _, out = self.step(
+            "pr-loop", ["git", "log", "--reverse", "--format=%s", f"{cut.base}..{cut.branch}"], ok=ANY_CODE, quiet=True
+        )
+        return [line for line in out.splitlines() if line.strip()]
+
+    def body(self, cut: pr_loop.Cut) -> str:
+        _, out = self.step(
+            "pr", ["gh", "pr", "view", cut.pr, "--json", "body", "-q", ".body"], quiet=True, extra=self.github_env
+        )
+        return out
+
+    def edit_body(self, cut: pr_loop.Cut, body: str) -> None:
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".md", delete=False) as f:
+            f.write(body)
+        try:
+            self.step("pr", ["gh", "pr", "edit", cut.pr, "--body-file", f.name], quiet=True, extra=self.github_env)
+        finally:
+            os.unlink(f.name)
 
 
 @contextlib.contextmanager

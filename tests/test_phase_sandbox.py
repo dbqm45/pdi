@@ -168,7 +168,7 @@ def test_run_step_goes_through_docker_with_only_the_clone_mounted(checkout: Path
         }
     run = FakeRun(responses)
     s = spec(checkout, tmp_path, phase=phase, source="PRB-1" if phase == "intent" else None)
-    result, lines = execute(s, run)
+    result, lines = execute(s, run, {**ENV, "PDI_PR_LOOP": "off"})  # pętla PR (N2): osobny test niżej
 
     assert result["status"] == "done", lines
     argv, _ = run.phase_call()
@@ -627,3 +627,66 @@ def test_docker_commands_get_path_and_home_to_find_docker_and_its_context(tmp_pa
         assert call_env["PATH"] == "/usr/local/bin:/usr/bin" and call_env["HOME"] == "/Users/ala"
         assert call_env["DOCKER_CONTEXT"] == "desktop-linux"
         assert "GH_TOKEN" not in call_env
+
+
+# --- pętla PR po delivery (N2) ---
+
+CUT_PR = "https://github.com/dbqm45/sklep/pull/8"
+REVIEW_1 = {
+    "status": "ok",
+    "review_md": "product",
+    "cost_usd": 0.05,
+    "findings": [{"id": "R1", "severity": "important", "file": "src/a.js", "line": 2, "body": "brak null"}],
+}
+REVIEW_2 = {"status": "ok", "review_md": "product", "cost_usd": 0.04, "findings": []}
+
+
+def test_pr_loop_runs_review_and_fix_in_the_container_without_github_tokens(checkout: Path, tmp_path: Path) -> None:
+    persona = {"status": "done", "cost_usd": 0.5}
+    run = FakeRun(
+        {
+            "git for-each-ref": [(0, ""), (0, "story/tsk-1-a\n")],
+            "git rev-list --count": (0, "2\n"),
+            "git merge-base": (1, ""),
+            "gh pr create": (0, CUT_PR + "\n"),
+            "docker run --rm": [
+                (0, json.dumps(persona)),
+                (0, json.dumps(REVIEW_1)),
+                (0, json.dumps({"status": "ok", "cost_usd": 0.2})),
+                (0, json.dumps(REVIEW_2)),
+            ],
+            f"python3 {S}/second_review.py comments": (
+                0,
+                json.dumps(
+                    {"status": "ok", "cost_usd": 0.01, "comments": [{"id": "R1", "confirmed": True, "reason": "tak"}]}
+                ),
+            ),
+            "gh pr checks": (0, json.dumps([{"name": "check", "bucket": "pass", "state": "SUCCESS"}])),
+            f"gh pr view {CUT_PR}": (0, "# Raport TSK-1\n\nChange: CHG-12\n"),
+        }
+    )
+    env = {**ENV, "OPENAI_API_KEY": "sk-drugi-model"}
+    result, lines = execute(spec(checkout, tmp_path, phase="delivery", gate="approve-for-implementation"), run, env)
+
+    assert result["status"] == "done", lines
+    entry = result["pr_loop"][CUT_PR]
+    assert entry["status"] == "green" and entry["round"] == 2 and entry["fixed"] == ["R1"], entry
+    assert result["pr_loop_cost_usd"] == pytest.approx(0.05 + 0.01 + 0.2 + 0.04)
+    phase_calls = [i for i, c in enumerate(run.calls) if c[:3] == ["docker", "run", "--rm"]]
+    loop_calls = [i for i in phase_calls if any("pr_loop.py" in a for a in run.calls[i])]
+    assert len(loop_calls) == 3  # review, fix, review
+    for i in loop_calls:
+        argv, step_env = run.calls[i], run.envs[i]
+        assert GH not in shlex.join(argv) and "GH_TOKEN" not in argv and "GITHUB_TOKEN" not in argv
+        assert "GH_TOKEN" not in step_env and "OPENAI_API_KEY" not in step_env
+    fix = next(i for i in loop_calls if "fix" in run.calls[i])
+    assert "PDI_PR_LOOP_INPUT" in run.calls[fix] and "brak null" in run.envs[fix]["PDI_PR_LOOP_INPUT"]
+    assert "--budget-usd" in run.calls[fix]  # budżet fazy minus koszt persony i wcześniejszych kroków
+    # poświadczenia tylko na hoście: walidacja z kluczem drugiego modelu, push i gh z tokenem
+    validate = next(i for i, c in enumerate(run.calls) if "second_review.py" in " ".join(c))
+    assert run.envs[validate].get("OPENAI_API_KEY") == "sk-drugi-model" and "GH_TOKEN" not in run.envs[validate]
+    push = run.find("git", "push", "origin", "story/tsk-1-a")
+    assert push and run.envs[push[0]].get("GH_TOKEN") == GH
+    assert run.envs[run.find("gh", "pr", "checks")[0]].get("GH_TOKEN") == GH
+    edits = run.find("gh", "pr", "edit", CUT_PR)
+    assert len(edits) == 2 and run.calls[edits[0]][4] == "--body-file"

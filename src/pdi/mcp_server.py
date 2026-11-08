@@ -47,6 +47,7 @@ ChangeStatus = Literal["open", "rejected", "done", "all"]
 GateOutcome = Literal["approved", "changes_requested", "rejected"]
 ImpactOutcome = Literal["met", "not_met", "unknown"]
 ProblemOutcome = Literal["accepted", "rejected"]
+PrReadyOutcome = Literal["reviewed"]
 TriageOutcome = Literal["accepted", "rejected", "parked", "duplicate"]
 Channel = Literal["form", "slack", "teams", "support", "postmortem", "operate", "manual"]
 RejectionReason = Literal[
@@ -314,15 +315,19 @@ def build_server(
 
     @server.tool(annotations=_READ)
     def list_inbox(status: InboxStatus = "open") -> dict[str, list[dict[str, Any]]]:
-        """Skrzynka pdi: bramki („flaga przeszła na etap 10%, przejść dalej?”), oceny skutku MVP i problemy z pasm
-        kontrolnych tf („rollbacki poza 3σ — nowe zgłoszenie?”).
+        """Skrzynka pdi: bramki („flaga przeszła na etap 10%, przejść dalej?”), oceny skutku MVP, problemy z pasm
+        kontrolnych tf („rollbacki poza 3σ — nowe zgłoszenie?”) i „PR gotowy do Twojego przeglądu” (kind pr_ready:
+        PR cięcia talosa po pętli PR — zielone checki i zamknięte uwagi albo limit rund; pola url, pr_loop,
+        open_questions).
 
         status: open (domyślnie, czeka na decyzję), decided albo all. Każda pozycja: id, kind (gate /
         impact_review / problem), change (problem może go nie mieć), release, summary, received_at; bramka i problem
         mają event (pełne zdarzenie z kontraktu), problem też metric (odczyt pasma), ocena skutku — intent, metric,
         draft (szkic wniosku) i data (odczyty z ShipScope).
         """
-        return {"items": open_inbox().items(status=None if status == "all" else status)}
+        box = open_inbox()
+        box.open_ready_prs()  # PR-y cięć po pętli PR (N2): pozycja dopiero przy green albo needs_human
+        return {"items": box.items(status=None if status == "all" else status)}
 
     @server.tool(annotations=_WRITE)
     def decide_inbox_item(
@@ -331,7 +336,7 @@ def build_server(
         why: str,
         source: Source,
         drafted_by: Literal["ai", "human"],
-        outcome: GateOutcome | ImpactOutcome | ProblemOutcome | None = None,
+        outcome: GateOutcome | ImpactOutcome | ProblemOutcome | PrReadyOutcome | None = None,
         decision_type: str | None = None,
         draft_edited: bool | None = None,
         project: str | None = None,
@@ -368,7 +373,8 @@ def build_server(
         approved albo rejected; approved zmienia politykę autonomy.yaml (typu chronionego nie da się obniżyć).
         Szkic z rozmowy (kind capture) wymaga outcome approved albo rejected: approved zapisuje decyzję ze źródłem
         i cytatami z pozycji (draft_edited pdi liczy sam, gdy statement albo why różnią się od szkicu), rejected
-        („to nie była decyzja”) zamyka pozycję bez wpisu w rejestrze — powód podaj w why.
+        („to nie była decyzja”) zamyka pozycję bez wpisu w rejestrze — powód podaj w why. PR gotowy do przeglądu
+        (kind pr_ready, pętla PR talosa N2) zamyka outcome reviewed, bez wpisu w rejestrze — scala człowiek w GitHubie.
         links.chg nadaje skrzynka ze zdarzenia; decision_type, gdy go nie podasz, też (np. flag.stage_advance,
         gate.b1, triage, outcome.assessment). Pozostałe pola jak w record_decision.
         """

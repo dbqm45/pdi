@@ -99,13 +99,14 @@ def spec(checkout: Path, tmp_path: Path, **overrides: Any) -> dict[str, Any]:
 
 
 # Te testy opisują kroki przebiegu z krokiem `run` na hoście (tryb jawnie bez izolacji); krok `run` w kontenerze
-# (domyślny, Z8a) — tests/test_phase_sandbox.py.
-HOST = {"PDI_DISPATCH_SANDBOX": "none"}
+# (domyślny, Z8a) — tests/test_phase_sandbox.py. Pętla PR po delivery (N2) jest tu wyłączona — jej testy niżej.
+HOST = {"PDI_DISPATCH_SANDBOX": "none", "PDI_PR_LOOP": "off"}
 
 
 @pytest.fixture(autouse=True)
 def _host_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PDI_DISPATCH_SANDBOX", "none")
+    monkeypatch.setenv("PDI_PR_LOOP", "off")
 
 
 def execute(s: dict[str, Any], run: FakeRun, env: dict[str, str] | None = None) -> tuple[dict[str, Any], list[str]]:
@@ -1357,3 +1358,87 @@ def test_retry_dispatch_after_a_failed_gate_resends_only_the_gate(checkout: Path
     stored = ChangeStore(registry).get("CHG-12")
     assert stored["dispatch"]["status"] == "done" and "step" not in stored["dispatch"]
     assert stored["history"][-1]["what"] == "dispatch.gate_retried"
+
+
+# --- pętla PR po delivery (N2) ---
+
+
+def test_settle_shows_the_live_pr_loop_and_keeps_the_final_one(tmp_path: Path) -> None:
+    log = tmp_path / "runs" / "CHG-12-delivery.log"
+    log.parent.mkdir()
+    log.write_text("", encoding="utf-8")
+    live = {PR: {"branch": TSK1, "round": 1, "status": "fixing", "reason": None, "rounds": [], "cost_usd": 0.1}}
+    dispatch_local.pr_loop_path(log).write_text(json.dumps(live), encoding="utf-8")
+    running = {"mode": "local", "status": "running", "log": str(log), "phase": "delivery"}
+    state = {"change": "CHG-12", "dispatch": running, "history": []}
+
+    during = dispatch_local.settle(state)
+    assert during["dispatch"]["status"] == "running" and during["pr_loop"][PR]["status"] == "fixing"
+    assert "pr_loop" not in state  # odczyt nie zmienia przekazanego stanu
+
+    final = {PR: {**live[PR], "round": 2, "status": "green", "reason": "checki zielone, uwagi zamknięte"}}
+    outcome = {
+        "status": "done",
+        "prs": [PR],
+        "cuts": [{"branch": TSK1, "pr": PR}],
+        "pr_loop": final,
+        "pr_loop_cost_usd": 0.3,
+    }
+    dispatch_local.result_path(log).write_text(json.dumps(outcome), encoding="utf-8")
+    settled = dispatch_local.settle(state)
+    assert settled["pr_loop"][PR]["status"] == "green" and settled["dispatch"]["pr_loop_cost_usd"] == 0.3
+
+
+def test_pr_loop_off_leaves_delivery_as_before(checkout: Path, tmp_path: Path) -> None:
+    run = FakeRun({REFS: [(0, ""), (0, f"{TSK1}\n")], "git rev-list --count": (0, "1\n")})
+    result = delivery(checkout, tmp_path, run)
+    assert "pr_loop" not in result
+    assert not any("pr_loop.py" in " ".join(c) for c in run.calls)
+
+
+def test_pr_loop_waits_for_checks_then_reads_the_failed_log(checkout: Path, tmp_path: Path) -> None:
+    pending = json.dumps([{"name": "check", "bucket": "pending"}])
+    red = json.dumps(
+        [
+            {
+                "name": "check",
+                "bucket": "fail",
+                "workflow": "Definition check",
+                "link": "https://github.com/dbqm45/sklep/actions/runs/77/job/5",
+            }
+        ]
+    )
+    green = json.dumps([{"name": "check", "bucket": "pass"}])
+    review = json.dumps({"status": "ok", "review_md": "template", "cost_usd": 0.0, "findings": []})
+    run = FakeRun(
+        {
+            REFS: [(0, ""), (0, f"{TSK1}\n")],
+            "git rev-list --count": (0, "1\n"),
+            f"python3 {S}/pr_loop.py review": (0, review),
+            f"python3 {S}/pr_loop.py fix": (0, json.dumps({"status": "ok", "cost_usd": 0.1})),
+            "gh pr checks": [(8, pending), (0, red), (0, green)],
+            "gh run view 77 --log-failed": (0, "check\tRun tests\tFAILED test_badge\n"),
+            "gh pr view https://": (0, "# Raport\n\nChange: CHG-12\n"),
+        }
+    )
+    sleeps: list[float] = []
+    lines: list[str] = []
+    env = {**HOST, "PDI_PR_LOOP": "on", "GH_TOKEN": TOKEN, "PDI_PR_LOOP_CHECKS_INTERVAL": "5"}
+    s = spec(checkout, tmp_path, phase="delivery", gate="approve-for-implementation")
+    real_sleep = dispatch_local.time.sleep
+    dispatch_local.time.sleep = sleeps.append  # type: ignore[assignment]
+    try:
+        result = dispatch_local.execute(s, run=run, env=env, log=lines.append)
+    finally:
+        dispatch_local.time.sleep = real_sleep  # type: ignore[assignment]
+
+    entry = result["pr_loop"][PR]
+    assert entry["status"] == "green" and entry["round"] == 2 and entry["rounds"][0]["checks"]["state"] == "red"
+    calls = [" ".join(c) for c in run.calls]
+    fix = next(i for i, c in enumerate(calls) if "pr_loop.py fix" in c)
+    assert "FAILED test_badge" in run.envs[fix]["PDI_PR_LOOP_INPUT"]
+    assert "GH_TOKEN" not in run.envs[fix]
+    assert sleeps == [5]  # jedno czekanie na pending
+    assert dispatch_local.pr_loop_path(Path(s["log"])).is_file()
+    assert any(line.startswith(dispatch_local.PROGRESS_PREFIX) for line in lines)
+    assert calls[-1] == "git switch pdi/CHG-12-delivery"

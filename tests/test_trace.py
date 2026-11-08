@@ -272,3 +272,40 @@ def test_b3_approved_node_carries_the_targets_snapshot(registry: Registry, make_
     b3 = by_id(graph)["gate:B3"]
     assert b3["status"] == "approved"
     assert b3["data"]["targets"] == sample
+
+
+def test_cut_pr_shows_the_pr_loop_rounds(registry: Registry) -> None:
+    delivered(registry, cuts=[{"branch": "story/tsk-1-fundament", "pr": CUT1}])
+    store = Inbox(registry).changes
+    state = store.get("CHG-12")
+    state["pr_loop"] = {
+        CUT1: {
+            "branch": "story/tsk-1-fundament",
+            "status": "needs_human",
+            "round": 3,
+            "max_rounds": 2,
+            "reason": "nie udało się po 2 rundach: zostały 1 uwag",
+            "cost_usd": 0.9,
+            "questions": [{"id": "R2", "text": "x"}],
+            "rounds": [
+                {
+                    "round": 1,
+                    "findings": 2,
+                    "fixed": ["R1"],
+                    "questions": [],
+                    "checks": {"state": "red"},
+                    "validation": "ok",
+                    "cost_usd": 0.4,
+                }
+            ],
+        }
+    }
+    store.save(state)
+
+    node = by_id(trace(registry, "CHG-12", live=False))[f"pr:{CUT1}"]
+
+    assert node["status"] == "needs_human"
+    loop = node["data"]["pr_loop"]
+    assert loop["round"] == 3 and loop["reason"].startswith("nie udało się po 2 rundach")
+    assert loop["rounds"][0]["fixed"] == ["R1"] and loop["rounds"][0]["cost_usd"] == 0.4
+    assert "PR #11 (needs_human)" in trace(registry, "CHG-12", live=False)["mermaid"]

@@ -87,7 +87,12 @@ def trace(
         key = match.group(1).upper() if match else None
         if key:
             tasks.setdefault(key, None)
-        g.node(f"pr:{cut['pr']}", "pr", _pr_label(cut["pr"]), url=cut["pr"], data={"branch": cut["branch"]})
+        loop = _pr_loop_of(state, cut["pr"])
+        data: dict[str, Any] = {"branch": cut["branch"]}
+        if loop:
+            data["pr_loop"] = loop  # rundy pętli PR talosa (N2): przegląd, poprawki, checki, koszt
+        g.node(f"pr:{cut['pr']}", "pr", _pr_label(cut["pr"]), loop.get("status") if loop else None, url=cut["pr"],
+               data=data)  # fmt: skip
         g.edge(key or change, f"pr:{cut['pr']}", "implemented_by")
     for key in tasks:
         g.node(key, "task", key)
@@ -177,6 +182,20 @@ def _cut_prs(state: dict[str, Any] | None) -> list[dict[str, str]]:
             if isinstance(cut, dict) and isinstance(cut.get("branch"), str) and pr_state.is_pr_url(cut.get("pr")):
                 found.setdefault(cut["pr"], {"branch": cut["branch"], "pr": cut["pr"]})
     return list(found.values())
+
+
+def _pr_loop_of(state: dict[str, Any] | None, pr: str) -> dict[str, Any]:
+    """Wpis pętli PR (N2) dla PR-a cięcia: status, runda, powód, koszt i rundy (bez pełnych pytań)."""
+    entry = ((state or {}).get("pr_loop") or {}).get(pr)
+    if not isinstance(entry, dict):
+        return {}
+    keep = ("status", "round", "max_rounds", "reason", "cost_usd")
+    rounds = [
+        {k: r.get(k) for k in ("round", "findings", "fixed", "questions", "checks", "validation", "cost_usd")}
+        for r in entry.get("rounds") or []
+        if isinstance(r, dict)
+    ]
+    return {**{k: entry.get(k) for k in keep}, "rounds": rounds}
 
 
 def _releases(g: _Builder, change: str, state: dict[str, Any] | None) -> None:

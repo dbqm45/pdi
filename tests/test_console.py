@@ -670,3 +670,72 @@ def test_pages_let_the_browser_send_a_real_origin_on_post(registry: Registry) ->
         assert status == 403  # Origin: null dalej odrzucone
     finally:
         server.shutdown()
+
+
+# --- pętla PR (N2) ---
+
+LOOP_PR = "https://github.com/dbqm45/sdlc-proba/pull/44"
+LOOP = {
+    LOOP_PR: {
+        "branch": "story/tsk-1-badge",
+        "status": "green",
+        "round": 2,
+        "max_rounds": 2,
+        "cost_usd": 0.4,
+        "reason": "checki zielone, uwagi zamknięte",
+        "questions": [{"id": "R2", "text": "[niepotwierdzone] x"}],
+        "rounds": [
+            {
+                "round": 1,
+                "findings": 2,
+                "fixed": ["R1"],
+                "questions": ["R2"],
+                "checks": {"state": "red"},
+                "cost_usd": 0.3,
+            },
+            {"round": 2, "findings": 0, "fixed": [], "questions": [], "checks": {"state": "green"}, "cost_usd": 0.1},
+        ],
+    }
+}
+
+
+def test_board_card_and_trace_show_the_pr_loop(registry: Registry) -> None:
+    _write_change(registry, "CHG-4", dispatch={"mode": "local", "status": "done", "phase": "delivery"}, pr_loop=LOOP)
+    deps = console.Deps(registry, checkout=None)
+    server, url = _serve(deps)
+    try:
+        _, body, _ = _get(f"{url}/board?t={TOKEN}")
+        card = body.decode("utf-8").split('<span class="chg">CHG-4</span>')[1].split("</li>")[0]
+        assert "PR #44: green (runda 2/2)" in card
+        _, body, _ = _get(f"{url}/trace/CHG-4?t={TOKEN}")
+        page = body.decode("utf-8")
+        assert "<h2>Pętla PR</h2>" in page and "<td>R1</td>" in page and "<td>red</td>" in page
+        assert "checki zielone, uwagi zamknięte" in page
+    finally:
+        server.shutdown()
+
+
+def test_ready_pr_in_inbox_closes_with_reviewed(registry: Registry) -> None:
+    _write_change(registry, "CHG-4", dispatch={"mode": "local", "status": "done", "phase": "delivery"}, pr_loop=LOOP)
+    deps = console.Deps(registry, checkout=None)
+    server, url = _serve(deps)
+    try:
+        _, body, _ = _get(f"{url}/inbox?t={TOKEN}")
+        page = body.decode("utf-8")
+        assert "PR gotowy do Twojego przeglądu: CHG-4 PR #44" in page
+        assert 'value="reviewed"' in page and "[niepotwierdzone] x" in page and 'value="approved"' not in page
+        item = deps.inbox.get("pr-ready-CHG-4-44")
+        status, body = _post(
+            f"{url}/inbox/{item['id']}/decide?t={TOKEN}",
+            {
+                "t": TOKEN,
+                "loaded_at": item["received_at"],
+                "statement": "Przejrzane",
+                "why": "ok",
+                "outcome": "reviewed",
+            },
+        )
+        assert status == 200 and "Pozycja zamknięta" in body.decode("utf-8")
+        assert deps.inbox.get(item["id"])["status"] == "decided"
+    finally:
+        server.shutdown()
