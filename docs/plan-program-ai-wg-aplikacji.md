@@ -333,3 +333,31 @@ P8), **DA4** (stack usługi pdi → ten sam dla ai-registry), płatność **GitH
   ale to także gotowe pole inwentarza (D1), nie osobne zadanie.
 - **ci_for_sdlc** ma już limit kosztu AI per przestrzeń i panel operatora (T4) — bramka nie zastępuje tego,
   tylko dodaje poziom organizacji.
+
+## 8. Poza zakresem tego planu
+
+Ten plan to **platforma i governance dla AI w wytwarzaniu oprogramowania** plus pierwszy pilot asystenta
+operacyjnego. Ocena siedmiu obszarów, z której wyszedł, była oceną inżynierską, więc plan **nie jest** pełnym
+programem wdrożenia AI w organizacji. Brakuje w nim ośmiu rzeczy; żadna nie powinna trafić do repozytoriów jako kod,
+ale każda musi mieć właściciela i dokument, zanim platforma zacznie być używana poza zespołem autora.
+
+| # | Obszar | Czego nie ma | Co w planie tego dotyka | Gdzie to powinno żyć |
+|---|---|---|---|---|
+| Z1 | **Portfel przypadków użycia** | lista procesów biznesowych, które dostaną AI, kolejność, oczekiwany efekt, ocena (RICE/WSJF) | bez niego ai-registry (R1) i księga wartości (R5) są puste; ev-assistant (A1) ma tylko jedną personę | dokument sponsora biznesowego; narzędzia są (triaż pdi, `proc-product-discovery`, `proc-lean`) |
+| Z2 | **Ludzie i zmiana** | szkolenia, ścieżki kompetencji, zasady dopuszczalnego użycia AI przez pracowników, komunikacja, adopcja mierzona u ludzi, nie tylko w logach bramki | AI Champion i Data Owner to role w RACI (T10, P1), nie program | HR i CoE; polityka użycia AI jako krótki dokument w fali 1, obok operating modelu |
+| Z3 | **Fundament danych i MLOps** | platforma danych, jakość i pochodzenie danych, cechy, trening i serwowanie modeli predykcyjnych | `pack-data` (T1) daje metodę i standard, eval-gate (T4) bramkę; infrastruktury nie ma | osobny plan; obszar 01 szacuje, że to 30–50% kodu programu |
+| Z4 | **AI zwrócone do klienta** | czat dla kierowców, reklamacje, personalizacja: zgody, RODO wobec klientów, obowiązki informacyjne z Aktu o AI, ryzyko reputacyjne | ev-assistant jest dla pracowników; DPIA (P6) i klasyfikacja (R2) obejmą też te systemy, gdy powstaną | portfel (Z1) decyduje, czy i kiedy; wtedy osobny plan z prawnikiem |
+| Z5 | **Zgodność formalna** | ocena zgodności i rejestracja systemów wysokiego ryzyka, umowy z dostawcami modeli (DPA, region, retencja), licencje danych, ubezpieczenie, audyt zewnętrzny | inwentarz (R1) i polityka danych (R2) są wejściem do tego, nie wynikiem; licencja eMIP/Gireve już jest otwarta w ev-intelligence | compliance i dział prawny |
+| Z6 | **Bezpieczeństwo operacyjne AI** | procedura incydentu AI (prompt injection na produkcji, wyciek przez model, halucynacja ze skutkiem), red teaming, monitoring nadużyć | plan ma prewencję (hooki, sandbox T12, bramka G2), nie reakcję; skill `ops-security-operations` jest, procedury nie | SOC/bezpieczeństwo; procedura incydentu AI jako krótki dokument w fali 1 |
+| Z7 | **Organizacja, budżet, dostęp** | skład i etaty CoE, budżet na modele i infrastrukturę, zakupy (silnik bramki, narzędzie incydentów G8), SSO i role dla trzech nowych aplikacji | operating model (P1) nazywa role, nie etaty; S4 daje listę kontrolną bezpieczeństwa, nie tożsamość | sponsor i IT; decyzja o tożsamości wspólnej (jak G6/P1 dla jednej platformy) |
+| Z8 | **Infrastruktura modeli** | buy czy host, GPU, regiony, koszt jednostkowy | skill `ops-ai-inference` jest; bramka (G1) ukrywa wybór przed aplikacjami, ale go nie podejmuje | decyzja architektoniczna po portfelu (Z1), bo zależy od wolumenu i klas danych |
+
+Do tego jedno założenie planu, które w organizacji przestaje być prawdą: **zdolność wykonawcza**. Plan zakłada
+jednoosobowy zespół pracujący w sesjach Claude Code. Wdrożenie poza tym zespołem wymaga ludzi po stronie zespołów
+produktowych i biznesu (właściciele danych, zatwierdzający bramki, użytkownicy pilotażu), których plan nie nazywa
+i nie szacuje.
+
+**Jak to domknąć.** Nadrzędny dokument „program AI w organizacji” z ośmioma obszarami powyżej, w którym ten plan
+jest jedną z części. Właścicielem jest sponsor biznesowy, nie CoE. Pierwszy krok to portfel (Z1), bo wyznacza,
+co wchodzi do inwentarza, do księgi wartości i do ev-assistant. Dwa krótkie dokumenty (polityka użycia AI z Z2,
+procedura incydentu AI z Z6) można napisać już w fali 1, obok operating modelu, bo nie zależą od portfela.
