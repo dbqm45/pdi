@@ -222,7 +222,7 @@ audytor, nie PO) i z innym poziomem dostępu. Ocena z 8 XI dopuszczała „pdi l
 | R3 dziennik agentów | `agent-audit-event` z hooków tf (T7) i `llm-call` z bramki: który agent, model, narzędzie, co zmienił, kto zatwierdził; wzorzec z Flags (FL2) | tf, ai-gateway | F2 |
 | R4 macierz uprawnień | agent (klasa) → system → operacja `read/propose/execute`; eksport do tf (T8) i bramki | ręcznie, zatwierdzane jako decyzja w pdi | F3 |
 | R5 księga wartości | inicjatywa × miesiąc × koszt × korzyść × źródło; właściciel: kontroling; koszt z bramki i `sdlc-phase.yml`, efekt z ShipScope (S2) i ocen skutku pdi; adopcja z bramki | ai-gateway, ShipScope, pdi | F3 |
-| R6 metryki modeli | drift, trafność, koszt per decyzja, % korekt przez człowieka (z D1 i ev-assistant) | aplikacje przez kontrakt | F4 |
+| R6 metryki modeli | drift, trafność, koszt per decyzja, % korekt przez człowieka (z D1 i asystenta) | aplikacje przez kontrakt | F4 |
 | R7 DPIA | artefakt per system/zmiana (P6) z datą przeglądu | tf (szablon), pdi (bramka) | F3 |
 
 Stack: ten sam co pdi (Python, serwer MCP, pliki YAML w repo na start, baza dopiero przy R3, bo dziennik rośnie)
