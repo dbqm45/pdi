@@ -312,7 +312,7 @@ Cel: trzy rzeczy, które blokują resztę: bramka, inwentarz, operating model.
 
 | Tydz. | Krok | Repo | Wynik |
 |---|---|---|---|
-| 1 | Decyzje D-P1…D-P8 zapisane w `pdi/docs/decyzje.md` (D-P7 linia EV i D-P8 nazwy przyjęte kierunkowo 2026-11-10) | pdi | ADR per decyzja |
+| 1 | Decyzje D-P1…D-P8 zapisane w `pdi/docs/decyzje.md` (D-P7 linia EV i D-P8 nazwa zestawu przyjęte 2026-11-10) | pdi | ADR per decyzja |
 | 1–2 | P1 operating model (RACI, SLA bramek, eskalacja) | pdi | `16-operating-model.md` przyjęty |
 | 1–2 | R1 inwentarz v0: `ai-systems.yaml` wypełniony ręcznie dla 7 istniejących systemów AI; R2 procedura klasyfikacji jako skill | ai-registry (nowe repo), tf | pierwszy wynik klasyfikacji AI Act |
 | 2–3 | X3 repo `contract` z wersją 0.15: schematy P5 | contract (nowe repo z `pdi/contract/`) | `contract-v0.15.0` |
@@ -385,7 +385,7 @@ autora, co podważy wiarygodność standardu.
 | D-P5 | Instalacja tf w pdi i migracja ci_for_sdlc na packi (odłożone 2026-10-28) | **pdi w fali 1, ci_for_sdlc w fali 4** | pdi: tanie, rekomendacja z TODO.md gotowa; ci_for_sdlc: 100 skilli, zrobić po parity i po `repo-standard-check` |
 | D-P6 | Jeden język instrukcji dla agentów | **polski w fabryce, angielski tylko w repo publikowanych na zewnątrz (ShipScope, Flags)** — albo odwrotnie, ale jedna reguła; przy suicie SaaS raczej **angielski w suicie, polski dopuszczalny w liniach domenowych** | dziś trzy style; `repo-standard-check` musi wiedzieć, czego pilnować |
 | D-P7 | Suita generyczna jako SaaS; EV wydzielone do linii EV Intelligence z jednym źródłem wiedzy (§3.5) | **przyjęte kierunkowo 2026-11-10**; do zapisania w `decyzje.md` z zakresem K5/K6/T13/C6 | trzy kopie wiedzy EV już się rozjeżdżają; fabryka i Definition Intelligence muszą być bez domeny, żeby dało się je sprzedać |
-| D-P8 | Nazwy produktów (§9): marka + funkcja | **Quorum + funkcja** („Quorum Decision Intelligence”, „Quorum Release Control”) | jedna marka, nazwa mówi, za co klient płaci; „Intelligence” spina suitę z linią EV; alternatywy w §9 |
+| D-P8 | Nazwy produktów (§9) | **Delivery Intelligence Suite** jako nazwa całości (decyzja właściciela 2026-11-10); produkty od funkcji bez prefiksu (Decision Intelligence, Definition Intelligence, Release Intelligence, Release Control, Agent Factory, Model Gateway, AI Registry, Operations Assistant); otwarte: czy Quorum zostaje jako nazwa produktu ci_for_sdlc | nazwa mówi, za co klient płaci; „Intelligence” spina suitę z linią EV |
 
 Poza tym otwarte od wcześniej i potrzebne tu: **G8** (narzędzie incydentów → S1), **G6/P1** (jedna platforma →
 P8), **DA4** (stack usługi pdi → ten sam dla ai-registry), płatność **GitHub Actions** (→ T5, E1).
@@ -442,32 +442,35 @@ jest jedną z części. Właścicielem jest sponsor biznesowy, nie CoE. Pierwszy
 co wchodzi do inwentarza, do księgi wartości i do asystenta. Dwa krótkie dokumenty (polityka użycia AI z Z2,
 procedura incydentu AI z Z6) można napisać już w fali 1, obok operating modelu, bo nie zależą od portfela.
 
-## 9. Nazwy produktów (propozycja, D-P8)
+## 9. Nazwy produktów (D-P8)
 
-Zestaw ma być sprzedawany jako SaaS, więc nazwy mają mówić, za co klient płaci. Wzorzec biznesowy: **marka
-zestawu + rzeczownik funkcji** (jak Jira Software, Dynamics 365 Sales). Wspólny mianownik już jest w repo:
-**Intelligence** (Product Decision Intelligence, Continuous Intelligence for Software Definition, EV Intelligence,
-EV Domain Intelligence).
+Zestaw ma być sprzedawany jako SaaS, więc nazwy mają mówić, za co klient płaci. Decyzja właściciela z 2026-11-10:
+nazwa całości to **Delivery Intelligence Suite**. Produkty nie dostają prefiksu marki (pełne „Delivery Intelligence
+Decision Intelligence” byłoby nieczytelne); każdy nazywa się od funkcji, a wspólny mianownik **Intelligence** już
+jest w repo (Product Decision Intelligence, Continuous Intelligence for Software Definition, EV Intelligence).
+W materiałach pełna forma brzmi „Decision Intelligence, part of Delivery Intelligence Suite”; skrót zestawu: DIS.
 
 | Dziś | Nazwa biznesowa | Jedno zdanie |
 |---|---|---|
-| cały zestaw | **Quorum** (marka) · opisowo: Delivery Intelligence Suite | od zgłoszenia do skutku u użytkownika, z decyzjami ludzi i pracą agentów w jednym procesie |
-| pdi | **Quorum Decision Intelligence** | rejestr decyzji, bramki, poziomy autonomii, ocena skutku |
-| ci_for_sdlc | **Quorum Definition Intelligence** | czy wiemy, co budujemy: gotowość, konflikty źródeł, drift |
-| ShipScope | **Quorum Release Intelligence** (produkt: ShipScope) | co naprawdę jest u użytkowników, metryki przepływu |
-| ShipScope Flags | **Quorum Release Control** | przełączniki per serwis i środowisko, kolejność, audyt |
-| tf | **Quorum Agent Factory** | standard, skille i zabezpieczenia agentów w każdym repo |
-| ai-gateway | **Quorum Model Gateway** | jeden punkt wywołań modeli: polityka danych, koszt, log |
-| ai-registry | **Quorum AI Registry** | inwentarz systemów AI, klasa ryzyka, dziennik agentów, księga wartości |
-| assistant | **Quorum Operations Assistant** | kanał dla biznesu nad tymi samymi danymi, z nadzorem człowieka |
+| cały zestaw | **Delivery Intelligence Suite** | od zgłoszenia do skutku u użytkownika, z decyzjami ludzi i pracą agentów w jednym procesie |
+| pdi | **Decision Intelligence** | rejestr decyzji, bramki, poziomy autonomii, ocena skutku |
+| ci_for_sdlc | **Definition Intelligence** | czy wiemy, co budujemy: gotowość, konflikty źródeł, drift |
+| ShipScope | **Release Intelligence** (nazwa produktu: ShipScope) | co naprawdę jest u użytkowników, metryki przepływu |
+| ShipScope Flags | **Release Control** | przełączniki per serwis i środowisko, kolejność, audyt |
+| tf | **Agent Factory** | standard, skille i zabezpieczenia agentów w każdym repo |
+| ai-gateway | **Model Gateway** | jeden punkt wywołań modeli: polityka danych, koszt, log |
+| ai-registry | **AI Registry** | inwentarz systemów AI, klasa ryzyka, dziennik agentów, księga wartości |
+| assistant | **Operations Assistant** | kanał dla biznesu nad tymi samymi danymi, z nadzorem człowieka |
 
 Linia domenowa: **EV Intelligence** (marka linii), produkty: **EV Knowledge** (ev-intelligence: wiedza, pack,
 słownik, MCP), **EV Reliability** (ev-testing; tak nazywa się w README), **EV Domain Reports**
 (ev-domain-intelligence) [nazwy robocze].
 
-Opcje dla marki: (a) **Quorum** dla całości — zachowuje decyzję z 2026-10-10, a ci_for_sdlc dostaje w zamian
-nazwę funkcji; (b) „Delivery Intelligence” bez marki — opisowo, słabsze jako znak; (c) nowa neutralna marka,
-jeśli Quorum ma zostać tylko przy ci_for_sdlc — ale wtedy jeden produkt ma własne imię i reguła „marka + funkcja”
-się łamie. Rekomendacja: (a). Dostępność znaków i domen nie była sprawdzana [niezweryfikowane]. Odrzucona wcześniej
-propozycja metaforyczna (rodzina morska: Harbour, Helm, Beacon, Buoy, Keel, Customs, Manifest, Pilot) jest w
-historii rozmowy z 2026-11-10; właściciel wolał nazwy biznesowe.
+**Otwarte w D-P8.** (1) **Quorum**: nazwa nadana ci_for_sdlc 2026-10-10 (`docs/redesign-roadmap.md`, plansza marki).
+Może zostać jako nazwa produktu obok funkcji, tak jak ShipScope przy Release Intelligence („Quorum · Definition
+Intelligence”), albo odpaść; rekomendacja: zostawić, bo redesign i logo już na niej stoją, a reguła „nazwa produktu
++ funkcja” jest wtedy ta sama dla ShipScope i Quorum. (2) Dostępność znaków i domen nie była sprawdzana
+[niezweryfikowane]; „Delivery Intelligence” jest frazą opisową, więc jako znak słowny może być trudna do ochrony.
+(3) Odrzucona wcześniej propozycja metaforyczna (rodzina morska: Harbour, Helm, Beacon, Buoy, Keel, Customs,
+Manifest, Pilot) i wariant „Quorum + funkcja” są w historii rozmowy z 2026-11-10; właściciel wybrał nazwy
+biznesowe i Delivery Intelligence Suite jako nazwę całości.
