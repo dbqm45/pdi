@@ -1,7 +1,14 @@
 # Plan programu AI — luki z oceny pokrycia rozpisane na aplikacje
 
-Data: 2026-11-10 · Status: **propozycja** (do decyzji właściciela: D-P1…D-P6 w §5) · Źródło: ocena pokrycia siedmiu
+Data: 2026-11-10 · Status: **propozycja** (do decyzji właściciela: D-P1…D-P8 w §5) · Źródło: ocena pokrycia siedmiu
 obszarów (01 Repository Standards … 07 Metrics) z 2026-11-08, sprawdzona z kodem repozytoriów 2026-11-10.
+
+Dwie decyzje kierunkowe właściciela z 2026-11-10, które ten plan przyjmuje za dane:
+
+1. **Suita jest generyczna i budowana jako SaaS.** Żadna aplikacja suity nie zawiera wiedzy branżowej; domena
+   wchodzi do niej jako konfiguracja (pack, słownik, serwer MCP) z osobnej linii.
+2. **EV jest wydzielone do osobnej linii „EV Intelligence”** (§3.5): jedno źródło wiedzy, z którego generowane są
+   pack dla fabryki, słownik claims dla Definition Intelligence i serwer MCP dla asystenta i agentów.
 
 ## 0. Skrót
 
@@ -11,9 +18,13 @@ Ocena wskazała ~40 zadań „do zrobienia”. Po sprawdzeniu z repozytoriami:
   ev-intelligence, ev-domain-intelligence, aiux, sprintdeck) — §2.
 - **Dwa obszary nie mieszczą się nigdzie** i rozciąganie istniejących aplikacji byłoby błędem: punkt wejścia dla
   wywołań modeli (bramka) oraz rejestr systemów AI z księgą wartości. Do tego kanał dla ludzi spoza IT. Proponuję
-  trzy nowe aplikacje: **ai-gateway**, **ai-registry**, **ev-assistant** — §3.
+  trzy nowe aplikacje: **ai-gateway**, **ai-registry**, **assistant** (generyczny; EV to jego pierwsza
+  konfiguracja) — §3.
+- **Wiedza EV jest dziś w trzech kopiach** (tf `pack-ev`, ev-intelligence, ci_for_sdlc `claim-pack-ev`), które
+  już się rozjeżdżają. Wydzielamy ją do linii **EV Intelligence** z jednym źródłem prawdy; suita zostaje bez
+  domeny — §3.5.
 - **Pięć rzeczy to decyzje, nie kod** (operating model, RACI, polityka danych, podział kontraktu, instalacja tf w pdi).
-  Bez nich reszta nie ma kto zatwierdzać — §5.
+  Bez nich reszta nie ma kto zatwierdzać — §5. Do tego nazwy produktów (§9).
 - Plan w czterech falach (26 tygodni), z tym, co da się zrobić już w pierwszych sześciu — §4.
 
 Co się zmieniło względem oceny z 8 XI (stan repo z 10 XI): tf jest w wersji **9.15.0** (ocena mówi o 5.74);
@@ -47,6 +58,10 @@ Granice, które plan szanuje (z decyzji już podjętych):
   właśnie czwarty i piąty konsument, więc D1 się wyzwala (§5, D-P3).
 - Decyzje o zmianie w repo zmiany, decyzje luźne w pdi (D2/R1). Rejestr systemów AI to nowy, trzeci rodzaj
   rejestru — nie decyzji, lecz **obiektów** (model, prompt, agent) z cyklem życia; stąd osobna aplikacja (§3.2).
+- **Suita bez domeny** (decyzja z 2026-11-10): tf, pdi, ci_for_sdlc, ShipScope, Flags, ai-gateway, ai-registry
+  i assistant nie zawierają wiedzy branżowej. ev-testing, ev-intelligence i ev-domain-intelligence tworzą osobną
+  linię (§3.5), która dostarcza suicie pack, słownik claims i serwer MCP w jednym wydaniu. Retail, gdy wejdzie,
+  będzie drugą linią na tym samym wzorcu.
 
 ## 2. Zadania z oceny rozpisane na istniejące aplikacje
 
@@ -66,8 +81,9 @@ Oznaczenia: obszar **01–07** z oceny; fala **F1–F4** z §4; „zależy od”
 | T8 | **Macierz uprawnień agent → system → operacja** (`read` / `propose` / `execute`) jako plik `.tf/config/permissions.yaml` konsumowany przez `guard_bash`, `guard_paths` i `jev_guard`; źródłem prawdy jest ai-registry, tf pobiera kopię przy `tf update` | 03 | F3 | ai-registry R4 |
 | T9 | **Cykl życia modelu w `core-delivery-lifecycle`**: shadow → asystent → ograniczona autonomia → wycofanie, z bramką i metryką na każdym przejściu; mapowanie na poziomy autonomii pdi 3→0 (DA1/DA2) | 06 | F3 | pdi P3; Flags S1 (§2.5) jako mechanizm przełączenia |
 | T10 | **Role ludzi ↔ persony**: AI Champion, Data Owner, Product Owner AI w `proc-team-topologies` i `core-delivery-lifecycle`; RACI jako tabela w dokumencie operating model | 06 | F1 | D-P4 |
-| T11 | **`pack-retail`** (handel: sklep, kierownik, asortyment, płatności) — dopiero gdy pierwszy asystent retail wejdzie do fali | 05 | F4 | brak dziś użytkownika; [założenie] że retail wchodzi w falę 2 |
+| T11 | **`pack-retail`** (handel: sklep, kierownik, asortyment, płatności) — powstaje w **linii retail**, nie w repo tf (zasada z §3.5); dopiero gdy pierwszy asystent retail wejdzie do fali | 05 | F4 | brak dziś użytkownika; [założenie] że retail wchodzi w falę 2; T13 |
 | T12 | **Sandbox dla agentów operacyjnych**: `sandbox.settings.json` + `cleanroom.json` z profilem `operational` (tylko odczyt danych produkcyjnych przez MCP, bez Bash, wyjście tylko przez ai-gateway) | 03 | F3 | pdi `phase_sandbox.py` (L5, Z8a) jako baza |
+| T13 | **Packi spoza repo fabryki**: `tf install`/`tf update` instalują pack z innego repo po tagu (`<repo>@pack-v<wersja>`), z `skill_audit.py` i podpisem wydania; `pack-ev` **wychodzi z tf** do linii EV (§3.5, K6), w tf zostają tylko packi generyczne (it, ux, docs, editorial-pl, data) | 05 | F2 (mechanizm), F3 (przeniesienie pack-ev) | D-P7; `tf-new-pack` już generuje strukturę, brakuje instalacji spoza repo fabryki; `config.yaml` `requires.core` zostaje kontraktem zgodności |
 
 ### 2.2 pdi (decyzje, kontrakt, orkiestracja)
 
@@ -75,12 +91,12 @@ Oznaczenia: obszar **01–07** z oceny; fala **F1–F4** z §4; „zależy od”
 |---|---|---|---|---|
 | P1 | **Dokument operating model** `docs/16-operating-model.md`: kto zatwierdza B1–B5 i w jakim SLA, co gdy nie zatwierdzi (eskalacja, decyzja domyślna), Business Owner pilotażu, RACI CoE ↔ zespoły; przyjęty jako decyzja w `decyzje.md` | 06 | F1 | D-P4 — **to blokuje wszystko, co ma bramkę** |
 | P2 | **Operating model dla AI w operacjach**: kto odpowiada za decyzję asystenta, za model predykcyjny, za jego wycofanie; rozszerzenie `autonomy.schema.json` o `owner_role` i `withdrawal_trigger` | 06 | F3 | P1, T9 |
-| P3 | **Nowy typ bramki `operational-ai`** w skrzynce (decyzja operacyjna AI: zmiana ceny, zlecenie serwisu, profil mocy) z SLA zatwierdzenia i typem chronionym (nigdy poniżej poziomu 3 do czasu decyzji właściciela); zdarzenie `gate.requested` od ev-assistant | 04 | F3 | kontrakt; ev-assistant A3 |
+| P3 | **Nowy typ bramki `operational-ai`** w skrzynce (decyzja operacyjna AI: zmiana ceny, zlecenie serwisu, profil mocy) z SLA zatwierdzenia i typem chronionym (nigdy poniżej poziomu 3 do czasu decyzji właściciela); zdarzenie `gate.requested` od asystenta | 04 | F3 | kontrakt; assistant A3 |
 | P4 | **`targets` z progami ewaluacji jako warunek B5**: `gate.requested` z tf niesie wynik `eval-gate`; skrzynka pokazuje próg vs wynik; `not_met` → pętla DZ6 | 02 | F2 | T4 |
 | P5 | **Kontrakt**: schematy `agent-audit-event`, `ai-system` (wpis inwentarza), `eval-result`, `llm-call` (sumaryczny rekord bramki); wersja 0.15 | 03, 04 | F1 | D-P3 rozstrzyga, czy to jeszcze `pdi/contract/`, czy nowe repo `contract` |
 | P6 | **DPIA jako artefakt fazy** `requirements` dla zmian z danymi osobowymi: szablon w trybie pdi, sprawdzany przez `decision_record.py check`; skill `arch-privacy-compliance` daje treść | 04 | F3 | pierwsza DPIA: łączenie profilu EV + retail (gdy pojawi się taka zmiana) |
 | P7 | **Instalacja tf w pdi** (TODO.md, odłożone 2026-10-28) — bez tego repo autora nie stosuje własnego standardu; T2 wykryje to jako pierwsze | 06 | F1 | D-P5 |
-| P8 | **Konsola pdi / jedna platforma** (G6, P1 z `15-jedna-platforma.md`): to jest interfejs dla ludzi w SDLC (PO, dev); nie rozciągać jej na dyspozytora i sklep — to ev-assistant (§3.3) | 05 | wg planu Z3/A7 | decyzja G6/P1 (otwarta) |
+| P8 | **Konsola pdi / jedna platforma** (G6, P1 z `15-jedna-platforma.md`): to jest interfejs dla ludzi w SDLC (PO, dev); nie rozciągać jej na dyspozytora i sklep — to assistant (§3.3) | 05 | wg planu Z3/A7 | decyzja G6/P1 (otwarta) |
 
 ### 2.3 ci_for_sdlc (spójność definicji)
 
@@ -91,6 +107,7 @@ Oznaczenia: obszar **01–07** z oceny; fala **F1–F4** z §4; „zależy od”
 | C3 | **Skille z tf zamiast kopii** (~100 w `.claude/skills`): instalacja `tf` z `pack-it` + `pack-docs`, własne skille produktu w `.tf/config/`; nocna „parity z tf” zostaje jako test regresji migracji | 05 | F4 | D-P5 (ta sama decyzja co P7); `tf doctor` po migracji |
 | C4 | **Wpis w inwentarzu AI**: recenzent specyfikacji (prompt `SYSTEM_PROMPT`, model, region, klasa ryzyka) rejestrowany w ai-registry przy wdrożeniu; `GET /ai/usage` zasila księgę wartości | 04, 07 | F2 | ai-registry R1 |
 | C5 | **Reguły gotowości dla zmian AI**: nowy wymiar `ai` (czy zmiana z modelem ma: wpis w inwentarzu, klasę AI Act, zestaw ewaluacyjny z progiem, politykę danych) — ustalenie `GAP` zamiast gotowości | 04 | F3 | R1, R2; analogicznie do wymiaru `delivery` (DG5) |
+| C6 | **Słownik claims z linii domenowej zamiast kopii w kodzie**: `claim-pack-ev.ts` (dziś ręczna kopia `dom-ev-glossary`, już rozjechana w definicjach uptime) zastąpiony plikiem danych pobieranym z wydania linii EV (K6) i przypiętym jak kontrakt pdi; `ClaimPack` z `analysis/claims.ts` zostaje jako format; pakiet `general` bez zmian | 05 | F3 | K6; `docs/CLAIM-PACKS-PLAN.md` opisuje model pakietu, więc zmiana dotyczy źródła danych, nie kodu analizy |
 
 ### 2.4 ShipScope (status wydań, metryki)
 
@@ -108,11 +125,15 @@ Oznaczenia: obszar **01–07** z oceny; fala **F1–F4** z §4; „zależy od”
 | FL1 | **Typ flagi `ai-feature`** z etapami cyklu życia modelu zamiast on/off: `shadow` → `assist` → `limited-autonomy` → `off` (wycofanie); kolejność test→qa→prod i zależności jak dziś; `review by` obowiązkowe; link do wpisu w ai-registry (`aiSystemId`); każda zmiana etapu na PROD = pozycja `operational-ai` w skrzynce pdi (P3) | 06, 03 | F3 | T9; to realizuje wymóg nadzoru człowieka i „kill switch” bez nowego systemu |
 | FL2 | Dziennik zmian Flags jako **wzorzec** dziennika agentów (autor z sesji, nigdy z body; retencja 730 dni; webhook) — do skopiowania w ai-registry R3 | 03 | F1 | nic do zmiany w Flags |
 
-### 2.6 ev-testing (evtest)
+### 2.6 ev-testing (evtest) — linia EV
+
+Sekcje 2.6–2.8 to repozytoria **linii EV Intelligence** (§3.5), nie suity. Zadania zostają, bo dotyczą
+integracji z suitą przez kontrakt i bramkę; zmienia się to, że `pack-ev` i słownik claims będą generowane z tej
+linii (K5, K6), a nie utrzymywane w tf i ci_for_sdlc.
 
 | # | Zadanie | Obszar | Fala | Uwagi / zależy od |
 |---|---|---|---|---|
-| E1 | **evtest jako required check w repo CPMS**: Action `v1` (dziś `v0.1.1`), przykład `examples/ci/github-actions.yml` jako szablon w tf `pack-ev` (`ev-cpms-ci-gate`), pilot na stagingu CPMS (sesja „Platforma CI/CD dla EV”: potrzebne endpoint OCPP i logowanie) | 02 | F2 | CPMS poza repo [założenie: dostęp do stagingu CPMS zależy od organizacji] |
+| E1 | **evtest jako required check w repo CPMS**: Action `v1` (dziś `v0.1.1`), przykład `examples/ci/github-actions.yml` jako szablon skilla `ev-cpms-ci-gate` w pack-ev linii EV, pilot na stagingu CPMS (sesja „Platforma CI/CD dla EV”: potrzebne endpoint OCPP i logowanie) | 02 | F2 | CPMS poza repo [założenie: dostęp do stagingu CPMS zależy od organizacji] |
 | E2 | **Wynik evtest do pdi**: `result.json` → `gate.requested` B5 z `targets` (reconnect p95, error rate) — ta sama droga co eval-gate T4, tylko domena zamiast modelu | 02 | F3 | P4 |
 | E3 | V7 „AI: analiza przyczyn awarii” z roadmapy — wpis w inwentarzu AI od pierwszego prototypu (klasa ryzyka, dane: logi OCPP z ID tokenów → polityka danych R2) | 04 | F4 | R1, R2; nie wcześniej |
 
@@ -120,10 +141,12 @@ Oznaczenia: obszar **01–07** z oceny; fala **F1–F4** z §4; „zależy od”
 
 | # | Zadanie | Obszar | Fala | Uwagi / zależy od |
 |---|---|---|---|---|
-| K1 | **MCP przez ai-gateway** z tokenem per konsument (ev-assistant, tf, ci_for_sdlc); `ev_confidential_check` tylko dla tokenów wewnętrznych do czasu opinii prawnej (eMIP/Gireve, `DO-ZROBIENIA.md`) | 03, 05 | F2 | G1; polityka danych R2 |
+| K1 | **MCP przez ai-gateway** z tokenem per konsument (assistant, tf, ci_for_sdlc); `ev_confidential_check` tylko dla tokenów wewnętrznych do czasu opinii prawnej (eMIP/Gireve, `DO-ZROBIENIA.md`) | 03, 05 | F2 | G1; polityka danych R2 |
 | K2 | **Wspólny format eval-gate**: `evals/skill-gate.json` i `tools/skill_check.py` → format wyniku z T4; evale płatne dalej tylko za zgodą | 02 | F2 | T4 |
 | K3 | **Luki tematyczne potrzebne governance**: NIS2 i EN 18031, RODO historii ładowań (źródła A, potem skill) — wejście do klasyfikacji AI Act i DPIA | 04 | F2 | `DO-ZROBIENIA.md` już to listuje |
 | K4 | **Rejestr źródeł jako wzorzec „data lineage” dla modeli**: klasy A–D, SHA-256, licencja → pole `sources[]` wpisu `ai-system` w kontrakcie | 04 | F1 | P5 |
+| K5 | **Scalenie wiedzy EV w jedno źródło**: 36 skilli `dom-ev-*` z tf `pack-ev` 1.1.0 i 13 skilli `ev-*-expert` z ev-intelligence (te same tematy: OCPP 1.6/2.x, OCPI, ISO 15118, taryfy, diagnostyka, regulacje) → jedna lista tematów z taksonomii 1.1.0, jeden plik na temat, źródła z `sources/*.yaml`, scenariusze ewaluacji z obu zestawów; role i persony z `pack-ev` zostają jako warstwa fabryki nad wiedzą | 05, 01 | F2 | D-P7; największa praca w wydzieleniu, rząd kilku tygodni [założenie: bez porównania treści plik po pliku]; ev-team-factory nie jest źródłem (X1) |
+| K6 | **Jedno wydanie linii dla suity**: z repo ev-intelligence generowane i tagowane razem (`ev-v<wersja>`): `pack-ev` dla tf (T13), `claim-pack-ev` dla ci_for_sdlc (C6), obraz/konfiguracja serwera MCP dla asystenta; test parity między trzema artefaktami i przypięte kopie u konsumentów, jak kontrakt pdi (`contract-v<wersja>`) | 05 | F3 | K5, T13, C6 |
 
 ### 2.8 ev-domain-intelligence
 
@@ -205,7 +228,7 @@ audytor, nie PO) i z innym poziomem dostępu. Ocena z 8 XI dopuszczała „pdi l
 Stack: ten sam co pdi (Python, serwer MCP, pliki YAML w repo na start, baza dopiero przy R3, bo dziennik rośnie)
 [założenie; do decyzji jak DA4 dla pdi].
 
-### 3.3 `ev-assistant` — kanał dla ludzi spoza IT
+### 3.3 `assistant` — kanał dla ludzi spoza IT (generyczny; EV jako pierwsza konfiguracja)
 
 **Po co.** Dyspozytor, analityk roamingu, kierownik sklepu nie dostaną nic z Claude Code i terminala (05). Asystenci
 fali 1 potrzebują kanału (czat w Teams/Slack, formularz, panel) nad **tymi samymi** serwerami MCP, które już są
@@ -216,18 +239,66 @@ fali 1 potrzebują kanału (czat w Teams/Slack, formularz, panel) nad **tymi sam
 (PO, dev, QA): zmiany, bramki, wydania. Dyspozytor nie ma tam nic do roboty; mieszanie odbiorców rozmyłoby oba
 produkty.
 
-**Zakres A1 (fala 3):** bot Teams/Slack + cienki panel; jedna persona (dyspozytor) z `pack-ev` tf; wszystkie
-wywołania modeli przez ai-gateway; każda odpowiedź z cytatem (`ev_cite`) albo oznaczona [hipoteza] (wzorzec
-ev-domain-intelligence); poziom autonomii 3 (tylko propozycje). **A2:** ocena trafności przez człowieka
-(👍/👎 + korekta) → R6. **A3:** propozycja działania (zlecenie serwisu, profil mocy) → `gate.requested`
-`operational-ai` do pdi (P3); wykonanie dopiero po zatwierdzeniu; etap `assist`/`limited-autonomy` sterowany flagą
-`ai-feature` (FL1).
+**Dlaczego generyczny, nie `ev-assistant`.** Wszystko, co w asystencie jest trudne, nie wie, czym jest ładowarka:
+kanał, podłączenie do MCP przez bramkę z tokenem per konsument, sandbox operacyjny, pętla oceny (👍/👎 i korekta
+→ R6), propozycja działania jako `gate.requested` `operational-ai` (P3), etap sterowany flagą `ai-feature` (FL1).
+To samo, co fabryka: tf jest generyczne, a wiedza EV siedzi w packu. Konfiguracja asystenta to trójka: **pack z
+linii domenowej** (persona dyspozytora z pack-ev), **lista serwerów MCP** (ev-intelligence, CPMS), **poziom
+autonomii**. Kierownik sklepu dostanie ten sam produkt z pack-retail i innym MCP. Dzięki temu assistant jest
+aplikacją suity i może być SaaS; EV jest jego pierwszym wdrożeniem, nie nazwą.
+
+**Zakres A1 (fala 3):** bot Teams/Slack + cienki panel; konfiguracja „dyspozytor EV” (persona z pack-ev linii EV,
+MCP ev-intelligence); wszystkie wywołania modeli przez ai-gateway; każda odpowiedź z cytatem (`ev_cite`) albo
+oznaczona [hipoteza] (wzorzec ev-domain-intelligence); poziom autonomii 3 (tylko propozycje). **A2:** ocena
+trafności przez człowieka (👍/👎 + korekta) → R6. **A3:** propozycja działania (zlecenie serwisu, profil mocy) →
+`gate.requested` `operational-ai` do pdi (P3); wykonanie dopiero po zatwierdzeniu; etap `assist`/`limited-autonomy`
+sterowany flagą `ai-feature` (FL1). **A4 (fala 4):** druga konfiguracja (retail albo drugi profil EV) jako dowód,
+że produkt jest generyczny.
 
 ### 3.4 Czego **nie** proponuję jako nowej aplikacji
 
 - **Eval-gate dla modeli** — to narzędzie w tf (T4) z wynikiem w pdi (P4), nie usługa.
 - **Dashboard adopcji / ROI** — widok w ai-registry (R5), nie osobna aplikacja.
 - **Repo kontraktu** — to wydzielenie istniejącego `pdi/contract/` (X3), nie nowy produkt.
+
+### 3.5 Linia **EV Intelligence** — poza suitą, jedno źródło wiedzy
+
+**Stan dziś (sprawdzony 2026-11-10).** Wiedza EV jest w trzech kopiach, które już się rozjeżdżają:
+
+| Gdzie | Co | Słabość |
+|---|---|---|
+| tf `packs/pack-ev` 1.1.0 | 36 skilli `dom-ev-*`, 11 ról, 11 person, terminy odświeżania (regulacje co 3 mies.) | treść bez rejestru źródeł; żyje w repo fabryki, więc fabryka nie jest generyczna |
+| ev-intelligence | 13 skilli `ev-*-expert` o tych samych tematach, źródła klas A–D z SHA-256 i licencją, taksonomia 1.1.0, evale, MCP | osobny zestaw plików niż `pack-ev`; dwa opisy OCPP |
+| ci_for_sdlc `analysis/claim-pack-ev.ts` | słownik claims skopiowany ręcznie z `dom-ev-glossary` | plan jednego flow F2 odnotował już rozjazd (tf ma trzy definicje uptime, ci_for_sdlc dwie) |
+
+Do tego ev-testing (cyfrowy bliźniak), ev-domain-intelligence (raporty z manifestem) i archiwalny ev-team-factory.
+
+**Model docelowy.** Suita jest bez domeny; każda domena to osobna linia, która dostarcza suicie **trzy artefakty
+w jednym wydaniu** (K6): pack dla fabryki, słownik claims dla Definition Intelligence, serwer MCP dla asystenta
+i agentów. Ten sam wzorzec co Adobe Substance obok Creative Cloud albo rozszerzenia branżowe obok rdzenia ERP.
+
+| Warstwa | Repo | Co |
+|---|---|---|
+| **Wiedza** (jedno źródło prawdy) | ev-intelligence | źródła z klasami i licencją, taksonomia, jeden plik na temat (po K5), scenariusze ewaluacji |
+| **Dystrybucja do suity** | generowane z ev-intelligence, tag `ev-v<wersja>` | `pack-ev` (skille, role, persony) → tf przez T13; `claim-pack-ev` → ci_for_sdlc przez C6; serwer MCP → assistant i agenci przez bramkę (K1) |
+| **Narzędzia domenowe** | ev-testing, ev-domain-intelligence | bramka jakości CPMS (E1, E2), raporty z manifestem (D1); obie konsumują wiedzę przez MCP, nie przez kopię |
+
+**Zasady.**
+- Suita nie importuje niczego z linii poza trzema artefaktami z wydania; linia nie importuje kodu suity poza
+  kontraktem i klientem MCP.
+- Wersja linii jest niezależna od wersji suity; zgodność deklaruje `requires` w packu (jak dziś `requires.core`
+  w `pack.yaml`) i w słowniku claims.
+- Źródła poufne (klasa z `sources/poufne`, eMIP) nigdy nie trafiają do artefaktów dystrybucji; są dostępne tylko
+  przez MCP z tokenem wewnętrznym (K1).
+- Retail, gdy wejdzie, powstaje jako druga linia na tym samym szablonie (`tf-new-pack` + rejestr źródeł + MCP),
+  a nie jako pack w tf (T11).
+
+**Kolejność.** K5 scalenie (fala 2) → T13 instalacja packów spoza fabryki (fala 2) → K6 jedno wydanie i C6
+przełączenie ci_for_sdlc (fala 3) → usunięcie `pack-ev` z repo tf (fala 4). Do czasu K6 tf i ci_for_sdlc używają
+dzisiejszych kopii; nocny test parity (już istniejący w ci_for_sdlc) pilnuje, żeby rozjazd nie rósł.
+
+**Ryzyko.** Wydzielenie opłaca się, jeśli EV nie jest jedyną domeną na zawsze. Scalenie (K5) jest potrzebne w obu
+wariantach, więc od niego zaczynamy; decyzja o osobnej marce linii może poczekać do K6.
 
 ## 4. Plan wdrożeniowy
 
@@ -241,7 +312,7 @@ Cel: trzy rzeczy, które blokują resztę: bramka, inwentarz, operating model.
 
 | Tydz. | Krok | Repo | Wynik |
 |---|---|---|---|
-| 1 | Decyzje D-P1…D-P6 zapisane w `pdi/docs/decyzje.md` | pdi | ADR per decyzja |
+| 1 | Decyzje D-P1…D-P8 zapisane w `pdi/docs/decyzje.md` (D-P7 linia EV i D-P8 nazwy przyjęte kierunkowo 2026-11-10) | pdi | ADR per decyzja |
 | 1–2 | P1 operating model (RACI, SLA bramek, eskalacja) | pdi | `16-operating-model.md` przyjęty |
 | 1–2 | R1 inwentarz v0: `ai-systems.yaml` wypełniony ręcznie dla 7 istniejących systemów AI; R2 procedura klasyfikacji jako skill | ai-registry (nowe repo), tf | pierwszy wynik klasyfikacji AI Act |
 | 2–3 | X3 repo `contract` z wersją 0.15: schematy P5 | contract (nowe repo z `pdi/contract/`) | `contract-v0.15.0` |
@@ -265,6 +336,7 @@ w logu; każda bramka B1–B5 ma nazwanego zatwierdzającego i SLA; każdy dzia�
 | S1 incydenty → CFR i MTTR | ShipScope | decyzja G8 |
 | E1 evtest `v1` + szablon w `pack-ev` + pilot na stagingu CPMS | ev-testing, tf | dostęp do CPMS |
 | K3 źródła NIS2 / RODO historii ładowań; T3 jeden język instrukcji | ev-intelligence, tf | D-P6 |
+| K5 scalenie wiedzy EV (`dom-ev-*` + `ev-*-expert` → jedno źródło); T13 instalacja packów spoza repo fabryki | ev-intelligence, tf | D-P7 |
 
 **Kryterium wyjścia:** PR bez przeglądu AI i bez zielonego eval-gate (gdy zmiana ma `targets`) nie wchodzi na `main`
 w sdlc-proba i w jednym produkcie; dziennik agentów ma wpisy z co najmniej dwóch repo; 4 z 4 metryk DORA w ShipScope.
@@ -275,7 +347,8 @@ w sdlc-proba i w jednym produkcie; dziennik agentów ma wpisy z co najmniej dwó
 |---|---|---|
 | P2 operating model dla AI w operacjach; T9 cykl życia modelu; FL1 flaga `ai-feature` | pdi, tf, Flags | P1 |
 | P3 bramka `operational-ai`; T12 sandbox operacyjny | pdi, tf | P2 |
-| A1–A3 ev-assistant (dyspozytor) | ev-assistant (nowe repo) | G1, K1, P3, FL1 |
+| A1–A3 assistant z konfiguracją „dyspozytor EV” | assistant (nowe repo) | G1, K1, P3, FL1 |
+| K6 jedno wydanie linii EV (`ev-v<wersja>`: pack-ev, claim-pack-ev, MCP); C6 ci_for_sdlc na słowniku z wydania; tf instaluje pack-ev z linii (T13) | ev-intelligence, ci_for_sdlc, tf | K5, T13 |
 | R4 macierz uprawnień + T8 egzekwowanie w hookach | ai-registry, tf | R3 |
 | R5 księga wartości + S2 eksport z ShipScope + G3 adopcja z bramki | ai-registry, ShipScope, ai-gateway | R1, S1 |
 | P6/R7 DPIA jako artefakt fazy; C5 wymiar gotowości `ai` | pdi, tf, ai-registry, ci_for_sdlc | R2 |
@@ -287,8 +360,12 @@ wpisu w macierzy.
 
 ### Fala 4 — Konsolidacja (tygodnie 21–26)
 
-X1 archiwizacja ev-team-factory (i claude-team-factory po sprawdzeniu), X2/C3 ci_for_sdlc na packach tf, R6 metryki
-modeli (drift, % korekt), T11 `pack-retail` (jeśli asystent retail wchodzi), E3 wpis dla V7 evtest.
+X1 archiwizacja ev-team-factory (i claude-team-factory po sprawdzeniu), X2/C3 ci_for_sdlc na packach tf, usunięcie
+`pack-ev` z repo tf (po K6 instalowany z linii EV), R6 metryki modeli (drift, % korekt), A4 druga konfiguracja
+asystenta, T11 `pack-retail` jako druga linia (jeśli retail wchodzi), E3 wpis dla V7 evtest.
+
+**Kryterium wyjścia:** żadne repo suity nie zawiera treści EV poza przypiętymi kopiami z wydania linii; nocny test
+parity ma zero różnic między `pack-ev`, `claim-pack-ev` i MCP tej samej wersji.
 
 ### Co w pierwszych 6 tygodniach i dlaczego
 
@@ -306,7 +383,9 @@ autora, co podważy wiarygodność standardu.
 | D-P3 | Kontrakt do osobnego repo (D1: „przy czwartym konsumencie”) | **tak, w fali 1** | ai-gateway i ai-registry to konsumenci 4 i 5; przypięte kopie już działają (tf #93, ci_for_sdlc #85) |
 | D-P4 | Operating model: kto zatwierdza B1–B5, SLA, eskalacja, Business Owner pilotażu, RACI CoE ↔ zespoły | **spisać w fali 1, tydzień 1–2** | to decyzja organizacyjna, nie kod; blokuje fale 2–3 |
 | D-P5 | Instalacja tf w pdi i migracja ci_for_sdlc na packi (odłożone 2026-10-28) | **pdi w fali 1, ci_for_sdlc w fali 4** | pdi: tanie, rekomendacja z TODO.md gotowa; ci_for_sdlc: 100 skilli, zrobić po parity i po `repo-standard-check` |
-| D-P6 | Jeden język instrukcji dla agentów | **polski w fabryce, angielski tylko w repo publikowanych na zewnątrz (ShipScope, Flags)** — albo odwrotnie, ale jedna reguła | dziś trzy style; `repo-standard-check` musi wiedzieć, czego pilnować |
+| D-P6 | Jeden język instrukcji dla agentów | **polski w fabryce, angielski tylko w repo publikowanych na zewnątrz (ShipScope, Flags)** — albo odwrotnie, ale jedna reguła; przy suicie SaaS raczej **angielski w suicie, polski dopuszczalny w liniach domenowych** | dziś trzy style; `repo-standard-check` musi wiedzieć, czego pilnować |
+| D-P7 | Suita generyczna jako SaaS; EV wydzielone do linii EV Intelligence z jednym źródłem wiedzy (§3.5) | **przyjęte kierunkowo 2026-11-10**; do zapisania w `decyzje.md` z zakresem K5/K6/T13/C6 | trzy kopie wiedzy EV już się rozjeżdżają; fabryka i Definition Intelligence muszą być bez domeny, żeby dało się je sprzedać |
+| D-P8 | Nazwy produktów (§9): marka + funkcja | **Quorum + funkcja** („Quorum Decision Intelligence”, „Quorum Release Control”) | jedna marka, nazwa mówi, za co klient płaci; „Intelligence” spina suitę z linią EV; alternatywy w §9 |
 
 Poza tym otwarte od wcześniej i potrzebne tu: **G8** (narzędzie incydentów → S1), **G6/P1** (jedna platforma →
 P8), **DA4** (stack usługi pdi → ten sam dla ai-registry), płatność **GitHub Actions** (→ T5, E1).
@@ -315,7 +394,8 @@ P8), **DA4** (stack usługi pdi → ten sam dla ai-registry), płatność **GitH
 
 | Ryzyko | Skutek | Zabezpieczenie |
 |---|---|---|
-| Trzy nowe repo naraz przy jednoosobowym zespole | rozproszenie, nic nie dochodzi do „działa samo” | fala 1 tylko G1 i R1 w formie plików; ev-assistant dopiero w fali 3 |
+| Trzy nowe repo naraz przy jednoosobowym zespole | rozproszenie, nic nie dochodzi do „działa samo” | fala 1 tylko G1 i R1 w formie plików; assistant dopiero w fali 3 |
+| Scalenie wiedzy EV (K5) rozciąga się i blokuje K6 | tf i ci_for_sdlc dalej na kopiach, suita „prawie” generyczna | K5 temat po tematu wg taksonomii, każdy temat osobny PR; do K6 kopie zostają z testem parity; żadna faza suity nie czeka na K5 |
 | Bramka jako pojedynczy punkt awarii dla wszystkich aplikacji | przestój AI we wszystkich produktach | tryb awaryjny per aplikacja (ci_for_sdlc już działa bez AI po limicie, T4); SLO i status jak w ShipScope (`SLO.pl.md`) |
 | Polityka danych zbyt ostra | asystent bez dostępu do danych, które są mu potrzebne | klasy danych per system (R2), nie globalnie; decyzja właściciela danych (Data Owner z RACI) |
 | Operating model spisany, ale nieprzyjęty przez organizację | bramki dalej bez zatwierdzających | P1 jako decyzja z datą przeglądu i miarą: % bramek zatwierdzonych w SLA (z pdi `stats.py`) |
@@ -343,10 +423,10 @@ ale każda musi mieć właściciela i dokument, zanim platforma zacznie być uż
 
 | # | Obszar | Czego nie ma | Co w planie tego dotyka | Gdzie to powinno żyć |
 |---|---|---|---|---|
-| Z1 | **Portfel przypadków użycia** | lista procesów biznesowych, które dostaną AI, kolejność, oczekiwany efekt, ocena (RICE/WSJF) | bez niego ai-registry (R1) i księga wartości (R5) są puste; ev-assistant (A1) ma tylko jedną personę | dokument sponsora biznesowego; narzędzia są (triaż pdi, `proc-product-discovery`, `proc-lean`) |
+| Z1 | **Portfel przypadków użycia** | lista procesów biznesowych, które dostaną AI, kolejność, oczekiwany efekt, ocena (RICE/WSJF) | bez niego ai-registry (R1) i księga wartości (R5) są puste; assistant (A1) ma tylko jedną konfigurację | dokument sponsora biznesowego; narzędzia są (triaż pdi, `proc-product-discovery`, `proc-lean`) |
 | Z2 | **Ludzie i zmiana** | szkolenia, ścieżki kompetencji, zasady dopuszczalnego użycia AI przez pracowników, komunikacja, adopcja mierzona u ludzi, nie tylko w logach bramki | AI Champion i Data Owner to role w RACI (T10, P1), nie program | HR i CoE; polityka użycia AI jako krótki dokument w fali 1, obok operating modelu |
 | Z3 | **Fundament danych i MLOps** | platforma danych, jakość i pochodzenie danych, cechy, trening i serwowanie modeli predykcyjnych | `pack-data` (T1) daje metodę i standard, eval-gate (T4) bramkę; infrastruktury nie ma | osobny plan; obszar 01 szacuje, że to 30–50% kodu programu |
-| Z4 | **AI zwrócone do klienta** | czat dla kierowców, reklamacje, personalizacja: zgody, RODO wobec klientów, obowiązki informacyjne z Aktu o AI, ryzyko reputacyjne | ev-assistant jest dla pracowników; DPIA (P6) i klasyfikacja (R2) obejmą też te systemy, gdy powstaną | portfel (Z1) decyduje, czy i kiedy; wtedy osobny plan z prawnikiem |
+| Z4 | **AI zwrócone do klienta** | czat dla kierowców, reklamacje, personalizacja: zgody, RODO wobec klientów, obowiązki informacyjne z Aktu o AI, ryzyko reputacyjne | assistant jest dla pracowników; DPIA (P6) i klasyfikacja (R2) obejmą też te systemy, gdy powstaną | portfel (Z1) decyduje, czy i kiedy; wtedy osobny plan z prawnikiem |
 | Z5 | **Zgodność formalna** | ocena zgodności i rejestracja systemów wysokiego ryzyka, umowy z dostawcami modeli (DPA, region, retencja), licencje danych, ubezpieczenie, audyt zewnętrzny | inwentarz (R1) i polityka danych (R2) są wejściem do tego, nie wynikiem; licencja eMIP/Gireve już jest otwarta w ev-intelligence | compliance i dział prawny |
 | Z6 | **Bezpieczeństwo operacyjne AI** | procedura incydentu AI (prompt injection na produkcji, wyciek przez model, halucynacja ze skutkiem), red teaming, monitoring nadużyć | plan ma prewencję (hooki, sandbox T12, bramka G2), nie reakcję; skill `ops-security-operations` jest, procedury nie | SOC/bezpieczeństwo; procedura incydentu AI jako krótki dokument w fali 1 |
 | Z7 | **Organizacja, budżet, dostęp** | skład i etaty CoE, budżet na modele i infrastrukturę, zakupy (silnik bramki, narzędzie incydentów G8), SSO i role dla trzech nowych aplikacji | operating model (P1) nazywa role, nie etaty; S4 daje listę kontrolną bezpieczeństwa, nie tożsamość | sponsor i IT; decyzja o tożsamości wspólnej (jak G6/P1 dla jednej platformy) |
@@ -359,5 +439,35 @@ i nie szacuje.
 
 **Jak to domknąć.** Nadrzędny dokument „program AI w organizacji” z ośmioma obszarami powyżej, w którym ten plan
 jest jedną z części. Właścicielem jest sponsor biznesowy, nie CoE. Pierwszy krok to portfel (Z1), bo wyznacza,
-co wchodzi do inwentarza, do księgi wartości i do ev-assistant. Dwa krótkie dokumenty (polityka użycia AI z Z2,
+co wchodzi do inwentarza, do księgi wartości i do asystenta. Dwa krótkie dokumenty (polityka użycia AI z Z2,
 procedura incydentu AI z Z6) można napisać już w fali 1, obok operating modelu, bo nie zależą od portfela.
+
+## 9. Nazwy produktów (propozycja, D-P8)
+
+Zestaw ma być sprzedawany jako SaaS, więc nazwy mają mówić, za co klient płaci. Wzorzec biznesowy: **marka
+zestawu + rzeczownik funkcji** (jak Jira Software, Dynamics 365 Sales). Wspólny mianownik już jest w repo:
+**Intelligence** (Product Decision Intelligence, Continuous Intelligence for Software Definition, EV Intelligence,
+EV Domain Intelligence).
+
+| Dziś | Nazwa biznesowa | Jedno zdanie |
+|---|---|---|
+| cały zestaw | **Quorum** (marka) · opisowo: Delivery Intelligence Suite | od zgłoszenia do skutku u użytkownika, z decyzjami ludzi i pracą agentów w jednym procesie |
+| pdi | **Quorum Decision Intelligence** | rejestr decyzji, bramki, poziomy autonomii, ocena skutku |
+| ci_for_sdlc | **Quorum Definition Intelligence** | czy wiemy, co budujemy: gotowość, konflikty źródeł, drift |
+| ShipScope | **Quorum Release Intelligence** (produkt: ShipScope) | co naprawdę jest u użytkowników, metryki przepływu |
+| ShipScope Flags | **Quorum Release Control** | przełączniki per serwis i środowisko, kolejność, audyt |
+| tf | **Quorum Agent Factory** | standard, skille i zabezpieczenia agentów w każdym repo |
+| ai-gateway | **Quorum Model Gateway** | jeden punkt wywołań modeli: polityka danych, koszt, log |
+| ai-registry | **Quorum AI Registry** | inwentarz systemów AI, klasa ryzyka, dziennik agentów, księga wartości |
+| assistant | **Quorum Operations Assistant** | kanał dla biznesu nad tymi samymi danymi, z nadzorem człowieka |
+
+Linia domenowa: **EV Intelligence** (marka linii), produkty: **EV Knowledge** (ev-intelligence: wiedza, pack,
+słownik, MCP), **EV Reliability** (ev-testing; tak nazywa się w README), **EV Domain Reports**
+(ev-domain-intelligence) [nazwy robocze].
+
+Opcje dla marki: (a) **Quorum** dla całości — zachowuje decyzję z 2026-10-10, a ci_for_sdlc dostaje w zamian
+nazwę funkcji; (b) „Delivery Intelligence” bez marki — opisowo, słabsze jako znak; (c) nowa neutralna marka,
+jeśli Quorum ma zostać tylko przy ci_for_sdlc — ale wtedy jeden produkt ma własne imię i reguła „marka + funkcja”
+się łamie. Rekomendacja: (a). Dostępność znaków i domen nie była sprawdzana [niezweryfikowane]. Odrzucona wcześniej
+propozycja metaforyczna (rodzina morska: Harbour, Helm, Beacon, Buoy, Keel, Customs, Manifest, Pilot) jest w
+historii rozmowy z 2026-11-10; właściciel wolał nazwy biznesowe.
