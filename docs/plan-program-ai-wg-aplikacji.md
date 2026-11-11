@@ -86,6 +86,31 @@ Oznaczenia: obszar **01–07** z oceny; fala **F1–F4** z §4; „zależy od”
 | T13 | **Packi spoza repo fabryki**: `tf install`/`tf update` instalują pack z innego repo po tagu (`<repo>@pack-v<wersja>`), z `skill_audit.py` i podpisem wydania; `pack-ev` **wychodzi z tf** do linii EV (§3.5, K6), w tf zostają tylko packi generyczne (it, ux, docs, editorial-pl, data) | 05 | F2 (mechanizm), F3 (przeniesienie pack-ev) | D-P7; `tf-new-pack` już generuje strukturę, brakuje instalacji spoza repo fabryki; `config.yaml` `requires.core` zostaje kontraktem zgodności |
 | T14 | **Wersje technologii per aplikacja** (do przemyślenia, §10): profil stacku per aplikacja w monorepo (`.tf/stack.json`), skille technologiczne z wariantami per wersja (`references/v17.md`, `v21.md`…) i instalacja tylko pasującego wariantu, automatyczne dopisanie brakującego wariantu z release notes ze źródeł `skill.meta.json` z weryfikacją kompilatorem i bramką skilla, ograniczenia między technologiami sprawdzane per profil | 01, 05 | do ustalenia | fundament już jest: `detect_stack.py`, `technologies.json`, `skill.meta.json` (`based_on`, `min_supported`, `constraints`), `core-stack-sync`; brakuje profilu per aplikacja, wariantów i automatu aktualizacji |
 
+#### Stan zadań fabryki po porównaniu z tf 9.17 (2026-11-11)
+
+Tabela wyżej powstała wobec tf 9.15 i oceny z 8 XI. Przy rozpoczęciu wdrożenia (decyzja właściciela 2026-11-11:
+„zacznij od fabryki”) każde zadanie zostało porównane z kodem tf 9.17.0. Wynik: większość już istnieje w innej
+formie, realne luki to cztery. Szczegóły i plan kroków: tf `docs/plans/2026-11-11-program-ai-luki-w-fabryce.md`.
+
+| # | Stan w tf 9.17 | Co zostaje |
+|---|---|---|
+| T1 | treść jest w `pack-it`: `ai-evals` (zbiory, graderzy, sędzia kalibrowany na ocenach ludzi, bramka w CI), `ai-mlops` (rejestr, karta modelu, drift, prompty jako artefakt), `data-engineering` (kontrakty), `data-analysis`, persona danych | osobna nakładka to pakowanie, nie luka; do porównania tylko metodyka z aiux wobec `ai-evals` |
+| T2 | istniały `readiness_check.py`, `instructions_lint.py`, `project_record.py check`, `build.py check` — osobno | **zrobione 2026-11-11:** `tf standard` zbiera je w jeden wynik z kodem wyjścia dla CI (gałąź `claude/funny-hopper-8zsl07` w tf) |
+| T3 | mechanizm języka jest (`tf language`, `tf commit-language`) | tylko decyzja D-P6 |
+| T4 | wiedza w `ai-evals`, bramki `skill_gate.py` i `flow-evals` dla samej fabryki | **luka:** gotowe narzędzie `eval_gate.py` dla produktu i szablon workflow (krok 3) |
+| T5 | `ai_review.py install` → `ai-review.yml` ze statusem `ai-review/verdict`, drugi przegląd, panel recenzentów specyfikacji, moduły `tf analyze` z bramką (bezpieczeństwo, dostępność, uprawnienia) | zrobione; „required” ustawia się w ochronie gałęzi repo produktu |
+| T6 | brak | **zrobione 2026-11-11:** `approved_models` z kontrolą w `build.py check`, odmową w `profile.py`, hookiem `model_guard` i `models_policy.py --json` dla bramki modeli (ta sama gałąź) |
+| T7 | lokalne logi `.tf/logs/*.jsonl`, eksport przebiegów do pdi | czeka na schemat `agent-audit-event` w kontrakcie (P5) |
+| T8 | polityka autonomii per repo (`autonomy.operations`: confirm / deny, projekt może tylko zaostrzać), `tf risk` | poziom organizacji czeka na DI AI Registry |
+| T9 | `ai-mlops` (shadow, canary, A/B, wycofanie), `ai-evals` (offline → online) | powiązanie etapów z poziomami autonomii i bramką operacyjną, po P1/P2 |
+| T10 | jeden człowiek jako właściciel i zatwierdzający w `core-delivery-lifecycle` | role i RACI po operating modelu (P1) |
+| T12 | szablon `sandbox.settings.json`, kontener fazy w pdi | profil operacyjny po bramce modeli |
+| T13 | `tf --repo <url>#ref` dla całej fabryki; nakładki tylko z `packs/` źródła | **luka:** nakładka z innego repozytorium (krok 4), warunek linii EV |
+| T14 | `detect_stack.py`, `skill.meta.json`, `core-stack-sync` | do przemyślenia (§10) |
+
+Wniosek dla fal: z fabryki w fali 1 zostało zrobione T6, w fali 2 T2; do zrobienia są T4 i T13. T1 i T5 wypadają
+z listy prac, a w karcie DI Agent Factory trzeba je traktować jako istniejące.
+
 ### 2.2 pdi (decyzje, kontrakt, orkiestracja)
 
 | # | Zadanie | Obszar | Fala | Uwagi / zależy od |
