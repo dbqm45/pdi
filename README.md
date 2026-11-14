@@ -70,9 +70,8 @@ wynik obok. Stan zmiany ma `dispatch: {mode: local, status: running | done | fai
 | `PDI_DISPATCH_CPUS`, `PDI_DISPATCH_MEMORY` | limity kontenera, domyślnie `4` i `6g` |
 | `PDI_EGRESS_UPSTREAM` | opcjonalnie: proxy firmowe (`http://host:port`, osiągalne z sieci Dockera) za proxy wyjścia |
 
-Do tf 9.x pętla dostarczania była osobnym trybem (`mode-talos`, polecenie `/talos-story-run`); od tf 10.0.0 jest
-w rdzeniu fabryki jako agent i polecenie `tf`. pdi wymaga repozytorium produktu na tf 10.0.0 lub nowszym: skaner
-bezpieczeństwa pętli rozpoznaje tylko po nowej ścieżce.
+pdi wymaga repozytorium produktu na tf 10.0.0 lub nowszym: pętla dostarczania jest tam w rdzeniu fabryki (agent
+i polecenie `tf`), a skaner bezpieczeństwa pętli pdi rozpoznaje po ścieżce `.claude/skills/tf/`.
 
 **Izolacja persony (Z8a, decyzja DZ9).** Krok `run` (persona fazy, w `delivery` agent tf) działa w kontenerze Docker
 `pdi-phase`, który widzi tylko klon repo produktu, zamontowany pod tą samą ścieżką (przy worktree także wspólny
