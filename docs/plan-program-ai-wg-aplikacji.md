@@ -36,7 +36,7 @@ Flags ma dziennik zmian z autorem z sesji i dostęp awaryjny — oba są gotowym
 
 | Aplikacja | Repo | Rola w programie | Stan (sprawdzony 2026-11-10) |
 |---|---|---|---|
-| **tf** | `dbqm45/tf` | fabryka agentów instalowana w repo produktu: skille, persony, hooki, tryby `pdi`/`talos`/`team`, `tf doctor` | 9.15.0; packs: it, ev, ux, docs, editorial-pl; hooki: tdd_guard, quality_gate, scan_secrets, guard_bash, cleanroom, context_guard, jev_guard, log_usage |
+| **tf** | `dbqm45/tf` | fabryka agentów instalowana w repo produktu: skille, persony, hooki, tryby `pdi`/`team`, `tf doctor` | 9.15.0; packs: it, ev, ux, docs, editorial-pl; hooki: tdd_guard, quality_gate, scan_secrets, guard_bash, cleanroom, context_guard, jev_guard, log_usage |
 | **pdi** | `dbqm45/pdi` | warstwa decyzji: zgłoszenia, triaż, rejestr decyzji (MADR), bramki B1–B5, autonomia 0–3, graf śladu, ocena skutku, `sdlc up`, **kontrakt** `contract/` 0.14 | F0–F5 planu jednego flow zrobione; tf **nie** jest zainstalowany (TODO.md, odłożone 2026-10-28) |
 | **ci_for_sdlc** | `dbqm45/ci_for_sdlc` | spójność definicji: Jira + Confluence + Figma (+ rekonstrukcja z tf), gotowość, pytania, drift; recenzent AI z telemetrią kosztu i zestawem ewaluacyjnym | ~100 skilli lokalnie w `.claude/skills`; AI przez Bedrock UE z limitem $50/przestrzeń (T4) |
 | **ShipScope** | `dbqm45/evdt-service-shipscope` | status wydań: wdrożenia × flagi × Jira/zmiany z repo; API usług (`/metrics`, `/flow`), zdarzenia do pdi, MCP read-only | ADR-003 (źródła flag), audyt ustawień i sekretów, Insights, połączenie z pdi |

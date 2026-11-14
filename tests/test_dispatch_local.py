@@ -248,8 +248,8 @@ def test_delivery_pushes_new_cut_branches_and_opens_a_pr_for_each(checkout: Path
     assert not any("phase_run.py gate" in c for c in calls)
 
 
-def test_delivery_commits_the_decisions_before_talos_starts(checkout: Path, tmp_path: Path) -> None:
-    # Talos zaczyna od czystego drzewa (talos-story-run §0), a `decision import`/`gate` dopisują decisions.md.
+def test_delivery_commits_the_decisions_before_the_tf_agent_starts(checkout: Path, tmp_path: Path) -> None:
+    # Agent tf zaczyna od czystego drzewa (skill tf, §0), a `decision import`/`gate` dopisują decisions.md.
     run = FakeRun({REFS: [(0, ""), (0, f"{TSK1}\n")], "git rev-list --count": (0, "1")})
     s = spec(checkout, tmp_path, phase="delivery", gate="approve-for-implementation", decision_text="Tak.")
 
@@ -294,7 +294,7 @@ class BodyRun(FakeRun):
         return super().__call__(argv, cwd, env)
 
 
-def test_cut_pr_takes_its_title_from_the_first_talos_commit_and_its_body_from_the_report(
+def test_cut_pr_takes_its_title_from_the_first_tf_agent_commit_and_its_body_from_the_report(
     checkout: Path, tmp_path: Path
 ) -> None:
     # PRB-34: `gh pr create --fill` z dwoma commitami dawał tytuł z nazwy gałęzi („story/tsk 1 deploy counter”).
@@ -352,7 +352,7 @@ def test_delivery_reuses_an_existing_cut_pr(checkout: Path, tmp_path: Path) -> N
 @pytest.mark.parametrize(
     "after",
     [
-        "",  # talos nie założył gałęzi
+        "",  # agent tf nie założył gałęzi
         f"{TSK1}\n",  # gałąź bez commitów ponad main (rev-list 0)
         "story/../main\nstory/-x\n",  # nazwy, których pdi nie wypycha
     ],
@@ -370,7 +370,7 @@ def test_delivery_without_cut_commits_fails_the_cuts_step(checkout: Path, tmp_pa
 def test_failed_cuts_keep_what_the_persona_reported(checkout: Path, tmp_path: Path) -> None:
     # Krok run przeszedł (status done), cięć nie ma — powód jest w wyniku phase_run.py, nie tylko w logu (PRB-32).
     persona = {
-        "change": "CHG-12", "phase": "delivery", "persona": "talos", "status": "done", "cost_usd": 0.72,
+        "change": "CHG-12", "phase": "delivery", "persona": "tf", "status": "done", "cost_usd": 0.72,
         "detail": "semgrep: brak zapisywalnego HOME", "permission_denials": [{"tool_name": "Bash"}],
     }  # fmt: skip
     noise = "Ignoring 1 permissions.allow entry\n"
@@ -566,7 +566,7 @@ def test_persona_report_still_reads_the_final_json_object_past_progress_lines() 
     persona = {
         "change": "CHG-3",
         "phase": "delivery",
-        "persona": "talos",
+        "persona": "tf",
         "status": "done",
         "cost_usd": 0.72,
         "detail": "semgrep: brak zapisywalnego HOME",

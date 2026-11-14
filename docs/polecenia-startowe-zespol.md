@@ -16,11 +16,11 @@ wszystkie przed etapem 2.
 | [Z1](#z1--pdi--tf-wszystkie-decyzje-zmiany-w-każdej-fazie-domknięcie-prb-3) | wszystkie decyzje zmiany w każdej fazie (domknięcie PRB-3) | — | pdi + tf | `/Users/x/WebstormProjects/pdi` | zrobione (pdi #110, tf #135, #136) |
 | [Z2a](#z2a--pdi-faza-discovery-i-bramka-b0-w-kontrakcie-i-przebiegu) | faza `discovery` i bramka B0 w kontrakcie i przebiegu, z N19 (pytania z opcjami) | Z1 | pdi | `/Users/x/WebstormProjects/pdi` | do zrobienia |
 | [Z2b](#z2b--tf-wywiad-discovery-w-mode-pdi) | wywiad `/discovery` w mode-pdi; intencja z briefu; pytania z opcjami (N19) | Z2a i tag kontraktu | tf | `/Users/x/WebstormProjects/tf` | do zrobienia |
-| [Z8a](#z8a--pdi--tf-fazy-w-kontenerze) | fazy w kontenerze (izolacja persony i talosa) | — | pdi + tf | `/Users/x/WebstormProjects/pdi` | zrobione (pdi #111, tf 5.56.0), [plan](plan-z8a-izolacja-faz.md) |
+| [Z8a](#z8a--pdi--tf-fazy-w-kontenerze) | fazy w kontenerze (izolacja persony i agenta tf) | — | pdi + tf | `/Users/x/WebstormProjects/pdi` | zrobione (pdi #111, tf 5.56.0), [plan](plan-z8a-izolacja-faz.md) |
 | [Z8c-1](#z8c-1--ci_for_sdlc-wyniki-skanera-sarif-jako-ustalenia) | wyniki skanera (SARIF) jako ustalenia w ci_for_sdlc | — | ci_for_sdlc | `/Users/x/WebstormProjects/ci_for_sdlc` | zrobione (ci_for_sdlc #109) |
-| [Z8c-2](#z8c-2--tf-skaner-w-pętli-kawałka-talosa-i-w-ci) | skaner w pętli kawałka talosa i w CI | Z8c-1 | tf | `/Users/x/WebstormProjects/tf` | zrobione (tf #138; kawałek talosa na sdlc-proba 2026-11-03, sdlc-proba #10, [wynik](przebieg-lokalny.md#wynik-przebiegu-2026-11-03-z8c-2-talos-na-sdlc-proba)) |
+| [Z8c-2](#z8c-2--tf-skaner-w-pętli-kawałka-agenta-tf-i-w-ci) | skaner w pętli kawałka agenta tf i w CI | Z8c-1 | tf | `/Users/x/WebstormProjects/tf` | zrobione (tf #138; kawałek agenta tf na sdlc-proba 2026-11-03, sdlc-proba #10, [wynik](przebieg-lokalny.md#wynik-przebiegu-2026-11-03-z8c-2-agent-tf-na-sdlc-proba)) |
 | [A6](#a6--pdi--tf-shipscope-ci_for_sdlc-ponowny-przebieg-lokalny-na-sdlc-proba) | ponowny przebieg lokalny na `sdlc-proba`: jedna zmiana od zgłoszenia do oceny skutku, w kontenerze, bez obejść (bramka A6, DZ19) | Z1, Z8a, Z8c-1, Z8c-2 | pdi (+ tf, ShipScope, ci_for_sdlc) | `/Users/x/WebstormProjects/pdi` | **zaliczone 2026-11-06 w §0–§4** ([wynik](przebieg-lokalny.md#wynik-przebiegu-2026-11-03%E2%80%9305-a6)): delivery CHG-3 otworzyło PR cięcia sdlc-proba #34 po poprawkach PRB-29, PRB-31–34; §5–§7 pominięte świadomie |
-| [PRB-32](#prb-32--tf-talos-w-fazie-delivery-bez-interakcji) | Talos w fazie delivery bez interakcji: przebieg poza `.claude/`, polecenia git na liście `allow`, cięcie z kluczem zmiany (PRB-33), wynik persony przy sukcesie (PRB-28) | pdi #148 i zaufanie folderu w kontenerze fazy (pdi) | tf | `/Users/x/WebstormProjects/tf` | zrobione (tf #145, #146, 5.58.5–5.58.6; sdlc-proba #32, #33); delivery CHG-3 potwierdzone 2026-11-05 (sdlc-proba #34) |
+| [PRB-32](#prb-32--tf-agent-tf-w-fazie-delivery-bez-interakcji) | Agent tf w fazie delivery bez interakcji: przebieg poza `.claude/`, polecenia git na liście `allow`, cięcie z kluczem zmiany (PRB-33), wynik persony przy sukcesie (PRB-28) | pdi #148 i zaufanie folderu w kontenerze fazy (pdi) | tf | `/Users/x/WebstormProjects/tf` | zrobione (tf #145, #146, 5.58.5–5.58.6; sdlc-proba #32, #33); delivery CHG-3 potwierdzone 2026-11-05 (sdlc-proba #34) |
 | [N1](#n1--tf-przegląd-drugim-modelem) | przegląd drugim modelem (wymagania, plan, uwagi z review) | Z1, A6 | tf (+ pdi, jeśli w kontenerze) | `/Users/x/WebstormProjects/tf` | **zrobione 2026-11-07** (tf #149 → 5.59.0, pdi #159); zapasowy model poprawiony w tf #158; sprawdzenie na Macu na liście przebiegu lokalnego |
 | [N5](#n5--tf-evale-przebiegu) | evale przebiegu na 20 prawdziwych zadaniach | Z1, A6 | tf | `/Users/x/WebstormProjects/tf` | **zrobione 2026-11-07** (tf #150, #153, #155, #157); pełny płatny przebieg 18 zadań (ok. 11 USD) za zgodą |
 | [Z7b-1a](#z7b-1a--pdi--tf-cele-zmiany-w-kontrakcie-i-planie) | cele zmiany (`targets`) w kontrakcie i planie, B3 | Z1, A6 | pdi + tf | `/Users/x/WebstormProjects/pdi` | **zrobione 2026-11-06** (pdi #160 → 0.12.0, tf #151 i tf #152 scalone) |
@@ -40,7 +40,7 @@ with push access). Answer me in Polish; code, commits and PR titles in English.
 
 Goal: every tf phase starts with every decision that binds its change, and a question that is already settled never
 comes back in a later artifact. Evidence: docs/przebieg-lokalny.md, "Wynik przebiegu 2026-10-31", PRB-3 — the same
-questions came back in B3 and design-review, and talos committed config/build.json against DEC-0003 because plan.md
+questions came back in B3 and design-review, and the tf agent committed config/build.json against DEC-0003 because plan.md
 still had an open question.
 
 Already done (read first, do not redo): pdi #88 passes the gate decision text to tf (src/pdi/dispatch_local.py, `--why`
@@ -254,10 +254,10 @@ Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, che
 Implement step Z8a of docs/plan-zespol-jednoosobowy.md (§8.2) in dbqm45/pdi, with the tf part in dbqm45/tf (attach it
 with push access), under decision DZ9 in docs/decyzje.md. Answer me in Polish; code, commits and PR titles in English.
 
-Goal: in local mode (PDI_DISPATCH=local) the persona and talos run inside a container that sees only the clone of the
+Goal: in local mode (PDI_DISPATCH=local) the persona and the tf agent run inside a container that sees only the clone of the
 product repo. They cannot read the owner's home directory, ~/.sdlc/env, ~/.ssh, other repos or keys, and can reach
 only an allowlist of network hosts. Steps that need credentials (git push, gh pr create, phase_run.py gate request,
-pushing talos cut branches) stay outside the container, as today.
+pushing the tf agent's cut branches) stay outside the container, as today.
 
 Today: src/pdi/dispatch_local.py execute() runs the steps of sdlc-phase.yml on the host; step "run" is
 `phase_run.py run` (claude --print --agent <persona> --permission-mode acceptEdits), with a filtered environment
@@ -327,17 +327,17 @@ locally and say so in the PR. Commit and PR on my request.
 Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
-## Z8c-2 — tf: skaner w pętli kawałka talosa i w CI
+## Z8c-2 — tf: skaner w pętli kawałka agenta tf i w CI
 
 ```text
 Implement part 2 of step Z8c of the plan "one-person team" from dbqm45/pdi (main): docs/plan-zespol-jednoosobowy.md
 §8.2 (Z8c), decision DZ11 in docs/decyzje.md. Start when Z8c-1 (ci_for_sdlc --sarif) is merged. Answer me in Polish;
 code, commits and PR title in English, Conventional Commits.
 
-Goal: talos does not commit a slice with a blocking security finding, the same way it does not commit a red test, and
+Goal: the tf agent does not commit a slice with a blocking security finding, the same way it does not commit a red test, and
 the product repo's CI runs the same scan on every PR.
 
-Today: modes/mode-talos/skills/talos-story-run, section "Pętla kawałka": red test → smallest code → verification (plan
+Today: core/skills/tf, section "Pętla kawałka": red test → smallest code → verification (plan
 command, tests, lint, types from CLAUDE.md; `BRAMKA K<n>: PASS | FAIL (…, próba k/2)`) → scope review → commit.
 Hooks (core/hooks): tdd_guard, scan_secrets, guard_bash, guard_paths; there is no vulnerability scan.
 
@@ -348,7 +348,7 @@ Hooks (core/hooks): tdd_guard, scan_secrets, guard_bash, guard_paths; there is n
    with the install command, never a silent pass. Check on a clean install, without a Semgrep login, whether the
    p/owasp-top-ten registry rules download; if not, vendor the rules into the mode and pin their version.
 2a. One verification script (N3 of the plan): the product's single command for format, lint, types, tests and this scan,
-   named in the first line of the product's CLAUDE.md and used unchanged by talos and by CI.
+   named in the first line of the product's CLAUDE.md and used unchanged by the tf agent and by CI.
 2b. Dependency cooldown (N10): set the package manager's minimum release age to 7 days in the product (npm
    min-release-age, pnpm minimumReleaseAge in minutes, Yarn npmMinimalAgeGate, uv exclude-newer), lock files committed;
    adding a version younger than that stops the slice with an explanation. Mind the known pnpm 11 issue with
@@ -358,11 +358,11 @@ Hooks (core/hooks): tdd_guard, scan_secrets, guard_bash, guard_paths; there is n
    fed back into the next attempt; after 2 attempts STOP like a red test. Findings below blocking go into the run report.
 4. CI: the sdlc-phase / change-check templates in mode-pdi run the scan on the PR and pass the SARIF to ci_for_sdlc
    (`--sarif`, Z8c-1). Container allowlist for the semgrep rule registry is part of Z8a; note it in the docs.
-5. Docs: talos-story-run, mode-pdi GUIDE.md, CHANGELOG.
+5. Docs: core/skills/tf, mode-pdi GUIDE.md, CHANGELOG.
 
 Tests: the scan script (changed files only, manifests trigger the audit, SARIF written, missing scanner fails), the
 verdict rule (blocking vs not), the loop's FAIL and STOP path with an injected scanner, the template step. Then one
-talos slice on dbqm45/sdlc-proba with a deliberate SQL injection in the acceptance test's path: it fails, is fixed in the
+a tf agent slice on dbqm45/sdlc-proba with a deliberate SQL injection in the acceptance test's path: it fails, is fixed in the
 second attempt and only then committed; record it in pdi docs/przebieg-lokalny.md. Gates: the repo's checks (workspace.py
 check --packs pack-it, mode tests, skill evals if covered). GitHub Actions do not run on this account right now — run the
 gates locally and say so in the PR. Commit and PR on my request.
@@ -382,10 +382,10 @@ Claude Code w klonie pdi prowadzi Cię przez [listę przebiegu lokalnego](przebi
 terminala, czyta logi i zapisuje wynik. Decyzje przy bramkach, merge'e PR-ów i ocenę skutku podejmujesz Ty. Jedna
 nowa zmiana od zgłoszenia do oceny skutku (ocena następnego dnia), w kontenerze (Z8a), bez obejść z przebiegu
 2026-10-31. **Stan przed startem (2026-11-03, sprawdzony ponownie):** pdi `9903408` (kontrakt 0.11.0; od pierwszej wersji
-polecenia bez zmian w kodzie), tf 5.58.4 (Z1, Z8a, Z8c-2 z N3 i N10; poprawki talosa tf #139–#141;
+polecenia bez zmian w kodzie), tf 5.58.4 (Z1, Z8a, Z8c-2 z N3 i N10; poprawki agenta tf: tf #139–#141;
 `.claude/factory-lock.json` do aktualizacji świeżego klonu, tf #142 i #143), ci_for_sdlc z Z8c-1 (#109). **`sdlc-proba` (sprawdzone 2026-11-03, `main` `0e205b6`):** fabryka tf 5.58.4
 z `.claude/factory-lock.json` (sdlc-proba #18), `.npmrc` z `min-release-age=7`, `package-lock.json` i `.semgrep.yml`
-w repo; otwartych PR-ów brak — PR #10 scalony, a po nim sesje w chmurze scaliły bez pdi kawałki talosa #16–#24
+w repo; otwartych PR-ów brak — PR #10 scalony, a po nim sesje w chmurze scaliły bez pdi kawałki agenta tf #16–#24
 (lista wdrożeń z SQLite: walidacja środowiska, limit, zapis, stronicowanie, kursor, testy granic, odpowiedź 500,
 indeks). W rejestrze zmian repo jest tylko CHG-1. Pobieranie reguł
 `p/owasp-top-ten` bez logowania do Semgrep jest już sprawdzone (pdi #134, tf #144). pdi #131 (luki tf z przebiegu Z8c-2
@@ -400,7 +400,7 @@ English.
 Read first: docs/przebieg-lokalny.md (the checklist: §0, §0a, §1–§7, "Gdy coś nie działa", the 2026-10-31 result
 table and the PRB list), docs/plan-sdlc-lokalnie.md (§5), docs/plan-z8a-izolacja-faz.md, docs/plan-z1-decyzje-w-fazach.md,
 docs/decyzje.md (DL1–DL5, DZ9, DZ19), README.md, and `uv run sdlc --help`. In docs/przebieg-lokalny.md also read the
-"Wynik przebiegu 2026-11-03 (Z8c-2, talos na sdlc-proba)" section and the checklist items added for Z1 (B2 with
+"Wynik przebiegu 2026-11-03 (Z8c-2, agent tf na sdlc-proba)" section and the checklist items added for Z1 (B2 with
 answers) and Z8c-2.
 
 Roles:
@@ -421,14 +421,14 @@ Steps:
    a. versions: pdi HEAD, contract version, tf version in my tf clone and in sdlc-proba (.claude or the factory
       marker), ci_for_sdlc and ShipScope HEADs; Docker running; ~/.sdlc/env has CLAUDE_CODE_OAUTH_TOKEN and no
       ANTHROPIC_API_KEY next to it; PDI_PHASE_BUDGET_USD=3; PDI_DISPATCH_SANDBOX not set to none.
-   b. sdlc-proba needs tf with Z1 (decision import, decision gate --answers) and Z8c-2 (security_scan.py, mode-talos
+   b. sdlc-proba needs tf with Z1 (decision import, decision gate --answers) and Z8c-2 (security_scan.py, factory loop
       1.2.3 or later). On 2026-11-03 it was already on 5.58.4 with .claude/factory-lock.json committed (sdlc-proba
       #18). Confirm the version in my local clone after git pull; if tf has a newer release by then, show me the tf
       update (the tf way, not by copying files) and do it on my OK as a PR to sdlc-proba, which I merge.
    c. Z8c-2 prerequisites in sdlc-proba: .npmrc with min-release-age=7, package-lock.json and .semgrep.yml are in
       the repo (2026-11-03); check that semgrep is in the phase image. That p/owasp-top-ten downloads without a Semgrep login is already checked (pdi #134, tf #144);
       confirm it once from inside the phase container (semgrep.dev must be in the allowed hosts of Z8a), and only if
-      it fails there fall back to TALOS_SEMGREP_CONFIG pointing to a rules file in the repo.
+      it fails there fall back to TF_SEMGREP_CONFIG pointing to a rules file in the repo.
    d. Open state in sdlc-proba: on 2026-11-03 there were no open PRs (PR #10 merged). Check again, plus leftover
       story/* or chore/* branches and my local clone (git status, pull); propose what to do with each and wait for my
       decision. Slices #16–#24 were merged outside pdi, so the app now has a SQLite deployments list (GET
@@ -460,11 +460,11 @@ A7 or stage 2 (A8), the PR link, and the exact commands and tool calls you used.
 Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, check the behaviour of every external tool, API or setting this step relies on against its official documentation and note the date; test locally what the docs leave unclear; list the sources in your plan.
 ```
 
-## PRB-32 — tf: Talos w fazie delivery bez interakcji
+## PRB-32 — tf: agent tf w fazie delivery bez interakcji
 
-Blokuje delivery w A6. **Stan przed startem (2026-11-05):** pdi #148 (decyzje zacommitowane przed Talosem) scalone;
+Blokuje delivery w A6. **Stan przed startem (2026-11-05):** pdi #148 (decyzje zacommitowane przed agentem tf) scalone;
 zaufanie folderu klonu w kontenerze fazy — PR pdi „phase container trusts the clone”. Diagnoza z przebiegu na hoście
-(`claude --print --agent talos --permission-mode acceptEdits`, CHG-3, 1 USD w 39 turach, bez cięć): hooki fabryki
+(`claude --print --agent tf --permission-mode acceptEdits`, CHG-3, 1 USD w 39 turach, bez cięć): hooki fabryki
 przepuszczają te akcje (sprawdzone bezpośrednio), a odmawia Claude Code. `.claude/` to ścieżka chroniona, więc zapis
 `run.json`, `plan.md` i `parked.md` w `.claude/runs/` dostaje w `-p` odmowę, także w `acceptEdits` i mimo reguł
 `allow`. Polecenia Bash spoza `permissions.allow` (np. `git switch main`, `git checkout -b`) też dostają odmowę
@@ -473,8 +473,8 @@ start --task TSK-1` bierze cięcie z CHG-1 zamiast z CHG-3 (PRB-33), a `phase_ru
 ostatniej odpowiedzi persony (PRB-28), więc tej odmowy nie było widać.
 
 Plan (kolejność):
-1. Katalog przebiegu Talosa poza `.claude/` (ignorowany przez git), z odczytem starego miejsca przy wznowieniu.
-2. Lista poleceń, które Talos i jego skrypty wołają w fazie, pokryta przez `permissions.allow` szablonu ustawień
+1. Katalog przebiegu agenta tf poza `.claude/` (ignorowany przez git), z odczytem starego miejsca przy wznowieniu.
+2. Lista poleceń, które agent tf i jego skrypty wołają w fazie, pokryta przez `permissions.allow` szablonu ustawień
    (gałąź przez `git switch -c`, powrót przez `git switch <gałąź>`), sprawdzana testem.
 3. PRB-33: `run_report.py start --task` z kluczem zmiany; prompt delivery w `phase_run.py` go podaje.
 4. PRB-28: `result.json` fazy zawsze z końcówką ostatniej odpowiedzi persony i listą odmów uprawnień.
@@ -484,7 +484,7 @@ Plan (kolejność):
 Fix PRB-32, PRB-33 and PRB-28 in dbqm45/tf (attach with push access; read dbqm45/pdi main for context). Answer me in
 Polish; code, commits and PR titles in English.
 
-Problem: in the pdi delivery phase Talos runs as `claude --print --agent talos --permission-mode acceptEdits` and
+Problem: in the pdi delivery phase the tf agent runs as `claude --print --agent tf --permission-mode acceptEdits` and
 cannot make progress. The factory hooks allow its actions (checked directly), but Claude Code denies them: `.claude/` is
 a protected path, so writes to `.claude/runs/<run>/run.json`, `plan.md` and `parked.md` are prompted in acceptEdits and
 denied in -p, and allow rules do not change that; Bash commands outside `permissions.allow` (`git switch main`,
@@ -493,17 +493,17 @@ denied in -p, and allow rules do not change that; Bash commands outside `permiss
 trusted, so the repository's `permissions.allow` applies there (without it `claude -p` prints "Ignoring N
 permissions.allow entry ... this workspace has not been trusted").
 
-Read first: mode-talos skills/talos-story-run/SKILL.md and scripts/run_report.py (RUNS dir, cmd_start, find of the cut
-by --task), the agent definition for talos, the settings template that becomes .claude/settings.json of a product repo
+Read first: core/skills/tf/SKILL.md and scripts/run_report.py (RUNS dir, cmd_start, find of the cut
+by --task), the agent definition for tf, the settings template that becomes .claude/settings.json of a product repo
 (permissions.allow), modes/mode-pdi/skills/pdi-decisions/scripts/phase_run.py (build_prompt for delivery, cmd_run and
 the `detail` field), and pdi docs/przebieg-lokalny.md (A6 result, PRB-28..33).
 
 1. Plan first in docs/plans/ (files, order, tests, sources with dates). TDD.
-2. Move Talos's run directory out of `.claude/` to a git-ignored path that is not protected (check the current
+2. Move the tf agent's run directory out of `.claude/` to a git-ignored path that is not protected (check the current
    protected list), keep reading `.claude/runs/` for resuming old runs, and update SKILL.md, the .gitignore template
    and every script that reads it (finish, status, plan_drift). Verify with one real `claude -p --permission-mode
    acceptEdits` Write into the new directory (cheap model, tiny budget) and say the result.
-3. Every Bash command Talos and its scripts run in a phase must match `permissions.allow` of the settings template:
+3. Every Bash command the tf agent and its scripts run in a phase must match `permissions.allow` of the settings template:
    branch with `git switch -c story/...`, go back with `git switch <branch>` (add `Bash(git switch *)`), nothing that
    pushes. Add a test that lists the commands from SKILL.md and the scripts and checks them against the template.
 4. PRB-33: `run_report.py start --task TSK-n --change CHG-n` (and an error listing the changes when --task alone is
@@ -512,7 +512,7 @@ the `detail` field), and pdi docs/przebieg-lokalny.md (A6 result, PRB-28..33).
    `permission_denials` from the claude JSON output (check the field name in the docs of the installed version).
 6. Release tf by SemVer (semver.py) and update dbqm45/sdlc-proba the usual way, each through a PR.
 
-Gates: the repo's checks (workspace.py check --packs pack-it, --packs mode-pdi and --packs mode-talos, skill gates of
+Gates: the repo's checks (workspace.py check --packs pack-it and --packs mode-pdi, skill gates of
 changed skills). CI on the PRs must be green; say what you ran locally. Commit, push and open PRs, but do not merge.
 Acceptance (I run it on the Mac after merging): retry_dispatch CHG-3 on sdlc-proba ends with story/tsk-1-* branches
 with commits and PRs for CHG-3, and run.json says "change": "CHG-3".
@@ -543,12 +543,12 @@ does not confirm goes to the human instead of to a fix.
 
 State on 2026-11-06 (after the A6 run, pdi docs/przebieg-lokalny.md, A6 result): pdi main 7048263 (contract 0.11.0), tf
 5.58.7. A6 settled how personas run under `claude --print` in the phase container: Claude Code denies writes to
-`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or Talos runs
+`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or the tf agent runs
 must be in the settings template (tf core/tests/test_settings_coverage.py checks it); pdi marks the clone as trusted in
-the container, so the repository's allow list applies there; Talos keeps its run in `tmp/talos/runs/` and starts a cut
+the container, so the repository's allow list applies there; the tf agent keeps its run in `.tf/runs/` and starts a cut
 with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has committed the change's decisions;
 phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
-when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
+when delivery leaves no cuts; cut PRs get their title from the tf agent's first commit and their body from
 docs/project/changes/CHG-n/runs/TSK-n.md. A second-review step that runs a model in the phase container follows the same
 rules. Checked for this prompt on 2026-11-06: the names below exist on tf main (5.58.7) and pdi main.
 
@@ -623,12 +623,12 @@ compares result and cost with the previous run.
 
 State on 2026-11-06 (after the A6 run, pdi docs/przebieg-lokalny.md, A6 result): pdi main 7048263 (contract 0.11.0), tf
 5.58.7. A6 settled how personas run under `claude --print` in the phase container: Claude Code denies writes to
-`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or Talos runs
+`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or the tf agent runs
 must be in the settings template (tf core/tests/test_settings_coverage.py checks it); pdi marks the clone as trusted in
-the container, so the repository's allow list applies there; Talos keeps its run in `tmp/talos/runs/` and starts a cut
+the container, so the repository's allow list applies there; the tf agent keeps its run in `.tf/runs/` and starts a cut
 with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has committed the change's decisions;
 phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
-when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
+when delivery leaves no cuts; cut PRs get their title from the tf agent's first commit and their body from
 docs/project/changes/CHG-n/runs/TSK-n.md. Use the A6 delivery attempts on CHG-3 (PRB-28 to PRB-34) as eval tasks: each
 had one clear cause. Checked for this prompt on 2026-11-06: the skill evals (core/tests/run_skill_evals.py,
 core/tests/skill_evals, tf #102, #127, #130) and requirements_lint.py (packs/pack-it/skills/proc-requirements-shaping)
@@ -702,13 +702,13 @@ eye.
 
 State on 2026-11-06 (after the A6 run, pdi docs/przebieg-lokalny.md, A6 result): pdi main 7048263 (contract 0.11.0), tf
 5.58.7. A6 settled how personas run under `claude --print` in the phase container: Claude Code denies writes to
-`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or Talos runs
+`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or the tf agent runs
 must be in the settings template (tf core/tests/test_settings_coverage.py checks it); pdi marks the clone as trusted in
-the container, so the repository's allow list applies there; Talos keeps its run in `tmp/talos/runs/` and starts a cut
+the container, so the repository's allow list applies there; the tf agent keeps its run in `.tf/runs/` and starts a cut
 with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has committed the change's decisions;
 phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
-when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
-docs/project/changes/CHG-n/runs/TSK-n.md. Talos's per-cut report is docs/project/changes/CHG-n/runs/TSK-n.md; the check
+when delivery leaves no cuts; cut PRs get their title from the tf agent's first commit and their body from
+docs/project/changes/CHG-n/runs/TSK-n.md. The tf agent's per-cut report is docs/project/changes/CHG-n/runs/TSK-n.md; the check
 before B4 can read it. Checked for this prompt on 2026-11-06: the contract is still 0.11.0 (its last change was Z1)
 and Z2a is not merged, so 0.12.0 is free today; readiness_changed in event.schema.json has additionalProperties false
 and the fields change, readiness, open_questions, url.
@@ -738,7 +738,7 @@ results into findings (Z8c-1).
    two considered options with pros, cons and cost, the choice and why — check first what tomasz and
    arch-tech-selection already require and add only the missing part. plan.md and release.yaml templates and
    decision_record.py check validate targets against the contract copy and flag a plan with a single option.
-   Coverage and mutation tools (N4) run in the delivery phase under `claude --print`: every command Talos needs for
+   Coverage and mutation tools (N4) run in the delivery phase under `claude --print`: every command the tf agent needs for
    them must be in the settings template's `permissions.allow` (test_settings_coverage.py), a new dev dependency goes
    through the lockfile and the N10 cooldown, and the tools must work offline after install in the phase container
    (its egress allows only the package registries and listed hosts).
@@ -784,13 +784,13 @@ today, so a change below its targets is not ready for B4.
 
 State on 2026-11-06 (after the A6 run, pdi docs/przebieg-lokalny.md, A6 result): pdi main 7048263 (contract 0.11.0), tf
 5.58.7. A6 settled how personas run under `claude --print` in the phase container: Claude Code denies writes to
-`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or Talos runs
+`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or the tf agent runs
 must be in the settings template (tf core/tests/test_settings_coverage.py checks it); pdi marks the clone as trusted in
-the container, so the repository's allow list applies there; Talos keeps its run in `tmp/talos/runs/` and starts a cut
+the container, so the repository's allow list applies there; the tf agent keeps its run in `.tf/runs/` and starts a cut
 with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has committed the change's decisions;
 phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
-when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
-docs/project/changes/CHG-n/runs/TSK-n.md. Cut PR bodies now carry Talos's run report and a `Change: CHG-n` line.
+when delivery leaves no cuts; cut PRs get their title from the tf agent's first commit and their body from
+docs/project/changes/CHG-n/runs/TSK-n.md. Cut PR bodies now carry the tf agent's run report and a `Change: CHG-n` line.
 
 Read first: in ci_for_sdlc the SARIF reader and rules of Z8c-1 (#109: readers with size limits, findings on the items
 they touch, annotations) and the decisions that answer findings (#107, PRB-16: `decision add --finding` in the
@@ -850,19 +850,19 @@ push access). A6 is done (2026-11-06) and N1 (second review) is merged: read N1'
 for the names of the review script, its commands and output fields. Answer me in Polish; code, commits and PR titles
 in English.
 
-Goal: a talos PR reaches the human only with green checks and closed review comments, or with a clear "not done after
+Goal: a tf agent PR reaches the human only with green checks and closed review comments, or with a clear "not done after
 N rounds" and the reason, and always with a completion guide. Background: Spotify's Honk opens a PR only after full
 verification kept apart from the agent (engineering.atspotify.com, 2025-11); verify the details before relying on
 them.
 
 State on 2026-11-06 (after the A6 run, pdi docs/przebieg-lokalny.md, A6 result): pdi main 7048263 (contract 0.11.0), tf
 5.58.7. A6 settled how personas run under `claude --print` in the phase container: Claude Code denies writes to
-`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or Talos runs
+`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or the tf agent runs
 must be in the settings template (tf core/tests/test_settings_coverage.py checks it); pdi marks the clone as trusted in
-the container, so the repository's allow list applies there; Talos keeps its run in `tmp/talos/runs/` and starts a cut
+the container, so the repository's allow list applies there; the tf agent keeps its run in `.tf/runs/` and starts a cut
 with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has committed the change's decisions;
 phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
-when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
+when delivery leaves no cuts; cut PRs get their title from the tf agent's first commit and their body from
 docs/project/changes/CHG-n/runs/TSK-n.md. N2 builds on the cut PRs pdi now opens (title from the commit, body from the
 report); keep that format. Checked for this prompt on 2026-11-06: tf has no REVIEW.md of its own, it ships a template
 (core/skills/core-git-workflow/references/review-md.md, with przeglad-ai-w-ci.md) and dbqm45/sdlc-proba has no
@@ -879,37 +879,37 @@ runs the product's tests on a code PR, so the decision in step 3 stands. On the 
 API key: second_review.py reports `status: unavailable, reason: no_api_key`, the artifact section and the gate request
 summary say "drugi przegląd: niedostępny (no_api_key)" (tf #161); N2 must treat comment validation that is
 unavailable like an unvalidated comment (to the human as a question, never to a fix) and say so in the guide. The cut
-PR format is confirmed live (sdlc-proba #44: title from Talos's first commit, body = runs/TSK-1.md with the
-"Bezpieczeństwo" section); Talos's report now counts committed pieces (tf #162); the phase prompt asks for one Bash
+PR format is confirmed live (sdlc-proba #44: title from the tf agent's first commit, body = runs/TSK-1.md with the
+"Bezpieczeństwo" section); the tf agent's report now counts committed pieces (tf #162); the phase prompt asks for one Bash
 command per call (compound commands are denied under --print) and `decision_record.py check --change CHG-n`. The
 console (A7) is merged and in use: show pr_loop on the board card and in the change trace.
 
 Read first: docs/plan-zespol-jednoosobowy.md §8.3 (N2, N7, N12, N13), docs/plan-z1-decyzje-w-fazach.md,
 docs/plan-z8a-izolacja-faz.md and N1's plan; src/pdi/dispatch_local.py (delivery: `_publish_cuts`, PRs opened on the
-host), src/pdi/phase_sandbox.py, src/pdi/changes.py, src/pdi/inbox.py, src/pdi/trace.py; in tf the talos skills
-(talos-story-run), the REVIEW.md template and przeglad-ai-w-ci.md in core/skills/core-git-workflow/references/,
+host), src/pdi/phase_sandbox.py, src/pdi/changes.py, src/pdi/inbox.py, src/pdi/trace.py; in tf the delivery-loop skill
+(skill tf), the REVIEW.md template and przeglad-ai-w-ci.md in core/skills/core-git-workflow/references/,
 modes/mode-pdi phase_run.py, templates/sdlc-phase.yml and change-check.yml (Z8c-2).
 
-Already done (do not redo): talos's slices go to PRs from the host (pdi, PRB-4); the persona runs in a container
+Already done (do not redo): the tf agent's slices go to PRs from the host (pdi, PRB-4); the persona runs in a container
 without GitHub tokens (Z8a); security findings block a slice and PRs are scanned in CI (Z8c-2); the change's decisions
 reach every phase (Z1); N1 validates review comments with a second model.
 
 1. Plan first in docs/plan-n2-petla-pr.md (pdi): files in both repos, order, tests, sources with dates. TDD.
-2. After delivery, per talos PR: AI review (the product's REVIEW.md; when it is missing, add one from the tf template
-   as part of the product scaffold) → comment validation by the second model (N1) → talos fixes
+2. After delivery, per tf agent PR: AI review (the product's REVIEW.md; when it is missing, add one from the tf template
+   as part of the product scaffold) → comment validation by the second model (N1) → the tf agent fixes
    only the validated comments → re-review; at most 2 rounds (as DZ6), then the PR goes to the human with the open
    comments. The loop ends early when only comments below a severity threshold remain (no blocking or important
    ones); those go into the PR as a list. Unvalidated comments go to the human as questions, not to a fix, and so does
    a comment that contradicts a decision of the change (Z1), with the decision's ref.
 3. Red checks: CI runs on PRs again. The host reads the failing check's log (gh, with the token that stays on the host;
-   locally the verification script of N3 as a fallback), passes it to talos as quoted data (it is external content),
-   talos fixes, the host pushes and waits for green; the same round limit. Every fix round runs in the container of
+   locally the verification script of N3 as a fallback), passes it to the tf agent as quoted data (it is external content),
+   the tf agent fixes, the host pushes and waits for green; the same round limit. Every fix round runs in the container of
    Z8a; pushing and reading CI stay on the host. A PR with no checks at all is not green: decide in the plan whether N2
    adds a job that runs the product's tests on code PRs to the mode-pdi templates (change-check.yml or a new one) or
    relies on the N3 verification script run on the host, and say which counts as "green".
-4. Completion guide (shared with N7): every talos PR has a fixed section "Przewodnik dokończenia" — what is done, what
+4. Completion guide (shared with N7): every tf agent PR has a fixed section "Przewodnik dokończenia" — what is done, what
    is left for the human (files, steps), decisions taken outside the plan with a request to approve them, risks; it is
-   updated after each round. The PR body already holds Talos's run report (pdi #151): the host edits only that
+   updated after each round. The PR body already holds the tf agent's run report (pdi #151): the host edits only that
    section (gh pr edit with a body file) and keeps the report and the `Change:` line.
 5. pdi: the change state gets `pr_loop` per PR (round, status: reviewing | fixing | green | needs_human, last reason);
    the inbox shows "PR gotowy do Twojego przeglądu" only when green or when the limit is reached; get_trace shows the
@@ -921,12 +921,12 @@ reach every phase (Z1); N1 validates review comments with a second model.
 Tests: the round loop with injected review, validation and fix steps (green after 1 round, limit reached, early exit by
 severity, unvalidated and decision-contradicting comments to the human), the red-check path with a recorded CI log,
 the completion guide updated per round, state and inbox items, cost accounting, no GitHub token in the container.
-A run on dbqm45/sdlc-proba needs my Mac: add it as a checklist item for me in docs/przebieg-lokalny.md — a talos PR with
+A run on dbqm45/sdlc-proba needs my Mac: add it as a checklist item for me in docs/przebieg-lokalny.md — a tf agent PR with
 one real review finding and one false one: the real one is fixed, the false one goes to me, the PR has the guide.
 Gates: pdi — uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy src; tf — the
 repo's checks (workspace.py check --packs pack-it and --packs mode-pdi, skill gates of changed skills). CI runs on the
 PRs again: wait for it to be green and say in the PRs what you ran locally.
-Coordination: N12, N13 and N15 change the same files (phase_run.py, talos, dispatch_local.py), A7 switches the persona
+Coordination: N12, N13 and N15 change the same files (phase_run.py, the tf agent, dispatch_local.py), A7 switches the persona
 run to stream-json and adds the console (show pr_loop there), N1 owns the review script; keep your changes small,
 keep the branches up to date with main and resolve conflicts keeping both behaviours.
 When the gates pass, commit, push and open PRs to main (tf first if pdi depends on it), but do not merge them. At the
@@ -938,26 +938,26 @@ Verification rule (docs/plan-zespol-jednoosobowy.md §8.4): before planning, che
 ## N12 — tf: weryfikacja przed zakończeniem fazy
 
 Grupa A5. Startuje po A6 (DZ19); N3 jest zrobione z Z8c-2. Sesja w klonie tf. Dotyka tych samych plików co N2, N13 i
-N15 (talos, `phase_run.py`): prowadź po kolei albo uzgadniaj zmiany. **Stan przed startem (sprawdzony 2026-11-07):** pdi po #163 (kontrakt 0.12.0), tf 5.64.1; zmiany z A6 opisuje akapit „State on 2026-11-06” w poleceniu. Wcześniej, 2026-11-03: pdi `aadfbf9` (kontrakt 0.11.0), tf 5.58.4. Już jest: Z1, Z8a (krok `run`
+N15 (agent tf, `phase_run.py`): prowadź po kolei albo uzgadniaj zmiany. **Stan przed startem (sprawdzony 2026-11-07):** pdi po #163 (kontrakt 0.12.0), tf 5.64.1; zmiany z A6 opisuje akapit „State on 2026-11-06” w poleceniu. Wcześniej, 2026-11-03: pdi `aadfbf9` (kontrakt 0.11.0), tf 5.58.4. Już jest: Z1, Z8a (krok `run`
 w kontenerze z sandboxem Claude Code), Z8c-2 z N3 (jedno polecenie weryfikacji w pierwszej linii CLAUDE.md produktu,
-wzór `templates/verify.sh` w talos-story-run); CI na GitHubie działa.
+wzór `templates/verify.sh` w tf); CI na GitHubie działa.
 
 ```text
 Implement N12 of docs/plan-zespol-jednoosobowy.md (§8.3, row A5 in §0) from dbqm45/pdi (main) in dbqm45/tf. Answer me
 in Polish; code, commits and PR title in English, Conventional Commits.
 
-Goal: the delivery phase and a talos slice cannot end as a success when the code changed after the last verification:
+Goal: the delivery phase and a tf agent slice cannot end as a success when the code changed after the last verification:
 there must be a fresh result of the product's verification command (N3) for the current commit. A missing result turns
 "done" into a continuation with the instruction to run the verification, visible in the log.
 
 State on 2026-11-06 (after the A6 run, pdi docs/przebieg-lokalny.md, A6 result): pdi main 7048263 (contract 0.11.0), tf
 5.58.7. A6 settled how personas run under `claude --print` in the phase container: Claude Code denies writes to
-`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or Talos runs
+`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or the tf agent runs
 must be in the settings template (tf core/tests/test_settings_coverage.py checks it); pdi marks the clone as trusted in
-the container, so the repository's allow list applies there; Talos keeps its run in `tmp/talos/runs/` and starts a cut
+the container, so the repository's allow list applies there; the tf agent keeps its run in `.tf/runs/` and starts a cut
 with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has committed the change's decisions;
 phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
-when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
+when delivery leaves no cuts; cut PRs get their title from the tf agent's first commit and their body from
 docs/project/changes/CHG-n/runs/TSK-n.md. The verification command a phase runs must be an allowed command, or it is
 denied silently in -p.
 Checked for this prompt on 2026-11-07 (tf 5.64.1, pdi after #163, contract 0.12.0): phase_run.py now runs the persona
@@ -967,7 +967,7 @@ again; pdi runs the second review (N1, second_review.py) as a host step after `r
 version is 0.13.0 (check open pdi PRs first).
 
 Read first: pdi docs/plan-zespol-jednoosobowy.md §8.3 (N3, N12, N13) and docs/plan-z8a-izolacja-faz.md; in tf
-modes/mode-talos/skills/talos-story-run (SKILL.md: the slice loop, `BRAMKA K<n>: PASS|FAIL`, templates/verify.sh,
+core/skills/tf (SKILL.md: the slice loop, `BRAMKA K<n>: PASS|FAIL`, templates/verify.sh,
 scripts/security_scan.py), modes/mode-pdi/skills/pdi-decisions/scripts/phase_run.py (the run result) and
 sandbox_settings.py, core/hooks (how hooks are registered; project_record.py already has a Stop hook).
 
@@ -982,16 +982,16 @@ slice loop; the security scan per slice (Z8c-2).
    a turn and send the agent back with a reason, and with which fields; then a hook that refuses to stop when the code
    changed after the last passing verification record, with the exact command to run. A loop guard: after N refusals
    in a row the hook lets the session stop with status "verification missing" instead of looping (N13 will count it).
-4. phase_run.py: the delivery result and talos's report show the verification record of the last slice; a slice
+4. phase_run.py: the delivery result and the tf agent's report show the verification record of the last slice; a slice
    without a fresh passing record is not "done".
-5. Docs: talos-story-run SKILL.md, mode-talos and mode-pdi GUIDE.md.
+5. Docs: core/skills/tf/SKILL.md and mode-pdi GUIDE.md.
 
 Tests: the record written and read (clean and dirty tree, different commit), the hook allows stop with a fresh passing
 record and refuses without it (with the command in the reason), the loop guard, phase_run's delivery result.
 A run on dbqm45/sdlc-proba needs my Mac: add it as a checklist item for me in pdi docs/przebieg-lokalny.md (a slice that
 changes code after its last verification is sent back to verify, and the log shows it).
 Gates: pdi (if changed) — uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy
-src; tf — the repo's checks (workspace.py check --packs pack-it and --packs mode-pdi, plus --packs mode-talos when talos
+src; tf — the repo's checks (workspace.py check --packs pack-it and --packs mode-pdi, plus the core checks when the tf agent
 changes, skill gates of changed skills). CI runs on the PRs: wait for it to be green and say in the PRs what you ran
 locally.
 When the gates pass, commit, push and open PRs to main (tf first if pdi depends on it), but do not merge them.
@@ -1005,7 +1005,7 @@ fields.
 Grupa A5. Startuje po A6 (DZ19). Sesja w klonie tf; część pdi (pozycja w skrzynce) osobnym PR-em. Dotyka tych samych
 plików co N2, N12 i N15: prowadź po kolei albo uzgadniaj zmiany. **Stan przed startem (sprawdzony 2026-11-07):** pdi po #163 (kontrakt 0.12.0), tf 5.64.1; zmiany z A6 opisuje akapit „State on 2026-11-06” w poleceniu. Wcześniej, 2026-11-03: pdi `aadfbf9` (kontrakt 0.11.0), tf 5.58.4. Już jest: Z1, Z8a (krok `run`
 w kontenerze z sandboxem Claude Code), Z8c-2 z N3 (jedno polecenie weryfikacji w pierwszej linii CLAUDE.md produktu,
-wzór `templates/verify.sh` w talos-story-run); CI na GitHubie działa.
+wzór `templates/verify.sh` w tf); CI na GitHubie działa.
 
 ```text
 Implement N13 of docs/plan-zespol-jednoosobowy.md (§8.3, row A5 in §0) from dbqm45/pdi (main) in dbqm45/tf, with the pdi
@@ -1017,12 +1017,12 @@ a row → an inbox item "faza się powtarza" with the last steps).
 
 State on 2026-11-06 (after the A6 run, pdi docs/przebieg-lokalny.md, A6 result): pdi main 7048263 (contract 0.11.0), tf
 5.58.7. A6 settled how personas run under `claude --print` in the phase container: Claude Code denies writes to
-`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or Talos runs
+`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or the tf agent runs
 must be in the settings template (tf core/tests/test_settings_coverage.py checks it); pdi marks the clone as trusted in
-the container, so the repository's allow list applies there; Talos keeps its run in `tmp/talos/runs/` and starts a cut
+the container, so the repository's allow list applies there; the tf agent keeps its run in `.tf/runs/` and starts a cut
 with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has committed the change's decisions;
 phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
-when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
+when delivery leaves no cuts; cut PRs get their title from the tf agent's first commit and their body from
 docs/project/changes/CHG-n/runs/TSK-n.md. result.json's `persona` (status, cost_usd, detail, permission_denials) is an
 input for loop and limit detection.
 Checked for this prompt on 2026-11-07 (tf 5.64.1, pdi after #163, contract 0.12.0): phase_run.py now runs the persona
@@ -1058,7 +1058,7 @@ contract/event.schema.json.
 Tests: limit flags passed from settings and defaults, the result for each limit, the loop counter (three identical
 calls, different inputs not counted, no secrets in the summary), the pdi inbox item and its options, retry.
 Gates: pdi (if changed) — uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy
-src; tf — the repo's checks (workspace.py check --packs pack-it and --packs mode-pdi, plus --packs mode-talos when talos
+src; tf — the repo's checks (workspace.py check --packs pack-it and --packs mode-pdi, plus the core checks when the tf agent
 changes, skill gates of changed skills). CI runs on the PRs: wait for it to be green and say in the PRs what you ran
 locally.
 When the gates pass, commit, push and open PRs to main (tf first if pdi depends on it), but do not merge them.
@@ -1072,7 +1072,7 @@ exact names of the settings, statuses, hook and inbox item kind.
 Grupa A5. Startuje po A6 (DZ19). Sesja w klonie tf; lista ścieżek fazy w kontrakcie pdi osobnym PR-em. Dotyka tych
 samych plików co N2, N12 i N13 (hooki, persony): prowadź po kolei albo uzgadniaj zmiany. **Stan przed startem (sprawdzony 2026-11-07):** pdi po #163 (kontrakt 0.12.0), tf 5.64.1; zmiany z A6 opisuje akapit „State on 2026-11-06” w poleceniu. Wcześniej, 2026-11-03: pdi `aadfbf9` (kontrakt 0.11.0), tf 5.58.4. Już jest: Z1, Z8a (krok `run`
 w kontenerze z sandboxem Claude Code), Z8c-2 z N3 (jedno polecenie weryfikacji w pierwszej linii CLAUDE.md produktu,
-wzór `templates/verify.sh` w talos-story-run); CI na GitHubie działa.
+wzór `templates/verify.sh` w tf); CI na GitHubie działa.
 
 ```text
 Implement N15 of docs/plan-zespol-jednoosobowy.md (§8.3, row A5 in §0) from dbqm45/pdi (main) in dbqm45/tf, with the
@@ -1085,20 +1085,20 @@ through decision_record.py. A write outside the scope is a refusal in the log, n
 
 State on 2026-11-06 (after the A6 run, pdi docs/przebieg-lokalny.md, A6 result): pdi main 7048263 (contract 0.11.0), tf
 5.58.7. A6 settled how personas run under `claude --print` in the phase container: Claude Code denies writes to
-`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or Talos runs
+`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or the tf agent runs
 must be in the settings template (tf core/tests/test_settings_coverage.py checks it); pdi marks the clone as trusted in
-the container, so the repository's allow list applies there; Talos keeps its run in `tmp/talos/runs/` and starts a cut
+the container, so the repository's allow list applies there; the tf agent keeps its run in `.tf/runs/` and starts a cut
 with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has committed the change's decisions;
 phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
-when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
-docs/project/changes/CHG-n/runs/TSK-n.md. The delivery write scope must include `tmp/talos/runs/` and
+when delivery leaves no cuts; cut PRs get their title from the tf agent's first commit and their body from
+docs/project/changes/CHG-n/runs/TSK-n.md. The delivery write scope must include `.tf/runs/` and
 docs/project/changes/<CHG>/runs/; `.claude/` is already unwritable in -p.
 Checked for this prompt on 2026-11-07 (tf 5.64.1, pdi after #163, contract 0.12.0): phase_run.py now runs the persona
 with `--print --verbose --output-format stream-json` and prints prefixed progress lines (A7, tf #154); the run result is
 read through modes/mode-pdi/skills/pdi-decisions/scripts/phase_result.py (N5) — extend it instead of parsing the output
 again; pdi runs the second review (N1, second_review.py) as a host step after `run` (pdi #159); the next free contract
 version is 0.13.0 (check open pdi PRs first). The second review writes docs/project/changes/<CHG>/.review/<phase>.json
-and appends a section to the artifact on the host; the delivery scope also covers Talos's run report.
+and appends a section to the artifact on the host; the delivery scope also covers the tf agent's run report.
 
 Read first: pdi docs/plan-zespol-jednoosobowy.md §8.3 (N15), contract/contract.json (conventions) and
 contract/change.schema.json; in tf core/hooks/guard_paths.py (secrets, guardrails, context economy), how hooks are
@@ -1115,7 +1115,7 @@ the tf #134 change that moved ADRs to architecture.md.
    Claude Code sandbox settings for the phase (check in the official docs how filesystem write rules and
    permissions.deny apply to Bash and to Edit/Write, and note the date) narrow writes the same way, so a shell command
    cannot bypass the hook. Outside a pdi phase (no variable) guard_paths behaves as today.
-4. The delivery phase writes code; talos's own rules stay. Rework of a phase uses the same list.
+4. The delivery phase writes code; the tf agent's own rules stay. Rework of a phase uses the same list.
 5. Docs: mode-pdi GUIDE.md and SKILL.md, contract/README.md (pdi), a checklist item for me in pdi
    docs/przebieg-lokalny.md (the architecture persona cannot change code or another phase's artifact; the refusal is
    in the log).
@@ -1123,7 +1123,7 @@ the tf #134 change that moved ADRs to architecture.md.
 Tests: the contract list and examples, guard_paths per phase (allowed, refused with the list, decisions.md through the
 script only, no phase → as today), the sandbox settings per phase, a shell write outside the scope refused.
 Gates: pdi (if changed) — uv run pytest, uv run ruff check src tests, uv run ruff format --check src tests, uv run mypy
-src; tf — the repo's checks (workspace.py check --packs pack-it and --packs mode-pdi, plus --packs mode-talos when talos
+src; tf — the repo's checks (workspace.py check --packs pack-it and --packs mode-pdi, plus the core checks when the tf agent
 changes, skill gates of changed skills). CI runs on the PRs: wait for it to be green and say in the PRs what you ran
 locally.
 When the gates pass, commit, push and open PRs to main (tf first if pdi depends on it), but do not merge them.
@@ -1138,7 +1138,7 @@ Decyzje DZ14 i DZ18, z częścią konsoli kroku N19 (opcje pytań jako przyciski
 `sdlc-proba`), przed etapem 2. Sesja w klonie pdi; część tf osobnym PR-em. Wygląd: `design/konsola/v2-klikalna/` (trzy
 pasy). **Stan przed startem (2026-11-06, po A6):** pdi `7048263` (kontrakt 0.11.0), tf 5.58.7; zmiany z A6 opisuje akapit „State on 2026-11-06” w poleceniu. Wcześniej, 2026-11-03: pdi `e3f4d50` (kontrakt 0.11.0), tf 5.58.4; pytania
 z opcjami (N19) wprowadza kontrakt z Z2a. Od pierwszej wersji tego polecenia weszły: Z1 (odpowiedzi na pytania bramki, decyzje
-zmiany w fazie), Z8a (krok `run` w kontenerze Docker), Z8c-2 (skaner w pętli talosa); CI na GitHubie znowu działa.
+zmiany w fazie), Z8a (krok `run` w kontenerze Docker), Z8c-2 (skaner w pętli agenta tf); CI na GitHubie znowu działa.
 
 ```text
 Implement Z3-lokalnie of docs/plan-zespol-jednoosobowy.md (§0 row A7, §5, decisions DZ14 and DZ18 in docs/decyzje.md),
@@ -1152,12 +1152,12 @@ gates with buttons. No production service yet (that is Z3 after DA4), no chat, n
 
 State on 2026-11-06 (after the A6 run, pdi docs/przebieg-lokalny.md, A6 result): pdi main 7048263 (contract 0.11.0), tf
 5.58.7. A6 settled how personas run under `claude --print` in the phase container: Claude Code denies writes to
-`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or Talos runs
+`.claude/` (a protected path) and any Bash command outside `permissions.allow`, so every command a persona or the tf agent runs
 must be in the settings template (tf core/tests/test_settings_coverage.py checks it); pdi marks the clone as trusted in
-the container, so the repository's allow list applies there; Talos keeps its run in `tmp/talos/runs/` and starts a cut
+the container, so the repository's allow list applies there; the tf agent keeps its run in `.tf/runs/` and starts a cut
 with `--change CHG-n` from the phase branch `pdi/CHG-n-delivery`, where pdi has committed the change's decisions;
 phase_run.py keeps `detail` and `permission_denials` on success too, and pdi puts them under `persona` in result.json
-when delivery leaves no cuts; cut PRs get their title from Talos's first commit and their body from
+when delivery leaves no cuts; cut PRs get their title from the tf agent's first commit and their body from
 docs/project/changes/CHG-n/runs/TSK-n.md. Show result.json's `persona` (detail, permission_denials, cost) in the change
 trace when a delivery fails. Checked for this prompt on 2026-11-06: Z2a is not merged, so gate questions are still
 plain strings (`options` in contract/decision.schema.json are decision alternatives, not question options); `sdlc open`
@@ -1175,7 +1175,7 @@ including `answers` from Z1); docs/plan-z1-decyzje-w-fazach.md and docs/plan-z8a
 `phase_run.py` (how the persona is started: `claude --print --output-format json`, `--settings $PDI_CLAUDE_SETTINGS`).
 
 Already done (do not redo): gate items carry `questions`, and decide_inbox_item takes `answers` [{question, answer}]
-checked against them (Z1, contract 0.11.0); the persona runs in a container with an egress proxy (Z8a); talos blocks
+checked against them (Z1, contract 0.11.0); the persona runs in a container with an egress proxy (Z8a); the tf agent blocks
 slices with security findings (Z8c-2).
 
 1. Plan first in docs/plan-z3-lokalnie.md: files in both repos, order, tests, sources with dates, what stays for Z3. TDD.

@@ -1,4 +1,4 @@
-"""Pętla PR talosa (N2, docs/plan-n2-petla-pr.md): rundy przegląd → walidacja → poprawka ze wstrzykniętymi krokami."""
+"""Pętla PR agenta tf (N2, docs/plan-n2-petla-pr.md): rundy przegląd → walidacja → poprawka, kroki wstrzyknięte."""
 
 from __future__ import annotations
 

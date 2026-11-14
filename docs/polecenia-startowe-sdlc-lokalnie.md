@@ -288,13 +288,13 @@ recommendation for each, wait for my answer, then record both in docs/decyzje.md
 Goal: `uv run sdlc sandbox <name>` gives me a private repo of my own, created from a template, cloned locally,
 tracked in ShipScope and set as pdi's PDI_DISPATCH_CHECKOUT. On it the whole §5 scenario passes in one day: report
 → intent, requirements, architecture and design phases with gates → ci_for_sdlc readiness and approve-for-implementation
-→ talos slices → `sdlc deploy test|prod` → flag stages → impact review.
+→ tf agent slices → `sdlc deploy test|prod` → flag stages → impact review.
 
 Today:
 - The S5 run (docs/przebieg-na-sobie-s5.md) used sprintdeck, which needs Vercel and Supabase. Its step P8 shows how
   tf goes into a product repo:
   - `tf install --packs pack-it,pack-docs,pack-ux --language pl --commit-language en --yes --shared`;
-  - `tf add mode-pdi mode-talos`;
+  - `tf add mode-pdi`;
   - `tf doctor`;
   - the phase_run.py / metric_watch.py `workflow install` commands;
   - ci_for_sdlc's docs/templates/change-check.yml.
@@ -314,7 +314,7 @@ Today:
       - `npm test` using node:test;
       - one visible behaviour behind a flag read from config/flags.{env}.json, in the shape ShipScope reads (check
         ShipScope's flags reader, and mode-pdi's release.yaml rollout stages).
-   b. tf installed as in S5 P8 (team mode, pack-it, pack-ux, mode-pdi, mode-talos, `tf doctor` clean). Pin the tf
+   b. tf installed as in S5 P8 (team mode, pack-it, pack-ux, mode-pdi, `tf doctor` clean). Pin the tf
       version in the README. Keep the workflow files tf installs, but note that the local run never needs them.
    c. .claude/pdi-metrics.json in the format mode-pdi expects (find it in tf's mode-pdi). Use a metric the trial app
       can produce without users, or say in the plan that impact is judged by hand.
@@ -764,7 +764,7 @@ Goal: for a flag in a change's release.yaml:
   executor changes the stage and ShipScope sees the new state on its own;
 - when a guard metric crosses its limit during a stage, a rollback proposal comes at level 1 (applied at once,
   recorded, shown in "Teraz"), as the plan says;
-- when a flag has been at 100% longer than X days, Talos (tf) opens a PR removing the flag from code
+- when a flag has been at 100% longer than X days, the tf agent opens a PR removing the flag from code
   (`flag.removal_pr`); merging it stays mine.
 Nothing advances when a guard metric is missing, stale or unreadable: that is "criteria not met", with the reason.
 
@@ -794,7 +794,7 @@ Today:
    type), the failure cases (metric missing or stale, executor fails, ShipScope state stale, two proposals for one
    flag), rollback, tests, open questions. Wait for my OK.
 3. Implement only what the plan approves, TDD (red test first), small PRs, each in its repo after my OK: the
-   guard-metrics source, the detector, pdi's decisions and evidence, the stage executor, the rollback path, Talos's
+   guard-metrics source, the detector, pdi's decisions and evidence, the stage executor, the rollback path, the tf agent's
    removal PR.
 4. Docs: README, plan-automatyzacja-i-konsola.md §8 (A4), plan-jeden-flow-sdlc.md (G5 state),
    docs/przebieg-na-sobie-s5.md (the flag's stages now advance by rule; where to see why), ShipScope and tf docs for

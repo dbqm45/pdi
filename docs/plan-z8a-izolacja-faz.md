@@ -1,4 +1,4 @@
-# Plan Z8a — fazy tf w kontenerze (izolacja persony i talosa)
+# Plan Z8a — fazy tf w kontenerze (izolacja persony i agenta tf)
 
 Data: 2026-11-02 · Status: **w PR** (pdi + tf, do przeglądu; GitHub Actions na tym koncie nie działają, bramki uruchomione lokalnie) · Krok Z8a [planu „zespół jednoosobowy”](plan-zespol-jednoosobowy.md)
 (§8.2), w granicach decyzji **DZ9** ([decyzje](decyzje.md)): kontener Docker z zamontowanym tylko klonem repo produktu,
@@ -8,7 +8,7 @@ kontenerem.
 ## Cel
 
 W trybie lokalnym (`PDI_DISPATCH=local`) krok `run` fazy (`phase_run.py run` → `claude --print --agent <persona>`,
-w fazie `delivery` także talos) działa w kontenerze, który:
+w fazie `delivery` także agent tf) działa w kontenerze, który:
 
 - widzi tylko klon repo produktu (montowany do zapisu pod tą samą ścieżką), a nie katalog domowy właściciela,
   `~/.sdlc/env`, `~/.ssh`, `~/.claude`, inne repo ani klucze;
@@ -16,7 +16,7 @@ w fazie `delivery` także talos) działa w kontenerze, który:
 - dostaje środowisko dzisiejszego kroku `run` (zmienne systemowe, `PDI_SOURCE`, `PDI_PROBLEM`, zmienne Claude) i nic
   więcej; token Claude idzie tylko do tego kontenera, nigdy do argv, logu ani obrazu.
 
-Kroki `checkout`, `branch`, `change`, `prompt`, `decision`, `commit`, `push`, `pr`, `gate` i wypychanie cięć talosa
+Kroki `checkout`, `branch`, `change`, `prompt`, `decision`, `commit`, `push`, `pr`, `gate` i wypychanie cięć agenta tf
 zostają na komputerze właściciela, jak dziś (potrzebują `gh`, kluczy git i sekretu odbiornika).
 
 ## Sprawdzone w dokumentacji (§8.4), 2026-11-02
@@ -70,8 +70,8 @@ zostają na komputerze właściciela, jak dziś (potrzebują `gh`, kluczy git i 
 - **Narzędzia produktu** (wykrywane po plikach w katalogu głównym klonu): `pyproject.toml`/`requirements*.txt` →
   `python3-venv python3-pip`; `go.mod` → `golang-go`; `Cargo.toml` → `cargo`; `Gemfile` → `ruby-full bundler`;
   `pom.xml`/`build.gradle*` → `default-jdk-headless maven`; `package.json` — node i npm już są.
-- **Skaner talosa (PRB-29, 2026-11-05):** gdy klon ma `.claude/skills/talos-story-run/scripts/security_scan.py`
-  (mode-talos, Z8c-2), obraz dostaje `semgrep==1.183.0` w venv `/opt/semgrep` z dowiązaniem w `/usr/local/bin`
+- **Skaner agenta tf (PRB-29, 2026-11-05):** gdy klon ma `.claude/skills/tf/scripts/security_scan.py`
+  (rdzeń tf, Z8c-2), obraz dostaje `semgrep==1.183.0` w venv `/opt/semgrep` z dowiązaniem w `/usr/local/bin`
   (opublikowany 2026-10-29, więc z karencją N10). Po budowie `ensure_image` sprawdza `semgrep --version` w nowym
   obrazie i przy błędzie kończy się komunikatem. Wcześniej obraz semgrepa nie miał i delivery CHG-3 w A6 skończyło
   się dwa razy bez cięć.
@@ -110,7 +110,7 @@ docker run --rm --name pdi-phase-<id> --network pdi-phase-<id> --user <właścic
   `CLAUDE_*`) — jako samo `-e NAZWA`, a wartość dostaje proces `docker` w środowisku. Bez `PATH`, `HOME`, `TMPDIR`,
   `SSH_AUTH_SOCK`, `XDG_*` i proxy hosta (ścieżki i gniazda z komputera właściciela). `PDI_CLAUDE_BIN` nie idzie (ścieżka
   z hosta). Tożsamość git (`user.name`, `user.email` z klonu na hoście) idzie jako `GIT_AUTHOR_*`/`GIT_COMMITTER_*`, bo
-  talos robi commity cięć w kontenerze.
+  agent tf robi commity cięć w kontenerze.
 - **Użytkownik:** uid:gid właściciela klonu na hoście (pliki persony mają tego samego właściciela); gdy klon należy do
   roota — uid 10001, nigdy root.
 - **Limity:** `PDI_DISPATCH_CPUS` (4), `PDI_DISPATCH_MEMORY` (6g), czas = `STEP_TIMEOUT_SECONDS` przez `timeout` w

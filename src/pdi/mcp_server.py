@@ -317,7 +317,7 @@ def build_server(
     def list_inbox(status: InboxStatus = "open") -> dict[str, list[dict[str, Any]]]:
         """Skrzynka pdi: bramki („flaga przeszła na etap 10%, przejść dalej?”), oceny skutku MVP, problemy z pasm
         kontrolnych tf („rollbacki poza 3σ — nowe zgłoszenie?”) i „PR gotowy do Twojego przeglądu” (kind pr_ready:
-        PR cięcia talosa po pętli PR — zielone checki i zamknięte uwagi albo limit rund; pola url, pr_loop,
+        PR cięcia agenta tf po pętli PR — zielone checki i zamknięte uwagi albo limit rund; pola url, pr_loop,
         open_questions).
 
         status: open (domyślnie, czeka na decyzję), decided albo all. Każda pozycja: id, kind (gate /
@@ -374,7 +374,8 @@ def build_server(
         Szkic z rozmowy (kind capture) wymaga outcome approved albo rejected: approved zapisuje decyzję ze źródłem
         i cytatami z pozycji (draft_edited pdi liczy sam, gdy statement albo why różnią się od szkicu), rejected
         („to nie była decyzja”) zamyka pozycję bez wpisu w rejestrze — powód podaj w why. PR gotowy do przeglądu
-        (kind pr_ready, pętla PR talosa N2) zamyka outcome reviewed, bez wpisu w rejestrze — scala człowiek w GitHubie.
+        (kind pr_ready, pętla PR agenta tf N2) zamyka outcome reviewed, bez wpisu w rejestrze — scala człowiek
+        w GitHubie.
         links.chg nadaje skrzynka ze zdarzenia; decision_type, gdy go nie podasz, też (np. flag.stage_advance,
         gate.b1, triage, outcome.assessment). Pozostałe pola jak w record_decision.
         """

@@ -11,7 +11,7 @@ tle pisze log `runs/<CHG>-<faza>-<czas>.log` i wynik obok (`….result.json`); s
 do niego `settle()` przy odczycie (`pdi.changes`). Każde polecenie to lista argumentów, nigdy tekst dla powłoki. Do logu
 i stanu pdi nie dopisuje tokenów ani treści zgłoszenia (ta idzie do persony tylko przez `PDI_PROBLEM`).
 
-Krok `run` (persona, talos) działa domyślnie w kontenerze Docker, który widzi tylko klon i listę hostów sieci
+Krok `run` (persona, agent tf) działa domyślnie w kontenerze Docker, który widzi tylko klon i listę hostów sieci
 (`pdi.phase_sandbox`, krok Z8a, decyzja DZ9); pozostałe kroki — z poświadczeniami — zostają na tym komputerze.
 """
 
@@ -54,10 +54,10 @@ PRIOR_ARTIFACT = {
     "delivery": "plan.md",
 }
 DECISION_TEXT_MAX = 2000
-# Gałęzie cięć talosa (`talos-story-run`: story/<slug>); persona w trybie --print nie może ich wypchnąć (PRB-4).
+# Gałęzie cięć agenta tf (skill `tf`: story/<slug>); persona w trybie --print nie może ich wypchnąć (PRB-4).
 CUT_REFS = "refs/heads/story/"
 _CUT = re.compile(r"^story/[A-Za-z0-9_][A-Za-z0-9._/-]{0,199}$")
-_CUT_TASK = re.compile(r"^story/(tsk-[0-9]+)(?:-|$)", re.IGNORECASE)  # klucz cięcia z nazwy gałęzi Talosa
+_CUT_TASK = re.compile(r"^story/(tsk-[0-9]+)(?:-|$)", re.IGNORECASE)  # klucz cięcia z nazwy gałęzi agenta tf
 # Log przebiegu zmienia się przy każdym kroku; bez zmian dłużej niż to — przebieg uznaje się za przerwany.
 STALE_SECONDS = 3 * 60 * 60
 LOCK_STALE_SECONDS = 60
@@ -94,7 +94,7 @@ SECOND_REVIEW_ENV = (
     "PDI_SECOND_MODEL_PRICE_OUT",
 )
 
-# Pętla PR talosa po delivery (N2, docs/plan-n2-petla-pr.md): przegląd, poprawki i lokalna weryfikacja w kontenerze
+# Pętla PR agenta tf po delivery (N2, docs/plan-n2-petla-pr.md): przegląd, poprawki i lokalna weryfikacja w kontenerze
 # fazy, walidacja uwag drugim modelem, push, checki i opis PR na hoście. PDI_PR_LOOP=off wyłącza pętlę.
 PR_LOOP_ENV = "PDI_PR_LOOP"
 PR_LOOP_ROUNDS_ENV = "PDI_PR_LOOP_ROUNDS"
@@ -136,9 +136,9 @@ PROGRESS_STATUSES = ("started", "in_progress", "waiting_gate", "done", "failed")
 
 def _persona_report(output: str) -> dict[str, Any] | None:
     """Wynik `phase_run.py run` (ostatni obiekt JSON w wyjściu kroku, pomijając linie `PDI-PROGRESS:`): status, koszt,
-    końcówka odpowiedzi persony i odmowy uprawnień. Bez tego `result.json` nieudanego delivery nie mówi, dlaczego Talos
-    nie zostawił cięć. Linie postępu nigdy nie zaczynają się od `{` — rzetelnie je pomijamy przy wyszukiwaniu końcowego
-    obiektu JSON."""
+    końcówka odpowiedzi persony i odmowy uprawnień. Bez tego `result.json` nieudanego delivery nie mówi,
+    dlaczego agent tf nie zostawił cięć. Linie postępu nigdy nie zaczynają się od `{` — rzetelnie je pomijamy przy
+    wyszukiwaniu końcowego obiektu JSON."""
     lines = [ln for ln in output.splitlines() if not ln.startswith(PROGRESS_PREFIX)]
     for i in range(len(lines) - 1, -1, -1):
         if lines[i].startswith("{"):
@@ -474,7 +474,7 @@ def execute(
 ) -> dict[str, Any]:
     """Kroki szablonu `sdlc-phase.yml`; wynik `{"status": done | failed, "step"?, "error"?, "pr"?, "prs"?}`.
 
-    Po fazie `delivery` pdi wypycha gałęzie cięć talosa (`story/*`) i otwiera ich PR-y (`prs`), bo persona w trybie
+    Po fazie `delivery` pdi wypycha gałęzie cięć agenta tf (`story/*`) i otwiera ich PR-y (`prs`), bo persona w trybie
     --print nie ma zgody na `git push` ani `gh pr create`.
     """
     cwd = Path(spec["checkout"])
@@ -581,7 +581,7 @@ def execute(
             step("decision", script("decision_record.py", "decision", "gate", change, *gate_args))
 
         if phase == "delivery":
-            # Talos zaczyna od czystego drzewa (talos-story-run §0) — decyzje dopisane wyżej idą do commita od razu.
+            # Agent tf zaczyna od czystego drzewa (skill tf, §0) — decyzje dopisane wyżej idą do commita od razu.
             step("commit", ["git", "add", "-A", f"docs/project/changes/{change}"])
             code, _ = step("commit", ["git", "diff", "--cached", "--quiet"], ok=(0, 1))
             if code == 1:
@@ -730,7 +730,7 @@ def _cuts(step: Step) -> set[str]:
 
 
 def _cut_pr_text(step: Step, branch: str, start: str, change: str) -> tuple[str, str]:
-    """Tytuł i opis PR cięcia (PRB-34): tytuł z pierwszego commitu Talosa (Conventional Commits), opis z raportu
+    """Tytuł i opis PR cięcia (PRB-34): tytuł z pierwszego commitu agenta tf (Conventional Commits), opis z raportu
     przebiegu `docs/project/changes/<CHG>/runs/<TSK>.md` z gałęzi cięcia, a bez niego lista commitów."""
     _, out = step("pr", ["git", "log", "--reverse", "--format=%s", f"{start}..{branch}"], quiet=True)
     subjects = [line for line in out.splitlines() if line.strip()]
@@ -762,7 +762,7 @@ def _publish_cuts(
     if not cuts:
         raise _StepFailed(
             "cuts",
-            f"Talos nie zostawił gałęzi story/* z commitami ponad {ref} — cięcia nie powstały; szczegóły w logu.",
+            f"Agent tf nie zostawił gałęzi story/* z commitami ponad {ref} — cięcia nie powstały; szczegóły w logu.",
         )
 
     def ancestor(a: str, b: str) -> bool:

@@ -230,7 +230,7 @@ Oczekiwane: `pdi: … Connected` (i `shipscope`).
 source ~/.pdi.env && cd ~/sprintdeck && git switch main && git pull --ff-only
 git switch -c chore/tf-install
 tf install --packs pack-it,pack-docs,pack-ux --language pl --commit-language en --yes --shared
-tf add mode-pdi mode-talos
+tf add mode-pdi
 tf doctor
 python3 .claude/skills/pdi-decisions/scripts/phase_run.py workflow install
 python3 .claude/skills/pdi-decisions/scripts/metric_watch.py workflow install
@@ -239,7 +239,7 @@ git add -A && git commit -m "chore: install tf with mode-pdi, phase and change-c
 git push -u origin chore/tf-install && gh pr create --fill
 ```
 
-`pack-ux` daje personę natalia (faza `design`), a `mode-talos` daje personę talos (faza `delivery`). W
+`pack-ux` daje personę natalia (faza `design`), a rdzeń tf daje agenta tf (faza `delivery`). W
 `change-check.yml` zmień `ref: main` na tag wydania ci_for_sdlc, np. `ref: v0.1.34`.
 
 Sekrety i zmienne repozytorium:
@@ -444,9 +444,9 @@ Oczekiwane ⚙️:
 
 Zapisz w dzienniku prognozę. Porównasz ją z wynikiem w kroku 13.
 
-### 9. Dostarczenie 🤖 talos → 👤 GH + T-sd
+### 9. Dostarczenie 🤖 agent tf → 👤 GH + T-sd
 
-Talos robi cięcia po kolei. Commity mają dopiski `Change: TSK-n` i `Flag: analytics_events`. Jeśli lokalny
+Agent tf robi cięcia po kolei. Commity mają dopiski `Change: TSK-n` i `Flag: analytics_events`. Jeśli lokalny
 przebieg nie otworzył PR-ów, otwórz je sam: `git push -u origin HEAD && gh pr create --fill`.
 
 👤 T-sd, przed merge'em każdego PR:
@@ -479,7 +479,7 @@ view).
 👤 SS, wskazanie pliku flag:
 1. Settings → Sources → **Advanced sources** → **Find flags files** dla `dbqm45/sprintdeck`.
 2. Wybierz `config/flags.{env}.json` (`test`, `prod`) → **Use this** → **Preview** → **Read from code**.
-3. W Preview sprawdź, czy ShipScope czyta stan i `rollout` flagi tak, jak zapisał je talos.
+3. W Preview sprawdź, czy ShipScope czyta stan i `rollout` flagi tak, jak zapisał je agent tf.
 
 Oczekiwane:
 - Release plan: grupa CHG-1, linia R1, cięcia „Deployed (hidden)” na PROD,
