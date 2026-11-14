@@ -469,14 +469,8 @@ def test_dockerfile_installs_pinned_semgrep_only_when_asked() -> None:
     assert with_scanner.index("semgrep==") < with_scanner.index("\nUSER pdi"), "instalacja jako root, przed USER"
 
 
-@pytest.mark.parametrize(
-    "scanner_path",
-    [
-        ".claude/skills/tf/scripts/security_scan.py",  # tf 10.0.0+: pętla w rdzeniu fabryki
-        ".claude/skills/talos-story-run/scripts/security_scan.py",  # tf 9.x: ścieżka sprzed przeniesienia pętli
-    ],
-)
-def test_image_gets_semgrep_when_the_clone_has_the_loop_scanner(tmp_path: Path, scanner_path: str) -> None:
+def test_image_gets_semgrep_when_the_clone_has_the_loop_scanner(tmp_path: Path) -> None:
+    scanner_path = ".claude/skills/tf/scripts/security_scan.py"  # tf 10.0.0+: pętla w rdzeniu fabryki
     repo = make_checkout(tmp_path)
     plain = phase_sandbox.image_for(repo)
     scanner = repo / scanner_path
@@ -484,7 +478,7 @@ def test_image_gets_semgrep_when_the_clone_has_the_loop_scanner(tmp_path: Path, 
     scanner.write_text("# security_scan.py\n", encoding="utf-8")
     with_scanner = phase_sandbox.image_for(repo)
 
-    assert scanner_path in phase_sandbox.LOOP_SCANNERS
+    assert scanner_path == phase_sandbox.LOOP_SCANNER
     assert "semgrep" not in plain.dockerfile
     assert f"semgrep=={phase_sandbox.SEMGREP_VERSION}" in with_scanner.dockerfile
     assert with_scanner.tag != plain.tag, "nowy tag, więc sdlc up zbuduje obraz sam"
@@ -492,7 +486,7 @@ def test_image_gets_semgrep_when_the_clone_has_the_loop_scanner(tmp_path: Path, 
 
 def test_ensure_image_checks_semgrep_in_a_freshly_built_image(tmp_path: Path) -> None:
     repo = make_checkout(tmp_path)
-    scanner = repo / phase_sandbox.LOOP_SCANNERS[0]
+    scanner = repo / phase_sandbox.LOOP_SCANNER
     scanner.parent.mkdir(parents=True)
     scanner.write_text("# security_scan.py\n", encoding="utf-8")
 
@@ -509,6 +503,9 @@ def test_ensure_image_checks_semgrep_in_a_freshly_built_image(tmp_path: Path) ->
 
 def test_ensure_image_skips_the_semgrep_check_without_the_loop_scanner(tmp_path: Path) -> None:
     repo = make_checkout(tmp_path)
+    old_layout = repo / ".claude/skills" / "story-run" / "scripts" / "security_scan.py"  # inny skill to nie pętla tf
+    old_layout.parent.mkdir(parents=True)
+    old_layout.write_text("# security_scan.py\n", encoding="utf-8")
     run = FakeRun({"docker image inspect": (1, "")})
     phase_sandbox.ensure_image(repo, run=run, env={})
     assert not run.find("docker", "run")

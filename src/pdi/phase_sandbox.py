@@ -110,14 +110,11 @@ REGISTRIES = {
 ALWAYS_HOSTS = ("api.anthropic.com",)
 # Rejestr reguł Semgrepa dla skanera w pętli agenta tf (Z8c, DZ11).
 SCANNER_HOSTS = ("semgrep.dev",)
-# Skaner pętli agenta tf w klonie (Z8c-2): gdy jest, obraz fazy dostaje semgrep (PRB-29). Od tf 10.0.0 pętla jest
-# w rdzeniu fabryki (skill `tf`); druga ścieżka to układ tf 9.x, zanim pętla przeszła do rdzenia. Wersja semgrepa
+# Skaner pętli agenta tf w klonie (Z8c-2): gdy jest, obraz fazy dostaje semgrep (PRB-29). Ścieżka z tf 10.0.0, od
+# którego pętla jest w rdzeniu fabryki (skill `tf`) — pdi wymaga produktu na tf 10.0.0 lub nowszym. Wersja semgrepa
 # przypięta, opublikowana 2026-10-29 (karencja N10: co najmniej 7 dni), ta sama, na której reguły sprawdzono
 # w sdlc-proba #25.
-LOOP_SCANNERS = (
-    ".claude/skills/tf/scripts/security_scan.py",
-    ".claude/skills/talos-story-run/scripts/security_scan.py",
-)
+LOOP_SCANNER = ".claude/skills/tf/scripts/security_scan.py"
 SEMGREP_VERSION = "1.183.0"
 SEMGREP_VENV = "/opt/semgrep"
 # Wywołania jądra zakazane w kontenerze fazy. Reszta dozwolona, w tym przestrzenie nazw użytkownika, których
@@ -232,7 +229,7 @@ def dockerfile(version: str, packages: Sequence[str], *, semgrep: str | None = N
 
 
 def needs_scanner(checkout: Path) -> bool:
-    return any((checkout / scanner).is_file() for scanner in LOOP_SCANNERS)
+    return (checkout / LOOP_SCANNER).is_file()
 
 
 def image_for(checkout: Path) -> Image:
