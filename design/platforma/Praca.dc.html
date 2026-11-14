@@ -89,7 +89,7 @@ a{color:#2846B5}a:hover{color:#1B3285}
           </tbody>
         </table>
       </div>
-      <p style="margin: 0; font-size: 12px; color: #5B6878">Phases: Problem (pdi) · Intent B1 · Requirements B2 · Plan B3 · Design · Readiness (ci_for_sdlc) · Build (tf · Talos) · Release and outcome (ShipScope, pdi). Forecast: slices in the plan × median days per slice from ShipScope; “?” means the automation raises a doubt.</p>
+      <p style="margin: 0; font-size: 12px; color: #5B6878">Phases: Problem (pdi) · Intent B1 · Requirements B2 · Plan B3 · Design · Readiness (ci_for_sdlc) · Build (tf · agent tf) · Release and outcome (ShipScope, pdi). Forecast: slices in the plan × median days per slice from ShipScope; “?” means the automation raises a doubt.</p>
     </div>
   </main>
 </div>
@@ -108,7 +108,7 @@ class Component extends DCLogic {
     const open = [
       { key: 'CHG-9', title: 'Jira import', problem: 'A facilitator cannot start a session without copying stories by hand.', meta: 'from PRB-14 · domain Integrations', steps: steps(3, 3, 'wait'), slices: '5 slices planned · 0 released', now: 'Waiting: B3', nowCls: 'st-wait', who: 'on you · plan by tf (natalia)', forecast: '~9 days (6–12) ?', forecastNote: 'little history: 3 changes', forecastNoteColor: '#7A4700' },
       { key: 'CHG-8', title: 'Room limits', problem: 'Unlimited free rooms overload the realtime service.', meta: 'from PRB-11 · domain Rooms', steps: steps(5, 5, 'block'), slices: '3 slices · TSK-38 and TSK-39 on QA', now: 'Blocked', nowCls: 'st-block', who: 'ci_for_sdlc: 2 questions', forecast: '~5 days (4–7)', forecastNote: 'in line with history', forecastNoteColor: '#17663A' },
-      { key: 'CHG-7', title: 'Session report', problem: 'The team has no record of why it voted the way it did.', meta: 'from PRB-9 · domain Voting', steps: steps(6, 6, 'run'), slices: '4 slices · TSK-41 in review (PR #58)', now: 'Building', nowCls: 'st-run', who: 'tf · Talos · cost [COST]', forecast: '~7 days (5–9)', forecastNote: 'day 4 of 7', forecastNoteColor: '#445163' },
+      { key: 'CHG-7', title: 'Session report', problem: 'The team has no record of why it voted the way it did.', meta: 'from PRB-9 · domain Voting', steps: steps(6, 6, 'run'), slices: '4 slices · TSK-41 in review (PR #58)', now: 'Building', nowCls: 'st-run', who: 'tf · agent tf · cost [COST]', forecast: '~7 days (5–9)', forecastNote: 'day 4 of 7', forecastNoteColor: '#445163' },
       { key: 'CHG-6', title: '“Risk” deck', problem: 'The team votes on points, not on risk.', meta: 'decision D-E1 · domain Voting', steps: steps(7, 7, 'wait'), slices: '2 slices · code on PROD, flag off', now: 'Waiting: switch-on', nowCls: 'st-wait', who: 'on you · Product', forecast: '6 days to PROD', forecastNote: 'forecast was 5 (within range)', forecastNoteColor: '#17663A' },
     ];
     const done = [

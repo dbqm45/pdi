@@ -4,7 +4,7 @@ Krok Z1 z [planu zespołu jednoosobowego](plan-zespol-jednoosobowy.md) §8. Data
 
 **Cel.** Każda faza tf startuje ze wszystkimi decyzjami, które wiążą jej zmianę, a pytanie już rozstrzygnięte nie
 wraca w kolejnym artefakcie. **Dowód problemu:** [przebieg lokalny](przebieg-lokalny.md), „Wynik przebiegu
-2026-10-31”, PRB-3: te same pytania wróciły w B3 i design-review, a talos zatwierdził `config/build.json` wbrew
+2026-10-31”, PRB-3: te same pytania wróciły w B3 i design-review, a agent tf zatwierdził `config/build.json` wbrew
 DEC-0003, bo `plan.md` miał nierozstrzygnięte pytanie.
 
 ## 1. Co już jest (sprawdzone w kodzie 2026-11-02)

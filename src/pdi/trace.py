@@ -21,7 +21,7 @@ ENVIRONMENTS = ("test", "qa", "prod")
 MAX_LIVE_ITEMS = 20  # odczytów ShipScope na graf: zmiana i jej cięcia
 LABEL_LENGTH = 60
 _MERMAID_ID = re.compile(r"[^A-Za-z0-9]")
-# Gałąź cięcia talosa: story/tsk-12-opis → TSK-12 (dispatch_local, PRB-5).
+# Gałąź cięcia agenta tf: story/tsk-12-opis → TSK-12 (dispatch_local, PRB-5).
 _TASK = contract.settings()["prefixes"]["task"]
 _CUT_BRANCH = re.compile(rf"^story/({_TASK.lower()}-[0-9]{{1,9}})(?![0-9])", re.IGNORECASE)
 
@@ -90,7 +90,7 @@ def trace(
         loop = _pr_loop_of(state, cut["pr"])
         data: dict[str, Any] = {"branch": cut["branch"]}
         if loop:
-            data["pr_loop"] = loop  # rundy pętli PR talosa (N2): przegląd, poprawki, checki, koszt
+            data["pr_loop"] = loop  # rundy pętli PR agenta tf (N2): przegląd, poprawki, checki, koszt
         g.node(f"pr:{cut['pr']}", "pr", _pr_label(cut["pr"]), loop.get("status") if loop else None, url=cut["pr"],
                data=data)  # fmt: skip
         g.edge(key or change, f"pr:{cut['pr']}", "implemented_by")

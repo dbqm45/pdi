@@ -1,10 +1,10 @@
-"""Pętla PR talosa po fazie delivery (krok N2, plan: docs/plan-n2-petla-pr.md).
+"""Pętla PR agenta tf po fazie delivery (krok N2, plan: docs/plan-n2-petla-pr.md).
 
-Na każdy PR cięcia: przegląd AI według `REVIEW.md` produktu → walidacja uwag drugim modelem (N1) → talos poprawia
+Na każdy PR cięcia: przegląd AI według `REVIEW.md` produktu → walidacja uwag drugim modelem (N1) → agent tf poprawia
 tylko potwierdzone uwagi i czerwone checki → ponowny przegląd; najwyżej `max_rounds` rund poprawek (2, jak DZ6).
 Pętla kończy się wcześniej, gdy zostały tylko uwagi poniżej progu (`minor`) i pytania do człowieka, a checki są
 zielone. PR bez checków CI nie jest zielony. Po każdej rundzie host podmienia w opisie PR tylko sekcję
-„Przewodnik dokończenia” (raport talosa i linia `Change:` zostają).
+„Przewodnik dokończenia” (raport agenta tf i linia `Change:` zostają).
 
 Kroki (`Steps`) wstrzykuje `pdi.dispatch_local`: przegląd, poprawka i lokalna weryfikacja biegną w kontenerze fazy
 (Z8a), walidacja, push, odczyt checków i opis PR — na hoście. Tu jest tylko logika rund, triaż i przewodnik.
@@ -120,7 +120,7 @@ def replace_guide(body: str, section: str) -> str:
 
 
 def _outside_plan(body: str) -> list[str]:
-    """Decyzje poza planem z raportu talosa: „Odłożone do decyzji”, `[założenie]` i odstępstwa `plan_drift`."""
+    """Decyzje poza planem z raportu agenta tf: „Odłożone do decyzji”, `[założenie]` i odstępstwa `plan_drift`."""
     found: list[str] = []
     report = re.sub(rf"{re.escape(GUIDE_OPEN)}[\s\S]*?{re.escape(GUIDE_CLOSE)}", "", body)
     parked = re.search(r"^## Odłożone do decyzji\s*\n([\s\S]*?)(?=^## |\Z)", report, re.MULTILINE)
@@ -190,7 +190,7 @@ def guide_section(entry: Entry, commits: list[str], body: str) -> str:
     if entry["minor"]:
         lines += ["", "### Drobne uwagi (poza pętlą)", ""]
         lines += [f"- {_where(f)} {_short(f.get('body'))}" for f in entry["minor"]]
-    lines += ["", "*Sekcję aktualizuje pdi po każdej rundzie pętli PR (N2); reszta opisu to raport talosa.*"]
+    lines += ["", "*Sekcję aktualizuje pdi po każdej rundzie pętli PR (N2); reszta opisu to raport agenta tf.*"]
     return "\n".join(lines)
 
 
@@ -365,7 +365,7 @@ def _one(
         add(rnd, _cost(fixed))
         if fixed.get("status") != "ok":
             entry["open"] = tri["fix"]
-            return finish("needs_human", f"poprawka talosa nie powiodła się ({fixed.get('reason') or 'unknown'})")
+            return finish("needs_human", f"poprawka agenta tf nie powiodła się ({fixed.get('reason') or 'unknown'})")
         steps.push(cut)
         fixes += 1
         entry["fixed"] += [f["id"] for f in tri["fix"]]

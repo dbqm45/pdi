@@ -15,7 +15,7 @@ Realizujemy krok G2.4 planu G1/G2 z repo dbqm45/pdi (docs/plan-g1-g2.md, §4.2 r
 Przeczytaj też w pdi (main, kontrakt 0.4.0): contract/README.md (sekcja „Konwencje”) i cały katalog
 contract/fixtures/story-shape/ (README.md — jak oznaczono przypadki; stories.json; expected.json; vocabulary.json).
 
-Cel: wymagania pisane z agentem mają GWT, jedną ścieżkę na historyjkę i identyfikatory AC; Talos nie zaczyna
+Cel: wymagania pisane z agentem mają GWT, jedną ścieżkę na historyjkę i identyfikatory AC; agent tf nie zaczyna
 historyjki, która miesza ścieżki.
 
 1. Zestaw wzorcowy: skopiuj contract/fixtures/story-shape/ z pdi do packs/pack-it/tests/fixtures/pdi-story-shape/
@@ -37,7 +37,7 @@ historyjki, która miesza ścieżki.
    (cel z planu §4.8: precyzja ≥ 0,8, czułość ≥ 0,7). Liczba jednostek AC zgodna z polem scenarios.
 4. Skille: proc-requirements-shaping (faza 4: każda US-NN ma ≥ 1 scenariusz AC-n w GWT i jedną akcję; więcej akcji →
    podział wg mapa-i-dzielenie.md), proc-agile/references/mapa-i-dzielenie.md (sekcja „Sygnały, że historyjka
-   miesza funkcjonalności” — te same sygnały co STORY-001…003), talos-story-run (§1 Przyjęcie: lint historyjki;
+   miesza funkcjonalności” — te same sygnały co STORY-001…003), skill tf (§1 Przyjęcie: lint historyjki;
    z --auto historyjka łamiąca STORY-001 kończy się blokiem STOP z propozycją podziału), qa-spec-first-testing
    (test akceptacyjny nazwany identyfikatorem scenariusza, np. US-02/AC-3).
 

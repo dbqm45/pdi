@@ -1,6 +1,6 @@
 """Krok `run` fazy tf w kontenerze Docker (krok Z8a, decyzja DZ9). Plan: docs/plan-z8a-izolacja-faz.md.
 
-Persona fazy (i talos w `delivery`) działa w kontenerze `pdi-phase-…`, który widzi tylko klon repo produktu
+Persona fazy (i agent tf w `delivery`) działa w kontenerze `pdi-phase-…`, który widzi tylko klon repo produktu
 (montowany pod tą samą ścieżką), bez katalogu domowego właściciela, `~/.sdlc/env`, `~/.ssh` i innych repo. Kontener
 ma tylko wewnętrzną sieć Dockera; jedyna droga na zewnątrz to proxy `pdi-egress-…` z listą hostów (`pdi.phase_egress`),
 a każda odmowa trafia do logu przebiegu. Drugą warstwą jest sandbox Claude Code: ustawienia zarządzane w
@@ -9,7 +9,7 @@ przez `--settings` (`PDI_CLAUDE_SETTINGS` w `phase_run.py`).
 
 Wartości z hosta (token Claude, treść zgłoszenia) idą do kontenera tylko przez środowisko procesu `docker`
 (`-e NAZWA` bez wartości), więc nie ma ich w argv ani w logu. Kroki z poświadczeniami (push, PR, prośba o bramkę,
-cięcia talosa) zostają na hoście, w `pdi.dispatch_local`. `PDI_DISPATCH_SANDBOX=none` wyłącza kontener jawnie.
+cięcia agenta tf) zostają na hoście, w `pdi.dispatch_local`. `PDI_DISPATCH_SANDBOX=none` wyłącza kontener jawnie.
 """
 
 from __future__ import annotations
@@ -198,7 +198,7 @@ def allowed_hosts(checkout: Path, env: Mapping[str, str]) -> list[str]:
 def dockerfile(version: str, packages: Sequence[str], *, semgrep: str | None = None) -> str:
     """Dockerfile obrazu fazy: przypięta baza, Claude Code w wersji z sdlc-phase.yml, bez roota i bez sekretów.
 
-    `semgrep`: wersja skanera dla pętli talosa (Z8c-2), instalowana w osobnym venv jako root; None — bez skanera.
+    `semgrep`: wersja skanera dla pętli agenta tf (Z8c-2), instalowana w osobnym venv jako root; None — bez skanera.
     """
     extra = ["python3-venv"] if semgrep and "python3-venv" not in packages else []
     apt = " ".join([*BASE_PACKAGES, *packages, *extra])
@@ -259,11 +259,11 @@ def ensure_image(checkout: Path, *, run: Run, env: Mapping[str, str], force: boo
     if code != 0:
         tail = "\n".join(out.strip().splitlines()[-5:])
         raise SandboxError(f"docker build {image.tag} zakończony kodem {code}: {tail}")
-    if needs_scanner(checkout):  # PRB-29: bez semgrepa talos zatrzymuje kawałek na skanie, a faza kończy się bez cięć
+    if needs_scanner(checkout):  # PRB-29: bez semgrepa agent tf staje na skanie kawałka, a faza kończy się bez cięć
         code, out = run(["docker", "run", "--rm", image.tag, "semgrep", "--version"], checkout, docker_env)
         if code != 0:
             raise SandboxError(
-                f"obraz {image.tag} nie ma działającego semgrepa (kod {code}: {out.strip()[:200]}), a talos "
+                f"obraz {image.tag} nie ma działającego semgrepa (kod {code}: {out.strip()[:200]}), a agent tf "
                 f"skanuje nim kawałki (Z8c-2). Sprawdź log budowy i ponów: uv run sdlc image --force."
             )
     return image.tag, True
@@ -283,9 +283,9 @@ def claude_settings(hosts: Sequence[str], secret_names: Sequence[str]) -> dict[s
             "allowUnsandboxedCommands": False,
             "autoAllowBashIfSandboxed": False,
             "enableWeakerNestedSandbox": True,
-            # Transkrypty tej sesji: `run_report.py finish` liczy z nich koszt przebiegu Talosa (PRB-34); węższa ścieżka
-            # w allowRead wygrywa z denyRead (code.claude.com/docs/en/sandboxing, odczyt 2026-11-06). Token idzie przez
-            # zmienną środowiskową, nie przez pliki w ~/.claude.
+            # Transkrypty tej sesji: `run_report.py finish` liczy z nich koszt przebiegu agenta tf (PRB-34);
+            # węższa ścieżka w allowRead wygrywa z denyRead (code.claude.com/docs/en/sandboxing, odczyt 2026-11-06).
+            # Token idzie przez zmienną środowiskową, nie przez pliki w ~/.claude.
             "filesystem": {"denyRead": home_secrets, "allowRead": ["~/.claude/projects"], "allowWrite": [TMP]},
             "network": {"allowedDomains": list(hosts), "allowManagedDomainsOnly": True},
             "credentials": {"envVars": [{"name": name, "mode": "deny"} for name in denied]},

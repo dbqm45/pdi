@@ -48,7 +48,7 @@ IMPACT_OUTCOMES = impact.OUTCOMES
 PROBLEM_OUTCOMES = ("accepted", "rejected")
 AUTONOMY_OUTCOMES = ("approved", "rejected")
 CAPTURE_OUTCOMES = ("approved", "rejected")
-# PR cięcia talosa po pętli PR (N2): pozycja informacyjna, zamykana bez wpisu w rejestrze (decyzję o scaleniu
+# PR cięcia agenta tf po pętli PR (N2): pozycja informacyjna, zamykana bez wpisu w rejestrze (decyzję o scaleniu
 # podejmuje człowiek w GitHubie).
 PR_READY_OUTCOMES = ("reviewed",)
 PR_READY_STATUSES = ("green", "needs_human")

@@ -458,7 +458,7 @@ def test_entrypoint_leaves_an_existing_or_read_only_config_alone(tmp_path: Path)
 
 
 def test_dockerfile_installs_pinned_semgrep_only_when_asked() -> None:
-    """PRB-29: talos z Z8c-2 skanuje kawałek semgrepem; bez binarki w obrazie delivery w kontenerze staje."""
+    """PRB-29: agent tf z Z8c-2 skanuje kawałek semgrepem; bez binarki w obrazie delivery w kontenerze staje."""
     plain = phase_sandbox.dockerfile("2.1.310", [])
     with_scanner = phase_sandbox.dockerfile("2.1.310", [], semgrep="1.183.0")
 

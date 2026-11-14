@@ -1,4 +1,4 @@
-# Plan N2 — pętla budujący–recenzent na PR talosa i samonaprawa CI
+# Plan N2 — pętla budujący–recenzent na PR agenta tf i samonaprawa CI
 
 Data: 2026-11-07 · Status: **w PR** (pdi + tf) · Krok N2 [planu „zespół jednoosobowy”](plan-zespol-jednoosobowy.md)
 (§8.3, grupa A5), po A6, Z8a, Z1 i N1. Stan wyjściowy: pdi main `df1894e` (kontrakt 0.14.0), tf 5.65.0 (kopia
@@ -6,9 +6,9 @@ kontraktu 0.13.0), sdlc-proba na fabryce 5.65.0, Actions w sdlc-proba włączone
 
 ## Cel
 
-PR cięcia talosa trafia do człowieka tylko z zielonymi checkami i zamkniętymi uwagami przeglądu albo z wyraźnym
+PR cięcia agenta tf trafia do człowieka tylko z zielonymi checkami i zamkniętymi uwagami przeglądu albo z wyraźnym
 „nie udało się po N rundach” i powodem — zawsze z sekcją **„Przewodnik dokończenia”** w opisie PR. Weryfikacja jest
-oddzielona od agenta: przegląd, walidacja uwag i odczyt CI robi pdi (host) i drugi model, a talos tylko poprawia.
+oddzielona od agenta: przegląd, walidacja uwag i odczyt CI robi pdi (host) i drugi model, a agent tf tylko poprawia.
 
 ## Przebieg (po fazie delivery, na każdy PR cięcia)
 
@@ -21,7 +21,7 @@ _publish_cuts (jak dziś: tytuł z 1. commitu, opis = runs/TSK-n.md + „Change:
        4. checki    — host: `gh pr checks <url> --json name,state,bucket,link,workflow` do końca oczekiwania
        5. koniec?   — brak `fix` i checki zielone → green (albo needs_human, gdy są pytania);
                       runda k > PDI_PR_LOOP_ROUNDS (2, jak DZ6) albo budżet → needs_human z powodem
-       6. poprawka  — kontener: `pr_loop.py fix` (talos, tylko uwagi `fix` i log CI jako dane cytowane) → host:
+       6. poprawka  — kontener: `pr_loop.py fix` (agent tf, tylko uwagi `fix` i log CI jako dane cytowane) → host:
                       `git push origin story/…` → następna runda
      po każdej rundzie: host podmienia w opisie PR tylko sekcję „Przewodnik dokończenia” (`gh pr edit --body-file`)
 ```
@@ -34,7 +34,7 @@ _publish_cuts (jak dziś: tytuł z 1. commitu, opis = runs/TSK-n.md + „Change:
 | ma `decision_ref` (sprzeczna z decyzją zmiany, Z1) | pytanie do człowieka `[sprzeczne z CHG-n/Dk] …`, bez poprawki |
 | walidacja `status: unavailable` (np. `no_api_key`) | pytanie `[niepotwierdzone: drugi przegląd niedostępny (no_api_key)] …`, bez poprawki; przewodnik mówi to wprost |
 | walidacja `confirmed: false` albo brak wpisu dla id | pytanie `[niepotwierdzone] … — <powód drugiego modelu>` |
-| `confirmed: true`, critical/important | poprawka talosa w następnej rundzie |
+| `confirmed: true`, critical/important | poprawka agenta tf w następnej rundzie |
 
 Wcześniejsze wyjście: gdy po przeglądzie nie ma uwag `fix` (zostały tylko drobne i pytania) i checki są zielone,
 pętla kończy się od razu.
@@ -47,11 +47,11 @@ N2 dokłada do szablonu `change-check.yml` (mode-pdi, uruchamiany `on: pull_requ
 dodania (nie cichy PASS). Dzięki temu testy produktu biegną na każdym PR kodu, a nie tylko na zmianach definicji.
 
 - `fail`/`cancel` → host czyta log: z `link` checku wyciąga numer przebiegu Actions i woła
-  `gh run view <id> --log-failed` (token `gh` zostaje na hoście); ostatnie 200 linii / 20 000 znaków idą do talosa
+  `gh run view <id> --log-failed` (token `gh` zostaje na hoście); ostatnie 200 linii / 20 000 znaków idą do agenta tf
   w znacznikach `<untrusted source=ci-log>` (treść z zewnątrz, N14).
 - `pending` dłużej niż `PDI_PR_LOOP_CHECKS_WAIT` (domyślnie 1200 s) → needs_human, powód `checks_timeout`.
 - **brak checków** po `PDI_PR_LOOP_CHECKS_GRACE` (domyślnie 120 s) → zapas lokalny: `pr_loop.py verify` (N3,
-  `./verify.sh`) w kontenerze fazy. Czerwony wynik → log idzie do talosa jak log CI. Zielony wynik **nie** daje
+  `./verify.sh`) w kontenerze fazy. Czerwony wynik → log idzie do agenta tf jak log CI. Zielony wynik **nie** daje
   `green`: PR kończy się `needs_human` z powodem `no_ci_checks` („weryfikacja N3 lokalnie przeszła, ale PR nie ma
   checków CI”). PR bez checków nigdy nie jest zielony.
 
@@ -63,14 +63,14 @@ Zostaje to na krok z tokenem aplikacji (Z8g); szablon dostaje tylko komentarz. P
 ### Przewodnik dokończenia (wspólny z N7)
 
 Stała sekcja `## Przewodnik dokończenia` w opisie PR, przed linią `Change: CHG-n`; host podmienia tylko ją (znacznik
-`<!-- pdi:przewodnik -->`), raport talosa i linia `Change:` zostają. Podsekcje:
+`<!-- pdi:przewodnik -->`), raport agenta tf i linia `Change:` zostają. Podsekcje:
 
 - **Stan** — `green` / `needs_human` / w toku, runda k z N, powód, checki (np. „2 checki zielone”), koszt pętli;
 - **Zrobione** — tematy commitów cięcia (z `git log`), poprawione uwagi z rund;
 - **Zostaje dla Ciebie** — pytania (niepotwierdzone, sprzeczne z decyzją z refem), otwarte uwagi po limicie
   (plik:linia), kroki: przejrzyj, odpowiedz w PR, scal; brak `REVIEW.md` → polecenie `pr_loop.py scaffold`;
 - **Decyzje poza planem — do zatwierdzenia** — sekcje „Odłożone do decyzji” i odstępstwa `plan_drift` z raportu
-  talosa (już w opisie) wskazane z prośbą o zatwierdzenie, plus `[założenie]` z raportu;
+  agenta tf (już w opisie) wskazane z prośbą o zatwierdzenie, plus `[założenie]` z raportu;
 - **Ryzyka** — walidacja niedostępna, brak checków CI, limit rund, budżet, drobne uwagi bez poprawki;
 - **Drobne uwagi (poza pętlą)** — lista uwag poniżej progu.
 
@@ -108,12 +108,12 @@ tf (PR pierwszy — pdi woła jego polecenia):
 
 | # | Plik | Zmiana | Test |
 |---|---|---|---|
-| 1 | `modes/mode-pdi/skills/pdi-decisions/scripts/pr_loop.py` (nowy, stdlib) | `review` (claude `--print --output-format json --json-schema`, narzędzia Read/Grep/Glob, REVIEW.md produktu albo szablon, diff i decyzje w `<untrusted>`), `fix` (talos, wejście z `PDI_PR_LOOP_INPUT`), `verify` (N3), `scaffold` (REVIEW.md z szablonu) | `modes/mode-pdi/tests/test_pr_loop.py` (atrapa `PDI_CLAUDE_BIN`) |
+| 1 | `modes/mode-pdi/skills/pdi-decisions/scripts/pr_loop.py` (nowy, stdlib) | `review` (claude `--print --output-format json --json-schema`, narzędzia Read/Grep/Glob, REVIEW.md produktu albo szablon, diff i decyzje w `<untrusted>`), `fix` (agent tf, wejście z `PDI_PR_LOOP_INPUT`), `verify` (N3), `scaffold` (REVIEW.md z szablonu) | `modes/mode-pdi/tests/test_pr_loop.py` (atrapa `PDI_CLAUDE_BIN`) |
 | 2 | `modes/mode-pdi/skills/pdi-decisions/templates/REVIEW.md` (nowy) | szablon z `core-git-workflow/references/review-md.md` dopasowany do dziennika zmiany | test_pr_loop (scaffold) |
 | 3 | `templates/change-check.yml` | krok „Weryfikacja produktu (N3)” obowiązkowy | test_pr_loop (szablon) |
 | 4 | `templates/sdlc-phase.yml` | komentarz: pętla PR tylko w trybie lokalnym (powód) | — |
 | 5 | `modes/mode-pdi/settings.json`, `core/tests/test_settings_coverage.py` | `Bash(python3 .claude/skills/pdi-decisions/scripts/pr_loop.py *)`; polecenia z promptu `fix` w REQUIRED | test_settings_coverage |
-| 6 | `modes/mode-talos/skills/talos-story-run/SKILL.md` | §5 „Poprawki z pętli PR (N2)”: tylko wskazane uwagi, commit `fix(…)` ze stopką `Change: TSK-n`, bez push | skill gate talos-story-run |
+| 6 | `core/skills/tf/SKILL.md` | §5 „Poprawki z pętli PR (N2)”: tylko wskazane uwagi, commit `fix(…)` ze stopką `Change: TSK-n`, bez push | skill gate tf |
 | 7 | `modes/mode-pdi/skills/pdi-decisions/SKILL.md`, `GUIDE.md`, `pack.yaml` (0.9.0) | opis pętli, zmienne, co znaczy zielone | test_mode_pdi, skill gate pdi-decisions |
 
 pdi:

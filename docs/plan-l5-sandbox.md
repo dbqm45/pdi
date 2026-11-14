@@ -24,7 +24,7 @@ Na nim cały scenariusz §5 przechodzi w jeden dzień. Lista kroków z oczekiwan
   ShipScope czyta je jako źródło z kodu: `{"file": "config/flags.{env}.json", "valuePath": "enabled", "rolloutPath":
   "rollout"}` (wyłączona flaga zostaje off, a włączona ma stan według `rollout`).
 - **tf 5.51.1, tryb zespołowy:**
-  - pakiety `pack-it`, `pack-ux` (plus `pack-editorial-pl`), tryby `mode-pdi` i `mode-talos`;
+  - pakiety `pack-it`, `pack-ux` (plus `pack-editorial-pl`), tryb `mode-pdi`;
   - `tf doctor` czysty (jedno ostrzeżenie samego tf o długości listy skilli);
   - workflowy `sdlc-phase.yml`, `metric-watch.yml`, `team-factory.yml` i `change-check.yml` (ci_for_sdlc v0.1.35)
     zostają w repo, ale lokalny przebieg ich nie potrzebuje;
