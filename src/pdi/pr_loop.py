@@ -120,17 +120,23 @@ def replace_guide(body: str, section: str) -> str:
 
 
 def _outside_plan(body: str) -> list[str]:
-    """Decyzje poza planem z raportu agenta tf: „Odłożone do decyzji”, `[założenie]` i odstępstwa `plan_drift`."""
+    """Decyzje poza planem z raportu agenta tf: „Postponed for a decision” (dawniej „Odłożone do decyzji”),
+    `[assumption]`/`[założenie]` i odstępstwa `plan_drift` — raport tf jest po angielsku od etapu 4b, starszy
+    po polsku."""
     found: list[str] = []
     report = re.sub(rf"{re.escape(GUIDE_OPEN)}[\s\S]*?{re.escape(GUIDE_CLOSE)}", "", body)
-    parked = re.search(r"^## Odłożone do decyzji\s*\n([\s\S]*?)(?=^## |\Z)", report, re.MULTILINE)
+    parked = re.search(
+        r"^## (?:Postponed for a decision|Odłożone do decyzji)\s*\n([\s\S]*?)(?=^## |\Z)", report, re.MULTILINE
+    )
     for line in (parked.group(1) if parked else "").splitlines():
         item = line.strip()
-        if item.startswith("- ") and item[2:].strip().lower() not in ("brak", "—"):
+        if item.startswith("- ") and item[2:].strip().lower() not in ("brak", "none", "—"):
             found.append(item[2:].strip())
     for line in report.splitlines():
         item = line.strip().lstrip("-* ").strip()
-        if ("[założenie]" in item or "odstępstw" in item.lower()) and item not in found:
+        low = item.lower()
+        marked = "[założenie]" in item or "[assumption]" in low
+        if (marked or "odstępstw" in low or "deviation" in low) and item not in found:
             found.append(item)
     return [_short(x) for x in found]
 
