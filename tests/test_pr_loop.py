@@ -254,3 +254,17 @@ def test_checks_state_and_run_id() -> None:
     assert pr_loop.checks_state([{"bucket": "cancel"}, {"bucket": "pending"}]) == "red"
     assert pr_loop.run_id_of("https://github.com/o/r/actions/runs/123/job/456") == "123"
     assert pr_loop.run_id_of("https://example.com/x") is None
+
+
+def test_outside_plan_reads_english_tf_report() -> None:
+    """tf (4b) pisze raport po angielsku: „Postponed for a decision”, `[assumption]`, „none” — pdi czyta oba języki."""
+    report = (
+        "# Run report TSK-1\n\n## Postponed for a decision\n\n- CDR duplicates across files\n\n"
+        "## Assumptions\n\n- [assumption] the badge only in the header\n- plan_drift: one deviation from the plan\n\n"
+        "Change: CHG-4\n"
+    )
+    found = pr_loop._outside_plan(report)
+    assert "CDR duplicates across files" in found
+    assert "[assumption] the badge only in the header" in found
+    assert any("deviation" in x for x in found)
+    assert pr_loop._outside_plan("## Postponed for a decision\n\n- none\n") == []
