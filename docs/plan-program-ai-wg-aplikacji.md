@@ -326,6 +326,19 @@ dzisiejszych kopii; nocny test parity (już istniejący w ci_for_sdlc) pilnuje, 
 **Ryzyko.** Wydzielenie opłaca się, jeśli EV nie jest jedyną domeną na zawsze. Scalenie (K5) jest potrzebne w obu
 wariantach, więc od niego zaczynamy; decyzja o osobnej marce linii może poczekać do K6.
 
+### 3.6 `team` — DI Team: tablica „Now” i „Ask team” (dopisane 2026-11-19)
+
+Pomysł właściciela z 2026-11-19: wspólny widok dla zespołu na to, co dzieje się teraz. Tablica „Now” z kolumnami
+In progress, Awaiting decision, In review, Done; każda karta to zadanie i pokazuje, kto uruchomił AI, który agent
+nad nim pracuje i co robi, jakie pytania, decyzje i niezgodności są otwarte. Przy decyzji: zdecydować samemu albo
+„Ask team” — odpowiedzi online ukryte do zamknięcia albo agenda refinementu („Discuss with team”); decydent zostaje
+ten sam, a konsultacja jest zapisana przy decyzji.
+
+To widok na zdarzenia suity, nie komunikator i nie nowe źródło prawdy. Zaczyna jako ekran w istniejącej konsoli
+pdi; decyzja, czy to osobny produkt czy powłoka całej suity (G6/P1), po pierwszym zespole. Brakujące dane: pole
+„kto uruchomił przebieg” i zdarzenia startu oraz postępu w kontrakcie, hook w fabryce dla sesji ręcznych, wspólna
+tożsamość. Ustalenia, braki, kroki T1–T6 i makieta: [`TODO.md`](../TODO.md), sekcja „DI Team”.
+
 ## 4. Plan wdrożeniowy
 
 Założenia: jeden właściciel decyzji, praca w sesjach Claude Code na repo (jak dotąd), każdy punkt = osobny PR
@@ -486,6 +499,7 @@ nazwy ShipScope i Quorum stają się nazwami kodowymi repozytoriów, nie nazwami
 | ai-gateway | **Delivery Intelligence Model Gateway** | DI Model Gateway | jeden punkt wywołań modeli: polityka danych, koszt, log |
 | ai-registry | **Delivery Intelligence AI Registry** | DI AI Registry | inwentarz systemów AI, klasa ryzyka, dziennik agentów, księga wartości |
 | assistant | **Delivery Intelligence Assistant** | DI Assistant | kanał dla biznesu nad tymi samymi danymi, z nadzorem człowieka |
+| team (dopisane 2026-11-19; na start ekran w konsoli pdi) | **Delivery Intelligence Team** | DI Team | tablica „Now”: co dzieje się teraz, kto uruchomił AI, co czeka na decyzję; „Ask team” dla decyzji |
 
 Dwie funkcje mają dwuczłonową nazwę celowo: „Factory” bez „Agent” nie mówi, co fabryka produkuje, a „Registry” bez
 „AI” brzmi jak rejestr dostaw.
