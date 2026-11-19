@@ -458,7 +458,7 @@ def test_entrypoint_leaves_an_existing_or_read_only_config_alone(tmp_path: Path)
 
 
 def test_dockerfile_installs_pinned_semgrep_only_when_asked() -> None:
-    """PRB-29: talos z Z8c-2 skanuje kawałek semgrepem; bez binarki w obrazie delivery w kontenerze staje."""
+    """PRB-29: agent tf z Z8c-2 skanuje kawałek semgrepem; bez binarki w obrazie delivery w kontenerze staje."""
     plain = phase_sandbox.dockerfile("2.1.310", [])
     with_scanner = phase_sandbox.dockerfile("2.1.310", [], semgrep="1.183.0")
 
@@ -469,14 +469,16 @@ def test_dockerfile_installs_pinned_semgrep_only_when_asked() -> None:
     assert with_scanner.index("semgrep==") < with_scanner.index("\nUSER pdi"), "instalacja jako root, przed USER"
 
 
-def test_image_gets_semgrep_when_the_clone_has_the_talos_scanner(tmp_path: Path) -> None:
+def test_image_gets_semgrep_when_the_clone_has_the_loop_scanner(tmp_path: Path) -> None:
+    scanner_path = ".claude/skills/tf/scripts/security_scan.py"  # tf 10.0.0+: pętla w rdzeniu fabryki
     repo = make_checkout(tmp_path)
     plain = phase_sandbox.image_for(repo)
-    scanner = repo / phase_sandbox.TALOS_SCANNER
+    scanner = repo / scanner_path
     scanner.parent.mkdir(parents=True)
     scanner.write_text("# security_scan.py\n", encoding="utf-8")
     with_scanner = phase_sandbox.image_for(repo)
 
+    assert scanner_path == phase_sandbox.LOOP_SCANNER
     assert "semgrep" not in plain.dockerfile
     assert f"semgrep=={phase_sandbox.SEMGREP_VERSION}" in with_scanner.dockerfile
     assert with_scanner.tag != plain.tag, "nowy tag, więc sdlc up zbuduje obraz sam"
@@ -484,7 +486,7 @@ def test_image_gets_semgrep_when_the_clone_has_the_talos_scanner(tmp_path: Path)
 
 def test_ensure_image_checks_semgrep_in_a_freshly_built_image(tmp_path: Path) -> None:
     repo = make_checkout(tmp_path)
-    scanner = repo / phase_sandbox.TALOS_SCANNER
+    scanner = repo / phase_sandbox.LOOP_SCANNER
     scanner.parent.mkdir(parents=True)
     scanner.write_text("# security_scan.py\n", encoding="utf-8")
 
@@ -499,8 +501,11 @@ def test_ensure_image_checks_semgrep_in_a_freshly_built_image(tmp_path: Path) ->
         phase_sandbox.ensure_image(repo, run=run, env={})
 
 
-def test_ensure_image_skips_the_semgrep_check_without_the_talos_scanner(tmp_path: Path) -> None:
+def test_ensure_image_skips_the_semgrep_check_without_the_loop_scanner(tmp_path: Path) -> None:
     repo = make_checkout(tmp_path)
+    old_layout = repo / ".claude/skills" / "story-run" / "scripts" / "security_scan.py"  # inny skill to nie pętla tf
+    old_layout.parent.mkdir(parents=True)
+    old_layout.write_text("# security_scan.py\n", encoding="utf-8")
     run = FakeRun({"docker image inspect": (1, "")})
     phase_sandbox.ensure_image(repo, run=run, env={})
     assert not run.find("docker", "run")

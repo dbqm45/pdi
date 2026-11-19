@@ -48,7 +48,7 @@ zostawiony jako uzasadnienie planu.
   sekcje TL;DR / Otwarte pytania / Przekazanie. **Dziennik jest per projekt, nie per zmiana.**
 - Persony: dyspozytor `maja` (pack-it) / `iwona` (pack-ev), `natalia` UX, `ewa` domena, `tomasz` architekt,
   `kasia` testy, `piotr` DevOps/SRE, `kuba` product engineer i inne.
-- `modes/mode-talos`: historyjka → plan z pionowych kawałków → TDD → commit na kawałek → PR + raport kosztu;
+- pętla fabryki (rdzeń tf): historyjka → plan z pionowych kawałków → TDD → commit na kawałek → PR + raport kosztu;
   przebiegi w `.claude/runs/` (**ignorowane przez git**).
 - `packs/pack-it/skills/proc-issue-triage`: stany `needs-triage → needs-info → ready-for-agent / ready-for-human /
   wontfix`, baza odrzuconych pomysłów `.out-of-scope/` — gotowy fundament „report a problem”.
@@ -88,7 +88,7 @@ zostawiony jako uzasadnienie planu.
    „Network team can't report uptime as the time chargers were available to drivers”. Dwie bramki: tania
    („czy analizować”) i droga („czy budować”). Zgłoszenia w bazie pdi, do repo trafia dopiero przyjęta intencja.
    Odrzucenie zawsze z powodem; zgłaszający dostaje informację „wydane”, gdy ShipScope potwierdzi wydanie.
-4. **Odkrycie tf:** tf już ma cykl, bramki, dziennik, triaż, Talosa i pasma kontrolne → pdi robi się cienki
+4. **Odkrycie tf:** tf już ma cykl, bramki, dziennik, triaż, agenta tf i pasma kontrolne → pdi robi się cienki
    (UI + decyzje + orkiestracja), logika procesu zostaje w tf.
 5. **Plan aktualizacji** wszystkich czterech projektów → [`plan-jeden-flow-sdlc.md`](plan-jeden-flow-sdlc.md).
 

@@ -70,7 +70,10 @@ wynik obok. Stan zmiany ma `dispatch: {mode: local, status: running | done | fai
 | `PDI_DISPATCH_CPUS`, `PDI_DISPATCH_MEMORY` | limity kontenera, domyślnie `4` i `6g` |
 | `PDI_EGRESS_UPSTREAM` | opcjonalnie: proxy firmowe (`http://host:port`, osiągalne z sieci Dockera) za proxy wyjścia |
 
-**Izolacja persony (Z8a, decyzja DZ9).** Krok `run` (persona fazy, w `delivery` talos) działa w kontenerze Docker
+pdi wymaga repozytorium produktu na tf 10.0.0 lub nowszym: pętla dostarczania jest tam w rdzeniu fabryki (agent
+i polecenie `tf`), a skaner bezpieczeństwa pętli pdi rozpoznaje po ścieżce `.claude/skills/tf/`.
+
+**Izolacja persony (Z8a, decyzja DZ9).** Krok `run` (persona fazy, w `delivery` agent tf) działa w kontenerze Docker
 `pdi-phase`, który widzi tylko klon repo produktu, zamontowany pod tą samą ścieżką (przy worktree także wspólny
 katalog `.git`). Nie ma w nim katalogu domowego, `~/.sdlc/env`, `~/.ssh`, `~/.claude` ani innych repo. System plików
 jest tylko do odczytu (poza klonem i tmpfs `/tmp` oraz `/home/pdi`), kontener nie ma uprawnień jądra
@@ -81,7 +84,7 @@ według plików w klonie, `semgrep.dev` i `PDI_DISPATCH_ALLOW_HOSTS`. Każda odm
 kontenerze (`/etc/claude-code/managed-settings.json`, tylko do odczytu, ustawienia z repo produktu ich nie poluzują)
 i te same w `--settings` (`PDI_CLAUDE_SETTINGS`). Polecenia Bash persony nie widzą tokenów. Kontener dostaje tylko
 środowisko dzisiejszego kroku `run`, a wartości (token Claude, treść zgłoszenia) idą przez środowisko procesu
-`docker`, nie przez argv, więc nie ma ich w logu. Kroki z poświadczeniami (`git fetch`/`push`, `gh`, cięcia talosa,
+`docker`, nie przez argv, więc nie ma ich w logu. Kroki z poświadczeniami (`git fetch`/`push`, `gh`, cięcia agenta tf,
 `gate request`) zostają na komputerze. Obraz buduje `sdlc up` albo `uv run sdlc image [--force]`. Bez Dockera pdi
 odmawia startu fazy, zamiast po cichu działać bez izolacji. Plan: [docs/plan-z8a-izolacja-faz.md](docs/plan-z8a-izolacja-faz.md).
 
@@ -94,11 +97,11 @@ Pozostałe zmienne z powłoki pdi też są zawężone do tego, czego potrzebuje 
 - `phase_run.py run` (persona): `ANTHROPIC_*`, `CLAUDE_*` i `PDI_CLAUDE_BIN`; dane AWS albo Google tylko przy
   `CLAUDE_CODE_USE_BEDROCK` albo `CLAUDE_CODE_USE_VERTEX`. W kontenerze bez ścieżek i gniazd hosta (`PATH`, `HOME`,
   `TMPDIR`, `SSH_AUTH_SOCK`, `XDG_*`, proxy hosta, `PDI_CLAUDE_BIN`), za to z tożsamością git z klonu
-  (`GIT_AUTHOR_*`, `GIT_COMMITTER_*`) dla commitów talosa.
+  (`GIT_AUTHOR_*`, `GIT_COMMITTER_*`) dla commitów agenta tf.
 
-**Pętla PR talosa (N2).** Po `delivery` pdi prowadzi każdy PR cięcia przez rundy: przegląd AI według `REVIEW.md`
+**Pętla PR agenta tf (N2).** Po `delivery` pdi prowadzi każdy PR cięcia przez rundy: przegląd AI według `REVIEW.md`
 produktu (`pr_loop.py review` w kontenerze fazy) → walidacja uwag drugim modelem (`second_review.py comments`, N1, na
-komputerze z kluczem drugiego modelu) → talos poprawia tylko potwierdzone uwagi `critical`/`important` i czerwone
+komputerze z kluczem drugiego modelu) → agent tf poprawia tylko potwierdzone uwagi `critical`/`important` i czerwone
 checki (`pr_loop.py fix` w kontenerze; log CI z `gh run view --log-failed` idzie jako dane cytowane) → push i ponowny
 przegląd; najwyżej 2 rundy poprawek (DZ6). Uwagi niepotwierdzone, przy niedostępnym drugim modelu (np. `no_api_key`)
 i sprzeczne z decyzją zmiany idą do Ciebie jako pytania, drobne — jako lista w PR. **Zielone** = co najmniej jeden

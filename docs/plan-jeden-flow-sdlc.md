@@ -14,7 +14,7 @@ ci_for_sdlc, słucha ShipScope.
 | Projekt | Pytanie | Zakres |
 |---|---|---|
 | **pdi** (Product Decision Intelligence) | Co, czy i dlaczego? | zgłoszenia, triaż, rejestr decyzji, skrzynka bramek, orkiestracja etapów, graf śladu, ocena skutków decyzji |
-| **tf** (fabryka agentów) | Jak to zrobić? | persony, skille, hooki, artefakty w `docs/project/`, Talos (historyjka → PR), rekonstrukcja z kodu, pasma kontrolne |
+| **tf** (fabryka agentów) | Jak to zrobić? | persony, skille, hooki, artefakty w `docs/project/`, agent tf (historyjka → PR), rekonstrukcja z kodu, pasma kontrolne |
 | **ci_for_sdlc** | Czy wiemy, co budujemy? | spójność definicji między źródłami, gotowość do implementacji, pytania do ludzi, drift po zatwierdzeniu |
 | **ShipScope** | Czy to już działa u ludzi? | wdrożone vs wydane (flagi), drift środowisk, rollbacki, release notes, lead time |
 
@@ -32,7 +32,7 @@ ci_for_sdlc, słucha ShipScope.
 | 06 | Architektura i plan cięć (B3) **[B]** | tf | ADR, model zagrożeń, cięcia pionowe TSK-57…TSK-60 |
 | 07 | Design **[B]** | tf + Figma MCP (nowe) | ramki per journey i stan, linki w `design.md` |
 | 08 | Kontrola spójności i gotowość **[B]** | ci_for_sdlc | luki i konflikty → pytania w skrzynce pdi → decyzje; „Approve for implementation” = baseline |
-| 09 | Build | tf (Talos) | PR na cięcie, commit na kawałek z dopiskiem `Change: TSK-57`, raport kosztu |
+| 09 | Build | tf (agent tf) | PR na cięcie, commit na kawałek z dopiskiem `Change: TSK-57`, raport kosztu |
 | 10 | Review i merge **[B]** | tf + ci_for_sdlc | CI, AI review według `REVIEW.md`, drift spec ↔ kod, merge przez code ownera |
 | 11 | Gotowość i wydanie (B4, B5) **[B]** | tf | przegląd gotowości, autoryzacja PROD |
 | 12 | Status wydania **[B]** | ShipScope | Not deployed / Deployed (hidden) / Released per CHG; włączenie flagi to decyzja biznesowa |
@@ -71,7 +71,7 @@ docs/project/changes/CHG-12/
   design.md        # linki do ramek Figmy per journey i stan
   plan.md          # cięcia: TSK-57 … TSK-60 (wartość, pliki, weryfikacja)
   decisions.md     # lokalne wpisy DEC-… z linkiem do pdi
-  runs/TSK-57.md   # raport Talosa: plan, odstępstwa, koszt, wynik bramek
+  runs/TSK-57.md   # raport agenta tf: plan, odstępstwa, koszt, wynik bramek
 ```
 
 ### Ślad w commitach
@@ -124,7 +124,7 @@ pdi warto zbudować przez flow tf (fazy 0–6) jako pierwszy przebieg próbny.
 
 ## 5. tf — zmiany w fabryce
 
-tf ma już cykl dostarczenia (fazy 0–9, bramki B1–B6), dziennik artefaktów, Talosa, triaż i pasma kontrolne.
+tf ma już cykl dostarczenia (fazy 0–9, bramki B1–B6), dziennik artefaktów, agenta tf, triaż i pasma kontrolne.
 Brakuje pracy per zmiana, uruchamiania bez interakcji i wyjść w formacie maszynowym.
 
 | Co | Gdzie | Po co | Faza |
@@ -132,8 +132,8 @@ Brakuje pracy per zmiana, uruchamiania bez interakcji i wyjść w formacie maszy
 | Dziennik per zmiana | `core-project-record`, `project_record.py change new CHG-12 --source PRB-34`, szablony intent/plan | w brownfieldzie wiele zmian idzie równolegle; dziś dziennik jest per projekt | F0 |
 | Instalacja w pozostałych repo | tf w ShipScope i pdi; aktualizacja starszej instalacji w `ci_for_sdlc/.claude` | jeden sposób pracy agentów wszędzie | F0 |
 | Dopisek `Change:` w commitach | `core-conventional-commits`, `core-git-workflow`, hook commit-msg | ślad dla ShipScope i ci_for_sdlc | F1 |
-| Talos czyta cięcia z `plan.md` zmiany | `modes/mode-talos/skills/talos-story-run` | historyjka = TSK; dopisek w każdym commicie | F1 |
-| Raport Talosa w repo | z `.claude/runs/` (ignorowane przez git) do `changes/CHG/runs/TSK-n.md` albo do opisu PR | ślad audytowy; miary z planu F3 rekonstrukcji (`plan_drift.py`) | F1 |
+| Agent tf czyta cięcia z `plan.md` zmiany | `core/skills/tf` | historyjka = TSK; dopisek w każdym commicie | F1 |
+| Raport agenta tf w repo | z `.claude/runs/` (ignorowane przez git) do `changes/CHG/runs/TSK-n.md` albo do opisu PR | ślad audytowy; miary z planu F3 rekonstrukcji (`plan_drift.py`) | F1 |
 | Dokończenie `eng-project-reconstruction` | F1a–F2 z `docs/plans/2026-10-23-rekonstrukcja-z-kodu.md` | fundament brownfieldu; szkice `CLAUDE.md` i `REVIEW.md` | F2 |
 | Eksport rekonstrukcji w JSON | obok `rules.md`, `requirements.md`, `domain.md`: te same treści z dowodami `plik:linia` | źródło dla ci_for_sdlc | F2 |
 | `proc-issue-triage` na wejściu z pdi | wejście: PRB w JSON; wyjście: rekomendacja według schematu | wzbogacenie i triaż w pdi bez kopiowania logiki | F3 |
@@ -201,9 +201,9 @@ Każda faza kończy się czymś, co działa samo, nawet jeśli następna się op
 > G1.3 (ShipScope) w trybie repo po F1; G1.4 (REL w repo) po F2; G1.5 (bramki etapów i zdarzenia) po F4–F5.
 
 ### F1 — Ślad w commitach
-- **tf:** dopisek `Change:` i hook; Talos czyta `plan.md` zmiany; raport przebiegu w repo.
+- **tf:** dopisek `Change:` i hook; agent tf czyta `plan.md` zmiany; raport przebiegu w repo.
 - **ShipScope:** sync elementów z repo, hierarchia CHG → TSK, grupowanie po zmianach, flagi z kluczami zmian.
-- **Zrobione 2026-10-26:** tf #80 (dopisek `Change:`, hook `commit-msg`, Talos na cięciach zmiany); ShipScope #107
+- **Zrobione 2026-10-26:** tf #80 (dopisek `Change:`, hook `commit-msg`, agent tf na cięciach zmiany); ShipScope #107
   (zmiany i zadania z `docs/project/changes/`).
 - **Działa po fazie:** ShipScope pokazuje „CHG-12: Deployed (hidden) na PROD” bez Jiry i bez pdi.
 
@@ -312,10 +312,10 @@ Fazy F0–F5 są zrobione; zostają rozszerzenia, kroki zależne od innych prac 
 | D3 | Format ID | kształt Jiry, prefiksy konfigurowalne per organizacja; cięcie jako osobne ID z rodzicem — **przyjęte 2026-10-23** ([decyzje](decyzje.md)) |
 | D4 | Jira w brownfieldzie | zostaje źródłem dla ci_for_sdlc i ShipScope; dla nowych zmian źródłem prawdy jest repo, Jira najwyżej jako lustro |
 | D5 | Model wdrożenia pdi | usługa dla wielu klientów jak ShipScope; między usługami tokeny serwisowe i podpisane webhooki |
-| D6 | Koszt agentów bez interakcji | twardy budżet per zmiana i per faza (mechanizm `--budget` z Talosa), raport kosztu w grafie śladu |
+| D6 | Koszt agentów bez interakcji | twardy budżet per zmiana i per faza (mechanizm `--budget` z agenta tf), raport kosztu w grafie śladu |
 | D7 | Format dziennika w ShipScope | dziś `context/foundation/` (10xDevs); przejść na `docs/project/` z tf przy okazji F0, bez pośpiechu |
 
 ---
 
 Sprawdzone w kodzie 2026-10-23: `extractIssueKeys()` i `TOKEN_PERMISSIONS` w ShipScope, wzorzec klucza elementu
-i trasy API w ci_for_sdlc, dziennik, Talos, triaż i plan rekonstrukcji w tf. Zakres pdi to propozycja.
+i trasy API w ci_for_sdlc, dziennik, agent tf, triaż i plan rekonstrukcji w tf. Zakres pdi to propozycja.

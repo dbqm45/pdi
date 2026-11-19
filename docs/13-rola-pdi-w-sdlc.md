@@ -31,7 +31,7 @@ Z [wczesnych etapów rozmowy](zrodla/2026-10-23-wczesne-etapy-rozmowy.md) — ob
 | Zgłoszenia `PRB` — zanim staną się zmianą; większość zostanie odrzucona, więc nie trafia do repo | wzbogacenie i rekomendacja triażu → tf `proc-issue-triage` + rekonstrukcja |
 | Decyzje triażu i odrzucenia z powodem | szkic intencji, wymagań, architektury, planu → persony tf (fazy 0–6) |
 | Skrzynka bramek: jedna lista „czeka na Ciebie” dla wszystkich bramek | kontrola spójności i pytania → ci_for_sdlc |
-| Stan każdej zmiany w maszynie stanów (orkiestrator) | build → tf Talos |
+| Stan każdej zmiany w maszynie stanów (orkiestrator) | build → agent tf |
 | Graf śladu PRB → CHG → TSK → PR → wydanie → skutek | status wydania → ShipScope |
 | Ocena skutku decyzji i powiadomienie zgłaszającego | pasma kontrolne → tf `control_band.py` |
 | Kontrakt (`contract/`): schematy i ID wspólne dla czterech projektów (rekomendacja D1) | |

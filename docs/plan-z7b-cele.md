@@ -160,7 +160,7 @@ Pack `pack-it` / mode `mode-pdi`:
 ## Co zostaje poza Z7b-1a
 
 - Realne uruchamianie StrykerJS / mutmut w fazie `delivery` — fakt, że `claude --print` dostaje komendy przez
-  `settings.json`, zapisuję w tf PR; pętla, która zmusza Talosa do uruchomienia narzędzi i zaraportowania wyniku,
+  `settings.json`, zapisuję w tf PR; pętla, która zmusza agenta tf do uruchomienia narzędzi i zaraportowania wyniku,
   jest w ci_for_sdlc (Z7b-1b).
 - `slo` (Z10a) i progi wydajności / dostępności (Z10e) wchodzą swoimi krokami jako opcjonalne pola w `targets` —
   schemat już zostawia na nie miejsce (`additionalProperties: false` nie blokuje dodania nowych nazwanych pól w

@@ -117,7 +117,7 @@ trybami albo dodatkowymi opcjami, domyślne zachowanie się nie zmienia.
 ### L5. Repo próbne `sdlc-sandbox` (Z5)
 - **Co:** repo-szablon na GitHubie z:
   - małą aplikacją (statyczna strona albo prosty serwer w Node), testami i plikiem flag `config/flags.{env}.json`,
-  - tf zainstalowanym w trybie zespołowym z `pack-it`, `pack-ux`, `mode-pdi` i `mode-talos`,
+  - tf zainstalowanym w trybie zespołowym z `pack-it`, `pack-ux` i `mode-pdi`,
   - `.claude/pdi-metrics.json`,
   - `README` z jednym zgłoszeniem do wpisania.
 
@@ -133,7 +133,7 @@ trybami albo dodatkowymi opcjami, domyślne zachowanie się nie zmienia.
 4. ⚙️ Requirements → B2, architecture → B3, design → design-review; każda bramka to merge i decyzja w czacie.
 5. ⚙️ ci_for_sdlc sprawdza zmianę i wysyła gotowość, a w skrzynce pojawia się approve-for-implementation (z
    prognozą). Decyzja.
-6. ⚙️ Talos robi cięcia jako PR-y. Przegląd i merge.
+6. ⚙️ Agent tf robi cięcia jako PR-y. Przegląd i merge.
 7. `sdlc deploy test`, `sdlc deploy prod`. ShipScope pokazuje „Deployed (hidden)”.
 8. PR-y z etapami flagi (`min_days: 0`), po każdym `sdlc deploy prod`. ⚙️ `release.stage_changed` daje bramkę etapu
    w skrzynce, a `feature.released` z R1 planuje ocenę skutku.
@@ -157,7 +157,7 @@ Zdarzenia ShipScope sprawdza co 5 minut (`eventsTick()`), więc między etapem f
 | bramki w skrzynce pdi, decyzje w rejestrze, automatyczny start następnej fazy | tak |
 | sprawdzenie zmiany w ci_for_sdlc (REL-001…008, testy kryteriów) i wysyłka gotowości do pdi | tak |
 | prognoza przy zatwierdzeniu do budowy | tak, choć przy pustej historii z `doubts` |
-| dostarczenie przez talos, cięcia jako PR-y z `Change:` i `Flag:` | tak |
+| dostarczenie przez agenta tf, cięcia jako PR-y z `Change:` i `Flag:` | tak |
 | wdrożenia, flagi, plan wydania i ślad zmiany w ShipScope | tak, na wdrożeniach z `sdlc deploy` |
 | zdarzenia `release.stage_changed` i `feature.released` do pdi, bramki etapów | tak |
 | ocena skutku, graf śladu, licznik autonomii | tak, ze skróconym terminem |

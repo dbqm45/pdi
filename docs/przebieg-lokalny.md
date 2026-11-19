@@ -57,7 +57,7 @@ prowadzony wyłącznie w konsoli, od zgłoszenia do pierwszej bramki (B1) z decy
 
 - [x] **T** Docker Desktop działa; `claude setup-token`, a token jako `CLAUDE_CODE_OAUTH_TOKEN=…` w `~/.sdlc/env`
   (bez `ANTHROPIC_API_KEY` obok). `uv run sdlc up` → `obraz faz: pdi-phase:2.1.310-… (zbudowany)` za pierwszym razem (z semgrepem, gdy klon ma
-  skaner talosa, i z jego sprawdzeniem `semgrep --version` po budowie — PRB-29),
+  skaner agenta tf, i z jego sprawdzeniem `semgrep --version` po budowie — PRB-29),
   potem `(jest)`, bez uwagi o tokenie. **A6: na żywo w CHG-2 (obraz `pdi-phase:2.1.310-73385c1e0195` użyty w `docker
   run` z logu `CHG-2-intent-20261103T204330Z.log`).**
 - [ ] Bez Dockera (Docker Desktop zatrzymany) `uv run sdlc up` i start fazy kończą się komunikatem „Docker nie
@@ -133,7 +133,7 @@ prowadzony wyłącznie w konsoli, od zgłoszenia do pierwszej bramki (B1) z decy
   odpowiedziałeś przy B2, nie pojawia się w `## Pytania do bramki` ani w `plan.md` (B3), ani w `design.md`
   (design-review); zamiast niego artefakt ma ustalenie z odwołaniem `CHG-1/Dk` i `DEC-n`. Gdy persona je powtórzy,
   faza kończy się krokiem `run` z błędem `repeated_question` (pytanie i decyzja w logu) — to też wynik do zapisania
-  (PRB). Delivery nie rusza, dopóki pytanie z `plan.md` nie ma odpowiedzi; talos nie łamie przyjętych decyzji
+  (PRB). Delivery nie rusza, dopóki pytanie z `plan.md` nie ma odpowiedzi; agent tf nie łamie przyjętych decyzji
   (np. DEC-0003 z poprzedniego przebiegu). Wymaga tf z Z1 (`decision import`, `decision gate --answers`) w repo próbnym.
 - [x] **B3 (architecture):** w PR jest `plan.md` i `release.yaml` z flagą (`owner`, `remove_by`, `rollout` z
   `min_days: 0`). Merge, decyzja (z `answers`, gdy są pytania) → faza `design`.
@@ -152,12 +152,12 @@ prowadzony wyłącznie w konsoli, od zgłoszenia do pierwszej bramki (B1) z decy
 - [x] **C** `list_inbox` → „Approve for implementation” (z prognozą). Decyzja `approved` → faza `delivery` startuje
   sama.
 
-## 4. Dostarczenie (talos)
+## 4. Dostarczenie (agent tf)
 
 - [x] Cięcia jako PR-y, a commity mają `Change: TSK-n` i `Flag: show_last_deployed`. W klonie `npm test` przechodzi.
-  Merge po przeglądzie. Gałęzie `story/*` wypycha i PR-y otwiera pdi po przebiegu talosa (`get_change`:
+  Merge po przeglądzie. Gałęzie `story/*` wypycha i PR-y otwiera pdi po przebiegu agenta tf (`get_change`:
   `dispatch.prs`, w `get_trace` przy zadaniach); cięcie zbudowane na poprzednim ma PR do niego. Bez gałęzi z commitami faza kończy się krokiem `cuts`.
-- [ ] **Z8c-2 — skan bezpieczeństwa w pętli kawałka (tf #138: mode-talos 1.2.0, mode-pdi 0.7.0):** w repo
+- [ ] **Z8c-2 — skan bezpieczeństwa w pętli kawałka (tf #138: tryb pętli 1.2.0, mode-pdi 0.7.0):** w repo
   próbnym karencja wersji 7 dni (`.npmrc` `min-release-age=7`, `package-lock.json` w gicie) i `semgrep` w obrazie
   fazy; bez tego `security_scan.py cooldown` albo `scan` kończy się FAIL z linią do dodania lub poleceniem instalacji
   (`pipx install semgrep`), nigdy cichym PASS. Kawałek z celowym SQL injection na ścieżce testu akceptacyjnego:
@@ -166,19 +166,19 @@ prowadzony wyłącznie w konsoli, od zgłoszenia do pierwszej bramki (B1) z decy
   `verdict.json`, `feedback.md`, `summary.md`; ustalenia poniżej progu w sekcji „Bezpieczeństwo” raportu. Gdy obie
   próby są czerwone: blok `STOP — K<n> (skan bezpieczeństwa)` i brak commitu. PR cięcia: `change-check.yml` uruchamia
   ten sam skan, a ci_for_sdlc dostaje SARIF (`--sarif`, SEC-001). Reguły `p/owasp-top-ten` pobiera się z
-  `semgrep.dev` (host na liście dozwolonych kontenera, Z8a); bez dostępu ustaw `TALOS_SEMGREP_CONFIG` na plik reguł
-  w repo. Stan 2026-11-03: kawałek talosa na `sdlc-proba` przeszedł w sesji w chmurze, poza pdi
-  ([wynik](#wynik-przebiegu-2026-11-03-z8c-2-talos-na-sdlc-proba), sdlc-proba #10); fazy `delivery` z pdi
+  `semgrep.dev` (host na liście dozwolonych kontenera, Z8a); bez dostępu ustaw `TF_SEMGREP_CONFIG` na plik reguł
+  w repo. Stan 2026-11-03: kawałek agenta tf na `sdlc-proba` przeszedł w sesji w chmurze, poza pdi
+  ([wynik](#wynik-przebiegu-2026-11-03-z8c-2-agent-tf-na-sdlc-proba), sdlc-proba #10); fazy `delivery` z pdi
   i `change-check.yml` na PR jeszcze nie. Rejestr `p/owasp-top-ten` pobiera się bez logowania (sprawdzone
   2026-11-03, semgrep 1.183.0: 560 reguł), ale zestaw jest węższy niż po `semgrep login` — `node:sqlite`
   i `tainted-sql-string` (Express) w nim nie ma; wzorce spoza rejestru produkt dopisuje w `.semgrep.yml`
   (sdlc-proba ma regułę dla `node:sqlite`), a szerszy zestaw w CI daje token `SEMGREP_APP_TOKEN`.
-- [ ] **N2 — pętla PR talosa ([plan](plan-n2-petla-pr.md); tf: mode-pdi 0.9.0, mode-talos 1.3.0) — wymaga Twojego
+- [ ] **N2 — pętla PR agenta tf ([plan](plan-n2-petla-pr.md); tf: mode-pdi 0.9.0, tryb pętli 1.3.0) — wymaga Twojego
   Maca.** Przygotowanie w `dbqm45/sdlc-proba`: fabryka z tf z N2, `REVIEW.md` (`python3
   .claude/skills/pdi-decisions/scripts/pr_loop.py scaffold`), `verify.sh` z komendami stosu (np. `npm test`) i
   `change-check.yml` na nowo (`phase_run.py workflow install --workflow change-check --force`, krok „Weryfikacja
   produktu (N3)”); klucz drugiego modelu w `~/.sdlc/env` (`ANTHROPIC_API_KEY` albo `OPENAI_API_KEY` z
-  `PDI_SECOND_MODEL`) — bez niego wariant „niedostępny” niżej. Cięcie talosa z jednym **prawdziwym** błędem do
+  `PDI_SECOND_MODEL`) — bez niego wariant „niedostępny” niżej. Cięcie agenta tf z jednym **prawdziwym** błędem do
   wykrycia (np. brak obsługi pustej wartości na ścieżce testu) i jednym miejscem, które prowokuje **fałszywą** uwagę
   (np. „brak walidacji” tam, gdzie waliduje wywołujący). Oczekiwane po `delivery`:
   - log przebiegu ma `# pdi: pętla PR (N2)` i kroki `pr_loop.py review` / `fix` w kontenerze (`docker run`), a
@@ -186,7 +186,7 @@ prowadzony wyłącznie w konsoli, od zgłoszenia do pierwszej bramki (B1) z decy
   - prawdziwa uwaga: `confirmed: true` w walidacji, commit `fix(…)` z `Runda pętli PR 1` i `Change: TSK-n`, po pushu
     zielony check „Definition check”; fałszywa: w sekcji „Przewodnik dokończenia” → „Zostaje dla Ciebie” jako
     `[niepotwierdzone] … — <powód drugiego modelu>`, bez poprawki;
-  - opis PR: raport talosa i `Change: CHG-n` bez zmian, sekcja „Przewodnik dokończenia” (Stan, Zrobione, Zostaje dla
+  - opis PR: raport agenta tf i `Change: CHG-n` bez zmian, sekcja „Przewodnik dokończenia” (Stan, Zrobione, Zostaje dla
     Ciebie, Decyzje poza planem — do zatwierdzenia, Ryzyka, ew. Drobne uwagi) zaktualizowana po każdej rundzie;
   - `get_change`: `pr_loop.<url PR>.status` = `needs_human` (jest pytanie) z `round` 2 i kosztem rund w `rounds`;
     karta na tablicy konsoli „PR #n: needs_human (runda 2/2)”, tabela „Pętla PR” na stronie śladu; w skrzynce „PR
@@ -239,7 +239,7 @@ i 1,49, delivery 2,20).
 | 1. Zgłoszenie i triaż | zaliczony | faza intent przez kilka minut bez wpisów w logu (PRB-6) |
 | 2. Fazy z bramkami | zaliczony z obejściami | bramki zatwierdzane przed merge'em PR-ów faz, więc kolejne fazy startowały od nieaktualnego `main` (PRB-2); konflikty `docs/project/README.md`, `decisions.md` i `design.md` rozwiązane ręcznie (PRB-12, PRB-13); te same pytania wracały w B3 i design-review (PRB-3); faza design najpierw padła bez treści błędu persony (PRB-11) |
 | 3. Gotowość | zaliczony z obejściami | `sdlc check` milczał przy klonie bez zmian (PRB-7); `not_ready` przez ostrzeżenia DES-001 i STORY-001 bez możliwości decyzji dla zmian z repo (PRB-16, PRB-17; reguły wyłączone w `~/.sdlc/ci-data/settings.json`); `release.yaml` uzupełniony ręcznie (właściciel, `min_days: 0`, kryterium wyjścia etapu `100%`); prognoza bez historii |
-| 4. Dostarczenie | zaliczony z obejściami | talos zrobił TSK-1 i TSK-2 z dopiskami `Change:` i `Flag:`, ale nie wypchnął gałęzi ani nie otworzył PR-ów (PRB-4); TSK-1 commitował `config/build.json` wbrew DEC-0003, bo `plan.md` miał nierozstrzygnięte pytanie (PRB-3) — poprawione ręcznie; złe tytuły zadań w ShipScope (PRB-18) |
+| 4. Dostarczenie | zaliczony z obejściami | agent tf zrobił TSK-1 i TSK-2 z dopiskami `Change:` i `Flag:`, ale nie wypchnął gałęzi ani nie otworzył PR-ów (PRB-4); TSK-1 commitował `config/build.json` wbrew DEC-0003, bo `plan.md` miał nierozstrzygnięte pytanie (PRB-3) — poprawione ręcznie; złe tytuły zadań w ShipScope (PRB-18) |
 | 5. Wdrożenia | zaliczony z obejściami | pierwsze wdrożenie (merge commit bez kluczy) nie łączyło się z zadaniami (ShipScope #129); przeliczenie zapisanych wdrożeń wymagało odpięcia repo (PRB-19); `sdlc down` zostawił osierocone procesy ShipScope (PRB-8) |
 | 6. Etapy flagi | zaliczony | złamany JSON w `config/flags.prod.json` doszedł do PROD bez CI, ShipScope słusznie odmówił odczytu (PRB-15); bramki `internal` i `100%` przyszły z ShipScope; R1 wydane 2026-10-31T19:08Z; `get_trace` bez PR-ów zadań (PRB-5); status zmiany `deployed_code_only` mimo flagi zadania (PRB-20) |
 | 7. Ocena skutku | zaliczony | `pdi-impact-review` bez zmiennych z `~/.sdlc/env` nie czyta ShipScope, użyte narzędzie MCP `open_due_impact_reviews` (PRB-9); szkic `unknown` (cel jakościowy), decyzja `met` po sprawdzeniu stopki na `APP_ENV=prod`; `forecast_report` bez danych (PRB-22), `autonomy_report` z zerem mierzonych decyzji (PRB-21) |
@@ -249,7 +249,7 @@ Luki według repozytorium:
 | Repo | Zgłoszenia |
 |---|---|
 | pdi | PRB-2 bramka bez merge'u PR-a fazy · PRB-3 odpowiedzi z bramek nie docierają do kolejnych faz (**zrobione 2026-11-02**, Z1: pdi #110, tf #135, #136; do potwierdzenia w przebiegu A6) · PRB-4 delivery kończy się bez PR-ów · PRB-5 ślad bez PR-ów zadań · PRB-6 log fazy bez bieżącego wyjścia · PRB-7 `sdlc check` milczy · PRB-8 `sdlc down` i osierocone procesy · PRB-9 `pdi-impact-review` w dokumentacji · PRB-10 `sdlc status` bez stanu powiadomień ci_for_sdlc · PRB-21 decyzje ze szkiców bez `drafted_by`/`draft_edited` · PRB-22 rzeczywisty czas przepływu bez prognozy nie jest zapisywany |
-| tf | PRB-11 błąd persony bez treści · PRB-12 dwie fazy tworzą `design.md` · PRB-13 dziennik projektu i numeracja `decisions.md` między gałęziami · PRB-14 odsyłacz do nieistniejącego `parked.md` (**wszystkie zrobione 2026-11-02**, tf #134, 5.55.1: treść błędu persony, ADR-y w `architecture.md`, faza czeka na scalony artefakt poprzedniej, raport talosa z odłożonymi sprawami) |
+| tf | PRB-11 błąd persony bez treści · PRB-12 dwie fazy tworzą `design.md` · PRB-13 dziennik projektu i numeracja `decisions.md` między gałęziami · PRB-14 odsyłacz do nieistniejącego `parked.md` (**wszystkie zrobione 2026-11-02**, tf #134, 5.55.1: treść błędu persony, ADR-y w `architecture.md`, faza czeka na scalony artefakt poprzedniej, raport agenta tf z odłożonymi sprawami) |
 | ci_for_sdlc | PRB-16 brak decyzji dla ustaleń zmian z repo (**zrobione 2026-11-01**, ci_for_sdlc #107, tf #128: odpowiedź to wpis w `decisions.md` zmiany z polem `ustalenie`, `decision_record.py decision add --finding`) · PRB-17 każde ostrzeżenie daje `not_ready` (**zrobione 2026-11-01**, ci_for_sdlc #107: zmiana jest `not_ready` tylko przy blokującym ustaleniu) |
 | ShipScope | PRB-18 tytuły zadań z `plan.md` · PRB-19 brak przeliczenia zapisanych wdrożeń · PRB-20 status zmiany a flaga zadania |
 | sdlc-proba / proces | PRB-15 bez CI złamany plik flag dochodzi do PROD |
@@ -260,10 +260,10 @@ w `~/.sdlc/ci-data/settings.json` (`policy.disabledRules`).
 Przed etapem 2 warto naprawić PRB-2, PRB-3, PRB-4, PRB-18 i PRB-21: na sprintdecku wymagałyby tych samych ręcznych
 napraw, a PRB-21 zostawia licznik autonomii (etap 6) bez danych.
 
-## Wynik przebiegu 2026-11-03 (Z8c-2, talos na sdlc-proba)
+## Wynik przebiegu 2026-11-03 (Z8c-2, agent tf na sdlc-proba)
 
-Jeden kawałek talosa (`talos-story-run`, bez `--auto`) na `dbqm45/sdlc-proba`, w sesji Claude Code w chmurze, bez pdi,
-ShipScope i fazy `delivery`. Skaner z tf `main` a85e233 (mode-talos 1.2.0, tf #138), uruchamiany spoza repo; fabryka
+Jeden kawałek agenta tf (`tf`, bez `--auto`) na `dbqm45/sdlc-proba`, w sesji Claude Code w chmurze, bez pdi,
+ShipScope i fazy `delivery`. Skaner z tf `main` a85e233 (tryb pętli 1.2.0, tf #138), uruchamiany spoza repo; fabryka
 w repo próbnym została na 5.56.0. Historyjka: `GET /deployments?env=<env>` zwraca wdrożenia środowiska z pliku
 SQLite (`node:sqlite`, bez zależności). Wynik: PR [sdlc-proba #10](https://github.com/dbqm45/sdlc-proba/pull/10),
 bez merge'u.
@@ -279,10 +279,10 @@ bez merge'u.
 | Raport | 131 min (z czekaniem na decyzje i konfiguracją dostępu), ok. 3,73 USD; odłożone do decyzji: 5 |
 
 Co wymagało obejścia:
-- `semgrep.dev` zablokowany przez politykę sieci środowiska w chmurze: `TALOS_SEMGREP_CONFIG` wskazywał kopię
+- `semgrep.dev` zablokowany przez politykę sieci środowiska w chmurze: `TF_SEMGREP_CONFIG` wskazywał kopię
   `javascript/` z github.com/semgrep/semgrep-rules (16b9e6d) poza repo. Po dodaniu `semgrep.dev` do dozwolonych
   hostów (tego samego dnia): rejestr działa bez logowania (`GET /c/p/owasp-top-ten` → 200, 560 reguł); skaner
-  talosa na kopii sdlc-proba z podatnym zapytaniem z próby 1 daje FAIL z `.semgrep.yml` produktu (CWE-89), a PASS
+  agenta tf na kopii sdlc-proba z podatnym zapytaniem z próby 1 daje FAIL z `.semgrep.yml` produktu (CWE-89), a PASS
   z samym rejestrem; plik z `conn.query("…" + req.query.env)` w Express — 0 ustaleń z rejestru, 2 z kopii
   z GitHuba (tf #144).
 - W świeżym klonie nie ma `.claude/factory-manifest.json` (jest w `.gitignore`), więc `factory/update.py` widzi
@@ -293,15 +293,15 @@ Co wymagało obejścia:
 - Hooki fabryki nie działają w sesji z kilkoma repozytoriami; bramki uruchamiane ręcznie. `run_report.py finish`
   szuka transkryptów w katalogu projektu repo, a sesja zaczęła się w katalogu nadrzędnym — trzeba było podać
   `--session` i dowiązanie w `CLAUDE_CONFIG_DIR`. **Część z transkryptami naprawiona 2026-11-03** (tf #141,
-  mode-talos 1.2.3): `finish` i `status` szukają w najbliższym katalogu nadrzędnym, a `--session` w każdym katalogu
+  tryb pętli 1.2.3): `finish` i `status` szukają w najbliższym katalogu nadrzędnym, a `--session` w każdym katalogu
   projektu. Hooki w sesji z kilkoma repozytoriami bez zmian.
 
 Luki w tf (**obie zrobione 2026-11-03**):
 - Skan traktował zmianę `package.json` bez zależności i bez lockfile'a jako błąd, a `cooldown` na tym samym repo dawał
   PASS. Teraz audyt jest pomijany z podanym powodem, a manifest z zależnościami bez lockfile'a dalej jest błędem (N10)
-  — tf #139, mode-talos 1.2.1, tf 5.58.0.
+  — tf #139, tryb pętli 1.2.1, tf 5.58.0.
 - Próba 2 nadpisywała w `security/K<n>/` SARIF i werdykt próby 1. Teraz każda próba ma katalog `proba-<k>`, a raport
-  przebiegu pokazuje wszystkie próby kawałka — tf #140, mode-talos 1.2.2, tf 5.58.1.
+  przebiegu pokazuje wszystkie próby kawałka — tf #140, tryb pętli 1.2.2, tf 5.58.1.
 
 ## Wynik przebiegu 2026-11-03–05 (A6)
 
@@ -326,7 +326,7 @@ nie wydarzyło. Łącznie 7 uruchomień faz w kontenerze, koszt ok. 2,19 USD; ka
 | 1. Zgłoszenie i triaż | zaliczony | PRB-27 (licznik wdrożeń za flagą `deploy_counter`, off na prod) przyjęte jako CHG-3; brak nietypowych odstępstw |
 | 2. Fazy z bramkami | zaliczony (PRB-2 i PRB-3 potwierdzone) | B1, B2, B3, design-review — każda bramka po merge'u PR-a fazy (PRB-2 domknięte poprawkami po 2026-10-31 — plan §2, grupa A1); pytanie o właściciela flagi i kryterium wyjścia z etapu test, odpowiedziane przy B2 (DEC-0014), nie wróciło w plan.md ani design.md — ustalenie trafia z odwołaniem `CHG-3/Dn` i `DEC-n` (PRB-3 potwierdzone domknięte Z1 z 2026-11-02) |
 | 3. Gotowość i zatwierdzenie | zaliczony | `sdlc check` raportuje `ready delivered`, ci_for_sdlc otwartych pytań nie zgłasza; Approve for implementation (DEC-0017) na gałęzi fazy `pdi/CHG-3-delivery`; z góry, zgodnie z trybem autonomii A6 z 2026-11-03 |
-| 4. Dostarczenie (talos) | **zaliczony 2026-11-06** po poprawkach ([dokończenie](#dokończenie-delivery-chg-3-2026-11-05–06)); pierwsze dwie próby z 2026-11-05 niżej | `phase_run.py run --change CHG-3 --phase delivery` zakończony `status: done`, ale weryfikacja padła na `step: cuts` z `error: "Talos nie zostawił gałęzi story/* z commitami ponad main"`; dwie próby, koszt 0,177 i 0,149 USD (CHG-1 delivery 2026-10-31: 2,20 USD, ok. 15×), Talos wyszedł bardzo wcześnie. Diagnoza niedostępna, bo `result.json` nie ma pola `detail` z ostatniej odpowiedzi persony — PRB-28 (tf). Prawdopodobna przyczyna (do potwierdzenia po PRB-28): obraz `pdi-phase:2.1.310-73385c1e0195` nie ma zainstalowanego `semgrep` (`docker run --rm pdi-phase:2.1.310-73385c1e0195 semgrep --version` → `not found`), więc Talos pada w `security_scan.py scan` pierwszego kawałka zgodnie z Z8c-2 — PRB-29 (pdi). W katalogu `sdlc-proba/.claude/runs/` nie powstał nawet katalog z 2026-11-05 — Talos wyszedł przed `run_report.py start`. |
+| 4. Dostarczenie (agent tf) | **zaliczony 2026-11-06** po poprawkach ([dokończenie](#dokończenie-delivery-chg-3-2026-11-05–06)); pierwsze dwie próby z 2026-11-05 niżej | `phase_run.py run --change CHG-3 --phase delivery` zakończony `status: done`, ale weryfikacja padła na `step: cuts` z `error: "Agent tf nie zostawił gałęzi story/* z commitami ponad main"`; dwie próby, koszt 0,177 i 0,149 USD (CHG-1 delivery 2026-10-31: 2,20 USD, ok. 15×), agent tf wyszedł bardzo wcześnie. Diagnoza niedostępna, bo `result.json` nie ma pola `detail` z ostatniej odpowiedzi persony — PRB-28 (tf). Prawdopodobna przyczyna (do potwierdzenia po PRB-28): obraz `pdi-phase:2.1.310-73385c1e0195` nie ma zainstalowanego `semgrep` (`docker run --rm pdi-phase:2.1.310-73385c1e0195 semgrep --version` → `not found`), więc agent tf pada w `security_scan.py scan` pierwszego kawałka zgodnie z Z8c-2 — PRB-29 (pdi). W katalogu `sdlc-proba/.claude/runs/` nie powstał nawet katalog z 2026-11-05 — agent tf wyszedł przed `run_report.py start`. |
 | 5–7. Wdrożenia, etapy flagi, ocena skutku | pominięte świadomie | działały 2026-10-31 w CHG-1 (wynik `met`), bez zmian w kodzie pdi/tf/ShipScope w tym obszarze; nie powtarzane w A6, bo delivery nie wytworzyło cięć do wdrożenia |
 
 Koszt faz (tf):
@@ -351,7 +351,7 @@ Luki według repozytorium:
 
 | Repo | Zgłoszenia |
 |---|---|
-| pdi | **PRB-29** (nowe) obraz fazy `pdi-phase` nie ma `semgrepa`, choć talos z Z8c-2 go wymaga; prawdopodobna przyczyna dwukrotnego `failed` delivery CHG-3 (do potwierdzenia po PRB-28). **PRB-23** (otwarte) `sdlc up` robi `npm install` w ci_for_sdlc i zmienia `package-lock.json` zamiast `npm ci`. Potwierdzone 2026-10-31 (nadal otwarte): PRB-2 (bramka przyjmuje decyzję przed merge'em — **domknięte poprawkami po 2026-10-31 w ramach plan §2, grupa A1**; w A6 każda bramka po merge'u), PRB-3 (Z1: potwierdzone, pytania nie wracają), PRB-4 (delivery bez PR-ów — **niepotwierdzone w A6**, bo delivery padło przed otwarciem jakichkolwiek PR-ów cięć; zablokowane przez PRB-29). |
+| pdi | **PRB-29** (nowe) obraz fazy `pdi-phase` nie ma `semgrepa`, choć agent tf z Z8c-2 go wymaga; prawdopodobna przyczyna dwukrotnego `failed` delivery CHG-3 (do potwierdzenia po PRB-28). **PRB-23** (otwarte) `sdlc up` robi `npm install` w ci_for_sdlc i zmienia `package-lock.json` zamiast `npm ci`. Potwierdzone 2026-10-31 (nadal otwarte): PRB-2 (bramka przyjmuje decyzję przed merge'em — **domknięte poprawkami po 2026-10-31 w ramach plan §2, grupa A1**; w A6 każda bramka po merge'u), PRB-3 (Z1: potwierdzone, pytania nie wracają), PRB-4 (delivery bez PR-ów — **niepotwierdzone w A6**, bo delivery padło przed otwarciem jakichkolwiek PR-ów cięć; zablokowane przez PRB-29). |
 | tf | **PRB-30** (nowe) szablon `.gitignore` scaffoldu sdlc-proba nie zawiera `.claude/scheduled_tasks.lock` (plik blokady harmonogramu Claude Code), więc klon faz brudzi się przy pierwszym uruchomieniu i `dispatch_local` w pdi odmawia startu fazy; obejście tego przebiegu: sdlc-proba `9521f33` wprost na `main`. **PRB-28** (nowe) `phase_run.py` nie zachowuje w `result.json` pola `detail` z ostatniej odpowiedzi persony, więc przy niepowodzeniu weryfikacji (`status: done`, `step: failed`) nie da się przeczytać, co persona faktycznie napisała zanim skończyła — diagnoza PRB-29 i każdego podobnego failed delivery zgaduje. **PRB-25** (otwarte) hook `project_record.py` z fabryki regeneruje aktywny wip przy kompaktowaniu kontekstu i blokuje dispatch_local. **PRB-26** (otwarte) `tdd_guard` zatrzymuje sesję przy zmianie `.git/config` przez zwykłe polecenia git — w tym przebiegu zablokował dwa razy. |
 | ci_for_sdlc | brak nowych zgłoszeń z A6 (rolę Z8c-1 pełnił SARIF z sdlc-proba, do skanu w delivery nie doszło). |
 | ShipScope | brak nowych zgłoszeń (§5–§7 pominięte świadomie). |
@@ -360,13 +360,13 @@ Luki według repozytorium:
 ### Dokończenie delivery CHG-3 (2026-11-05–06)
 
 Każda kolejna próba doszła dalej i odsłoniła następną przyczynę; obejść w repo próbnym, rejestrze ani ustawieniach nie
-było (stan klonu sprzątany `git restore` i `git stash`, praca Talosa z próby 4 zachowana w stashu).
+było (stan klonu sprzątany `git restore` i `git stash`, praca agenta tf z próby 4 zachowana w stashu).
 
 | Próba | Gdzie stanęła | Przyczyna | Poprawka |
 |---|---|---|---|
-| 1–2 (2026-11-05) | Talos stanął na kroku „czyste drzewo” (talos-story-run §0) | `dispatch_local` dopisywał `decisions.md` (`decision import`, `decision gate`, Z1) i w delivery nie commitował — **PRB-31** (pdi; prawdziwa przyczyna objawu PRB-4) | pdi #148: commit decyzji na gałęzi fazy przed Talosem |
-| 3 | `done` po ok. 30 s, bez katalogu przebiegu | w `claude --print` Claude Code odmawia zapisu w `.claude/` (ścieżka chroniona) i poleceń Bash spoza `permissions.allow`; w kontenerze lista `allow` repo w ogóle nie działała (folder niezaufany) — **PRB-32**; przy okazji `run_report.py start --task TSK-1` brał cięcie z CHG-1 — **PRB-33**; wyniku persony nie było widać — **PRB-28** | pdi #149 (zaufanie folderu klonu w kontenerze), tf #145 → 5.58.5 (`tmp/talos/runs/`, `Bash(git switch *)`, `--change`, cięcie od gałęzi fazy, `detail` i `permission_denials` przy sukcesie), sdlc-proba #32 |
-| 4 | skan kawałka, 10 plików gotowych bez commita | semgrep bez zapisywalnego HOME w sandboxie Bash kontenera kończy się `FileNotFoundError` (odtworzone na semgrep 1.183.0) — PRB-32 | tf #146 → 5.58.6 (stan semgrepa w `tmp/talos/runs/.semgrep/`), sdlc-proba #33; pdi #150 (`persona` w `result.json`, gdy brak cięć) |
+| 1–2 (2026-11-05) | Agent tf stanął na kroku „czyste drzewo” (skill tf, §0) | `dispatch_local` dopisywał `decisions.md` (`decision import`, `decision gate`, Z1) i w delivery nie commitował — **PRB-31** (pdi; prawdziwa przyczyna objawu PRB-4) | pdi #148: commit decyzji na gałęzi fazy przed agentem tf |
+| 3 | `done` po ok. 30 s, bez katalogu przebiegu | w `claude --print` Claude Code odmawia zapisu w `.claude/` (ścieżka chroniona) i poleceń Bash spoza `permissions.allow`; w kontenerze lista `allow` repo w ogóle nie działała (folder niezaufany) — **PRB-32**; przy okazji `run_report.py start --task TSK-1` brał cięcie z CHG-1 — **PRB-33**; wyniku persony nie było widać — **PRB-28** | pdi #149 (zaufanie folderu klonu w kontenerze), tf #145 → 5.58.5 (`.tf/runs/`, `Bash(git switch *)`, `--change`, cięcie od gałęzi fazy, `detail` i `permission_denials` przy sukcesie), sdlc-proba #32 |
+| 4 | skan kawałka, 10 plików gotowych bez commita | semgrep bez zapisywalnego HOME w sandboxie Bash kontenera kończy się `FileNotFoundError` (odtworzone na semgrep 1.183.0) — PRB-32 | tf #146 → 5.58.6 (stan semgrepa w `.tf/runs/.semgrep/`), sdlc-proba #33; pdi #150 (`persona` w `result.json`, gdy brak cięć) |
 | 5 (2026-11-05) | **done** | — | PR sdlc-proba #34: `story/tsk-1-deploy-counter` od `pdi/CHG-3-delivery`, 2 commity (decyzje D5/D6 i `feat(page): show deployments from the last 7 days behind deploy_counter`), `npm test` 50/0, `BRAMKA K1: PASS` (próba 1/2), `plan_drift` 100%, `run.json` z `"change": "CHG-3"` |
 
 Po próbie 5: reguła `node-sqlite-sql-from-string` z `.semgrep.yml` łapie celową konkatenację w kodzie z PR #34
@@ -375,7 +375,7 @@ Po próbie 5: reguła `node-sqlite-sql-from-string` z `.semgrep.yml` łapie celo
 („story/tsk 1 deploy counter”) i opis z listy commitów (`gh pr create --fill`), a `run_report.py finish` w kontenerze
 nie odczytał transkryptów (`denyRead ~/.claude`), więc raport `docs/project/changes/CHG-3/runs/TSK-1.md` nie powstał
 i „Odłożone do decyzji” (pomiar p95 dla NF-004, test EXPLAIN QUERY PLAN) zostały w `parked.md` poza gitem. Poprawki
-scalone: pdi #151 (tytuł z pierwszego commitu Talosa, opis z raportu, `allowRead ~/.claude/projects`), tf #148 →
+scalone: pdi #151 (tytuł z pierwszego commitu agenta tf, opis z raportu, `allowRead ~/.claude/projects`), tf #148 →
 5.58.7 (raport także bez transkryptów), sdlc-proba #35; potwierdzi je następne delivery. PRB-31, PRB-32 i PRB-33
 zamknięte w rejestrze; PRB-28 i PRB-29 domknięte poprawkami (tf #145, pdi #147).
 
@@ -415,14 +415,14 @@ scenariusz z ustaleniem drugiego modelu czeka na klucz.
 | architecture → B3 | PR #41, B3 przyciskiem z 3 odpowiedziami (DEC-0021): opcja A z trzech, cel pokrycie zmienionych linii ≥ 90%, bez progu mutacji (ADR-3) | approve przed merge'em PR-a fazy → `409` (zamierzone, PRB-2); sekcja „Przegląd drugim modelem” pisała „brak blokujących ustaleń” przy niedostępnym przeglądzie — tf #161 → 5.64.5 (`drugi przegląd: niedostępny (<powód>)` w artefakcie i w opisie prośby) |
 | design → design-review | PR #43, design-review przyciskiem z 9 odpowiedziami (DEC-0022), bez ramek Figmy; kontrast sprawdzony skryptem wg WCAG: TEST 11,93:1, PROD 6,54:1 | karta na tablicy „designdesign-review” — pdi #170 (postęp w osobnej linii, „bramka … rozstrzygnięta”) |
 | gotowość → approve for implementation | `sdlc check` → `readiness.changed CHG-4 ready`, bramka przyciskiem | — |
-| delivery → TSK-1 | PR #44 (tytuł z commitu, opis z `runs/TSK-1.md` — PRB-34 potwierdzone), commity `Change: TSK-1`, `Flag: env_badge`; `npm test` 60/0 (1 pominięty: semgrep poza kontenerem), 10 testów akceptacyjnych E-01A…E-05C, pokrycie `page.js` 100%, całość 98,56% (cel B3 spełniony); `BRAMKA K1: PASS`; Talos 2 min 7 s, 0,35 USD | — |
+| delivery → TSK-1 | PR #44 (tytuł z commitu, opis z `runs/TSK-1.md` — PRB-34 potwierdzone), commity `Change: TSK-1`, `Flag: env_badge`; `npm test` 60/0 (1 pominięty: semgrep poza kontenerem), 10 testów akceptacyjnych E-01A…E-05C, pokrycie `page.js` 100%, całość 98,56% (cel B3 spełniony); `BRAMKA K1: PASS`; agent tf 2 min 7 s, 0,35 USD | — |
 | wdrożenia | `sdlc deploy test` (wdrożenie 7625747490, `17207ff` = merge #44) — znacznik „TEST” i `[TEST]` w karcie; `sdlc deploy prod` — strona bez znacznika (flaga off); ShipScope: wdrożenia test i prod, TSK-1 „Deployed (hidden)” na PROD | — |
 
 **Do zrobienia po przebiegu (zgłoszone właścicielowi 2026-11-07):**
 - tf: `decision_record.py check` sprawdza wszystkie zmiany i pada na starych artefaktach CHG-1 i CHG-3 — ma
   sprawdzać bieżącą zmianę; persona dostaje `permission_denials` za złożone polecenia Bash (prompt fazy: Read, Grep,
   Glob, jedno polecenie na wywołanie); przy braku pliku Figmy faza design zamienia każdy wiersz bez ramki w osobne
-  pytanie bramki (tu 7 z 9) — jedno pytanie zbiorcze; raport Talosa pisze „Plan: 0/1 kawałków”, choć kawałek ma
+  pytanie bramki (tu 7 z 9) — jedno pytanie zbiorcze; raport agenta tf pisze „Plan: 0/1 kawałków”, choć kawałek ma
   commit.
 - sdlc-proba: GitHub Actions nie uruchomiły się w repo ani razu (0 przebiegów), więc PR-y nie mają CI — przed N2
   do decyzji właściciela (Settings → Actions). Kroki `team-factory.yml` uruchamiane ręcznie przy PR-ach fabryki.

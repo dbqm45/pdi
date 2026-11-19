@@ -268,8 +268,8 @@ class Component extends DCLogic {
             card('CHG-13', 'Podsumowanie i eksport', 'wait', 'Gotowość zielona: zatwierdzić do budowy.', '6 historyjek · R1: 3')
           ]),
           col('Budowa', [
-            card('CHG-11', 'Ukrywanie głosów do odkrycia', 'run', 'Talos: kawałek 2 z 4, test → kod.', '1,40 / 5,00 USD'),
-            card('CHG-10', 'Ponowna runda', 'block', 'STOP Talosa: historyjka łączy dwie ścieżki.', 'STORY-001 · czeka na podział')
+            card('CHG-11', 'Ukrywanie głosów do odkrycia', 'run', 'Agent tf: kawałek 2 z 4, test → kod.', '1,40 / 5,00 USD'),
+            card('CHG-10', 'Ponowna runda', 'block', 'STOP agenta tf: historyjka łączy dwie ścieżki.', 'STORY-001 · czeka na podział')
           ])
         ]),
         lane(2, 'Oceń i wydaj', 'cele, review, wydanie na PROD', 'lane-2', [
@@ -291,10 +291,10 @@ class Component extends DCLogic {
         ], true)
       ],
       events: [
-        { time: '14:32', source: 'Talos · tf', text: 'CHG-11: commit kawałka 2 „feat(room): hide vote values until reveal”.' },
+        { time: '14:32', source: 'Agent tf · tf', text: 'CHG-11: commit kawałka 2 „feat(room): hide vote values until reveal”.' },
         { time: '14:30', source: 'ShipScope', text: 'room-create: 10% od 5 dni, 0 błędów krytycznych.' },
         { time: '14:21', source: 'ci_for_sdlc', text: 'CHG-12: nowe ustalenie krytyczne REL-005, gotowość czerwona.' },
-        { time: '14:18', source: 'Talos · tf', text: 'CHG-10: STOP, STORY-001: historyjka łączy „ponowną rundę” i „porównanie rund”.' },
+        { time: '14:18', source: 'Agent tf · tf', text: 'CHG-10: STOP, STORY-001: historyjka łączy „ponowną rundę” i „porównanie rund”.' },
         { time: '14:05', source: 'Ty', text: 'DEC-41: zatwierdzono plan udostępniania flagi room-join (CHG-8).' },
         { time: '13:52', source: 'GitHub', text: 'CHG-9: PR #24 otwarty, CI zielone.' }
       ]

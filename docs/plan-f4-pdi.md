@@ -19,7 +19,7 @@ czeka i co zostało uruchomione.
 | `B2` wymagania | tf | `architecture` | `requirements` |
 | `B3` architektura i plan cięć | tf | `design` | `architecture` |
 | `design-review` | tf | — (czeka na gotowość z ci_for_sdlc) | `design` |
-| `approve-for-implementation` | ci_for_sdlc (`readiness.changed: ready` albo `gate.requested`) | `delivery` (Talos) | — (spec poprawia się w repo) |
+| `approve-for-implementation` | ci_for_sdlc (`readiness.changed: ready` albo `gate.requested`) | `delivery` (agent tf) | — (spec poprawia się w repo) |
 | `B4` gotowość do wydania | tf | — | — |
 | `B5` autoryzacja PROD | tf | — (dalej ShipScope) | — |
 

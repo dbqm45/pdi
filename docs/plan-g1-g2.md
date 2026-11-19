@@ -144,7 +144,7 @@ Każda pozycja cytuje fragment oryginału, z którego wynika. Zatwierdzenie zapi
 | `…/proc-requirements-shaping/scripts/requirements_lint.py` | Nowe sprawdzenia: historyjka bez scenariusza, scenariusz bez „Then/Wtedy”, kilka akcji „When” w historyjce, wynik nieobserwowalny. Nowe problemy jako ostrzeżenia (kod 0); `--strict` zamienia je w kod 1, żeby nie łamać istniejących projektów. | G2.4 |
 | `tests/` (repo tf) | Test lintera na kopii zestawu wzorcowego z pdi; wynik musi zgadzać się z `expected.json`. | G2.4 |
 | `packs/pack-it/skills/proc-agile/references/mapa-i-dzielenie.md` | Sekcja „Sygnały, że historyjka miesza funkcjonalności”: te same sygnały co STORY-001…003, z odesłaniem do wzorców podziału. | G2.4 |
-| `modes/mode-talos/skills/talos-story-run/SKILL.md` | §1 Przyjęcie: lint historyjki. AC bez GWT → przepisz jako [założenie] i pokaż człowiekowi; z `--auto` historyjka łamiąca STORY-001 kończy się blokiem STOP z propozycją podziału. | G2.4 |
+| `core/skills/tf/SKILL.md` | §1 Przyjęcie: lint historyjki. AC bez GWT → przepisz jako [założenie] i pokaż człowiekowi; z `--auto` historyjka łamiąca STORY-001 kończy się blokiem STOP z propozycją podziału. | G2.4 |
 | `packs/pack-it/skills/qa-spec-first-testing/SKILL.md` | Test akceptacyjny nazwany identyfikatorem scenariusza (`US-02/AC-3`). To podstawa śladu AC → test z luki G4. | G2.4 |
 
 ### 4.6. Pozostałe zmiany
@@ -162,7 +162,7 @@ Każda pozycja cytuje fragment oryginału, z którego wynika. Zatwierdzenie zapi
 | G2.1 | ci_for_sdlc | K0 | S | parser AC, pola `acScenarios` i `storyPoints`, testy na zestawie wzorcowym; `COV-001` może liczyć pokrycie scenariuszami | ci_for_sdlc widzi scenariusze GWT jako całość i zna ich identyfikatory |
 | G2.2 | ci_for_sdlc | G2.1 | M | siedem reguł, słownictwo EN/PL, ustawienia `storyShape`, dane demo, UI ustawień, e2e; kalibracja do precyzji ≥ 0,8 | każda historyjka w Jirze dostaje findings o kształcie i AC z pytaniem do PO; CLI `--fail-on` może je egzekwować w CI |
 | G2.3 | ci_for_sdlc | G2.2 | M | osobne wywołanie AI ze schematem propozycji, odrzucanie propozycji bez cytatu, karta w UI, zatwierdzenie jako decyzja; propozycja nigdy nie zmienia gotowości bez człowieka | PO dostaje gotowy podział i przepisane AC do skopiowania do Jiry, a zatwierdzenie zostaje w logu decyzji |
-| G2.4 | tf | K0 | S | skille i `requirements_lint.py` z §4.5, równolegle z G2.1–G2.3 | wymagania pisane z agentem mają GWT, jedną ścieżkę na historyjkę i identyfikatory AC; Talos nie zaczyna historyjki, która miesza ścieżki |
+| G2.4 | tf | K0 | S | skille i `requirements_lint.py` z §4.5, równolegle z G2.1–G2.3 | wymagania pisane z agentem mają GWT, jedną ścieżkę na historyjkę i identyfikatory AC; agent tf nie zaczyna historyjki, która miesza ścieżki |
 | G2.5 | panel Forge + ci_for_sdlc | G2.3, tryb SaaS | L | najpierw odczyt i komentarz, potem tworzenie historyjek po DG3 | PO widzi problemy z historyjką w trakcie pisania, bez przechodzenia do osobnej aplikacji |
 | G2.6 | sprintdeck + ci_for_sdlc | G2.2, MVP sprintdecka z importem z Jiry | S | stan kształtu w pokoju, „Zgłoś niejasność” | rozbieżność estymat staje się pytaniem przy historyjce |
 
@@ -240,7 +240,7 @@ Działają na epiku i feature'ze w trybie Jira oraz na zmianie (CHG) w trybie re
 | `modes/mode-pdi/skills/pdi-decisions/scripts/decision_record.py` | `change new` tworzy też `release.yaml`; `check` waliduje go schematem z kontraktu i sprawdza spójność: zbiór TSK w `release.yaml` równy zbiorowi w `plan.md`, każda flaga ma etapy i `remove_by`. | G1.1 |
 | `packs/pack-it/skills/proc-requirements-shaping/SKILL.md` | Faza 3 (MVP): w trybie zmiany wynik trafia do `mvp` w `release.yaml`, a cięcia z „Poza zakresem MVP” do R2. | G1.1 |
 | `packs/pack-it/skills/eng-continuous-delivery`, `ops-release-engineering` | Etapy udostępniania flagi (wewnętrzni → procent → 100%) z kryterium wyjścia i minimalnym czasem zapisywane w `release.yaml`, nie tylko w opisie wydania. | G1.1 |
-| `modes/mode-talos/skills/talos-story-run/SKILL.md` | Kawałek z flagą: kod za flagą i dopisek `Flag: payment-retry` w commicie obok `Change: TSK-57` (hook commit-msg z F1 go akceptuje). | G1.1 |
+| `core/skills/tf/SKILL.md` | Kawałek z flagą: kod za flagą i dopisek `Flag: payment-retry` w commicie obok `Change: TSK-57` (hook commit-msg z F1 go akceptuje). | G1.1 |
 
 ### 5.5. Zmiany w ci_for_sdlc (kontrola planu)
 
@@ -342,7 +342,7 @@ flowchart TB
   end
 
   subgraph APPS["Aplikacje"]
-    TF["tf: pisze historyjki (GWT, jedna ścieżka), plan i release.yaml; Talos"]
+    TF["tf: pisze historyjki (GWT, jedna ścieżka), plan i release.yaml; agent tf"]
     SD["sprintdeck: estymacja"]
     CI["ci_for_sdlc: reguły STORY, AC, REL; propozycje AI; wymiar delivery"]
     SS["ShipScope: plan kontra stan, etap flagi, R1 na PROD"]
@@ -377,7 +377,7 @@ flowchart TB
 
 Zależności techniczne: wszystkie aplikacje zależą od kontraktu (K0). Panel w Jirze zależy od ci_for_sdlc i ShipScope
 w trybie SaaS. Reguły REL w ci_for_sdlc korzystają z reguły STORY-003 z G2. ShipScope łączy flagi z cięciami przez
-dopisek `Flag:`, który dodaje Talos z tf. Zdarzenia do pdi wymagają wychodzących webhooków z fazy F5.
+dopisek `Flag:`, który dodaje agent tf. Zdarzenia do pdi wymagają wychodzących webhooków z fazy F5.
 
 ## 10. Stan realizacji
 
@@ -391,7 +391,7 @@ flow są zrobione; F6 częściowo.
 | G2.1 parser AC | ci_for_sdlc | zrobione | #58 | |
 | G2.2a reguły STORY i AC | ci_for_sdlc | zrobione | #59 | G2.2 podzielony na dwa PR-y. Odłożone do `docs/BACKLOG-DEFERRED.md` (G2-L1): AC zapisane jako lista, `COV-001` liczone po scenariuszach, sposób liczenia w STORY-002. |
 | G2.2b ustawienia kształtu w UI | ci_for_sdlc | zrobione | #60 | `storyShape` w `DEFAULT_POLICY`, `PUT /api/settings`, Settings → Policy |
-| G2.4 autor historyjek | tf | zrobione | #77 | słownictwo w `story_shape_vocabulary.json`, lint pojedynczej historyjki (`--story`) używany przez Talosa; zgodność z ci_for_sdlc sprawdza test w ci_for_sdlc #70 |
+| G2.4 autor historyjek | tf | zrobione | #77 | słownictwo w `story_shape_vocabulary.json`, lint pojedynczej historyjki (`--story`) używany przez agenta tf; zgodność z ci_for_sdlc sprawdza test w ci_for_sdlc #70 |
 | G1.1 plan wydania | tf | zrobione | #78 | |
 | G1.2 reguły REL w Jirze | ci_for_sdlc | zrobione | #61 | REL-001…006, wymiar `delivery`, panel planu na stronie epiku |
 | G1.3 zakładka „Plan wydania” | ShipScope | zrobione (tryb Jira i repo) | #106, #108 | migracje 036 i 038 zamiast 032–033 z planu (numeracja ShipScope poszła dalej); plan kroku w `design-docs/G1.3-PLAN.pl.md`; tryb repo waliduje `release.yaml` przypiętą kopią schematu z kontraktu i pokazuje błędy spójności |
@@ -408,7 +408,7 @@ Fazy [planu jednego flow](plan-jeden-flow-sdlc.md), od których zależą kroki p
 
 | Faza | Stan | Gdzie |
 |---|---|---|
-| F1 ślad w commitach | zrobione | tf #80 (dopisek `Change:`, hook `commit-msg`, Talos na cięciach zmiany); ShipScope #107 |
+| F1 ślad w commitach | zrobione | tf #80 (dopisek `Change:`, hook `commit-msg`, agent tf na cięciach zmiany); ShipScope #107 |
 | F2 spójność na repo | zrobione | eksport rekonstrukcji w JSON (tf #83); w ci_for_sdlc: rekonstrukcja jako źródło (#69), konektor `docs/project/changes/` z bramką na PR (`analyze --repo … --fail-on`, szablon `docs/templates/change-check.yml`, #71), słownik claims per domena z pakietem EV (#73, ustawienie `project.claimPack`) |
 | F3 pdi MVP | zrobione | pdi #23 (zgłoszenia, duplikaty, przyjęcie przez fazę intent); tf #82 (triaż PRB w stanach pdi), #84 (faza intent z przyjętego PRB); ci_for_sdlc #66 (gotowość do pdi) |
 | F4 orkiestracja | zrobione | pdi #16, #17; tf #79 (fazy bez interakcji); ci_for_sdlc #66 (zatwierdzenie z bramek pdi) |
@@ -440,7 +440,7 @@ Podstawa planu: kod i dokumentacja na gałęziach main (2026-10-25). ci_for_sdlc
 `analysis/rules.ts`, `policy.ts`, `connectors/atlassian.ts`, `ai/types.ts`, `test/rule-coverage.test.ts`,
 `docs/ROADMAP.md`. tf: `proc-requirements-shaping` (z `requirements_lint.py`), `proc-agile/references/mapa-i-dzielenie.md`,
 `qa-spec-first-testing`, `eng-continuous-delivery`, `ops-release-engineering`,
-`core-delivery-lifecycle/references/plan-ciec.md`, `talos-story-run`, szablony `mode-pdi`. pdi: `contract/` 0.3.0,
+`core-delivery-lifecycle/references/plan-ciec.md`, skill `tf`, szablony `mode-pdi`. pdi: `contract/` 0.3.0,
 [`plan-jeden-flow-sdlc.md`](plan-jeden-flow-sdlc.md), [`decyzje.md`](decyzje.md). ShipScope: `CLAUDE.md`,
 `server/schemas/flags-ingest.v2.schema.json`, migracje 012 i 014, `design-docs/ROADMAP.md`. sprintdeck:
 `docs/PLAN.md`, `src/lib/consensus`.
