@@ -168,3 +168,72 @@ Kroki (TDD, wersja kontraktu wg SemVer, tag `contract-v…` po merge'u):
   z istniejącymi ADR.
 - [ ] **Znaczenie `status: reverted`** (specyfikacja §7): opisać albo usunąć z kontraktu; dziś pdi go nie nadaje,
   a eksport MADR go pomija.
+
+## DI Team: tablica „Now” i „Ask team” (zapisane 2026-11-19, pomysł właściciela, do zrobienia w suicie)
+
+Nowy element Delivery Intelligence Suite. Makieta (dane przykładowe, nic nie jest podłączone):
+https://claude.ai/artifact/Kc1VN22yesnp44jbRQ2Jhy — kadry „Now board”, „Discuss with team”, „My turn” (telefon).
+Miejsce w planie programu: [`docs/plan-program-ai-wg-aplikacji.md`](docs/plan-program-ai-wg-aplikacji.md) §3.6 i §9.
+
+**Co da:** jedno miejsce, w którym cały zespół widzi na bieżąco, co się dzieje: które zadania są w toku, kto uruchomił
+AI, który agent nad czym pracuje i co robi teraz, jakie decyzje i pytania czekają i na kogo, co się nie zgadza
+(ustalenia DI Definition), co jest w przeglądzie i co zrobiono. Dziś każda aplikacja ma własny ekran, a lokalna
+konsola pdi (`src/pdi/console.py`: tablica zmian, ślad, postęp fazy na żywo, skrzynka) jest dla jednej osoby.
+
+**Ustalone (rozmowa 2026-11-19):**
+- **To widok tego, co dzieje się teraz, nie komunikator.** Bez kanałów, wiadomości prywatnych i ogólnego czatu;
+  skróty mogą iść do Slacka/Teams z linkiem z powrotem.
+- **Tablica „Now” z czterema kolumnami:** In progress, Awaiting decision, In review, Done. Karta = zadanie
+  (TSK/cięcie w zmianie CHG) i zawsze pokazuje „Started by” — osobę, która uruchomiła AI. Dalej zależnie od kolumny:
+  agent i jego bieżąca czynność, cięcie, testy, koszt wobec budżetu (In progress); na co zadanie czeka — pytanie
+  agenta, niezgodność z Definition albo bramka — i kto decyduje (Awaiting decision); PR, wynik przeglądu AI, ryzyko
+  zmiany, recenzent (In review); kiedy scalono lub wydano i na którym środowisku (Done). Filtr „Started by”.
+- **„Started by” i „Decides” to różne pola:** jedna osoba uruchamia zadanie, a pytanie może trafić do innej.
+- **Nie jest źródłem prawdy:** czyta zdarzenia aplikacji suity przez kontrakt; zapis idzie zawsze przez aplikację
+  właścicielską (decyzja → DI Decision, odpowiedź na ustalenie → DI Definition).
+- **„Ask team” przy decyzji:** decydent może zdecydować sam („Decide”) albo wysłać sprawę do zespołu („Ask team”).
+  Sprawa zostaje w „Awaiting decision” ze znacznikiem „With team · N z M odpowiedzi · zamknięcie za …” i pojawia się
+  w widoku „Discuss with team”. Dwie drogi:
+  - *online (asynchronicznie):* każdy wybiera opcję i dopisuje jedno zdanie; odpowiedzi ukryte do zamknięcia (żeby
+    nikt nie kotwiczył się na pierwszej); agent nie głosuje, tylko dokłada skutki każdej opcji (plan, koszt, testy);
+    zgodność → decydent zatwierdza jednym kliknięciem; rozbieżność albo „wymaga rozmowy” → agenda refinementu;
+  - *refinement:* „Discuss with team” jest agendą najbliższego spotkania, ułożoną według tego, co sprawy blokują;
+    decyzję zapisuje się z tej samej karty.
+- **Zasady „Ask team”:** decydent się nie zmienia (zespół doradza); każde pytanie ma czas zamknięcia, po nim decydent
+  rozstrzyga z tym, co zebrał; karta pokazuje cenę czekania (wstrzymany agent, nierozpoczęte cięcia, termin bramki);
+  pytanie idzie do wybranych osób, nie do wszystkich; decyzja w DI Decision zapisuje, kogo zapytano i co odpowiedział.
+- **Silnik głosowania:** sprintdeck już ma głosy w ciemno, odkrycie i wykrywanie rozbieżności (D-E1: konsensus co do
+  zrozumienia i ryzyka) — „Ask team” to jego użycie dla pojedynczej decyzji.
+
+**Czego brakuje w danych (sprawdzone w kontrakcie 0.14 i kodzie 2026-11-19):**
+- **Kto uruchomił przebieg.** Kontrakt ma `decided_by` w decyzji i `actor` w historyjce; nie ma pola „kto wystartował
+  fazę/przebieg” w zdarzeniach. Potrzebne nowe pole (np. `started_by`) i zdarzenia startu oraz końca przebiegu.
+- **Praca poza pdi.** Postęp na żywo (`last_progress`) istnieje dla faz uruchamianych przez pdi; sesja uruchomiona
+  ręcznie w terminalu nie wysyła nic. Potrzebny hook w fabryce, który zgłasza start, postęp i koniec także takich sesji.
+- **Wspólna tożsamość.** „Ola” na karcie musi być tą samą osobą w każdej aplikacji — to samo, czego wymaga G6/P1
+  (jedna platforma) i Z7 planu programu.
+- **Stan przeglądu.** Wynik przeglądu AI i ryzyko zmiany (`tf risk`, `ai-review/verdict`) są w repo i na PR, nie
+  w zdarzeniach kontraktu.
+
+**Kroki (każdy osobno, kolejność do potwierdzenia):**
+- [ ] **T1 — kontrakt:** `started_by` oraz zdarzenia `run.started` / `run.progress` / `run.finished` (zadanie, zmiana,
+  agent, czynność, cięcie, koszt, budżet); stan przeglądu PR (werdykt AI, ryzyko, recenzent) w zdarzeniu.
+- [ ] **T2 — fabryka:** hook zgłaszający start, postęp i koniec przebiegu także dla sesji ręcznych (dziś tylko fazy
+  uruchamiane przez pdi mają postęp); tożsamość z gita albo z konta suity.
+- [ ] **T3 — „Now” tylko do odczytu:** nowy ekran w istniejącej konsoli pdi (cztery kolumny, „Started by”, filtr po
+  osobie, linia stanu u góry), dla wielu osób; świeżość karty widoczna (kiedy ostatnio się zmieniła).
+- [ ] **T4 — „Ask team” online:** przycisk na karcie decyzji, wybór osób, opcje z pytania, odpowiedzi ukryte do
+  zamknięcia, skutki opcji od agenta, czas zamknięcia; wynik jako szkic decyzji z listą zapytanych; typ decyzji
+  w kontrakcie dostaje pole konsultacji (`consulted`: kto, opcja, uzasadnienie).
+- [ ] **T5 — „Discuss with team” jako agenda:** sprawy z rozbieżnością i oznaczone „talk live”, kolejność według
+  blokad, zapis decyzji ze spotkania; opcjonalnie eksport agendy.
+- [ ] **T6 — skróty do Slacka/Teams:** dzienny skrót i powiadomienie „czeka na Ciebie” z linkiem (łączy się
+  z kanałami pdi z F6).
+
+**Otwarte:**
+- Czy DI Team jest osobnym produktem, czy powłoką całej suity, która zastępuje planowaną usługę konsoli pdi (Z3)
+  i ekran „Now” z [`docs/15-jedna-platforma.md`](docs/15-jedna-platforma.md) — rekomendacja: zacząć jako ekran
+  w konsoli pdi (T3), decyzję o osobnym produkcie podjąć po pierwszym zespole, który z tego korzysta.
+- Granica z DI Assistant (rozmowa z Claude dla ludzi spoza IT) — DI Team rozmowy nie ma.
+- Czy głosowanie w „Ask team” używa silnika sprintdecka jako usługi, czy jego reguły zostają przeniesione.
+- Poziom szczegółu postępu agenta widoczny dla całego zespołu (czynność w zwykłych słowach tak; treść promptów nie).

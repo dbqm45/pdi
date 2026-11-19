@@ -84,6 +84,49 @@ Oznaczenia: obszar **01–07** z oceny; fala **F1–F4** z §4; „zależy od”
 | T11 | **`pack-retail`** (handel: sklep, kierownik, asortyment, płatności) — powstaje w **linii retail**, nie w repo tf (zasada z §3.5); dopiero gdy pierwszy asystent retail wejdzie do fali | 05 | F4 | brak dziś użytkownika; [założenie] że retail wchodzi w falę 2; T13 |
 | T12 | **Sandbox dla agentów operacyjnych**: `sandbox.settings.json` + `cleanroom.json` z profilem `operational` (tylko odczyt danych produkcyjnych przez MCP, bez Bash, wyjście tylko przez ai-gateway) | 03 | F3 | pdi `phase_sandbox.py` (L5, Z8a) jako baza |
 | T13 | **Packi spoza repo fabryki**: `tf install`/`tf update` instalują pack z innego repo po tagu (`<repo>@pack-v<wersja>`), z `skill_audit.py` i podpisem wydania; `pack-ev` **wychodzi z tf** do linii EV (§3.5, K6), w tf zostają tylko packi generyczne (it, ux, docs, editorial-pl, data) | 05 | F2 (mechanizm), F3 (przeniesienie pack-ev) | D-P7; `tf-new-pack` już generuje strukturę, brakuje instalacji spoza repo fabryki; `config.yaml` `requires.core` zostaje kontraktem zgodności |
+| T14 | **Wersje technologii per aplikacja** (do przemyślenia, §10): profil stacku per aplikacja w monorepo (`.tf/stack.json`), skille technologiczne z wariantami per wersja (`references/v17.md`, `v21.md`…) i instalacja tylko pasującego wariantu, automatyczne dopisanie brakującego wariantu z release notes ze źródeł `skill.meta.json` z weryfikacją kompilatorem i bramką skilla, ograniczenia między technologiami sprawdzane per profil | 01, 05 | do ustalenia | fundament już jest: `detect_stack.py`, `technologies.json`, `skill.meta.json` (`based_on`, `min_supported`, `constraints`), `core-stack-sync`; brakuje profilu per aplikacja, wariantów i automatu aktualizacji |
+
+#### Stan zadań fabryki po porównaniu z tf 9.17 (2026-11-11)
+
+Tabela wyżej powstała wobec tf 9.15 i oceny z 8 XI. Przy rozpoczęciu wdrożenia (decyzja właściciela 2026-11-11:
+„zacznij od fabryki”) każde zadanie zostało porównane z kodem tf 9.17.0. Wynik: większość już istnieje w innej
+formie, realne luki to cztery. Szczegóły i plan kroków: tf `docs/plans/2026-11-11-program-ai-luki-w-fabryce.md`.
+
+| # | Stan w tf 9.17 | Co zostaje |
+|---|---|---|
+| T1 | treść jest w `pack-it`: `ai-evals` (zbiory, graderzy, sędzia kalibrowany na ocenach ludzi, bramka w CI), `ai-mlops` (rejestr, karta modelu, drift, prompty jako artefakt), `data-engineering` (kontrakty), `data-analysis`, persona danych | osobna nakładka to pakowanie, nie luka; do porównania tylko metodyka z aiux wobec `ai-evals` |
+| T2 | istniały `readiness_check.py`, `instructions_lint.py`, `project_record.py check`, `build.py check` — osobno | **zrobione 2026-11-11:** `tf standard` zbiera je w jeden wynik z kodem wyjścia dla CI (gałąź `claude/funny-hopper-8zsl07` w tf) |
+| T3 | mechanizm języka jest (`tf language`, `tf commit-language`) | tylko decyzja D-P6 |
+| T4 | wiedza w `ai-evals`, bramki `skill_gate.py` i `flow-evals` dla samej fabryki | **luka:** gotowe narzędzie `eval_gate.py` dla produktu i szablon workflow (krok 3) |
+| T5 | `ai_review.py install` → `ai-review.yml` ze statusem `ai-review/verdict`, drugi przegląd, panel recenzentów specyfikacji, moduły `tf analyze` z bramką (bezpieczeństwo, dostępność, uprawnienia) | zrobione; „required” ustawia się w ochronie gałęzi repo produktu |
+| T6 | brak | **zrobione 2026-11-11:** `approved_models` z kontrolą w `build.py check`, odmową w `profile.py`, hookiem `model_guard` i `models_policy.py --json` dla bramki modeli (ta sama gałąź) |
+| T7 | lokalne logi `.tf/logs/*.jsonl`, eksport przebiegów do pdi | czeka na schemat `agent-audit-event` w kontrakcie (P5) |
+| T8 | polityka autonomii per repo (`autonomy.operations`: confirm / deny, projekt może tylko zaostrzać), `tf risk` | poziom organizacji czeka na DI AI Registry |
+| T9 | `ai-mlops` (shadow, canary, A/B, wycofanie), `ai-evals` (offline → online) | powiązanie etapów z poziomami autonomii i bramką operacyjną, po P1/P2 |
+| T10 | jeden człowiek jako właściciel i zatwierdzający w `core-delivery-lifecycle` | role i RACI po operating modelu (P1) |
+| T12 | szablon `sandbox.settings.json`, kontener fazy w pdi | profil operacyjny po bramce modeli |
+| T13 | `tf --repo <url>#ref` dla całej fabryki; nakładki tylko z `packs/` źródła | **luka:** nakładka z innego repozytorium (krok 4), warunek linii EV |
+| T14 | `detect_stack.py`, `skill.meta.json`, `core-stack-sync` | do przemyślenia (§10) |
+
+Wniosek dla fal: z fabryki w fali 1 zostało zrobione T6, w fali 2 T2; do zrobienia są T4 i T13. T1 i T5 wypadają
+z listy prac, a w karcie DI Agent Factory trzeba je traktować jako istniejące.
+
+#### Aktualizacja 2026-11-19: przeniesienie na tf 20.1.0
+
+Kroki z 11 XI powstały na tf 9.17 i nie weszły na `main`; w osiem dni fabryka doszła do 20.1.0 (treść po angielsku,
+`model_check.py`, warstwy firmy i zespołu, zadania ze stanem), więc tamtych commitów nie dało się scalić. Decyzja
+właściciela 2026-11-19: przenieść tylko to, co **rozszerza obecną fabrykę i niczego w niej nie psuje**. Plan w tf:
+`docs/plans/2026-11-19-bramka-ewaluacji-i-zatwierdzone-modele.md`.
+
+| # | Stan na gałęzi `claude/funny-hopper-8zsl07` w tf (baza 20.1.0) |
+|---|---|
+| T4 | **przeniesione:** `eval_gate.py` w skillu `ai-evals` (pack-it), po angielsku, werdykty release / investigate / hold |
+| T6 | **przerobione:** klucz `models_approved` jako rozszerzenie `model_check.py` (zamiast osobnego silnika z 9.17): firma → zespół → projekt tylko zawężają listę, `profile.py` odmawia profilu spoza listy, hook `model_guard` blokuje delegację z takim modelem. Bez listy fabryka działa jak dotąd |
+| T2 | **odłożone:** `tf standard` z 9.17 nie wchodzi, dopóki nie zostanie porównany z nowymi `tf status`, `tf task check` i standardami firmowymi (`tf analyze`) |
+| T13 | **zrobione na `main` fabryki** niezależnie od tej gałęzi: `install.py --pack-dir <katalog albo repozytorium git>` (dbqm45/tf#264), źródło nakładki zapamiętane w manifeście i locku; `pack-ev` wycofany z fabryki, wiedza EV przeniesiona do ev-intelligence (dbqm45/tf#266) — warunek linii EV z §3.5 jest spełniony |
+
+T4 i T6 czekają na gałęzi na pull request właściciela; na `main` fabryki jeszcze ich nie ma. Z zadań fabryki
+w falach 1–2 zostaje więc tylko decyzja o T2.
 
 ### 2.2 pdi (decyzje, kontrakt, orkiestracja)
 
@@ -300,6 +343,19 @@ dzisiejszych kopii; nocny test parity (już istniejący w ci_for_sdlc) pilnuje, 
 **Ryzyko.** Wydzielenie opłaca się, jeśli EV nie jest jedyną domeną na zawsze. Scalenie (K5) jest potrzebne w obu
 wariantach, więc od niego zaczynamy; decyzja o osobnej marce linii może poczekać do K6.
 
+### 3.6 `team` — DI Team: tablica „Now” i „Ask team” (dopisane 2026-11-19)
+
+Pomysł właściciela z 2026-11-19: wspólny widok dla zespołu na to, co dzieje się teraz. Tablica „Now” z kolumnami
+In progress, Awaiting decision, In review, Done; każda karta to zadanie i pokazuje, kto uruchomił AI, który agent
+nad nim pracuje i co robi, jakie pytania, decyzje i niezgodności są otwarte. Przy decyzji: zdecydować samemu albo
+„Ask team” — odpowiedzi online ukryte do zamknięcia albo agenda refinementu („Discuss with team”); decydent zostaje
+ten sam, a konsultacja jest zapisana przy decyzji.
+
+To widok na zdarzenia suity, nie komunikator i nie nowe źródło prawdy. Zaczyna jako ekran w istniejącej konsoli
+pdi; decyzja, czy to osobny produkt czy powłoka całej suity (G6/P1), po pierwszym zespole. Brakujące dane: pole
+„kto uruchomił przebieg” i zdarzenia startu oraz postępu w kontrakcie, hook w fabryce dla sesji ręcznych, wspólna
+tożsamość. Ustalenia, braki, kroki T1–T6 i makieta: [`TODO.md`](../TODO.md), sekcja „DI Team”.
+
 ## 4. Plan wdrożeniowy
 
 Założenia: jeden właściciel decyzji, praca w sesjach Claude Code na repo (jak dotąd), każdy punkt = osobny PR
@@ -460,6 +516,7 @@ nazwy ShipScope i Quorum stają się nazwami kodowymi repozytoriów, nie nazwami
 | ai-gateway | **Delivery Intelligence Model Gateway** | DI Model Gateway | jeden punkt wywołań modeli: polityka danych, koszt, log |
 | ai-registry | **Delivery Intelligence AI Registry** | DI AI Registry | inwentarz systemów AI, klasa ryzyka, dziennik agentów, księga wartości |
 | assistant | **Delivery Intelligence Assistant** | DI Assistant | kanał dla biznesu nad tymi samymi danymi, z nadzorem człowieka |
+| team (dopisane 2026-11-19; na start ekran w konsoli pdi) | **Delivery Intelligence Team** | DI Team | tablica „Now”: co dzieje się teraz, kto uruchomił AI, co czeka na decyzję; „Ask team” dla decyzji |
 
 Dwie funkcje mają dwuczłonową nazwę celowo: „Factory” bez „Agent” nie mówi, co fabryka produkuje, a „Registry” bez
 „AI” brzmi jak rejestr dostaw.
@@ -475,3 +532,41 @@ przypięte kopie i workflowy odwołują się do nich. (3) Dostępność znaków 
 [niezweryfikowane]; „Delivery Intelligence” jest frazą opisową, więc jako znak słowny może być trudna do ochrony.
 (4) Odrzucone warianty (rodzina morska; „Quorum + funkcja”; funkcja bez prefiksu) są w historii rozmowy
 z 2026-11-10.
+
+## 10. Do przemyślenia: wersje technologii w DI Agent Factory (T14)
+
+**Pytanie właściciela (2026-11-10, zredagowane).** Fabryka powinna kontrolować wersje technologii. Po pierwsze,
+po instalacji w projekcie musi sama rozpoznać, na jakiej wersji stoi oprogramowanie (np. Java 17 czy 21, Angular 19
+czy 22), sięgnąć po dokumentację tej wersji i ustawić skille w `pack-it` pod nią. Po drugie, musi radzić sobie
+z kilkoma wersjami naraz: gdy firma ma dwie aplikacje w różnych wersjach Javy, każda powinna dostać skille
+dopasowane do swojej wersji, a nie jeden wspólny opis. Czy to jest możliwe?
+
+**Odpowiedź (stan tf 9.15.0, sprawdzony w repo).** Tak; połowa już działa, półautomatycznie.
+
+| Co | Dziś | Luka |
+|---|---|---|
+| Rozpoznanie wersji | hook `detect_stack.py` na starcie sesji: `node_modules` → lockfile → `package.json`; Java z `pom.xml` (`maven.compiler.release`, `java.version`), `build.gradle(.kts)`, `.java-version`; Python z `pyproject.toml`; rejestr `pack-it/technologies.json` mapuje pakiet → skill | czyta jeden katalog; monorepo i „dwie aplikacje” to dwa ręczne uruchomienia |
+| Wersja w skillu | `skill.meta.json`: `based_on`, `min_supported`, `verified_with`, `sources`, `constraints` (np. Angular 22 ↔ TypeScript 6.0.x); sekcja „Zależne od wersji” w `SKILL.md` (Java 17 i 21; Angular 17–22) | jeden skill opisuje wszystkie wersje naraz: agent w aplikacji na Javie 17 widzi też wiersze o 21 i sam musi ich nie użyć; koszt tokenów i źródło pomyłek |
+| Reakcja na niezgodność | statusy `OK` / `SKILL_OUTDATED` / `PROJECT_OLDER` / `MISSING_SKILL`; skill `core-stack-sync`: agent sięga po release notes ze źródeł `skill.meta.json` i aktualizuje skill | aktualizacja ręczna, na polecenie, w projekcie; wraca do fabryki PR-em; brak automatu przy `tf install` |
+| Aktualność | `freshness.py`: terminy przeglądu treści per skill i prefiks | — |
+
+**Propozycja do przemyślenia.**
+1. **Profil stacku per aplikacja**, nie per repo: `detect_stack.py` zapisuje `.tf/stack.json` z listą aplikacji
+   (katalog z własnym `pom.xml` / `package.json` / `pyproject.toml`, technologie, wersje); hook ścieżkowy ustala,
+   w której aplikacji agent pracuje, i podaje mu właściwy profil.
+2. **Skill z wariantami wersji**: zamiast jednej tabeli „Zależne od wersji” pliki `references/v17.md`, `v21.md`,
+   `v25.md` i reguła w `SKILL.md` „czytaj tylko plik swojej wersji z profilu”; `build.py` przy instalacji włącza
+   tylko pasujący wariant, więc dwie aplikacje na różnych Javach to dwie instalacje tego samego skilla.
+3. **Automatyczne dopisanie brakującego wariantu**: gdy wykryta wersja nie ma pliku (np. Java 25), `tf install`
+   uruchamia procedurę z `core-stack-sync` jako zadanie agenta z budżetem: źródła z `skill.meta.json`, release notes
+   między `based_on` a wersją projektu, nowy `references/v25.md`, weryfikacja przykładów kompilatorem tej wersji
+   (jak dziś `verified_with`), `skill_gate.py`; wynik wraca do fabryki jako PR, żeby następna instalacja już go miała.
+4. **Ograniczenia między technologiami per profil**: `constraints` sprawdzane w profilu aplikacji, nie globalnie.
+
+**Ryzyka.** Generowany wariant jest płatny i bez weryfikacji kompilatorem „wie” rzeczy zmyślone; w monorepo trzeba
+rozstrzygnąć, co jest aplikacją (najprościej: katalog z własnym manifestem). Szacunek: punkty 1–2 rząd tygodnia
+w fabryce, punkt 3 drugi tydzień, bo wymaga ewaluacji na modelu [założenie].
+
+**Otwarte.** Czy wariant per wersja ma być częścią packa generycznego `pack-it`, czy osobnym artefaktem
+instalowanym z rejestru wersji (jak packi domenowe w T13)? Czy profil aplikacji ma trafiać do DI AI Registry jako
+atrybut wpisu systemu (gdzie działa, na jakiej wersji)?
