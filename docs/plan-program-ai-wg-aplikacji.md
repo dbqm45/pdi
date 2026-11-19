@@ -111,6 +111,23 @@ formie, realne luki to cztery. Szczegóły i plan kroków: tf `docs/plans/2026-1
 Wniosek dla fal: z fabryki w fali 1 zostało zrobione T6, w fali 2 T2; do zrobienia są T4 i T13. T1 i T5 wypadają
 z listy prac, a w karcie DI Agent Factory trzeba je traktować jako istniejące.
 
+#### Aktualizacja 2026-11-19: przeniesienie na tf 20.1.0
+
+Kroki z 11 XI powstały na tf 9.17 i nie weszły na `main`; w osiem dni fabryka doszła do 20.1.0 (treść po angielsku,
+`model_check.py`, warstwy firmy i zespołu, zadania ze stanem), więc tamtych commitów nie dało się scalić. Decyzja
+właściciela 2026-11-19: przenieść tylko to, co **rozszerza obecną fabrykę i niczego w niej nie psuje**. Plan w tf:
+`docs/plans/2026-11-19-bramka-ewaluacji-i-zatwierdzone-modele.md`.
+
+| # | Stan na gałęzi `claude/funny-hopper-8zsl07` w tf (baza 20.1.0) |
+|---|---|
+| T4 | **przeniesione:** `eval_gate.py` w skillu `ai-evals` (pack-it), po angielsku, werdykty release / investigate / hold |
+| T6 | **przerobione:** klucz `models_approved` jako rozszerzenie `model_check.py` (zamiast osobnego silnika z 9.17): firma → zespół → projekt tylko zawężają listę, `profile.py` odmawia profilu spoza listy, hook `model_guard` blokuje delegację z takim modelem. Bez listy fabryka działa jak dotąd |
+| T2 | **odłożone:** `tf standard` z 9.17 nie wchodzi, dopóki nie zostanie porównany z nowymi `tf status`, `tf task check` i standardami firmowymi (`tf analyze`) |
+| T13 | **zrobione na `main` fabryki** niezależnie od tej gałęzi: `install.py --pack-dir <katalog albo repozytorium git>` (dbqm45/tf#264), źródło nakładki zapamiętane w manifeście i locku; `pack-ev` wycofany z fabryki, wiedza EV przeniesiona do ev-intelligence (dbqm45/tf#266) — warunek linii EV z §3.5 jest spełniony |
+
+T4 i T6 czekają na gałęzi na pull request właściciela; na `main` fabryki jeszcze ich nie ma. Z zadań fabryki
+w falach 1–2 zostaje więc tylko decyzja o T2.
+
 ### 2.2 pdi (decyzje, kontrakt, orkiestracja)
 
 | # | Zadanie | Obszar | Fala | Uwagi / zależy od |
