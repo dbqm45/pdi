@@ -229,6 +229,18 @@ konsola pdi (`src/pdi/console.py`: tablica zmian, ślad, postęp fazy na żywo, 
   blokad, zapis decyzji ze spotkania; opcjonalnie eksport agendy.
 - [ ] **T6 — skróty do Slacka/Teams:** dzienny skrót i powiadomienie „czeka na Ciebie” z linkiem (łączy się
   z kanałami pdi z F6).
+- [ ] **T7 — „Escalate” (na później, osobno od „Ask team”; pomysł właściciela zapisany 2026-11-20):** trzecia opcja
+  na karcie decyzji, obok „Decide” i „Ask team”. Służy do zgłoszenia sprawy **powyżej zespołu albo poza zespół** —
+  gdy zespół nie może albo nie powinien rozstrzygać sam. Nie wchodzi do zakresu T4/T5; robimy dopiero po „Ask team”.
+  Do ustalenia przy planie (to są pytania, nie decyzje):
+  - do kogo trafia eskalacja (przełożony, właściciel produktu, architekt, bezpieczeństwo, inny zespół) i skąd
+    tablica zna tę ścieżkę — najpewniej z operating modelu (P1 planu programu: kto zatwierdza i co, gdy nie zatwierdzi);
+  - czy eskalacja **zmienia decydenta** (inaczej niż „Ask team”, gdzie zespół tylko doradza), czy tylko prosi o głos
+    z zewnątrz;
+  - jak adresat spoza zespołu dostaje sprawę, skoro może nie mieć dostępu do tablicy (link, Slack/Teams z T6, e-mail)
+    i ile kontekstu widzi;
+  - co widać na karcie w „Awaiting decision” (np. „Escalated to … · od kiedy · termin”) i co się dzieje po terminie;
+  - zapis w DI Decision: kto eskalował, do kogo, dlaczego i z jakim wynikiem; pole w kontrakcie obok `consulted`.
 
 **Otwarte:**
 - Czy DI Team jest osobnym produktem, czy powłoką całej suity, która zastępuje planowaną usługę konsoli pdi (Z3)
