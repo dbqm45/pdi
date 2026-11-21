@@ -356,6 +356,82 @@ pdi; decyzja, czy to osobny produkt czy powłoka całej suity (G6/P1), po pierws
 „kto uruchomił przebieg” i zdarzenia startu oraz postępu w kontrakcie, hook w fabryce dla sesji ręcznych, wspólna
 tożsamość. Ustalenia, braki, kroki T1–T6 i makieta: [`TODO.md`](../TODO.md), sekcja „DI Team”.
 
+### 3.7 `channels` — jedna aplikacja Slack/Teams dla całej suity (usługa wspólna, dopisane 2026-11-21)
+
+Ustalenie z rozmowy z właścicielem 2026-11-21 przy koncepcji „Refinement Intelligence”: Slack i Teams to brakujące
+ogniwo suity, nie cecha jednego produktu. Nazwa robocza **DI Channels**; nazwa do decyzji właściciela (D-P10).
+
+**Po co.** Obietnica suity to „człowiek klika tylko na bramkach”. Dziś, żeby kliknąć, trzeba otworzyć osobną
+aplikację albo Claude'a. Kanał, w którym ludzie już pracują, jest zaplanowany w pięciu miejscach, każde osobno,
+i w żadnym nie jest zbudowany:
+
+| Gdzie | Co zaplanowane | Stan na 2026-11-21 |
+|---|---|---|
+| DI Definition | zgłaszanie pytań z rozmowy (ci_for_sdlc `docs/REFINEMENT-PLAN.md`, R8); Slack/Teams jako źródło wiedzy (`docs/ROADMAP.md`, faza 2–3) | plan |
+| DI Team | dzienny skrót i „czeka na Ciebie” (T6 w `TODO.md`) | plan |
+| DI Assistant | bot Teams/Slack dla ludzi spoza IT (§3.3, A1, fala 3) | plan |
+| DI Decision | szkice decyzji z wątków Slacka (A5) i powiadomienia do zewnętrznego odbiorcy (webhook) | działa bez aplikacji Slack/Teams |
+| koncepcja Refinement Intelligence | przypomnienia, agenda i zaproszenia na spotkanie w Teams | poza planem |
+
+Pięć osobnych botów oznacza pięć instalacji, pięć przeglądów uprawnień u administratora klienta i pięć źródeł
+powiadomień, które zespół wyciszy. Dlatego jedna aplikacja, tak jak jedna bramka modeli.
+
+**Co robi.**
+- **Jedna instalacja** na przestrzeń Slacka albo dzierżawę Teams, z jednym zestawem uprawnień (najmniejszym możliwym).
+- **Jedno powiązanie tożsamości:** osoba w komunikatorze = osoba w suicie. To ten sam brak co wspólna tożsamość
+  (G6/P1, Z7); kanały nie rozwiążą go same, ale są pierwszym miejscem, w którym boli.
+- **Jedna polityka powiadomień:** skrót zbiorczy zamiast pojedynczych wiadomości, godziny ciszy, limit na osobę,
+  wybór kanał albo wiadomość prywatna. Produkty zgłaszają „co i dla kogo”, a nie wysyłają same.
+- **Mały zestaw akcji**, które trafiają do produktu-właściciela przez kontrakt, tak jak dziś podpisane zdarzenia:
+  dodaj pytanie do historyjki (DI Definition), moja kolej / zdecyduj / zapytaj zespół (DI Decision, DI Team), dołącz
+  do pokoju (sprintdeck), zapytaj asystenta (DI Assistant). Aplikacja niczego nie rozstrzyga i niczego nie przechowuje
+  poza powiązaniem tożsamości i ustawieniami powiadomień.
+- **Każda akcja ma zapas:** gdy komunikator odmówi, wiadomość prowadzi linkiem do ekranu produktu.
+
+**Czego nie robi.** Nie jest komunikatorem ani kolejnym miejscem pracy; nie czyta kanałów bez jawnej zgody
+(Slack/Teams jako *źródło wiedzy* to osobna, późniejsza decyzja z roadmapy DI Definition); nie nagrywa i nie
+transkrybuje spotkań.
+
+**Stosunek do DI Assistant.** Bot z zakresu A1 to ta sama aplikacja. Zamiast budować go w fali 3 jako część
+asystenta, szkielet kanału powstaje wcześniej, a rozmowa z asystentem staje się jedną z jego akcji.
+
+**Kroki (propozycja, kolejność do potwierdzenia):**
+- **CH1** — decyzja o pierwszej platformie (D-P9) i szkielet: instalacja, powiązanie tożsamości, jedna akcja
+  „dodaj pytanie” do DI Definition. To wchodzi do pierwszego testu refinementu (ci_for_sdlc, R1c), bo test samym
+  formularzem w aplikacji nie rozstrzyga, czy ludzie zgłaszają pytania przed spotkaniem.
+- **CH2** — powiadomienia „czeka na Ciebie” z bramek DI Decision i skrót dzienny (zastępuje T6 w DI Team).
+- **CH3** — decyzja z komunikatora: zatwierdź albo odrzuć bramkę, „Ask team” z odpowiedziami ukrytymi do zamknięcia.
+- **CH4** — rozmowa z DI Assistant (dotychczasowe A1).
+- **CH5** — druga platforma.
+
+**Miejsce w falach.** CH1 w fali 2 zamiast czekania na falę 3; reszta jak produkty, którym służy. Fal nie
+przeliczałem — to propozycja do decyzji razem z D-P9.
+
+### 3.8 Koncepcja „Refinement Intelligence” — gdzie trafia (dopisane 2026-11-21)
+
+Koncepcja właściciela (dwa dokumenty z 2026-11-21) nie wchodzi jako osobny produkt, bo pokrywa się z trzema
+istniejącymi. Rozkład:
+
+| Część koncepcji | Gdzie | Stan |
+|---|---|---|
+| analiza historyjki, luki, kontekst z Jiry i Figmy | DI Definition | działa |
+| pytania zespołu przed spotkaniem: zgłoszenie, przeredagowanie, łączenie, ważność | DI Definition, ci_for_sdlc `docs/REFINEMENT-PLAN.md` R1–R4 | plan |
+| zgłaszanie pytań z komunikatora, przypomnienia | wspólna aplikacja kanałów (§3.7) | plan |
+| o czym rozmawiać i w jakiej kolejności; wynik per historyjka; zapis do Jiry | DI Definition, R5–R7 | plan |
+| głosowanie i rozbieżności na spotkaniu | sprintdeck (pokój z rundami działa; bez kont i importu z Jiry) | działa częściowo |
+| „Discuss with team” jako agenda spraw do decyzji | DI Team (T5) | plan |
+
+**Bez miejsca w żadnym planie** (do decyzji, rekomendacja: sprintdeck jako „pokój refinementu”, bo ma już pokój,
+prowadzącego, listę zadań, rundy, zatwierdzenie z notatką i eksport): sesja refinementu jako obiekt (data, uczestnicy,
+zaproszenie), agenda z czasem na punkt i listą „omówione”, notatki przy punkcie, parking lot, podpowiedzi AI dla
+prowadzącego, action points jako śledzone zadania, publikacja wyniku do Confluence, rola prowadzącego.
+
+**Świadomie pominięte:** transkrypcja i nagrywanie, Miro, automatyczna estymacja, analityka między zespołami.
+
+Sprintdeck (sprawdzone w repo 2026-11-21): planning poker z silnikiem rozbieżności; po D-E1 ma talię „Risk” obok
+Fibonacciego, który zostaje pełnoprawnym trybem estymacji. Wiersz sprintdecka w §2.9 („poza tym bez zmian”) przestaje
+być aktualny, jeśli zapadnie decyzja o pokoju refinementu.
+
 ## 4. Plan wdrożeniowy
 
 Założenia: jeden właściciel decyzji, praca w sesjach Claude Code na repo (jak dotąd), każdy punkt = osobny PR
@@ -442,6 +518,9 @@ autora, co podważy wiarygodność standardu.
 | D-P6 | Jeden język instrukcji dla agentów | **polski w fabryce, angielski tylko w repo publikowanych na zewnątrz (ShipScope, Flags)** — albo odwrotnie, ale jedna reguła; przy suicie SaaS raczej **angielski w suicie, polski dopuszczalny w liniach domenowych** | dziś trzy style; `repo-standard-check` musi wiedzieć, czego pilnować |
 | D-P7 | Suita generyczna jako SaaS; EV wydzielone do linii EV Intelligence z jednym źródłem wiedzy (§3.5) | **przyjęte kierunkowo 2026-11-10**; do zapisania w `decyzje.md` z zakresem K5/K6/T13/C6 | trzy kopie wiedzy EV już się rozjeżdżają; fabryka i Definition Intelligence muszą być bez domeny, żeby dało się je sprzedać |
 | D-P8 | Nazwy produktów (§9) | **przyjęte 2026-11-10**: Delivery Intelligence Suite; produkty „Delivery Intelligence + funkcja” ze skrótem DI (DI Decision, DI Definition, DI Release, DI Release Control, DI Agent Factory, DI Model Gateway, DI AI Registry, DI Assistant); ShipScope i Quorum tylko jako nazwy kodowe repo | nazwa mówi, za co klient płaci; jeden kształt nazwy w suicie i w linii EV |
+| D-P9 | Pierwsza platforma wspólnej aplikacji kanałów (§3.7): Slack czy Teams | **ta, której używają zespoły pilotażu** | jedna platforma na start; druga dopiero po potwierdzeniu, że kanał jest używany |
+| D-P10 | Nazwa i status aplikacji kanałów: osobna usługa wspólna („DI Channels”, nazwa robocza) czy część DI Assistant | **osobna usługa wspólna, budowana przed asystentem** | służy pięciu produktom, nie tylko asystentowi; bot asystenta to ta sama aplikacja |
+| D-P11 | Gdzie mieszka warstwa spotkania z koncepcji Refinement Intelligence (§3.8) | **sprintdeck jako pokój refinementu** | pokój, rundy i podsumowanie już są; inaczej to samo powstanie w trzech miejscach |
 
 Poza tym otwarte od wcześniej i potrzebne tu: **G8** (narzędzie incydentów → S1), **G6/P1** (jedna platforma →
 P8), **DA4** (stack usługi pdi → ten sam dla ai-registry), płatność **GitHub Actions** (→ T5, E1).
@@ -516,6 +595,7 @@ nazwy ShipScope i Quorum stają się nazwami kodowymi repozytoriów, nie nazwami
 | ai-gateway | **Delivery Intelligence Model Gateway** | DI Model Gateway | jeden punkt wywołań modeli: polityka danych, koszt, log |
 | ai-registry | **Delivery Intelligence AI Registry** | DI AI Registry | inwentarz systemów AI, klasa ryzyka, dziennik agentów, księga wartości |
 | assistant | **Delivery Intelligence Assistant** | DI Assistant | kanał dla biznesu nad tymi samymi danymi, z nadzorem człowieka |
+| channels (dopisane 2026-11-21; nazwa robocza, D-P10) | **Delivery Intelligence Channels** | DI Channels | jedna aplikacja Slack/Teams dla całej suity: powiadomienia, pytania i decyzje tam, gdzie ludzie pracują |
 | team (dopisane 2026-11-19; na start ekran w konsoli pdi) | **Delivery Intelligence Team** | DI Team | tablica „Now”: co dzieje się teraz, kto uruchomił AI, co czeka na decyzję; „Ask team” dla decyzji |
 
 Dwie funkcje mają dwuczłonową nazwę celowo: „Factory” bez „Agent” nie mówi, co fabryka produkuje, a „Registry” bez

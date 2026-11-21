@@ -227,8 +227,8 @@ konsola pdi (`src/pdi/console.py`: tablica zmian, ślad, postęp fazy na żywo, 
   w kontrakcie dostaje pole konsultacji (`consulted`: kto, opcja, uzasadnienie).
 - [ ] **T5 — „Discuss with team” jako agenda:** sprawy z rozbieżnością i oznaczone „talk live”, kolejność według
   blokad, zapis decyzji ze spotkania; opcjonalnie eksport agendy.
-- [ ] **T6 — skróty do Slacka/Teams:** dzienny skrót i powiadomienie „czeka na Ciebie” z linkiem (łączy się
-  z kanałami pdi z F6).
+- [ ] **T6 — skróty do Slacka/Teams:** dzienny skrót i powiadomienie „czeka na Ciebie” z linkiem. Nie własnym
+  botem: przez wspólną aplikację kanałów suity (plan programu §3.7, krok CH2), zapisaną 2026-11-21.
 - [ ] **T7 — „Escalate” (na później, osobno od „Ask team”; pomysł właściciela zapisany 2026-11-20):** trzecia opcja
   na karcie decyzji, obok „Decide” i „Ask team”. Służy do zgłoszenia sprawy **powyżej zespołu albo poza zespół** —
   gdy zespół nie może albo nie powinien rozstrzygać sam. Nie wchodzi do zakresu T4/T5; robimy dopiero po „Ask team”.
@@ -241,6 +241,11 @@ konsola pdi (`src/pdi/console.py`: tablica zmian, ślad, postęp fazy na żywo, 
     i ile kontekstu widzi;
   - co widać na karcie w „Awaiting decision” (np. „Escalated to … · od kiedy · termin”) i co się dzieje po terminie;
   - zapis w DI Decision: kto eskalował, do kogo, dlaczego i z jakim wynikiem; pole w kontrakcie obok `consulted`.
+
+**Powiązania (dopisane 2026-11-21):** pytania zespołu przed spotkaniem i wynik per historyjka są zaplanowane
+w DI Definition (dbqm45/ci_for_sdlc `docs/REFINEMENT-PLAN.md`); pokój do sesji na żywo z ukrytymi głosami i pytaniami
+silnika ma już sprintdeck. „Discuss with team” (T5) ma z nich korzystać, a nie budować własne. Rozkład całej koncepcji
+„Refinement Intelligence”: plan programu §3.8.
 
 **Otwarte:**
 - Czy DI Team jest osobnym produktem, czy powłoką całej suity, która zastępuje planowaną usługę konsoli pdi (Z3)
