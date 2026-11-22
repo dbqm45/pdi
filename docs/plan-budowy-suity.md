@@ -193,6 +193,60 @@ decyzje właściciela (§6)
 - zdarzenia `test-result` i połączeń DI Quality (pyt. 7);
 - konsoli jako usługi (pyt. 5 i DA4).
 
+## 3a. Decyzje: każda aplikacja u siebie, suita widzi wszystkie (dopisane 2026-11-22)
+
+Zasada właściciela: aplikacje takie jak DI Agent Factory i DI Definition działają także poza suitą, więc **każda
+trzyma swoje decyzje u siebie**; jako członek suity **udostępnia je pozostałym**.
+
+### Stan (sprawdzony w kodzie pdi i tf, bez uruchamiania)
+
+| Skąd decyzja | Gdzie jest zapisana | Czy widzi ją wyszukiwarka suity (`find_decisions` w pdi) |
+|---|---|---|
+| bramka zatwierdzona w DI Decision | rejestr pdi (`DEC-n.md`) | tak |
+| decyzja o zmianie w trybie pdi fabryki | `docs/project/changes/CHG-n/decisions.md` w repo produktu | tylko gdy sesja miała serwer MCP pdi i agent ją przesłał (`record_decision`); inaczej czeka jako niewysłana |
+| decyzja w zwykłej sesji fabryki | `docs/project/decisions.md` (D-NNN), `decisions.md` zadania, ADR | nie |
+| decyzja przy pytaniu w DI Definition | baza DI Definition; zdarzenie `decision.recorded` do pdi | tak, jeśli przestrzeń jest połączona z pdi |
+
+- `find_decisions` przeszukuje tylko pliki rejestru pdi: ustalenie, uzasadnienie, rodzaj, opcje, założenia,
+  zależności, tagi; dopasowanie fragmentów słów, bez dowodów i skutków, bez szukania po znaczeniu.
+- Decyzja D2/R1 („pdi indeksuje decyzje z repo, nie kopiuje”) nie jest tak zrealizowana: w pdi nie ma kodu, który
+  czyta `decisions.md` z repozytoriów; działa kopiowanie przez MCP.
+- Ile decyzji faktycznie jest w rejestrze, nie dało się policzyć: rejestr leży na komputerze właściciela.
+
+### Model
+
+1. **Źródłem prawdy jest aplikacja, w której decyzja zapadła.** Zapis lokalny zawsze, także bez suity. Fabryka i
+   DI Definition już to mają.
+2. **Jeden format:** Decision Record z kontraktu (znacznik `record: decision` w nagłówku, DR1). Lokalny
+   identyfikator zostaje (`D-012`, `CHG-12/D1`); wpis dostaje pole pochodzenia: aplikacja, repo albo przestrzeń,
+   ścieżka, commit.
+3. **W suicie aplikacja publikuje decyzję zdarzeniem `decision.recorded`** (jest w kontrakcie; DI Definition już
+   je wysyła). Poza suitą nie wysyła nic i nic nie traci.
+4. **DI Decision jest indeksem suity, nie drugim źródłem prawdy.** Przyjmuje zdarzenie, nadaje numer `DEC-n`,
+   trzyma treść do wyszukiwania i link do źródła. Zmiana decyzji idzie zawsze przez aplikację-właściciela.
+5. **Pozostali członkowie czytają z indeksu, nie trzymają kopii.** Wyszukiwanie przez MCP i API DI Decision;
+   aplikacja, której decyzja dotyczy, dostaje zdarzenie (`decision.recorded`, `decision.basis_invalidated`).
+   Kopia wszystkich decyzji w każdej aplikacji rozjechałaby się tak samo jak dziś kopie kontraktu.
+6. **Dołączenie do suity i przerwy w łączności:** aplikacja dosyła zaległe decyzje (fabryka ma już listę
+   „niewysłanych”); zapis jest idempotentny po pochodzeniu, więc ponowne wysłanie niczego nie dubluje.
+7. **Spec, plany i taski zostają w gicie przy zmianie**, bez indeksowania w suicie; fabryka przeszukuje je lokalnie
+   przed nowym zadaniem.
+
+### Kroki (każdy to jeden PR; niezależne od otwartych decyzji, równolegle z etapem 2)
+
+| # | Repo | PR | Wynik | Zależy od |
+|---|---|---|---|---|
+| D1 | di-contract (albo pdi przed wydzieleniem) | pole pochodzenia w Decision Record i w `decision.recorded`; reguła idempotencji | decyzja z dowolnej aplikacji ma jednoznaczne źródło | krok 9 planu albo osobne wydanie kontraktu |
+| D2 | pdi | odbiornik przyjmuje `decision.recorded` od każdego członka suity i indeksuje wpis z linkiem do źródła | jeden indeks decyzji suity | D1 |
+| D3 | tf | rdzeń zapisuje D-NNN i ADR w formacie Decision Record; w suicie wysyła `decision.recorded`, poza suitą tylko zapis lokalny; dosyłanie zaległych | decyzje z codziennej pracy fabryki trafiają do indeksu | D1 |
+| D4 | pdi | `find_decisions` szuka też w dowodach i skutkach, filtruje po aplikacji źródłowej, zwraca link do źródła | wyszukiwarka obejmuje całą suitę | D2 |
+| D5 | ci_for_sdlc | `decision.recorded` w nowej wersji kontraktu z polem pochodzenia | decyzje DI Definition w tym samym kształcie | D1, krok 3 planu |
+| D6 | pdi | uzgodnienie zapisu D2/R1 w `decyzje.md` z tym modelem (publikacja zdarzeniem zamiast odczytu z repo) | dokumenty mówią to, co robi kod | — |
+
+Później: DI Release, DI Release Control i DI Quality publikują swoje decyzje tym samym zdarzeniem, gdy będą miały
+co publikować (np. zmiana flagi na PROD, przyjęcie wyniku testów). Szukanie po znaczeniu dopiero, gdy DI Decision
+będzie usługą z bazą (DA4).
+
 ## 4. Pierwsze kroki: każdy to jeden PR
 
 Kolejność w tabeli jest kolejnością pracy. Kroki 1–12 nie wymagają żadnej otwartej decyzji poza treścią operating modelu przy kroku 8.
@@ -220,7 +274,7 @@ Szacunki tygodni przy jednej osobie pracującej w sesjach, jak dotąd [założen
 | 16 | 5–6 | di-channels (nowe) | CH1: instalacja aplikacji na jednej platformie + akcja „dodaj pytanie” do DI Definition | pierwszy test refinementu z komunikatora | 14, 15, pyt. 2 |
 | 17 | 6 | di-channels, pdi | CH2: „czeka na Ciebie” z bramek DI Decision | powiadomienie z linkiem do konsoli | 8, 16 |
 
-Poza tabelą, do wstawienia po decyzjach: `consulted` w decyzji i „Ask team” (T4), zdarzenie `test-result`
+Równolegle z tą tabelą idą kroki D1–D6 z §3a (decyzje widoczne w całej suicie). Poza tabelą, do wstawienia po decyzjach: `consulted` w decyzji i „Ask team” (T4), zdarzenie `test-result`
 i wysyłka z `qa summary` (DI Quality), konektor DI Release → DI Release Control, bramki B4/B5 z fabryki.
 
 Kryterium po sześciu tygodniach: wszyscy konsumenci na jednej wersji kontraktu z jednego repo; tablica „Now”
