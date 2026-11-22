@@ -7,7 +7,9 @@ Co trafia do skrzynki: `gate.requested` z tf i ci_for_sdlc, `readiness.changed: 
 zapisuje się w rejestrze, przesuwa stan, zostawia `gate.decided` w `outbox/` i uruchamia następną fazę tf
 (`pdi.dispatch`). Propozycje zmiany poziomu autonomii (A3, `pdi.autonomy`) też są pozycjami skrzynki; zatwierdzenie
 zmienia politykę `autonomy.yaml`. `decision.recorded` z ci_for_sdlc (A2b, kontrakt 0.7.0) nie tworzy pozycji: to
-decyzja już podjęta u nadawcy, więc trafia wprost do rejestru (licznik akceptacji z A3 ją liczy). Plany:
+decyzja już podjęta u nadawcy, więc trafia wprost do rejestru (licznik akceptacji z A3 ją liczy). Przebiegi agentów
+(`run.started` / `run.progress` / `run.finished` z tf, kontrakt 0.15.0) też nie tworzą pozycji: trafiają do
+`agent-runs/` (`pdi.runs`) dla tablicy DI Team. Plany:
 docs/plan-g15-pdi.md, docs/plan-f4-pdi.md, docs/plan-f5-ocena-skutku.md, docs/plan-a3-licznik-akceptacji.md,
 docs/plan-a2b-pdi.md.
 """
@@ -25,7 +27,7 @@ from typing import Any, TypeAlias
 
 import yaml
 
-from pdi import autonomy, capture, contract, dispatch_local, flow, forecast, impact, phase_decisions
+from pdi import autonomy, capture, contract, dispatch_local, flow, forecast, impact, phase_decisions, runs
 from pdi import pr_state as pr_state_mod
 from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig, Post, dispatch_phase
@@ -38,7 +40,7 @@ Item: TypeAlias = dict[str, Any]
 # Kto może przysłać który typ zdarzenia.
 ACCEPTED = {
     "shipscope": ("release.stage_changed", "feature.released"),
-    "tf": ("gate.requested", "metric.breached"),
+    "tf": ("gate.requested", "metric.breached", "run.started", "run.progress", "run.finished"),
     "ci_for_sdlc": ("gate.requested", "readiness.changed", "decision.recorded"),
 }
 # Typy decyzji, które nadawca zapisuje w rejestrze zdarzeniem `decision.recorded` (decyzja D-A2).
@@ -121,6 +123,7 @@ class Inbox:
     ) -> None:
         self.registry = registry
         self.changes = ChangeStore(registry)
+        self.runs = runs.RunStore(registry)
         self._dir = registry.root / "inbox"
         self._outbox = registry.root / "outbox"
         self._dispatch = dispatch or DispatchConfig(repo=None)
@@ -151,6 +154,8 @@ class Inbox:
         _check_event(event)
         if event["type"] == "decision.recorded":
             return self._record_decision(event)
+        if event["type"] in runs.EVENT_TYPES:
+            return self._record_run(event)
         payload = event["payload"]
         if self._known(event["id"]):
             return {"status": "duplicate", "item": self.get(event["id"])}
@@ -221,6 +226,21 @@ class Inbox:
         touched += [self._path(item["id"]), self.changes.save(state)]
         warning = self.registry.commit(touched, f"inbox {item['id']}: {item['summary']}")
         return {"status": "created", "item": item, **({"warning": warning} if warning else {})}
+
+    def _record_run(self, event: dict[str, Any]) -> dict[str, Any]:
+        """Przebieg agenta (DI Team T1, kontrakt 0.15.0): plik `agent-runs/<run>.yaml`, bez pozycji w skrzynce.
+
+        Start i koniec idą do gita rejestru; postęp tylko nadpisuje plik (przychodzi często), a trafia do historii
+        z następnym commitem tego przebiegu. `run.progress` bez `run` (sprzed 0.15.0) nie ma do czego się przypisać.
+        """
+        if "run" not in event["payload"]:
+            raise InvalidEvent("run: run.progress bez identyfikatora przebiegu — od kontraktu 0.15.0 wymagane tutaj.")
+        status, run, path = self.runs.apply(event)
+        warning = None
+        if status == "recorded" and event["type"] != "run.progress":
+            what = f"{run['run']} {event['type']}" + (f" ({run['status']})" if event["type"] == "run.finished" else "")
+            warning = self.registry.commit([path], f"run {what}")
+        return {"status": status, "item": None, "run": run, **({"warning": warning} if warning else {})}
 
     def _record_decision(self, event: dict[str, Any]) -> dict[str, Any]:
         """Decyzja podjęta u nadawcy → rejestr: `recorded` albo `duplicate` (to samo zdarzenie) z numerem `DEC`."""

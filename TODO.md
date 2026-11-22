@@ -216,7 +216,7 @@ konsola pdi (`src/pdi/console.py`: tablica zmian, ślad, postęp fazy na żywo, 
   w zdarzeniach kontraktu.
 
 **Kroki (każdy osobno, kolejność do potwierdzenia):**
-- [ ] **T1 — kontrakt:** `started_by` oraz zdarzenia `run.started` / `run.progress` / `run.finished` (zadanie, zmiana,
+- [x] **T1 — kontrakt** (zrobione 2026-11-22: di-contract 0.15.0/0.15.1 — `run.started`, `run.finished`, `run`, `started_by`, `activity` w `run.progress`, `review` w `run.finished`; pdi przyjmuje je od tf do `agent-runs/`, `pdi.runs`; wersja z planu poniżej zostaje dla historii): `started_by` oraz zdarzenia `run.started` / `run.progress` / `run.finished` (zadanie, zmiana,
   agent, czynność, cięcie, koszt, budżet); stan przeglądu PR (werdykt AI, ryzyko, recenzent) w zdarzeniu.
 - [ ] **T2 — fabryka:** hook zgłaszający start, postęp i koniec przebiegu także dla sesji ręcznych (dziś tylko fazy
   uruchamiane przez pdi mają postęp); tożsamość z gita albo z konta suity.

@@ -1,10 +1,10 @@
-# Kontrakt pdi
+# Kontrakt suity (Delivery Intelligence Suite)
 
-Schematy i zasady wspólne dla pdi, tf, ci_for_sdlc i ShipScope ([decyzja D1](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md)).
+Schematy i zasady wspólne dla aplikacji suity: pdi, tf, ci_for_sdlc, ShipScope i kolejnych; do 0.14.0 w repo pdi, od 2026-11-22 w [dbqm45/di-contract](https://github.com/dbqm45/di-contract) ([decyzja D1](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md)).
 Wersjonowany wg SemVer 2.0.0 w [`contract.json`](contract.json); zmiana niezgodna wstecz podnosi wersję główną
 (w 0.x — drugą liczbę). Odbiorca zdarzeń przypina wersję przez pole `contract_version`.
 
-Wersja: `0.14.0`. Historia: 0.14.0 — format Decision Record w decyzji: znacznik `record: decision`, `schema`
+Wersja: `0.15.1`. Historia: 0.15.1 — bez zmian w schematach: przykład w `decision-record.md` i tytuły schematów niosą bieżącą wersję (w 0.15.0 przykład został na 0.14.0); sprawdza to teraz `tools/check_contract.py`; 0.15.0 — przebiegi agentów dla tablicy DI Team (T1): zdarzenia `run.started` (`run`, `phase`, `started_by`, `trigger`: `manual` / `pdi` / `schedule`; opcjonalnie `agent`, `repo`, `budget_usd`) i `run.finished` (`run`, `phase`, `outcome`: `done` / `failed` / `cancelled` / `waiting_gate`; opcjonalnie koszt, czas, `review`: stan przeglądu PR z `status`, `ai_verdict`, `risk`, `reviewer`), opcjonalne `run`, `started_by` i `activity` w `run.progress`; wspólne definicje `actor` (kto uruchomił: `name`, `kind`, opcjonalnie `id` z usługi tożsamości) i `pr_review`; 0.14.0 — format Decision Record w decyzji: znacznik `record: decision`, `schema`
 i `contract_version` (DR1) oraz pola z MADR `consequences` (skutki `good` / `bad` / `neutral`) i `confirmation`
 (`how`, `kind`, `ref`: jak sprawdzić, że decyzję wykonano; DR4) — [propozycja](https://github.com/dbqm45/pdi/blob/main/docs/propozycja-decision-record.md);
 0.13.0 — opcjonalne pole `second_review` w `gate.requested` (`status`, `reason`,
@@ -47,7 +47,7 @@ nazwy: `decision`, `problem`, `change`, `task`, `event`, `story`, `release_plan`
 `triage_recommendation`, `reconstruction`, `design_links`. Tabela z `design.md`: `from pdi.design import
 parse_design_md`.
 
-Zgodność wstecz: 0.14.0 dodaje tylko pola opcjonalne decyzji (`record`, `schema`, `contract_version`, `consequences`, `confirmation`); 0.13.0 dodaje tylko pole opcjonalne (`gate.requested.second_review`); 0.12.0 dodaje tylko pola opcjonalne (`release_plan.targets` i `readiness.changed.targets_status`);
+Zgodność wstecz: 0.15.0 dodaje tylko nowe typy zdarzeń i pola opcjonalne `run.progress` (odbiorca, który nie zna `run.started` i `run.finished`, może je odrzucić albo pominąć); 0.14.0 dodaje tylko pola opcjonalne decyzji (`record`, `schema`, `contract_version`, `consequences`, `confirmation`); 0.13.0 dodaje tylko pole opcjonalne (`gate.requested.second_review`); 0.12.0 dodaje tylko pola opcjonalne (`release_plan.targets` i `readiness.changed.targets_status`);
 0.11.0 dodaje tylko pole opcjonalne; 0.9.0 dodaje nowy schemat i konwencję; 0.8.0 dodaje tylko nowy schemat; 0.7.0 dodaje tylko nowy typ zdarzenia i wartość `source.kind`; 0.6.0 dodaje tylko nowy schemat; wszystkie pola dodane w 0.5.0 są opcjonalne, a zdarzenia
 z `contract_version` 0.4.0–0.6.0 dalej przechodzą walidację. Zestaw wzorcowy `fixtures/story-shape/` ma wersję 0.4.0 — tę, w której zmienił się ostatnio.
 
@@ -174,7 +174,9 @@ Powody odrzucenia: `out_of_strategy`, `works_as_designed`, `cost_disproportionat
 | `decision.auto_applied` | pdi | `decision`, `decision_type`, `level` (0–2) — od 0.5.0 |
 | `decision.vetoed` | pdi | `decision_type`, `vetoed_by` — od 0.5.0 |
 | `decision.recorded` | ci_for_sdlc | `decision_type`, `ref`, `statement`, `decided_by`, `drafted_by`; opcjonalnie `draft_edited` (człowiek) albo `automation` (automat, nigdy oba), `evidence` (cytaty), `supersedes`, `url`, `change`, `problem`. Decyzja już podjęta u nadawcy; pdi zapisuje ją w rejestrze i odpowiada numerem `DEC` — od 0.7.0 |
-| `run.progress` | tf | `phase`, `status` (`started` / `in_progress` / `waiting_gate` / `done` / `failed`); opcjonalnie `cost_usd`, `budget_usd` — od 0.5.0 |
+| `run.started` | tf | `run`, `phase`, `started_by` (`name`, `kind`: `human` / `automation`, opcjonalnie `id`), `trigger` (`manual` / `pdi` / `schedule`) — od 0.15.0 |
+| `run.progress` | tf | `phase`, `status` (`started` / `in_progress` / `waiting_gate` / `done` / `failed`); opcjonalnie `cost_usd`, `budget_usd` — od 0.5.0; `run`, `started_by`, `activity` (co agent robi teraz, bez treści promptów) — od 0.15.0 |
+| `run.finished` | tf | `run`, `phase`, `outcome` (`done` / `failed` / `cancelled` / `waiting_gate`); opcjonalnie `cost_usd`, `duration_s`, `review` (PR: `url`, `status`, `ai_verdict`, `risk`, `reviewer`) — od 0.15.0 |
 | `decision.basis_invalidated` | pdi | `decision`, `assumption`, `signal`, `attention_level` (0–3) — przyjęte 2026-10-23 ([dokument 12 §4.2](https://github.com/dbqm45/pdi/blob/main/docs/12-zmiana-kierunku-sdlc.md#42-nowe-zdarzenie-w-kontrakcie)), używane od F5 |
 
 Każde zdarzenie: `id` (do deduplikacji), `type`, `occurred_at` (UTC, `RRRR-MM-DDTGG:MM:SSZ`), `source`,

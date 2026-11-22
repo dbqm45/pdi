@@ -98,7 +98,7 @@ plan: [`docs/plan-eksport-madr.md`](https://github.com/dbqm45/pdi/blob/main/docs
 ---
 record: decision
 schema: https://github.com/dbqm45/pdi/contract/decision.schema.json
-contract_version: 0.14.0
+contract_version: 0.15.1
 id: DEC-0041
 statement: Bulk konfiguracja ładowarek zaczyna od zmiany taryfy.
 why: Najczęstsza operacja w zgłoszeniach; restart i firmware mają inne ryzyka.
