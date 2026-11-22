@@ -264,6 +264,61 @@ pamięć podręczną, gdy będą miały
 co publikować (np. zmiana flagi na PROD, przyjęcie wyniku testów). Szukanie po znaczeniu dopiero, gdy DI Decision
 będzie usługą z bazą (DA4).
 
+## 3b. Kto dostaje sprawę i co, gdy zespół milczy (dopisane 2026-11-22)
+
+Pytania właściciela: jak sprawić, żeby wiadomości trafiały do właściwych osób, a nie do wszystkich; co zrobić, gdy
+z dziesięciu osób odpowiedzą dwie i sprawa wisi tydzień; czy decyzje mają termin ważności; czy wisząca decyzja
+blokuje zadanie.
+
+### Zasady
+
+1. **Decyduje jedna, nazwana osoba; zespół doradza.** To nie jest głosowanie, więc nie ma progu głosów ani kworum.
+   Dwie odpowiedzi z dziesięciu to dwie opinie, a milczenie pozostałych to brak sprzeciwu. (Zgodne z ustaleniami
+   „Ask team” w `TODO.md`: decydent się nie zmienia.)
+2. **Powiadomienie wynika z roli w sprawie, nie z bycia w zespole:**
+
+   | Rola w sprawie | Ile osób | Jak dociera |
+   |---|---|---|
+   | decydujesz | jedna | od razu, osobnym kanałem, z terminem i jedną akcją |
+   | jesteś pytany | 2–4 wskazane | od razu, z terminem zamknięcia |
+   | informowany | reszta | skrót zbiorczy raz dziennie albo tylko tablica, bez powiadomienia |
+
+3. **Skąd wiadomo, kto jest kim:** decydent z operating modelu (typ decyzji → rola → osoba); pytani wskazani przez
+   decydenta albo wynikający z własności (kto uruchomił zadanie, właściciel modułu); reszta nie dostaje nic.
+4. **Kanał „decydujesz” musi być czysty:** każda wiadomość w nim wymaga działania. Miara: odsetek takich
+   wiadomości zamkniętych bez decyzji; gdy rośnie, routing jest zły.
+5. **Każde pytanie ma termin zamknięcia zależny od odwracalności** [wartości wyjściowe do potwierdzenia
+   w operating modelu]: 1–2 dni robocze dla decyzji łatwej do cofnięcia, 3–5 dla trudnej. Tydzień nie jest
+   wartością domyślną.
+6. **Opcja domyślna po terminie:** pytający podaje ją przy pytaniu („jeśli do czwartku nikt nie zaprotestuje,
+   robimy A”). Po terminie obowiązuje bez dodatkowego kroku, o ile decyzja jest łatwa do cofnięcia; przy trudnej
+   decydent musi ją potwierdzić.
+7. **Gdy milczy decydent:** eskalacja według operating modelu (zastępca, potem przełożony), nie czekanie.
+8. **Pytanie wygasa, decyzja nie.** Decyzja ma datę przeglądu (`review_by`) i warunki unieważnienia przy założeniach
+   (`invalidated_if`); oba pola są już w Decision Record.
+9. **Blokowanie zależy od odwracalności:** przy decyzji łatwej do cofnięcia agent idzie dalej z opcją rekomendowaną,
+   oznaczoną jako tymczasowa (najlepiej za flagą), i poprawia, jeśli decyzja wyjdzie inna. Decyzja trudna do
+   cofnięcia (wydanie na PROD, model danych, bezpieczeństwo, koszt) blokuje, ale tylko tę część pracy, która od
+   niej zależy. Koszt czekania jest widoczny na karcie.
+
+### Skąd ten wzór
+
+Praktyki znane z innych organizacji (z ogólnej wiedzy, bez sprawdzania źródeł): lazy consensus w projektach Apache
+(brak sprzeciwu w 72 godziny oznacza zgodę), okres ostatnich uwag w procesie RFC Rusta, „rough consensus” w IETF
+(liczą się nierozwiązane sprzeciwy, nie głosy), podział decyzji na odwracalne i nieodwracalne w Amazonie, jedna
+osoba bezpośrednio odpowiedzialna (DRI w GitLabie, modele DACI i RAPID), pytanie o sprzeciw zamiast o poparcie
+w socjokracji. Wspólne: jeden decydent, termin, milczenie jako zgoda, tempo zależne od odwracalności.
+
+### Kroki (każdy to jeden PR)
+
+| # | Repo | PR | Wynik | Zależy od |
+|---|---|---|---|---|
+| N1 | pdi | operating model (krok 8) dostaje: decydenta i zastępcę per typ decyzji, domyślne terminy per odwracalność, ścieżkę eskalacji | routing i terminy mają źródło | treść od właściciela (pyt. 9) |
+| N2 | di-contract (albo pdi przed wydzieleniem) | pole `reversibility` w decyzji (jest na liście w `TODO.md`, niezrobione); w pytaniu: `closes_at`, `default_option`, lista pytanych; znacznik decyzji tymczasowej | dane dla terminów, opcji domyślnej i blokowania | razem z `consulted` (T4) |
+| N3 | pdi | skrzynka zamyka pytanie po terminie: opcja domyślna przy decyzji łatwej do cofnięcia, eskalacja przy trudnej albo przy milczeniu decydenta | nic nie wisi bez końca | N1, N2 |
+| N4 | tf | faza idzie dalej z opcją rekomendowaną jako tymczasową, gdy decyzja jest łatwa do cofnięcia; zatrzymuje tylko zależną część przy trudnej | wisząca decyzja nie blokuje całości | N2 |
+| N5 | di-channels | trzy poziomy powiadomień (decydujesz, jesteś pytany, informowany) w polityce powiadomień; miara czystości kanału „decydujesz” | wiadomości trafiają do właściwych osób | krok 17 (CH2), N1 |
+
 ## 4. Pierwsze kroki: każdy to jeden PR
 
 Kolejność w tabeli jest kolejnością pracy. Kroki 1–12 nie wymagają żadnej otwartej decyzji poza treścią operating modelu przy kroku 8.
@@ -291,7 +346,7 @@ Szacunki tygodni przy jednej osobie pracującej w sesjach, jak dotąd [założen
 | 16 | 5–6 | di-channels (nowe) | CH1: instalacja aplikacji na jednej platformie + akcja „dodaj pytanie” do DI Definition | pierwszy test refinementu z komunikatora | 14, 15, pyt. 2 |
 | 17 | 6 | di-channels, pdi | CH2: „czeka na Ciebie” z bramek DI Decision | powiadomienie z linkiem do konsoli | 8, 16 |
 
-Równolegle z tą tabelą idą kroki D1–D9 z §3a (decyzje widoczne w całej suicie). Poza tabelą, do wstawienia po decyzjach: `consulted` w decyzji i „Ask team” (T4), zdarzenie `test-result`
+Równolegle z tą tabelą idą kroki D1–D9 z §3a (decyzje widoczne w całej suicie). Kroki N1–N5 z §3b (routing i terminy) idą za krokami 8 i 17. Poza tabelą, do wstawienia po decyzjach: `consulted` w decyzji i „Ask team” (T4), zdarzenie `test-result`
 i wysyłka z `qa summary` (DI Quality), konektor DI Release → DI Release Control, bramki B4/B5 z fabryki.
 
 Kryterium po sześciu tygodniach: wszyscy konsumenci na jednej wersji kontraktu z jednego repo; tablica „Now”
