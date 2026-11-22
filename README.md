@@ -209,6 +209,16 @@ automatyzacja Jiry) wybiera kanał po `reporter` i `channel`. Dziennik wysyłek:
 `retry_problem_notifications` ponawia. Te same `PDI_NOTIFY_*` ustawia się dla serwera MCP i `pdi-receiver`. Pełny
 intake zgłoszeń to F3. Plan: [`docs/plan-f5-powiadomienia.md`](docs/plan-f5-powiadomienia.md).
 
+### „Czeka na Ciebie” w komunikatorze (krok 17, CH2)
+
+Każda nowa pozycja skrzynki (bramka, PR do przeglądu, triaż, ocena skutku, propozycja autonomii) idzie do DI
+Channels jako podpisane `gate.waiting` na `PDI_CHANNELS_URL/pdi/waiting` (sekret `PDI_CHANNELS_SIGNING_SECRET`,
+nagłówki `X-PDI-*`), z terminem z operating modelu OM1 ([`docs/16-operating-model.md`](docs/16-operating-model.md)):
+2 dni robocze, B3 5, B5 i etap flagi na PROD 1, ocena skutku i autonomia 5. DI Channels pisze do zatwierdzającego
+w Slacku i trzyma godziny ciszy. Link do konsoli tylko z `PDI_CONSOLE_URL` i bez tokenu sesji; bez niego wiadomość
+mówi „`sdlc open` → Skrzynka”. Wynik wysyłki zostaje w pozycji (`waiting_notice`); bez `PDI_CHANNELS_URL` nic nie
+jest wysyłane. Zmienne ustawia się dla `pdi-receiver`, konsoli i serwera MCP.
+
 ### Intake, wzbogacenie i przyjęcie do budowy (F3)
 
 - **Formularz**: z `PDI_FORM_TOKEN` odbiornik podaje `GET /problems/new?t=<token>` (strona bez skryptów) i przyjmuje

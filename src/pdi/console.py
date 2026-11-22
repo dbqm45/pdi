@@ -51,6 +51,7 @@ from pdi.impact import ShipScopeConfig
 from pdi.inbox import Inbox, ItemClosed, ItemNotFound
 from pdi.notify import NotifyConfig, ReporterNotifyConfig
 from pdi.registry import Decision, InvalidDecision, Registry
+from pdi.waiting import ChannelsConfig
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8788
@@ -214,6 +215,7 @@ def inbox_from_env(registry: Registry) -> Inbox:
         notify=NotifyConfig.from_env(),
         shipscope=ShipScopeConfig.from_env(),
         reporters=ReporterNotifyConfig.from_env(),
+        channels=ChannelsConfig.from_env(),
         pr_state=pr_state.checker(config),
     )
 

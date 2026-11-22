@@ -27,7 +27,7 @@ from typing import Any, TypeAlias
 
 import yaml
 
-from pdi import autonomy, capture, contract, dispatch_local, flow, forecast, impact, phase_decisions, runs
+from pdi import autonomy, capture, contract, dispatch_local, flow, forecast, impact, phase_decisions, runs, waiting
 from pdi import pr_state as pr_state_mod
 from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig, Post, dispatch_phase
@@ -120,6 +120,8 @@ class Inbox:
         local_spawn: dispatch_local.Spawn | None = None,
         local_run: dispatch_local.Run | None = None,
         pr_state: pr_state_mod.Check | None = None,
+        channels: waiting.ChannelsConfig | None = None,
+        channels_post: Post | None = None,
     ) -> None:
         self.registry = registry
         self.changes = ChangeStore(registry)
@@ -135,6 +137,9 @@ class Inbox:
         self._local_spawn = local_spawn
         self._local_run = local_run
         self._pr_state = pr_state
+        # „Czeka na Ciebie” do DI Channels (krok 17): tylko gdy PDI_CHANNELS_URL jest ustawiony.
+        self._channels = channels or waiting.ChannelsConfig(url=None)
+        self._channels_post = channels_post
         # Zgłaszający zmiany dostaje powiadomienie o jej wydaniu i ocenie skutku (F5).
         self.problems = ProblemStore(
             registry,
@@ -879,6 +884,12 @@ class Inbox:
         return self._dir / f"{item_id}.yaml"
 
     def _write(self, item: Item, *, overwrite: bool) -> None:
+        if not overwrite and item.get("status") == "open" and self._channels.url:
+            if self._path(item["id"]).exists():
+                raise FileExistsError(item["id"])
+            item["waiting_notice"] = waiting.notify(
+                self._channels, item, at=_iso(self.registry.now()), post=self._channels_post
+            )
         text = yaml.safe_dump(item, sort_keys=False, allow_unicode=True, width=1000)
         with self._path(item["id"]).open("w" if overwrite else "x", encoding="utf-8") as f:
             f.write(text)
