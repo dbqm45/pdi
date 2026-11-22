@@ -1,6 +1,6 @@
 # Tożsamość suity — jedna usługa logowania dla wszystkich aplikacji (ADR)
 
-Data: 2026-11-22 · Status: **propozycja do przyjęcia przez właściciela** · Krok 13 z
+Data: 2026-11-22 · Status: **silnik przyjęty 2026-11-22 (Keycloak, decyzja DI1); reszta — propozycja** · Krok 13 z
 [`plan-budowy-suity.md`](plan-budowy-suity.md) (§2a, §2b, pytanie 4a) · Po przyjęciu: wpis w [`decyzje.md`](decyzje.md).
 
 Miejsca oznaczone **[do decyzji]** wymagają odpowiedzi właściciela; **[niezweryfikowane]** — fakt, którego nie
@@ -29,7 +29,7 @@ na ten identyfikator.
 
 ### 2.1 Silnik: Keycloak
 
-**Rekomendacja: Keycloak**, uruchamiany jako usługa w `di-identity`, z konfiguracją w repozytorium (eksport realmu
+**Przyjęte 2026-11-22 (decyzja właściciela, DI1): Keycloak**, uruchamiany jako usługa w `di-identity`, z konfiguracją w repozytorium (eksport realmu
 albo narzędzie typu keycloak-config-cli [niezweryfikowane: wybór narzędzia]).
 
 | Kandydat | Licencja | Za | Przeciw |
@@ -41,8 +41,8 @@ albo narzędzie typu keycloak-config-cli [niezweryfikowane: wybór narzędzia]).
 | usługa zarządzana (Auth0, WorkOS, Entra External ID) | komercyjna | zero utrzymania | koszt per użytkownik, zależność od dostawcy, dane poza nami [niezweryfikowane: ceny] |
 
 Dlaczego Keycloak: jedyny kandydat z licencją bez warunków dla SaaS, z najemcami B2B i federacją w rdzeniu, a w suicie
-już obecny. Koszt utrzymania jest realny; jeśli właściciel woli go nie ponosić, rozsądną alternatywą jest usługa
-zarządzana — **[do decyzji]**.
+już obecny. Koszt utrzymania (aktualizacje, kopie, dostępność) bierzemy na siebie; aplikacje rozmawiają z nim przez
+OpenID Connect, więc silnik da się później wymienić bez przepisywania aplikacji.
 
 ### 2.2 Model: organizacja, osoba, uprawnienie do produktu
 
@@ -98,7 +98,7 @@ Każde przejście to osobny PR w repozytorium aplikacji; dotychczasowe logowanie
 
 ## 5. Do decyzji właściciela
 
-1. Silnik: Keycloak (rekomendacja) czy usługa zarządzana.
+1. ~~Silnik~~ — przyjęte: Keycloak (DI1).
 2. Pierwszy dostawca tożsamości klienta (ten, którego używa zespół pilotażu).
 3. Hosting `di-identity` i stos szablonu usługi (`di-service-template`), razem z DA4.
 4. Czy e-mail osoby może trafiać do aplikacji (zaproszenia, powiadomienia), czy tylko nazwa i `sub`.
