@@ -31,6 +31,7 @@ from pdi.inbox import BadSignature, Inbox, InvalidEvent, verify_signature
 from pdi.notify import NotifyConfig, ReporterNotifyConfig
 from pdi.problems import InvalidProblem
 from pdi.registry import Registry
+from pdi.waiting import ChannelsConfig
 
 PATH = "/events/shipscope"
 PREFIX = "/events/"
@@ -228,6 +229,7 @@ def main() -> None:
         dispatch=DispatchConfig.from_env(),
         notify=NotifyConfig.from_env(),
         reporters=ReporterNotifyConfig.from_env(),
+        channels=ChannelsConfig.from_env(),
     )
     server = make_server(inbox, secrets, host=host, port=port, form_token=form_token)
     shipscope = ShipScopeConfig.from_env()

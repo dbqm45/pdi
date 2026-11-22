@@ -20,6 +20,7 @@ from pdi.notify import NotifyConfig, ReporterNotifyConfig
 from pdi.problems import InvalidProblem, ProblemNotFound, ProblemStore
 from pdi.registry import CannotSupersede, Decision, DecisionNotFound, InvalidDecision, Registry
 from pdi.trace import trace
+from pdi.waiting import ChannelsConfig
 
 INSTRUCTIONS = """\
 Rejestr decyzji pdi. Zapisuj decyzję (record_decision) tylko na wyraźną prośbę człowieka i dopiero po tym,
@@ -194,6 +195,7 @@ def build_server(
             notify=NotifyConfig.from_env(),
             shipscope=ShipScopeConfig.from_env(),
             reporters=ReporterNotifyConfig.from_env(),
+            channels=ChannelsConfig.from_env(),
             pr_state=pr_state.checker(config),
         )
 
