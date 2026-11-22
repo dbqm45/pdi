@@ -77,12 +77,13 @@ trzy warunki niżej.
 | sprintdeck | poza suitą; pokój refinementu, jeśli D-P11 | jest | — | — |
 | **di-contract** | kontrakt + manifest suity | do założenia | **teraz** (krok 6) | właściciel |
 | **di-service-template** | szablon repo usługi (nie produkt) | do założenia | **teraz** (krok 13a), po decyzji o stosie | właściciel |
-| **di-identity** | usługa tożsamości suity (usługa wspólna) | do założenia | **teraz** (krok 14) | właściciel |
+| **di-identity** | usługa tożsamości suity i Admin Console (usługi wspólne) | do założenia | **teraz** (krok 14) | właściciel |
 | **di-channels** | DI Channels | do założenia | po D-P9 (krok 16) | właściciel |
 | di-model-gateway | DI Model Gateway | później | start fali z bramką modeli | właściciel |
 | di-ai-registry | DI AI Registry | później | razem z bramką modeli | właściciel |
 | di-assistant | DI Assistant | później | po kanałach i bramce `operational-ai` | właściciel |
 | di-team | DI Team | tylko jeśli osobny produkt | po pierwszym zespole (G6/P1) | właściciel |
+| di-admin | DI Admin Console | tylko jeśli konsola zarządza kilkoma usługami | po AC3–AC4 (§2b) | właściciel |
 
 Nazwy nowych repo różnią się od roboczych z planu programu (`ai-gateway`, `ai-registry`, `assistant`, `channels`,
 `team`): prefiks `di-` i nazwa produktu z D-P8. Do potwierdzenia przy zakładaniu.
@@ -115,13 +116,45 @@ Co z tego bierzemy:
   (Atlassian, GitHub, Microsoft, Google). Aplikacja zna jeden adres i jeden format tokenu.
 - **Trzy osobne rzeczy:** organizacja, osoba, uprawnienie do produktu („ta osoba ma DI Release jako edytor”).
   Dziś ci_for_sdlc trzyma organizacje i role u siebie, a Flags bierze rolę z tokenu dostawcy.
-- **Jedno miejsce dla administratora klienta**: użytkownicy, produkty, a później instalacja kanału (DI Channels).
+- **Jedno miejsce dla administratora klienta**: Admin Console (niżej).
 
 Czego nie bierzemy: własnej bazy haseł i własnego silnika logowania pisanego od zera.
 
 Przejście istniejących aplikacji jest stopniowe i każde to osobny PR: Flags (ma już ogólny OIDC, więc wystarczy
 wskazać nowego wystawcę), konsola DI Decision przy przejściu na usługę, ci_for_sdlc (dziś Atlassian), ShipScope
 (dziś GitHub). Dotychczasowe logowanie zostaje do czasu przełączenia.
+
+### 2b. Admin Console (dopisane 2026-11-22)
+
+Stan: nie istnieje. Ustawienia administratora są dziś rozproszone: organizacje, role i panel operatora
+w DI Definition, ustawienia i audyt w DI Release, reguły i powiadomienia w DI Release Control; DI Decision nie ma
+żadnych ustawień w interfejsie.
+
+**Co to jest.** Jedno miejsce, w którym administrator klienta konfiguruje suitę. Nazwa produktu: DI Admin Console
+[nazwa robocza, do potwierdzenia jak pozostałe]. Usługa wspólna, widoczna tylko dla administratorów.
+
+**Gdzie mieszka.** Na start jako interfejs usługi tożsamości w repo `di-identity`: pierwsze rzeczy, którymi się
+administruje (organizacja, ludzie, uprawnienia do produktów), to dane tej usługi. Osobne repo `di-admin` dopiero
+wtedy, gdy konsola zacznie zarządzać ustawieniami kilku usług naraz.
+
+**Zakres, w kolejności budowy:**
+
+| Etap | Co administrator ustawia | Dane należą do |
+|---|---|---|
+| AC1 | organizacja, użytkownicy, zaproszenia; uprawnienie osoby do produktu z rolą; podłączenie dostawcy tożsamości klienta; dziennik zmian ustawień | di-identity |
+| AC2 | połączenia między aplikacjami: tokeny usług, sekrety podpisywania zdarzeń, stan i wiek połączenia | di-identity (tokeny), aplikacje (stan) |
+| AC3 | operating model: zatwierdzający i zastępca per typ decyzji, terminy, godziny ciszy | DI Decision |
+| AC4 | kanały: instalacja Slacka albo Teams, polityka powiadomień | di-channels |
+| później | lista zatwierdzonych modeli i limity kosztu; rozliczenia | DI Model Gateway i inne |
+
+**Zasady.**
+
+- Ustawienie ma jednego właściciela. Konsola pokazuje je i zmienia przez API aplikacji-właściciela; nie trzyma
+  własnej kopii (ta sama zasada co przy decyzjach, §3a).
+- Ustawienia specyficzne dla produktu (np. reguły flag, źródła w DI Definition) zostają w produkcie; konsola do
+  nich odsyła.
+- Każda zmiana ma autora z sesji i trafia do dziennika (wzorzec z DI Release Control); dostęp awaryjny jak tam.
+- Aplikacja działająca poza suitą zachowuje własne ustawienia i własny ekran administratora.
 
 ### Co się dzieje z wydaniami, CI i kopiami kontraktu
 
@@ -341,12 +374,13 @@ Szacunki tygodni przy jednej osobie pracującej w sesjach, jak dotąd [założen
 | 13 | 4 | pdi | zapis decyzji (ADR): usługa tożsamości suity, silnik, identyfikator osoby i organizacji, uprawnienie do produktu | podstawa pod B | pyt. 4a |
 | 13a | 4 | di-service-template (nowe) | szablon: CI, wydania, przypięcie kontraktu, weryfikacja tokenu, zdarzenia | wzorzec dla nowych repo | stos (pyt. 4a, DA4) |
 | 14 | 4–5 | di-identity (nowe) | usługa tożsamości: organizacja, osoba, uprawnienie do produktu, federacja z jednym dostawcą klienta, tokeny usług | jedna osoba w suicie | 13, 13a |
+| 14b | 5–6 | di-identity | Admin Console AC1: organizacja, użytkownicy, uprawnienia do produktów, dostawca tożsamości, dziennik zmian (§2b) | administrator klienta ma jedno miejsce | 14 |
 | 14a | 5 | di-contract | `suite.yaml` z testem spójności wersji | korelacja wersji w jednym miejscu | 6, 7 |
 | 15 | 5 | ci_for_sdlc | R1a: pytanie od człowieka przy historyjce (pochodzenie `human` obok `rule`/`ai`/`drift`), w aplikacji | początek refinementu bez komunikatora | — |
 | 16 | 5–6 | di-channels (nowe) | CH1: instalacja aplikacji na jednej platformie + akcja „dodaj pytanie” do DI Definition | pierwszy test refinementu z komunikatora | 14, 15, pyt. 2 |
 | 17 | 6 | di-channels, pdi | CH2: „czeka na Ciebie” z bramek DI Decision | powiadomienie z linkiem do konsoli | 8, 16 |
 
-Równolegle z tą tabelą idą kroki D1–D9 z §3a (decyzje widoczne w całej suicie). Kroki N1–N5 z §3b (routing i terminy) idą za krokami 8 i 17. Poza tabelą, do wstawienia po decyzjach: `consulted` w decyzji i „Ask team” (T4), zdarzenie `test-result`
+Równolegle z tą tabelą idą kroki D1–D9 z §3a (decyzje widoczne w całej suicie). Kroki N1–N5 z §3b (routing i terminy) idą za krokami 8 i 17. Etapy AC2–AC4 Admin Console (§2b) idą za krokami 14b, 8 i 16. Poza tabelą, do wstawienia po decyzjach: `consulted` w decyzji i „Ask team” (T4), zdarzenie `test-result`
 i wysyłka z `qa summary` (DI Quality), konektor DI Release → DI Release Control, bramki B4/B5 z fabryki.
 
 Kryterium po sześciu tygodniach: wszyscy konsumenci na jednej wersji kontraktu z jednego repo; tablica „Now”
