@@ -888,7 +888,10 @@ def test_status_shortens_long_errors_and_lists_at_most_five(world: World) -> Non
 # --- przebiegi dzienne pdi z terminala, ze zmiennymi z ~/.sdlc/env (PRB-9) ---
 
 
-@pytest.mark.parametrize(("command", "script"), [("impact-review", "pdi-impact-review"), ("forecast", "pdi-forecast")])
+@pytest.mark.parametrize(
+    ("command", "script"),
+    [("impact-review", "pdi-impact-review"), ("forecast", "pdi-forecast"), ("deadlines", "pdi-deadlines")],
+)
 def test_daily_runs_get_the_same_variables_as_the_mcp_server(world: World, command: str, script: str) -> None:
     assert up(world) == 0
 
