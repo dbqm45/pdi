@@ -4,7 +4,8 @@ Serwis startowany przez `sdlc up` (zatrzymywany `sdlc down`, pokazywany w `sdlc 
 nasłuchuje **tylko na 127.0.0.1**, z tokenem sesji w URL (jak formularz zgłoszeń: `src/pdi/receiver.py` +
 `src/pdi/form.py`). Pokazuje tablicę w trzech pasach (Z7a), ślad zmiany z panelem „Pliki” i bocznym postępem
 na żywo (DZ18), skrzynkę z przyciskami decyzji, read-only rejestr/autonomię i tablicę „Now” (DI Team T3:
-przebiegi agentów z `agent-runs/` w kolumnach In progress / Awaiting decision / In review / Done, filtr „Started by”). Nic nie pisze do klonu produktu;
+przebiegi agentów z `agent-runs/` w kolumnach In progress / Awaiting decision / In review / Done,
+filtr „Started by”). Nic nie pisze do klonu produktu;
 pliki pokazuje tylko z białej listy, bez symlinków i bez treści, która wygląda na sekret.
 
 Bezpieczeństwo:
