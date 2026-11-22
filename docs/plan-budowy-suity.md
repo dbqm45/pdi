@@ -205,7 +205,7 @@ trzyma swoje decyzje u siebie**; jako członek suity **udostępnia je pozostały
 | bramka zatwierdzona w DI Decision | rejestr pdi (`DEC-n.md`) | tak |
 | decyzja o zmianie w trybie pdi fabryki | `docs/project/changes/CHG-n/decisions.md` w repo produktu | tylko gdy sesja miała serwer MCP pdi i agent ją przesłał (`record_decision`); inaczej czeka jako niewysłana |
 | decyzja w zwykłej sesji fabryki | `docs/project/decisions.md` (D-NNN), `decisions.md` zadania, ADR | nie |
-| decyzja przy pytaniu w DI Definition | baza DI Definition; zdarzenie `decision.recorded` do pdi | tak, jeśli przestrzeń jest połączona z pdi |
+| decyzja przy pytaniu w DI Definition | baza DI Definition | tylko decyzje o odpowiedziach znalezionych przez AI (`decision.recorded`, typ `finding.auto_close`), gdy przestrzeń jest połączona z pdi; wysyłki pozostałych nie znalazłem |
 
 - `find_decisions` przeszukuje tylko pliki rejestru pdi: ustalenie, uzasadnienie, rodzaj, opcje, założenia,
   zależności, tagi; dopasowanie fragmentów słów, bez dowodów i skutków, bez szukania po znaczeniu.
@@ -253,7 +253,7 @@ trzyma swoje decyzje u siebie**; jako członek suity **udostępnia je pozostały
 | D2 | pdi | odbiornik przyjmuje `decision.recorded` od każdego członka suity i indeksuje wpis z linkiem do źródła | jeden indeks decyzji suity | D1 |
 | D3 | tf | rdzeń zapisuje D-NNN i ADR w formacie Decision Record; w suicie wysyła `decision.recorded`, poza suitą tylko zapis lokalny; dosyłanie zaległych | decyzje z codziennej pracy fabryki trafiają do indeksu | D1 |
 | D4 | pdi | `find_decisions` szuka też w dowodach i skutkach, filtruje po aplikacji źródłowej, zwraca link do źródła | wyszukiwarka obejmuje całą suitę | D2 |
-| D5 | ci_for_sdlc | `decision.recorded` w nowej wersji kontraktu z polem pochodzenia | decyzje DI Definition w tym samym kształcie | D1, krok 3 planu |
+| D5 | ci_for_sdlc | `decision.recorded` w nowej wersji kontraktu z polem pochodzenia, także dla rozstrzygnięcia pytania, przyjęcia ryzyka i odrzucenia (dziś tylko odpowiedzi znalezione przez AI) | wszystkie decyzje DI Definition w indeksie | D1, krok 3 planu |
 | D7 | pdi | odczyt przyrostowy indeksu: decyzje zmienione od podanego znacznika, z filtrem zakresu, razem z zastąpionymi i unieważnionymi | źródło dla pamięci podręcznej | D2 |
 | D8 | tf | lokalna pamięć podręczna decyzji suity tylko do odczytu: pobranie przy starcie sesji i na żądanie, wiek kopii widoczny, przeszukiwana razem z lokalnymi `decisions.md` przed zadaniem | fabryka zna decyzje innych aplikacji także bez połączenia | D3, D7 |
 | D9 | ci_for_sdlc | ta sama pamięć podręczna w DI Definition: decyzje spoza aplikacji widoczne przy ustaleniu i pytaniu, oznaczone jako pochodzące z suity | spójność definicji uwzględnia decyzje z fabryki i z bramek | D5, D7 |
