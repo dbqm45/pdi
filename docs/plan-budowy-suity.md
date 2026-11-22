@@ -380,6 +380,9 @@ Szacunki tygodni przy jednej osobie pracującej w sesjach, jak dotąd [założen
 | 16 | 5–6 | di-channels (nowe) | CH1: instalacja aplikacji na jednej platformie + akcja „dodaj pytanie” do DI Definition | pierwszy test refinementu z komunikatora | 14, 15, pyt. 2 |
 | 17 | 6 | di-channels, pdi | CH2: „czeka na Ciebie” z bramek DI Decision | powiadomienie z linkiem do konsoli | 8, 16 |
 
+Stan 2026-11-22: zrobione kroki 1–13, 15 i 16 (16 bez testu na żywym Slacku: brak przestrzeni testowej, adresu
+i kluczy); krok 8 przyjęty jako OM1 (`decyzje.md`). Otwarte: 13a, 14, 14a, 14b, 17.
+
 Równolegle z tą tabelą idą kroki D1–D9 z §3a (decyzje widoczne w całej suicie). Kroki N1–N5 z §3b (routing i terminy) idą za krokami 8 i 17. Etapy AC2–AC4 Admin Console (§2b) idą za krokami 14b, 8 i 16. Poza tabelą, do wstawienia po decyzjach: `consulted` w decyzji i „Ask team” (T4), zdarzenie `test-result`
 i wysyłka z `qa summary` (DI Quality), konektor DI Release → DI Release Control, bramki B4/B5 z fabryki.
 
@@ -405,7 +408,7 @@ Odpowiedzi na 1–4 są potrzebne przed etapem 2; pozostałe przed krokiem, któ
 | # | Pytanie | Rekomendacja | Co blokuje |
 |---|---|---|---|
 | 1 | Model repozytoriów; w tym D-P3: kontrakt do osobnego repo | **rozstrzygnięte 2026-11-22: osobne repo dla każdej części**, z szablonem i manifestem suity (§2) | — |
-| 2 | D-P9: Slack czy Teams na start | **ta platforma, której używa pierwszy zespół pilotażu**; potrzebuję nazwy platformy i dostępu do przestrzeni testowej | krok 16 |
+| 2 | D-P9: Slack czy Teams na start | **rozstrzygnięte 2026-11-22: Slack**; tożsamość na start bez di-identity (autor z nazwy w Slacku) | — |
 | 3 | D-P10: kanały jako osobna usługa wspólna czy część DI Assistant; nazwa | **osobna usługa wspólna we własnym repo `di-channels`**, nazwa DI Channels | krok 16 |
 | 4 | Z7: wspólna tożsamość | **rozstrzygnięte 2026-11-22: usługa tożsamości suity** (§2a): aplikacje ufają jednemu wystawcy tokenów, który federuje do dostawcy klienta | — |
 | 4a | Silnik i stos usługi tożsamości; pierwszy federowany dostawca | **gotowy silnik OIDC (klasa Keycloak; Flags używa go już lokalnie) + cienka warstwa organizacji i uprawnień; bez własnej bazy haseł; pierwszy dostawca ten, którym loguje się zespół pilotażu** | kroki 13, 13a, 14 |
@@ -413,7 +416,7 @@ Odpowiedzi na 1–4 są potrzebne przed etapem 2; pozostałe przed krokiem, któ
 | 6 | D-P11: gdzie mieszka warstwa spotkania refinementu | **sprintdeck jako pokój refinementu, ale dopiero po R1–R4 w DI Definition**; sprintdeck nie ma dziś API, kont ani wdrożenia, więc to nie jest tani krok | warstwa spotkania |
 | 7 | Czy DI Quality wchodzi do planu programu jako produkt suity | **tak, jako produkt, z jednym połączeniem na start**: wynik testów jako dowód dla bramki B4/B5 przez kontrakt; usługa centralna później | `test-result` w kontrakcie |
 | 8 | DI Release Control: zostaje produktem suity mimo braku wdrożenia i konsumenta, czy staje się modułem DI Release | **zostaje osobno, ale przed FL1 potrzebuje wdrożenia i jednego serwisu-konsumenta**; inaczej flaga `ai-feature` nie ma czego przełączać | FL1, konektor flag |
-| 9 | D-P4: kto zatwierdza bramki B1–B5 i w jakim SLA | potrzebna treść od właściciela; mogę przygotować szkic z jednym zatwierdzającym i domyślnymi SLA | krok 8, 17 |
+| 9 | D-P4: kto zatwierdza bramki B1–B5 i w jakim SLA | **rozstrzygnięte 2026-11-22 (OM1)**: właściciel, bez zastępcy, terminy ze szkicu ([16-operating-model.md](16-operating-model.md)) | — |
 | 10 | Nazwy repo: czy stare się zmieniają; czy nowe dostają prefiks `di-` (lista w §2) | **stare zostają; nowe z prefiksem `di-`** | zakładanie repo |
 | 11 | Kolejność wobec planu programu: fala 1 tamtego planu to Model Gateway i AI Registry; ten plan stawia przed nimi kontrakt, tożsamość, „Now” i kanał | **najpierw to, co łączy istniejące aplikacje** (ten plan), potem bramka modeli; do potwierdzenia, bo zmienia to kolejność fal | §7 |
 
