@@ -224,9 +224,22 @@ trzyma swoje decyzje u siebie**; jako członek suity **udostępnia je pozostały
    je wysyła). Poza suitą nie wysyła nic i nic nie traci.
 4. **DI Decision jest indeksem suity, nie drugim źródłem prawdy.** Przyjmuje zdarzenie, nadaje numer `DEC-n`,
    trzyma treść do wyszukiwania i link do źródła. Zmiana decyzji idzie zawsze przez aplikację-właściciela.
-5. **Pozostali członkowie czytają z indeksu, nie trzymają kopii.** Wyszukiwanie przez MCP i API DI Decision;
-   aplikacja, której decyzja dotyczy, dostaje zdarzenie (`decision.recorded`, `decision.basis_invalidated`).
-   Kopia wszystkich decyzji w każdej aplikacji rozjechałaby się tak samo jak dziś kopie kontraktu.
+5. **Pozostali członkowie czytają z indeksu i trzymają lokalną pamięć podręczną tylko do odczytu** (decyzja
+   właściciela 2026-11-22). Wyszukiwanie przez MCP i API DI Decision; aplikacja, której decyzja dotyczy, dostaje
+   zdarzenie (`decision.recorded`, `decision.basis_invalidated`). Pamięć podręczna pozwala pracować bez połączenia
+   z suitą, a nie jest drugim rejestrem:
+   - **zawartość:** decyzje innych aplikacji z tego samego zakresu (organizacja, projekt albo repo), w formacie
+     Decision Record, z numerem `DEC-n`, pochodzeniem i datą pobrania;
+   - **tylko odczyt:** aplikacja nie edytuje cudzej decyzji; zmiana idzie do aplikacji-właściciela, a pamięć
+     podręczna dostaje nową wersję przy następnym odświeżeniu. Każdy plik ma znacznik „kopia, nie edytuj”,
+     a sprawdzenie w CI aplikacji odrzuca ręczną zmianę;
+   - **odświeżanie:** przy starcie sesji albo zadania i na żądanie, przyrostowo od ostatniego pobrania; decyzje
+     zastąpione i unieważnione też są pobierane, żeby kopia nie pokazywała nieaktualnej decyzji jako obowiązującej;
+   - **bez połączenia:** aplikacja używa ostatniej kopii i pokazuje jej wiek; własne decyzje zapisuje lokalnie
+     i dosyła po powrocie połączenia (pkt 6);
+   - **poza gitem:** pamięć podręczna leży poza plikami śledzonymi (w fabryce obok `.tf/cache/`), więc nie trafia
+     do historii repo i nie rozjeżdża się tak jak przypięte kopie kontraktu;
+   - **poza suitą:** pamięci podręcznej nie ma i aplikacja widzi tylko własne decyzje.
 6. **Dołączenie do suity i przerwy w łączności:** aplikacja dosyła zaległe decyzje (fabryka ma już listę
    „niewysłanych”); zapis jest idempotentny po pochodzeniu, więc ponowne wysłanie niczego nie dubluje.
 7. **Spec, plany i taski zostają w gicie przy zmianie**, bez indeksowania w suicie; fabryka przeszukuje je lokalnie
@@ -241,9 +254,13 @@ trzyma swoje decyzje u siebie**; jako członek suity **udostępnia je pozostały
 | D3 | tf | rdzeń zapisuje D-NNN i ADR w formacie Decision Record; w suicie wysyła `decision.recorded`, poza suitą tylko zapis lokalny; dosyłanie zaległych | decyzje z codziennej pracy fabryki trafiają do indeksu | D1 |
 | D4 | pdi | `find_decisions` szuka też w dowodach i skutkach, filtruje po aplikacji źródłowej, zwraca link do źródła | wyszukiwarka obejmuje całą suitę | D2 |
 | D5 | ci_for_sdlc | `decision.recorded` w nowej wersji kontraktu z polem pochodzenia | decyzje DI Definition w tym samym kształcie | D1, krok 3 planu |
+| D7 | pdi | odczyt przyrostowy indeksu: decyzje zmienione od podanego znacznika, z filtrem zakresu, razem z zastąpionymi i unieważnionymi | źródło dla pamięci podręcznej | D2 |
+| D8 | tf | lokalna pamięć podręczna decyzji suity tylko do odczytu: pobranie przy starcie sesji i na żądanie, wiek kopii widoczny, przeszukiwana razem z lokalnymi `decisions.md` przed zadaniem | fabryka zna decyzje innych aplikacji także bez połączenia | D3, D7 |
+| D9 | ci_for_sdlc | ta sama pamięć podręczna w DI Definition: decyzje spoza aplikacji widoczne przy ustaleniu i pytaniu, oznaczone jako pochodzące z suity | spójność definicji uwzględnia decyzje z fabryki i z bramek | D5, D7 |
 | D6 | pdi | uzgodnienie zapisu D2/R1 w `decyzje.md` z tym modelem (publikacja zdarzeniem zamiast odczytu z repo) | dokumenty mówią to, co robi kod | — |
 
-Później: DI Release, DI Release Control i DI Quality publikują swoje decyzje tym samym zdarzeniem, gdy będą miały
+Później: DI Release, DI Release Control i DI Quality publikują swoje decyzje tym samym zdarzeniem i dostają tę samą
+pamięć podręczną, gdy będą miały
 co publikować (np. zmiana flagi na PROD, przyjęcie wyniku testów). Szukanie po znaczeniu dopiero, gdy DI Decision
 będzie usługą z bazą (DA4).
 
@@ -274,7 +291,7 @@ Szacunki tygodni przy jednej osobie pracującej w sesjach, jak dotąd [założen
 | 16 | 5–6 | di-channels (nowe) | CH1: instalacja aplikacji na jednej platformie + akcja „dodaj pytanie” do DI Definition | pierwszy test refinementu z komunikatora | 14, 15, pyt. 2 |
 | 17 | 6 | di-channels, pdi | CH2: „czeka na Ciebie” z bramek DI Decision | powiadomienie z linkiem do konsoli | 8, 16 |
 
-Równolegle z tą tabelą idą kroki D1–D6 z §3a (decyzje widoczne w całej suicie). Poza tabelą, do wstawienia po decyzjach: `consulted` w decyzji i „Ask team” (T4), zdarzenie `test-result`
+Równolegle z tą tabelą idą kroki D1–D9 z §3a (decyzje widoczne w całej suicie). Poza tabelą, do wstawienia po decyzjach: `consulted` w decyzji i „Ask team” (T4), zdarzenie `test-result`
 i wysyłka z `qa summary` (DI Quality), konektor DI Release → DI Release Control, bramki B4/B5 z fabryki.
 
 Kryterium po sześciu tygodniach: wszyscy konsumenci na jednej wersji kontraktu z jednego repo; tablica „Now”
