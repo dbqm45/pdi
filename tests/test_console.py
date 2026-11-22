@@ -12,6 +12,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -534,7 +535,7 @@ def test_menu_links_keep_the_token(registry: Registry) -> None:
         assert status == 200
         nav = body.decode().split("<nav>", 1)[1].split("</nav>", 1)[0]
         links = re.findall(r'href="([^"]+)"', nav)
-        assert [link.split("?")[0] for link in links] == ["/board", "/inbox", "/decisions", "/autonomy"]
+        assert [link.split("?")[0] for link in links] == ["/now", "/board", "/inbox", "/decisions", "/autonomy"]
         for link in links:
             assert f"t={TOKEN}" in link
             assert _get(f"{url}{link.replace('&amp;', '&')}")[0] == 200
@@ -739,3 +740,111 @@ def test_ready_pr_in_inbox_closes_with_reviewed(registry: Registry) -> None:
         assert deps.inbox.get(item["id"])["status"] == "decided"
     finally:
         server.shutdown()
+
+
+# --- tablica „Now” (DI Team T3): przebiegi agentów z agent-runs/ i decyzje ze skrzynki ---
+
+NOW_AT = datetime(2026, 11, 22, 12, 0, tzinfo=UTC)
+
+
+def _run_event(kind: str, run: str, event_id: str, at: str, **payload: Any) -> dict[str, Any]:
+    return {
+        "id": event_id,
+        "type": f"run.{kind}",
+        "occurred_at": at,
+        "source": "tf",
+        "contract_version": "0.15.1",
+        "payload": {"run": run, "phase": "delivery", **payload},
+    }
+
+
+def _seed_runs(registry: Registry) -> None:
+    inbox = Inbox(registry)
+    ola, kuba = {"name": "Ola", "kind": "human"}, {"name": "Kuba", "kind": "human"}
+    inbox.receive(
+        _run_event(
+            "started",
+            "r-run",
+            "e1",
+            "2026-11-22T11:50:00Z",
+            started_by=ola,
+            trigger="manual",
+            change="CHG-12",
+            task="TSK-57",
+            agent="jan",
+        )
+    )
+    inbox.receive(
+        _run_event(
+            "progress",
+            "r-run",
+            "e2",
+            "2026-11-22T11:55:00Z",
+            status="in_progress",
+            activity="uruchamia <testy> cięcia",
+            cost_usd=1.2,
+            budget_usd=10,
+        )
+    )
+    inbox.receive(_run_event("started", "r-gate", "e3", "2026-11-22T10:00:00Z", started_by=kuba, trigger="pdi"))
+    inbox.receive(_run_event("finished", "r-gate", "e4", "2026-11-22T10:30:00Z", outcome="waiting_gate"))
+    review = {"url": "https://github.com/acme/pay/pull/88", "status": "open", "ai_verdict": "approved", "risk": "low"}
+    inbox.receive(_run_event("started", "r-rev", "e5", "2026-11-22T08:00:00Z", started_by=ola, trigger="manual"))
+    inbox.receive(_run_event("finished", "r-rev", "e6", "2026-11-22T09:00:00Z", outcome="done", review=review))
+    inbox.receive(_run_event("finished", "r-done", "e7", "2026-11-21T09:00:00Z", outcome="failed"))
+    inbox.receive(_run_event("finished", "r-old", "e8", "2026-11-01T09:00:00Z", outcome="done"))
+
+
+def _serve_at(deps: console.Deps) -> tuple[console.ThreadedHTTPServer, str]:
+    server = console.make_server(deps, token=TOKEN, port=0, clock=lambda: NOW_AT)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server, f"http://127.0.0.1:{server.server_port}"
+
+
+def _column(page: str, n: int) -> str:
+    return page.split(f'class="lane n{n}"')[1].split('class="lane')[0]
+
+
+def test_now_puts_each_run_in_its_column(registry: Registry) -> None:
+    _seed_runs(registry)
+    _write_inbox_gate(registry, item_id="evt-gate-9", change="CHG-30")
+    server, url = _serve_at(console.Deps(registry, checkout=None))
+    try:
+        status, body, _ = _get(f"{url}/now?t={TOKEN}")
+        page = body.decode("utf-8")
+    finally:
+        server.shutdown()
+    assert status == 200
+    in_progress, awaiting, review, done = (_column(page, n) for n in (1, 2, 3, 4))
+    assert "CHG-12" in in_progress and "Started by: Ola" in in_progress and "TSK-57" in in_progress
+    assert "uruchamia &lt;testy&gt; cięcia" in in_progress and "<testy>" not in page
+    assert "koszt: 1.20 USD z 10.00" in in_progress and "zmiana karty: 5 min temu" in in_progress
+    assert "Started by: Kuba" in awaiting and "czeka na decyzję na bramce" in awaiting
+    assert "CHG-30" in awaiting and "zdecyduj w skrzynce" in awaiting
+    assert "PR #88" in review and "approved" in review
+    assert "failed" in done and "zmiana karty: 27 h temu" in done
+    assert page.count('class="card"') == 5  # r-old (21 dni) jest poza tablicą
+
+
+def test_now_filters_by_who_started_the_run(registry: Registry) -> None:
+    _seed_runs(registry)
+    _write_inbox_gate(registry, item_id="evt-gate-9", change="CHG-30")
+    server, url = _serve_at(console.Deps(registry, checkout=None))
+    try:
+        _, body, _ = _get(f"{url}/now?t={TOKEN}&who=Kuba")
+        page = body.decode("utf-8")
+    finally:
+        server.shutdown()
+    assert "Started by: Kuba" in page and "Started by: Ola" not in page
+    assert "CHG-30" not in page  # pozycje skrzynki nie mają osoby, więc filtr je chowa
+    assert "class=on>Kuba</a>" in page
+
+
+def test_now_requires_token_and_works_without_runs(registry: Registry) -> None:
+    server, url = _serve_at(console.Deps(registry, checkout=None))
+    try:
+        assert _get(f"{url}/now")[0] == 404
+        status, body, _ = _get(f"{url}/now?t={TOKEN}")
+    finally:
+        server.shutdown()
+    assert status == 200 and body.decode("utf-8").count("<small>nic</small>") == 4

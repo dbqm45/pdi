@@ -220,7 +220,7 @@ konsola pdi (`src/pdi/console.py`: tablica zmian, ślad, postęp fazy na żywo, 
   agent, czynność, cięcie, koszt, budżet); stan przeglądu PR (werdykt AI, ryzyko, recenzent) w zdarzeniu.
 - [ ] **T2 — fabryka:** hook zgłaszający start, postęp i koniec przebiegu także dla sesji ręcznych (dziś tylko fazy
   uruchamiane przez pdi mają postęp); tożsamość z gita albo z konta suity.
-- [ ] **T3 — „Now” tylko do odczytu:** nowy ekran w istniejącej konsoli pdi (cztery kolumny, „Started by”, filtr po
+- [x] **T3 — „Now” tylko do odczytu** (zrobione 2026-11-22: `/now` w lokalnej konsoli, `pdi.console._now_body`; dla wielu osób dopiero z konsolą jako usługą — DA4): nowy ekran w istniejącej konsoli pdi (cztery kolumny, „Started by”, filtr po
   osobie, linia stanu u góry), dla wielu osób; świeżość karty widoczna (kiedy ostatnio się zmieniła).
 - [ ] **T4 — „Ask team” online:** przycisk na karcie decyzji, wybór osób, opcje z pytania, odpowiedzi ukryte do
   zamknięcia, skutki opcji od agenta, czas zamknięcia; wynik jako szkic decyzji z listą zapytanych; typ decyzji

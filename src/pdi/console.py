@@ -3,7 +3,8 @@
 Serwis startowany przez `sdlc up` (zatrzymywany `sdlc down`, pokazywany w `sdlc status`, otwierany `sdlc open`),
 nasłuchuje **tylko na 127.0.0.1**, z tokenem sesji w URL (jak formularz zgłoszeń: `src/pdi/receiver.py` +
 `src/pdi/form.py`). Pokazuje tablicę w trzech pasach (Z7a), ślad zmiany z panelem „Pliki” i bocznym postępem
-na żywo (DZ18), skrzynkę z przyciskami decyzji i read-only rejestr/autonomię. Nic nie pisze do klonu produktu;
+na żywo (DZ18), skrzynkę z przyciskami decyzji, read-only rejestr/autonomię i tablicę „Now” (DI Team T3:
+przebiegi agentów z `agent-runs/` w kolumnach In progress / Awaiting decision / In review / Done, filtr „Started by”). Nic nie pisze do klonu produktu;
 pliki pokazuje tylko z białej listy, bez symlinków i bez treści, która wygląda na sekret.
 
 Bezpieczeństwo:
@@ -39,7 +40,7 @@ from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, quote, urlsplit
 
 from pdi import autonomy, dispatch_local, pr_state
 from pdi import trace as trace_mod
@@ -96,6 +97,15 @@ main{padding:16px 24px;max-width:1240px;margin:0 auto}
 h1{margin:0 0 12px;font-size:22px}
 h2{margin:20px 0 10px;font-size:17px}
 .lanes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.lanes.now{grid-template-columns:repeat(4,1fr)}
+.lane.n2 h3{background:#FFF0D2}
+.lane.n3 h3{background:#F3EEF9}
+.lane.n4 h3{background:#E6F3EA}
+.card .who{font-size:12px;color:#15202b}
+.card .fresh{font-size:11px;color:#5B6878}
+.filters a{margin-right:10px}
+.filters a.on{font-weight:600}
+@media (max-width:900px){.lanes,.lanes.now{grid-template-columns:1fr}}
 .lane{background:#fff;border-radius:10px;border:1px solid #DDE3EA;overflow:hidden}
 .lane h3{margin:0;padding:10px 14px;font-size:14px;color:#15202b;background:#EAF0FB}
 .lane.l2 h3{background:#F3EEF9}
@@ -235,7 +245,13 @@ def _nav(token: str) -> str:
     if not token:
         return "<nav></nav>"
     t = _escape(token)
-    pages = (("board", "Tablica"), ("inbox", "Skrzynka"), ("decisions", "Decyzje"), ("autonomy", "Autonomia"))
+    pages = (
+        ("now", "Now"),
+        ("board", "Tablica"),
+        ("inbox", "Skrzynka"),
+        ("decisions", "Decyzje"),
+        ("autonomy", "Autonomia"),
+    )
     return "<nav>" + "".join(f'<a href="/{path}?t={t}">{label}</a>' for path, label in pages) + "</nav>"
 
 
@@ -307,6 +323,138 @@ def _board_body(deps: Deps, token: str) -> str:
     )
     summary = f"<p><strong>Zmiany:</strong> {len(changes)} · <strong>Czeka na Ciebie:</strong> {len(inbox_open)}</p>"
     return f"<h1>Tablica</h1>{summary}<section class='lanes'>{lanes_html}</section>"
+
+
+NOW_COLUMNS = {1: "In progress", 2: "Awaiting decision", 3: "In review", 4: "Done"}
+NOW_DONE_DAYS = 7
+NOW_DONE_MAX = 20
+_REVIEW_OPEN = ("open", "green", "needs_human")
+
+
+def _ago(stamp: Any, now: datetime) -> str:
+    """„5 min temu”, „3 h temu”, „2 dni temu” z czasu ISO (`…Z`); pusty tekst, gdy czasu nie ma albo jest zły."""
+    try:
+        moment = datetime.strptime(str(stamp), "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
+    except ValueError:
+        return ""
+    minutes = max(0, int((now - moment).total_seconds() // 60))
+    if minutes < 60:
+        return f"{minutes} min temu"
+    if minutes < 48 * 60:
+        return f"{minutes // 60} h temu"
+    return f"{minutes // (24 * 60)} dni temu"
+
+
+def _now_column(run: dict[str, Any], now: datetime) -> int | None:
+    """Kolumna tablicy „Now” dla przebiegu agenta (DI Team T3); None — poza tablicą (stary albo bez stanu)."""
+    status = run.get("status")
+    review = run.get("review") if isinstance(run.get("review"), dict) else None
+    if status == "running":
+        return 1
+    if status == "waiting_gate":
+        return 2
+    if status == "done" and review and review.get("status") in _REVIEW_OPEN:
+        return 3
+    if status in ("done", "failed", "cancelled"):
+        finished = str(run.get("finished_at") or run.get("updated_at") or "")
+        try:
+            moment = datetime.strptime(finished, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
+        except ValueError:
+            return None
+        return 4 if (now - moment).days < NOW_DONE_DAYS else None
+    return None
+
+
+def _run_card(run: dict[str, Any], column: int, now: datetime, token: str) -> str:
+    started = run.get("started_by")
+    who: dict[str, Any] = started if isinstance(started, dict) else {}
+    name = _escape(who.get("name") or "?")
+    robot = " (automat)" if who.get("kind") == "automation" else ""
+    change = run.get("change")
+    title = (
+        f'<a href="/trace/{_escape(change)}?t={_escape(token)}"><span class="chg">{_escape(change)}</span></a>'
+        if change
+        else '<span class="chg">sesja</span>'
+    )
+    bits = [_escape(x) for x in (run.get("task"), run.get("phase"), run.get("agent")) if x]
+    lines = [f'<div class="who">Started by: {name}{robot}</div>']
+    if column == 1 and run.get("activity"):
+        lines.append(f"<div><small>{_escape(_sanitize_text(run['activity'], 200))}</small></div>")
+    if column == 2:
+        lines.append('<div class="wait">czeka na decyzję na bramce</div>')
+    cost = run.get("cost_usd")
+    budget = run.get("budget_usd")
+    if isinstance(cost, (int, float)):
+        money = f"{cost:.2f} USD" + (f" z {budget:.2f}" if isinstance(budget, (int, float)) else "")
+        lines.append(f"<div><small>koszt: {money}</small></div>")
+    review = run.get("review") if isinstance(run.get("review"), dict) else None
+    if review and column in (3, 4):
+        parts = [x for x in (review.get("status"), review.get("ai_verdict"), review.get("risk")) if x]
+        rev = review.get("reviewer")
+        label = _escape(" · ".join(str(p) for p in parts)) + (f" · {_escape(rev)}" if rev else "")
+        lines.append(f"<div><small>{_escape(_pr_label_of(review.get('url')))} {label}</small></div>")
+    if column == 4 and run.get("status") != "done":
+        lines.append(f'<div class="err"><small>{_escape(run.get("status"))}</small></div>')
+    fresh = _ago(run.get("updated_at"), now)
+    if fresh:
+        lines.append(f'<div class="fresh">zmiana karty: {fresh}</div>')
+    head = title + (f' <span class="phase">{" · ".join(bits)}</span>' if bits else "")
+    return f'<li><div class="card">{head}{"".join(lines)}</div></li>'
+
+
+def _item_card(item: dict[str, Any], now: datetime, token: str) -> str:
+    """Pozycja skrzynki w kolumnie „Awaiting decision”: na co czeka; decyzja zawsze w skrzynce (link)."""
+    change = item.get("change")
+    head = f'<span class="chg">{_escape(change)}</span> ' if change else ""
+    gate = f'<span class="phase">{_escape(item.get("gate") or item.get("kind") or "")}</span>'
+    summary = _escape(_sanitize_text(item.get("summary") or item["id"], 200))
+    link = f'<a href="/inbox/{_escape(item["id"])}?t={_escape(token)}">zdecyduj w skrzynce</a>'
+    fresh = _ago(item.get("received_at"), now)
+    tail = f'<div class="fresh">czeka od: {fresh}</div>' if fresh else ""
+    return f'<li><div class="card">{head}{gate}<div><small>{summary}</small></div><div>{link}</div>{tail}</div></li>'
+
+
+def _now_body(deps: Deps, token: str, who: str, now: datetime) -> str:
+    """Tablica „Now” (DI Team T3): co dzieje się teraz, tylko odczyt. Przebiegi z `agent-runs/`, decyzje ze skrzynki.
+
+    Filtr `who` zawęża przebiegi do jednej osoby („Started by”); pozycje skrzynki nie mają tej osoby, więc przy
+    filtrze ich nie widać. Zapis zawsze w aplikacji-właścicielu (decyzja → skrzynka), nie tutaj."""
+    runs = deps.inbox.runs.list()
+    people = sorted(
+        {
+            str(r["started_by"]["name"])
+            for r in runs
+            if isinstance(r.get("started_by"), dict) and r["started_by"].get("name")
+        }
+    )
+    if who:
+        runs = [r for r in runs if isinstance(r.get("started_by"), dict) and r["started_by"].get("name") == who]
+    columns: dict[int, list[str]] = {n: [] for n in NOW_COLUMNS}
+    for run in runs:
+        col = _now_column(run, now)
+        if col is not None and not (col == 4 and len(columns[4]) >= NOW_DONE_MAX):
+            columns[col].append(_run_card(run, col, now, token))
+    if not who:
+        columns[2] = [_item_card(i, now, token) for i in deps.inbox.items(status="open")] + columns[2]
+    t = _escape(token)
+    links = [f'<a href="/now?t={t}"{" class=on" if not who else ""}>wszyscy</a>']
+    links += [
+        f'<a href="/now?t={t}&amp;who={_escape(quote(p))}"{" class=on" if p == who else ""}>{_escape(p)}</a>'
+        for p in people
+    ]
+    counts = " · ".join(f"<strong>{label}:</strong> {len(columns[n])}" for n, label in NOW_COLUMNS.items())
+    lanes = "".join(
+        f'<div class="lane n{n}"><h3>{label}</h3><ul>'
+        + ("".join(columns[n]) if columns[n] else "<li><small>nic</small></li>")
+        + "</ul></div>"
+        for n, label in NOW_COLUMNS.items()
+    )
+    return (
+        f"<h1>Now</h1><p>{counts}</p>"
+        f'<p class="filters"><small>Started by:</small> {"".join(links)}</p>'
+        f"<section class='lanes now'>{lanes}</section>"
+        f"<p><small>Przebiegi agentów zgłasza fabryka (tf); „Done” pokazuje ostatnie {NOW_DONE_DAYS} dni.</small></p>"
+    )
 
 
 def _trace_body(deps: Deps, change: str, token: str) -> str:
@@ -773,6 +921,9 @@ def make_server(
 
             path = url.path
             try:
+                if path == "/now":
+                    body = _now_body(deps, token, params.get("who", ""), clock())
+                    return self._html(200, _render_page("Now", body, nonce=nonce, token=token))
                 if path == "/" or path == "/board":
                     return self._html(200, _render_page("Tablica", _board_body(deps, token), nonce=nonce, token=token))
                 if path == "/inbox":
