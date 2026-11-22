@@ -348,7 +348,7 @@ w socjokracji. Wspólne: jeden decydent, termin, milczenie jako zgoda, tempo zal
 |---|---|---|---|---|
 | N1 | pdi | operating model (krok 8) dostaje: decydenta i zastępcę per typ decyzji, domyślne terminy per odwracalność, ścieżkę eskalacji | routing i terminy mają źródło | treść od właściciela (pyt. 9) |
 | N2 | di-contract (albo pdi przed wydzieleniem) | pole `reversibility` w decyzji (jest na liście w `TODO.md`, niezrobione); w pytaniu: `closes_at`, `default_option`, lista pytanych; znacznik decyzji tymczasowej | dane dla terminów, opcji domyślnej i blokowania | razem z `consulted` (T4) |
-| N3 | pdi | skrzynka zamyka pytanie po terminie: opcja domyślna przy decyzji łatwej do cofnięcia, eskalacja przy trudnej albo przy milczeniu decydenta | nic nie wisi bez końca | N1, N2 |
+| N3 | pdi, di-channels | **zrobione 2026-11-22 wg OM1** (zamiast pierwotnego opisu: przy jednym zatwierdzającym bramka nie zamyka się sama i nie ma do kogo eskalować): przypomnienia przed terminem i w dniu terminu, „po terminie”, zmiana „wstrzymana” po 2 × terminie, „do przeglądu” po 4 × terminie; terminy z tabeli OM1 w kodzie, nie z pól kontraktu (N2) | nic nie wisi bez końca | N1, N2 (obejście: terminy OM1 na sztywno) |
 | N4 | tf | faza idzie dalej z opcją rekomendowaną jako tymczasową, gdy decyzja jest łatwa do cofnięcia; zatrzymuje tylko zależną część przy trudnej | wisząca decyzja nie blokuje całości | N2 |
 | N5 | di-channels | trzy poziomy powiadomień (decydujesz, jesteś pytany, informowany) w polityce powiadomień; miara czystości kanału „decydujesz” | wiadomości trafiają do właściwych osób | krok 17 (CH2), N1 |
 

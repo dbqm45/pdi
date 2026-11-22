@@ -388,6 +388,16 @@ def build_server(
             raise ToolError(str(e)) from e
 
     @server.tool(annotations=_WRITE)
+    def check_deadlines() -> dict[str, list[dict[str, Any]]]:
+        """Przypomnienia i skutki terminów otwartych pozycji skrzynki (N3, operating model OM1).
+
+        Etapy: reminder, due_today, overdue, paused (2 × termin: zmiana wstrzymana, nowa faza się nie uruchomi do
+        decyzji), review (4 × termin: lista do przeglądu). Wysyła najświeższy osiągnięty etap do DI Channels, gdy
+        ustawiony jest PDI_CHANNELS_URL. Zwykle robi to cron (`pdi-deadlines`, co godzinę).
+        """
+        return {"stages": open_inbox().check_deadlines()}
+
+    @server.tool(annotations=_WRITE)
     def open_due_impact_reviews(today: str | None = None) -> dict[str, list[dict[str, Any]]]:
         """Otwiera oceny skutku MVP, których termin minął (po feature.released R1 i N dniach z success_metric).
 

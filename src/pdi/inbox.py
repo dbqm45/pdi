@@ -29,7 +29,7 @@ import yaml
 
 from pdi import autonomy, capture, contract, dispatch_local, flow, forecast, impact, phase_decisions, runs, waiting
 from pdi import pr_state as pr_state_mod
-from pdi.changes import ChangeStore
+from pdi.changes import ChangeNotFound, ChangeStore
 from pdi.dispatch import DispatchConfig, Post, dispatch_phase
 from pdi.notify import NotifyConfig, ReporterNotifyConfig, notify_ci_for_sdlc
 from pdi.problems import ProblemStore
@@ -331,8 +331,12 @@ class Inbox:
         if draft.get("why"):
             item["note"] = draft["why"]
         self._write(item, overwrite=True)
-        warning = self.registry.commit([self._path(item["id"])], f"inbox {item['id']}: PR przejrzany")
-        return {"item": item, "decision": None, "change": None, **({"warning": warning} if warning else {})}
+        touched = [self._path(item["id"])]
+        resumed = self._resume_change(item, None)
+        if resumed is not None:
+            touched.append(self.changes.save(resumed))
+        warning = self.registry.commit(touched, f"inbox {item['id']}: PR przejrzany")
+        return {"item": item, "decision": None, "change": resumed, **({"warning": warning} if warning else {})}
 
     # --- pętla PR (N2) ---
 
@@ -541,6 +545,75 @@ class Inbox:
             created.append({**item, **({"warning": warning} if warning else {})})
         return created
 
+    # --- terminy (N3, operating model OM1 §4–§5) ---
+
+    def check_deadlines(self, *, now: datetime | None = None) -> list[dict[str, Any]]:
+        """Przypomnienia i skutki terminu dla otwartych pozycji; do uruchamiania często (`pdi-deadlines`, co godzinę).
+
+        Dla każdej pozycji bierze najświeższy osiągnięty etap, którego jeszcze nie zapisała (`deadline_notices`), i
+        wysyła go do DI Channels (gdy `PDI_CHANNELS_URL`); wcześniejsze pominięte etapy zapisuje jako `superseded`,
+        żeby nie zasypać zatwierdzającego po przerwie. „paused” wstrzymuje zmianę (nowa faza się nie uruchomi, dopóki
+        pozycja nie dostanie decyzji), „review” stawia pozycję na liście do przeglądu. Bramka nigdy nie zatwierdza się
+        sama.
+        """
+        moment = (now or self.registry.now()).astimezone(UTC)
+        at = _iso(moment)
+        done: list[dict[str, Any]] = []
+        for item in self.items(status="open"):
+            if not item.get("received_at"):
+                continue
+            notices: dict[str, Any] = dict(item.get("deadline_notices") or {})
+            reached = [s for s, when in waiting.stages(item) if when <= moment and s not in notices]
+            if not reached:
+                continue
+            for skipped in reached[:-1]:
+                notices[skipped] = {"status": "superseded", "at": at}
+            stage = reached[-1]
+            notices[stage] = (
+                waiting.notify(self._channels, item, at=at, post=self._channels_post, stage=stage)
+                if self._channels.url
+                else {"status": "recorded", "at": at}
+            )
+            item = {**item, "deadline_notices": notices}
+            touched = [self._path(item["id"])]
+            if "paused" in reached and item.get("change"):
+                item["paused_at"] = at
+                paused = self._pause_change(item["change"], item["id"], at)
+                if paused is not None:
+                    touched.append(paused)
+            if "review" in reached:
+                item["needs_review"] = True
+            self._write(item, overwrite=True)
+            self.registry.commit(touched, f"inbox {item['id']}: termin — {stage}")
+            done.append({"item": item["id"], "change": item.get("change"), "stage": stage, "notice": notices[stage]})
+        return done
+
+    def _pause_change(self, change: str, item_id: str, at: str) -> Path | None:
+        """Stan „wstrzymana” w zmianie (OM1 §5): kto wstrzymał i od kiedy; brak stanu zmiany — nic."""
+        try:
+            state = self.changes.get(change)
+        except ChangeNotFound:
+            return None
+        if state.get("paused"):
+            return None
+        state["paused"] = {"since": at, "item": item_id, "reason": "decyzja po 2 × terminie (OM1)"}
+        return self.changes.save(state)
+
+    def _resume_change(self, item: Item, state: dict[str, Any] | None) -> dict[str, Any] | None:
+        """Decyzja na pozycji, która wstrzymała zmianę, zdejmuje wstrzymanie; zwraca stan do zapisu albo None."""
+        change = item.get("change")
+        if not change:
+            return None
+        if state is None:
+            try:
+                state = self.changes.get(change)
+            except ChangeNotFound:
+                return None
+        paused = state.get("paused")
+        if not isinstance(paused, dict) or paused.get("item") != item["id"]:
+            return None
+        return {k: v for k, v in state.items() if k != "paused"}
+
     # --- odczyt ---
 
     def get(self, item_id: str) -> Item:
@@ -651,7 +724,11 @@ class Inbox:
             event = _gate_decided_event(item_id, item["change"], gate, outcome, decision["id"], at)
             touched.append(self._write_outbox(event))
             result["event"] = event
-            if run:
+            paused_by = (state.get("paused") or {}).get("item")
+            if run and paused_by and paused_by != item_id:
+                # OM1 §5: wstrzymana zmiana nie zaczyna następnej fazy, dopóki zaległa pozycja nie dostanie decyzji.
+                state["dispatch"] = {"status": "skipped", "at": at, "error": f"zmiana wstrzymana przez {paused_by}"}
+            elif run:
                 state["dispatch"] = self._run(state["change"], run, gate, outcome, decision["id"], at)
             if gate == flow.BASELINE_GATE:
                 # „Approve for implementation” ustawia baseline historyjek w ci_for_sdlc (F4).
@@ -665,6 +742,9 @@ class Inbox:
         if new_policy is not None:
             touched.append(autonomy.write_policy(self.registry, new_policy, decision=decision["id"], at=at))
             result["policy"] = new_policy
+        resumed = self._resume_change(item, state)
+        if resumed is not None:
+            state = resumed
         if state is not None:
             touched.append(self.changes.save(state))
 

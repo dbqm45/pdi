@@ -414,6 +414,13 @@ def _item_card(item: dict[str, Any], now: datetime, token: str) -> str:
     link = f'<a href="/inbox/{_escape(item["id"])}?t={_escape(token)}">zdecyduj w skrzynce</a>'
     fresh = _ago(item.get("received_at"), now)
     tail = f'<div class="fresh">czeka od: {fresh}</div>' if fresh else ""
+    notices = item.get("deadline_notices") or {}
+    if item.get("needs_review"):
+        tail += '<div class="fresh"><b>do przeglądu</b> (4 × termin)</div>'
+    elif item.get("paused_at"):
+        tail += '<div class="fresh"><b>wstrzymana</b> (2 × termin)</div>'
+    elif "overdue" in notices:
+        tail += '<div class="fresh"><b>po terminie</b></div>'
     return f'<li><div class="card">{head}{gate}<div><small>{summary}</small></div><div>{link}</div>{tail}</div></li>'
 
 
@@ -639,6 +646,7 @@ def _progress_panel(change: str, progress: dict[str, Any], token: str) -> str:
 
 def _inbox_body(deps: Deps, token: str) -> str:
     deps.inbox.open_ready_prs()  # PR-y cięć po pętli PR (N2): pozycja dopiero przy green albo needs_human
+    deps.inbox.check_deadlines()  # terminy z OM1 (N3): przypomnienia, „wstrzymana”, „do przeglądu”
     items = deps.inbox.items(status="open")
     rows = []
     for item in items:

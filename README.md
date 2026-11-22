@@ -219,6 +219,13 @@ w Slacku i trzyma godziny ciszy. Link do konsoli tylko z `PDI_CONSOLE_URL` i bez
 mówi „`sdlc open` → Skrzynka”. Wynik wysyłki zostaje w pozycji (`waiting_notice`); bez `PDI_CHANNELS_URL` nic nie
 jest wysyłane. Zmienne ustawia się dla `pdi-receiver`, konsoli i serwera MCP.
 
+Terminy (N3, OM1 §4–§5): `pdi-deadlines` (cron co godzinę; też narzędzie MCP `check_deadlines` i przy otwarciu
+skrzynki w konsoli) wysyła przypomnienie (bramka 2-dniowa po 1 dniu roboczym, B3 po 3, 1-dniowa w połowie), „termin
+dziś”, „po terminie”, a po 2 × terminie **wstrzymuje zmianę** (`paused` w stanie zmiany: nowa faza się nie uruchomi,
+dopóki zaległa pozycja nie dostanie decyzji; decyzja zdejmuje wstrzymanie) i po 4 × terminie stawia pozycję na liście
+„do przeglądu” (`needs_review`). Bramka nigdy nie zatwierdza się sama. Po przerwie idzie tylko najświeższy etap.
+Wstrzymanie działa w pdi; przebieg fazy już trwający w tf go nie widzi (do zrobienia po stronie tf).
+
 ### Intake, wzbogacenie i przyjęcie do budowy (F3)
 
 - **Formularz**: z `PDI_FORM_TOKEN` odbiornik podaje `GET /problems/new?t=<token>` (strona bez skryptów) i przyjmuje

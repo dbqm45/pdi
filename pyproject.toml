@@ -19,6 +19,7 @@ pdi-validate = "pdi.validate:cli"
 pdi-receiver = "pdi.receiver:main"
 pdi-console = "pdi.console:main"
 pdi-impact-review = "pdi.impact:main"
+pdi-deadlines = "pdi.waiting:main"
 pdi-forecast = "pdi.forecast:main"
 sdlc = "pdi.stack.cli:main"
 
