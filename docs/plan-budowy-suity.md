@@ -1,7 +1,7 @@
 # Plan budowy Delivery Intelligence Suite jako całości
 
-Data: 2026-11-22 · Status: **propozycja do decyzji właściciela** (pytania w §6) · Nic z tego planu nie jest
-rozpoczęte. · Opis stanu: artefakt „Delivery Intelligence Suite v3”,
+Data: 2026-11-22 · Status: **propozycja; dwie decyzje właściciela z 2026-11-22 przyjęte** (osobne repozytorium
+dla każdej części suity; usługa tożsamości suity), pozostałe pytania w §6 · Nic z tego planu nie jest rozpoczęte. · Opis stanu: artefakt „Delivery Intelligence Suite v3”,
 https://claude.ai/artifact/ChP4fFzYQS95Pc8VPf8MG9
 
 Ten dokument uzupełnia [`plan-program-ai-wg-aplikacji.md`](plan-program-ai-wg-aplikacji.md). Tamten rozpisuje
@@ -38,19 +38,54 @@ Pięć faktów, które ustawiają plan:
 4. **DI Decision, węzeł suity, działa dla jednej osoby na jej komputerze.** DI Team i „czyja kolej” wymagają usługi.
 5. **DI Release i DI Release Control nie są połączone.** DI Release nie czyta flag z DI Release Control.
 
-## 2. Repozytoria: osobne, monorepo czy wariant pośredni
+## 2. Repozytoria: każda część suity w osobnym repozytorium
 
-### Rekomendacja: wariant pośredni
+### Decyzja właściciela (2026-11-22)
 
-- **Istniejące produkty zostają w swoich repozytoriach** (pdi, ci_for_sdlc, evdt-service-shipscope,
-  evdt-shipscope-flags, tf, qa-platform, sprintdeck). Bez przenoszenia kodu.
-- **Kontrakt wychodzi do własnego repo `di-contract`** (D-P3, zadanie X3 planu programu). To jedyna migracja.
-- **Wszystkie nowe usługi wspólne i nowe produkty powstają w jednym nowym repo `di-platform`** jako moduły:
-  tożsamość, kanały (DI Channels), a później AI Registry, polityka Model Gateway, DI Assistant. Jedno repo, jeden
-  stos, jedno CI, jedno wydanie. Moduł wychodzi do własnego repo dopiero wtedy, gdy ma innego właściciela albo inną
-  granicę zaufania w praktyce, nie na zapas.
-- **DI Team nie dostaje repo.** Zaczyna jako ekran konsoli DI Decision (T3), zgodnie z planem programu §3.6.
-- **tf zostaje osobno zawsze** (decyzja z `15-jedna-platforma.md` §1: instalowane w repo klienta).
+**Każda część suity ma własne repozytorium.** Powód: łatwiej aktualizować, zmieniać i korelować wersje
+poszczególnych części. Pierwotna propozycja tego planu (jedno `di-platform` na wszystkie nowe usługi) jest
+odrzucona; zostaje po niej tylko troska o koszt utrzymania wielu repo przez jedną osobę, na którą odpowiadają
+trzy warunki niżej.
+
+- **Istniejące produkty zostają w swoich repozytoriach**, bez przenoszenia kodu i bez zmiany nazw.
+- **Kontrakt wychodzi do własnego repo `di-contract`** (D-P3, zadanie X3 planu programu).
+- **Każda nowa usługa i każdy nowy produkt dostaje własne repo** z prefiksem `di-`.
+- **DI Team nie dostaje repo na start**: zaczyna jako ekran konsoli DI Decision (T3); repo dopiero, jeśli zapadnie
+  decyzja o osobnym produkcie (G6/P1).
+- **tf zostaje osobno zawsze** (`15-jedna-platforma.md` §1).
+
+### Trzy warunki, żeby osobne repo nie kosztowały za dużo
+
+1. **Szablon repo usługi (`di-service-template`).** Jedno repo-wzorzec: CI, wydania z Conventional Commits,
+   przypięta kopia kontraktu ze skryptem synchronizacji, weryfikacja tokenu usługi tożsamości, podpisywanie
+   i odbiór zdarzeń, instrukcje dla agentów. Każde nowe repo powstaje z szablonu.
+2. **Manifest suity.** Osobne repo same nie dają korelacji wersji. W `di-contract` powstaje plik `suite.yaml`:
+   wydanie suity → wersja każdego produktu i wersja kontraktu, którą ten produkt ma przypiętą; test w CI sprawdza,
+   że zestaw jest spójny. Dziś takiego miejsca nie ma i dlatego kopie kontraktu rozjechały się od 0.4.0 do 0.14.0.
+3. **Repo powstaje wtedy, gdy jest co do niego włożyć**, nie na zapas.
+
+### Lista repozytoriów
+
+| Repo | Produkt | Stan | Kiedy założyć | Kto zakłada |
+|---|---|---|---|---|
+| pdi | DI Decision (+ ekran DI Team na start) | jest | — | — |
+| ci_for_sdlc | DI Definition | jest | — | — |
+| evdt-service-shipscope | DI Release | jest | — | — |
+| evdt-shipscope-flags | DI Release Control | jest | — | — |
+| tf | DI Agent Factory | jest | — | — |
+| qa-platform | DI Quality (kandydat, pyt. 7) | jest | — | — |
+| sprintdeck | poza suitą; pokój refinementu, jeśli D-P11 | jest | — | — |
+| **di-contract** | kontrakt + manifest suity | do założenia | **teraz** (krok 6) | właściciel |
+| **di-service-template** | szablon repo usługi (nie produkt) | do założenia | **teraz** (krok 13a), po decyzji o stosie | właściciel |
+| **di-identity** | usługa tożsamości suity (usługa wspólna) | do założenia | **teraz** (krok 14) | właściciel |
+| **di-channels** | DI Channels | do założenia | po D-P9 (krok 16) | właściciel |
+| di-model-gateway | DI Model Gateway | później | start fali z bramką modeli | właściciel |
+| di-ai-registry | DI AI Registry | później | razem z bramką modeli | właściciel |
+| di-assistant | DI Assistant | później | po kanałach i bramce `operational-ai` | właściciel |
+| di-team | DI Team | tylko jeśli osobny produkt | po pierwszym zespole (G6/P1) | właściciel |
+
+Nazwy nowych repo różnią się od roboczych z planu programu (`ai-gateway`, `ai-registry`, `assistant`, `channels`,
+`team`): prefiks `di-` i nazwa produktu z D-P8. Do potwierdzenia przy zakładaniu.
 
 ### Dlaczego nie monorepo „Suite”
 
@@ -67,26 +102,40 @@ Pięć faktów, które ustawiają plan:
 Koszt migracji do monorepo szacuję na 2–3 tygodnie pracy bez żadnej nowej funkcji [założenie; nie rozpisywałem
 kroków], z ryzykiem zepsucia wydań w czterech repo.
 
-### Dlaczego nie osobne repo dla każdej nowej aplikacji
+### 2a. Tożsamość: jedna usługa dla całej suity (decyzja 2026-11-22)
 
-Plan programu przewiduje `ai-gateway`, `ai-registry`, `assistant`, `channels` i (później) `team`: pięć nowych repo
-przy jednoosobowym zespole. Ryzyko jest w planie programu nazwane (§6: „trzy nowe repo naraz”). Każde nowe repo to
-osobne CI, wydania, instrukcje, przypięta kopia kontraktu i osobne wdrożenie. Nowe usługi mają wspólne potrzeby,
-których dziś nigdzie nie ma: tożsamość osoby i organizacji, tokeny usług, podpisywanie zdarzeń, audyt. Zbudowane
-raz w `di-platform` służą wszystkim modułom.
+Wzorzec wzięty z pakietów takich jak Adobe Creative Cloud (opis z ogólnej wiedzy o produkcie, bez sprawdzania
+dokumentacji): aplikacje nie mają własnego logowania, tylko proszą centralną usługę tożsamości o token
+(OAuth / OpenID Connect); konto może być federowane z dostawcą tożsamości firmy; administrator klienta w jednej
+konsoli przypisuje ludziom produkty, a uprawnienie do produktu jest oddzielone od tożsamości.
 
-### Co się dzieje z wydaniami, CI i kopiami kontraktu w wariancie pośrednim
+Co z tego bierzemy:
+
+- **Jeden wystawca tokenów.** Każda aplikacja suity ufa usłudze tożsamości suity, a ta federuje do dostawcy klienta
+  (Atlassian, GitHub, Microsoft, Google). Aplikacja zna jeden adres i jeden format tokenu.
+- **Trzy osobne rzeczy:** organizacja, osoba, uprawnienie do produktu („ta osoba ma DI Release jako edytor”).
+  Dziś ci_for_sdlc trzyma organizacje i role u siebie, a Flags bierze rolę z tokenu dostawcy.
+- **Jedno miejsce dla administratora klienta**: użytkownicy, produkty, a później instalacja kanału (DI Channels).
+
+Czego nie bierzemy: własnej bazy haseł i własnego silnika logowania pisanego od zera.
+
+Przejście istniejących aplikacji jest stopniowe i każde to osobny PR: Flags (ma już ogólny OIDC, więc wystarczy
+wskazać nowego wystawcę), konsola DI Decision przy przejściu na usługę, ci_for_sdlc (dziś Atlassian), ShipScope
+(dziś GitHub). Dotychczasowe logowanie zostaje do czasu przełączenia.
+
+### Co się dzieje z wydaniami, CI i kopiami kontraktu
 
 | Obszar | Co zostaje | Co się zmienia |
 |---|---|---|
 | Wydania produktów | bez zmian w każdym repo | nic |
 | Kontrakt | format, SemVer, tagi `contract-v<wersja>`, test zgodności bajt w bajt u konsumentów | źródłem staje się `di-contract`; workflow `contract-release.yml` przenosi się tam; w pdi zostaje przypięta kopia jak u innych |
 | Przypięte kopie | mechanizm (`tools/pdi-contract.json` w tf, `scripts/pdi-contract.json` w ci_for_sdlc, schematy w `server/schemas/` ShipScope) | pole `repo` na `dbqm45/di-contract` i wersja na bieżącą: trzy małe PR; Flags i qa-platform dostają kopię dopiero przy pierwszym zdarzeniu |
-| CI | bez zmian w każdym repo | `di-platform` dostaje jedno CI; `di-contract` dostaje walidację schematów i przykładów |
+| CI | bez zmian w każdym repo | każde nowe repo dostaje CI z szablonu; `di-contract` dostaje walidację schematów, przykładów i manifestu suity |
+| Korelacja wersji | — | `suite.yaml` w `di-contract`: wydanie suity → wersje produktów i przypiętego kontraktu |
 | Historia | zostaje | `di-contract` zaczyna z historią katalogu `contract/` (wyciętą z pdi) albo od zera z odnośnikiem; do decyzji przy X3 |
 
-Koszt wariantu pośredniego: wydzielenie kontraktu (rząd 2–3 dni razem z trzema PR u konsumentów) i założenie
-`di-platform` (1–2 dni na szkielet z CI) [założenia].
+Koszt: wydzielenie kontraktu (rząd 2–3 dni razem z PR u konsumentów), szablon repo usługi (2–3 dni), potem każde
+nowe repo z szablonu rząd godzin [założenia].
 
 ## 3. Co odblokowuje resztę
 
@@ -98,7 +147,7 @@ decyzje właściciela (§6)
    │        ├─ C. DI Team „Now” (odczyt) w konsoli DI Decision
    │        └─ E. DI Quality jako dowód na bramce
    │
-   ├─ B. tożsamość: jedna osoba i organizacja w suicie (di-platform)
+   ├─ B. tożsamość: jedna osoba i organizacja w suicie (di-identity)
    │        │
    │        ├─ D. DI Channels: instalacja + „dodaj pytanie” + „czeka na Ciebie”
    │        └─ konsola DI Decision jako usługa dla zespołu (wymaga też DA4)
@@ -119,7 +168,7 @@ decyzje właściciela (§6)
 1. **Etap 0, decyzje** (§6). Bez nich nie zaczynać B, D i E.
 2. **Etap 1, porządek w kontrakcie** (A): konsumenci na 0.14.0, potem wydzielenie `di-contract`, potem 0.15.
    Nie zależy od żadnej otwartej decyzji poza D-P3.
-3. **Etap 2, równolegle:** tożsamość (B) w `di-platform`; „Now” tylko do odczytu w lokalnej konsoli (C, kroki
+3. **Etap 2, równolegle:** tożsamość (B) w `di-identity`; „Now” tylko do odczytu w lokalnej konsoli (C, kroki
    T1–T3); operating model (P1); pytania od ludzi w aplikacji DI Definition (R1, bez komunikatora).
 4. **Etap 3, kanał** (D): CH1 (instalacja, powiązanie tożsamości, „dodaj pytanie”), potem CH2 („czeka na Ciebie”).
 5. **Etap 4:** konsola DI Decision jako usługa (po DA4), „Ask team” (T4), decyzja z komunikatora (CH3).
@@ -138,7 +187,7 @@ decyzje właściciela (§6)
 
 ### Czego nie zaczynać przed decyzją
 
-- `di-platform` (zależy od §6 pyt. 1, 4, 5);
+- `di-identity` przed zapisem decyzji o silniku i stosie (krok 13; pyt. 4a);
 - czegokolwiek ze Slackiem albo Teams (pyt. 2, 3);
 - warstwy spotkania refinementu (pyt. 6);
 - zdarzenia `test-result` i połączeń DI Quality (pyt. 7);
@@ -146,7 +195,7 @@ decyzje właściciela (§6)
 
 ## 4. Pierwsze kroki: każdy to jeden PR
 
-Kolejność w tabeli jest kolejnością pracy. Kroki 1–8 nie wymagają żadnej otwartej decyzji poza D-P3 przy kroku 6.
+Kolejność w tabeli jest kolejnością pracy. Kroki 1–12 nie wymagają żadnej otwartej decyzji poza treścią operating modelu przy kroku 8.
 Szacunki tygodni przy jednej osobie pracującej w sesjach, jak dotąd [założenie].
 
 | # | Tydz. | Repo | PR | Wynik | Zależy od |
@@ -156,18 +205,20 @@ Szacunki tygodni przy jednej osobie pracującej w sesjach, jak dotąd [założen
 | 3 | 1 | ci_for_sdlc | zestaw przypięcia 0.14.0 obok istniejących | DI Definition zna bieżący kontrakt | — |
 | 4 | 1–2 | evdt-service-shipscope | schematy zdarzeń 0.4.0 → 0.14.0 z testem zgodności | DI Release na bieżącym kontrakcie | sprawdzić, czy zmiany 0.5–0.14 są dla niego zgodne wstecz |
 | 5 | 1–2 | evdt-service-shipscope | zbadanie i naprawa `flag-file-parser.test.js` | zielone testy serwera | — |
-| 6 | 2 | di-contract (nowe) | wydzielenie `pdi/contract/` z workflow wydań | `contract-v0.14.0` z nowego repo | D-P3 (pyt. 1) |
+| 6 | 2 | di-contract (nowe) | wydzielenie `pdi/contract/` z workflow wydań | `contract-v0.14.0` z nowego repo | założenie repo przez właściciela |
 | 7 | 2 | pdi, tf, ci_for_sdlc, ShipScope | po jednym PR: pole `repo` przypięcia na `di-contract` | wszyscy konsumenci czytają z jednego źródła | 6 |
 | 8 | 2–3 | pdi | `docs/16-operating-model.md`: kto zatwierdza B1–B5, SLA, eskalacja (P1) | bramki mają zatwierdzających | treść od właściciela (pyt. 9) |
 | 9 | 3 | di-contract | 0.15.0: `started_by`, zdarzenia `run.started` / `run.finished`, stan przeglądu PR (T1) | dane dla tablicy „Now” | 6 |
 | 10 | 3 | pdi | odbiornik przyjmuje `run.started` / `run.progress` / `run.finished` z fabryki | przebiegi spoza pdi widoczne w rejestrze | 9 |
 | 11 | 3–4 | tf | hook zgłaszający start, postęp i koniec przebiegu także dla sesji ręcznych (T2) | karta „In progress” ma dane | 9 |
 | 12 | 4 | pdi | ekran `/now` w lokalnej konsoli, tylko odczyt, cztery kolumny, „Started by” (T3) | pierwsza wersja DI Team | 10 |
-| 13 | 4 | pdi | zapis decyzji: sposób logowania i identyfikator osoby w suicie (ADR) | podstawa pod B | pyt. 4 |
-| 14 | 4–5 | di-platform (nowe) | szkielet: CI, moduł tożsamości (organizacja, osoba, powiązanie kont), tokeny usług | jedna osoba w suicie | pyt. 1, 4 |
+| 13 | 4 | pdi | zapis decyzji (ADR): usługa tożsamości suity, silnik, identyfikator osoby i organizacji, uprawnienie do produktu | podstawa pod B | pyt. 4a |
+| 13a | 4 | di-service-template (nowe) | szablon: CI, wydania, przypięcie kontraktu, weryfikacja tokenu, zdarzenia | wzorzec dla nowych repo | stos (pyt. 4a, DA4) |
+| 14 | 4–5 | di-identity (nowe) | usługa tożsamości: organizacja, osoba, uprawnienie do produktu, federacja z jednym dostawcą klienta, tokeny usług | jedna osoba w suicie | 13, 13a |
+| 14a | 5 | di-contract | `suite.yaml` z testem spójności wersji | korelacja wersji w jednym miejscu | 6, 7 |
 | 15 | 5 | ci_for_sdlc | R1a: pytanie od człowieka przy historyjce (pochodzenie `human` obok `rule`/`ai`/`drift`), w aplikacji | początek refinementu bez komunikatora | — |
-| 16 | 5–6 | di-platform | CH1: instalacja aplikacji na jednej platformie + akcja „dodaj pytanie” do DI Definition | pierwszy test refinementu z komunikatora | 14, 15, pyt. 2 |
-| 17 | 6 | di-platform, pdi | CH2: „czeka na Ciebie” z bramek DI Decision | powiadomienie z linkiem do konsoli | 8, 16 |
+| 16 | 5–6 | di-channels (nowe) | CH1: instalacja aplikacji na jednej platformie + akcja „dodaj pytanie” do DI Definition | pierwszy test refinementu z komunikatora | 14, 15, pyt. 2 |
+| 17 | 6 | di-channels, pdi | CH2: „czeka na Ciebie” z bramek DI Decision | powiadomienie z linkiem do konsoli | 8, 16 |
 
 Poza tabelą, do wstawienia po decyzjach: `consulted` w decyzji i „Ask team” (T4), zdarzenie `test-result`
 i wysyłka z `qa summary` (DI Quality), konektor DI Release → DI Release Control, bramki B4/B5 z fabryki.
@@ -181,8 +232,8 @@ z komunikatora; bramka ma nazwanego zatwierdzającego, który dostał „czeka n
 | Ryzyko | Zabezpieczenie |
 |---|---|
 | Krok 4 (DI Release z 0.4.0 na 0.14.0) okaże się większy niż jeden PR | najpierw porównanie schematów zdarzeń między wersjami; jeśli są zmiany niezgodne, podział na PR per zdarzenie |
-| `di-platform` stanie się workiem na wszystko | moduły z własnym katalogiem, własnymi testami i zakazem importu między modułami poza wspólną biblioteką tożsamości i zdarzeń |
-| Tożsamość bez dostawcy (IdP) | krok 13 jest decyzją na piśmie przed kodem; Flags ma już ogólny OIDC, który może być wzorcem |
+| Kilka nowych repo przy jednej osobie | szablon repo usługi, manifest suity, repo zakładane dopiero przy starcie pracy (§2) |
+| Usługa tożsamości jako pojedynczy punkt awarii i nowa granica zaufania | gotowy silnik zamiast własnego kodu logowania; bez własnej bazy haseł; krok 13 jest decyzją na piśmie przed kodem; Flags ma już ogólny OIDC i dostęp awaryjny jako wzorzec |
 | Kanał zbudowany przed operating modelem | CH2 w tabeli zależy od kroku 8 |
 | GitHub Actions dalej zablokowane płatnością konta (wg `TODO.md`; nie sprawdzałem bieżącego stanu) | wszystkie kroki 1–17 dają się sprawdzić lokalnie; wydzielenie kontraktu wymaga jednak działającego workflow wydań albo ręcznego tagu |
 | Plan oparty na stanie niesprawdzonym na żywo | przed krokiem 9 jeden pełny przebieg `sdlc up` na repo próbnym jako punkt odniesienia |
@@ -193,22 +244,24 @@ Odpowiedzi na 1–4 są potrzebne przed etapem 2; pozostałe przed krokiem, któ
 
 | # | Pytanie | Rekomendacja | Co blokuje |
 |---|---|---|---|
-| 1 | Model repozytoriów: osobne, monorepo czy pośredni? W tym D-P3: kontrakt do osobnego repo | **pośredni**: istniejące repo zostają, `di-contract` teraz, jedno `di-platform` na wszystkie nowe usługi | kroki 6, 7, 14 |
+| 1 | Model repozytoriów; w tym D-P3: kontrakt do osobnego repo | **rozstrzygnięte 2026-11-22: osobne repo dla każdej części**, z szablonem i manifestem suity (§2) | — |
 | 2 | D-P9: Slack czy Teams na start | **ta platforma, której używa pierwszy zespół pilotażu**; potrzebuję nazwy platformy i dostępu do przestrzeni testowej | krok 16 |
-| 3 | D-P10: kanały jako osobna usługa wspólna czy część DI Assistant; nazwa | **osobna usługa wspólna, moduł `channels` w `di-platform`**, nazwa DI Channels | krok 16 |
-| 4 | Z7: wspólna tożsamość. Własny dostawca tożsamości suity, czy logowanie przez dostawcę klienta (OIDC) z powiązaniem kont w suicie | **OIDC klienta + moduł powiązania kont w `di-platform`** (osoba, organizacja, rola); bez własnej bazy haseł | kroki 13, 14 |
+| 3 | D-P10: kanały jako osobna usługa wspólna czy część DI Assistant; nazwa | **osobna usługa wspólna we własnym repo `di-channels`**, nazwa DI Channels | krok 16 |
+| 4 | Z7: wspólna tożsamość | **rozstrzygnięte 2026-11-22: usługa tożsamości suity** (§2a): aplikacje ufają jednemu wystawcy tokenów, który federuje do dostawcy klienta | — |
+| 4a | Silnik i stos usługi tożsamości; pierwszy federowany dostawca | **gotowy silnik OIDC (klasa Keycloak; Flags używa go już lokalnie) + cienka warstwa organizacji i uprawnień; bez własnej bazy haseł; pierwszy dostawca ten, którym loguje się zespół pilotażu** | kroki 13, 13a, 14 |
 | 5 | G6/P1: DI Team jako osobny produkt czy powłoka suity; oraz DA4: stos usługi pdi | **zacząć jako ekran konsoli DI Decision; decyzja po pierwszym zespole**; DA4 rozstrzygnąć przed etapem 4 | etap 4 |
 | 6 | D-P11: gdzie mieszka warstwa spotkania refinementu | **sprintdeck jako pokój refinementu, ale dopiero po R1–R4 w DI Definition**; sprintdeck nie ma dziś API, kont ani wdrożenia, więc to nie jest tani krok | warstwa spotkania |
 | 7 | Czy DI Quality wchodzi do planu programu jako produkt suity | **tak, jako produkt, z jednym połączeniem na start**: wynik testów jako dowód dla bramki B4/B5 przez kontrakt; usługa centralna później | `test-result` w kontrakcie |
 | 8 | DI Release Control: zostaje produktem suity mimo braku wdrożenia i konsumenta, czy staje się modułem DI Release | **zostaje osobno, ale przed FL1 potrzebuje wdrożenia i jednego serwisu-konsumenta**; inaczej flaga `ai-feature` nie ma czego przełączać | FL1, konektor flag |
 | 9 | D-P4: kto zatwierdza bramki B1–B5 i w jakim SLA | potrzebna treść od właściciela; mogę przygotować szkic z jednym zatwierdzającym i domyślnymi SLA | krok 8, 17 |
-| 10 | Czy nazwy repo zmieniają się przy wydzielaniu kontraktu (plan programu §9, konsekwencja 2) | **nie teraz**; nowe repo dostają prefiks `di-`, stare zostają | krok 6 |
+| 10 | Nazwy repo: czy stare się zmieniają; czy nowe dostają prefiks `di-` (lista w §2) | **stare zostają; nowe z prefiksem `di-`** | zakładanie repo |
 | 11 | Kolejność wobec planu programu: fala 1 tamtego planu to Model Gateway i AI Registry; ten plan stawia przed nimi kontrakt, tożsamość, „Now” i kanał | **najpierw to, co łączy istniejące aplikacje** (ten plan), potem bramka modeli; do potwierdzenia, bo zmienia to kolejność fal | §7 |
 
 ## 7. Różnice wobec planu programu
 
-- **Repozytoria:** plan programu zakłada osobne repo `ai-gateway`, `ai-registry`, `assistant`, `channels`; ten plan
-  proponuje jedno `di-platform` z modułami.
+- **Repozytoria:** zgodnie z planem programu każda nowa aplikacja ma osobne repo; ten plan dodaje szablon repo
+  usługi, manifest suity, repo usługi tożsamości i nazwy z prefiksem `di-`.
+- **Tożsamość:** plan programu zostawia ją jako Z7 poza zakresem; tutaj jest usługą wspólną budowaną przed kanałami.
 - **Kolejność:** plan programu zaczyna od bramki modeli i inwentarza; ten plan od kontraktu, tożsamości, tablicy
   „Now” i kanału. Operating model (P1) jest w obu na początku.
 - **Stan fabryki:** plan programu mówi o tf 20.1.0 i o T4/T6 czekających na gałęzi; na `main` fabryki 22.2.0 oba są
