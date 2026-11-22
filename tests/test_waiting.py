@@ -100,3 +100,87 @@ def test_w07_stage_gate_to_prod_is_one_day(registry: Registry) -> None:
 def test_w08_without_channels_url_items_are_unchanged(registry: Registry) -> None:
     result = Inbox(registry).receive(gate_event())
     assert "waiting_notice" not in result["item"]
+
+
+# --- terminy (N3, OM1 §4–§5); FIXED_NOW z conftest: piątek 2026-10-23 09:30 UTC ---
+
+from datetime import UTC, datetime  # noqa: E402
+
+from pdi.changes import ChangeStore  # noqa: E402
+from pdi.waiting import stages  # noqa: E402
+from tests.conftest import draft  # noqa: E402
+
+
+def at(text: str) -> datetime:
+    return datetime.fromisoformat(text).replace(tzinfo=UTC)
+
+
+def test_w09_stages_of_a_two_day_gate_skip_the_weekend() -> None:
+    item = {"kind": "gate", "gate": "B1", "received_at": "2026-10-23T09:30:00Z"}
+    assert stages(item) == [
+        ("reminder", at("2026-10-26T09:30:00")),
+        ("due_today", at("2026-10-27T00:00:00")),
+        ("overdue", at("2026-10-27T09:30:00")),
+        ("paused", at("2026-10-29T09:30:00")),
+        ("review", at("2026-11-04T09:30:00")),
+    ]
+
+
+def test_w10_a_one_day_item_is_reminded_at_half_the_deadline() -> None:
+    item = {"kind": "gate", "gate": "B5", "received_at": "2026-10-23T09:30:00Z"}
+    assert [s for s, _ in stages(item)] == ["reminder", "overdue", "paused", "review"]
+    assert stages(item)[0][1] == at("2026-10-23T21:30:00")
+    late = {"kind": "gate", "gate": "B5", "received_at": "2026-10-23T15:00:00Z"}
+    assert stages(late)[0][1] == at("2026-10-26T03:00:00")  # wypada w sobotę → poniedziałek
+
+
+def test_w11_only_the_latest_stage_is_sent_and_only_once(registry: Registry) -> None:
+    post = Recorder()
+    inbox = Inbox(registry, channels=CONFIG, channels_post=post)
+    inbox.receive(gate_event())
+    assert inbox.check_deadlines(now=at("2026-10-26T08:00:00")) == []
+    done = inbox.check_deadlines(now=at("2026-10-27T10:00:00"))
+    assert [d["stage"] for d in done] == ["overdue"]
+    notices = inbox.get("evt-gate-1")["deadline_notices"]
+    assert notices["reminder"]["status"] == "superseded" and notices["due_today"]["status"] == "superseded"
+    assert notices["overdue"]["status"] == "sent"
+    assert inbox.check_deadlines(now=at("2026-10-27T11:00:00")) == []
+    stages_sent = [json.loads(body)["stage"] for _, _, body in post.calls]
+    assert stages_sent == ["new", "overdue"]
+    assert json.loads(post.calls[-1][2])["id"] == "waiting-evt-gate-1-overdue"
+
+
+def test_w12_twice_the_deadline_pauses_the_change_and_the_decision_resumes_it(registry: Registry) -> None:
+    inbox = Inbox(registry)
+    inbox.receive(gate_event())
+    done = inbox.check_deadlines(now=at("2026-10-29T10:00:00"))
+    assert [d["stage"] for d in done] == ["paused"]
+    assert done[0]["notice"]["status"] == "recorded"  # bez PDI_CHANNELS_URL: tylko zapis
+    assert ChangeStore(registry).get("CHG-12")["paused"]["item"] == "evt-gate-1"
+    assert inbox.get("evt-gate-1")["paused_at"]
+    result = inbox.decide("evt-gate-1", draft(kind="product"), outcome="approved")
+    assert "paused" not in result["change"]
+    assert "paused" not in ChangeStore(registry).get("CHG-12")
+
+
+def test_w13_four_times_the_deadline_puts_the_item_on_the_review_list(registry: Registry) -> None:
+    inbox = Inbox(registry)
+    inbox.receive(gate_event())
+    done = inbox.check_deadlines(now=at("2026-11-05T10:00:00"))
+    assert [d["stage"] for d in done] == ["review"]
+    item = inbox.get("evt-gate-1")
+    assert item["needs_review"] is True and item["paused_at"]
+    assert item["status"] == "open"  # bramka nigdy nie zatwierdza się sama
+
+
+def test_w14_a_paused_change_starts_no_next_phase_until_its_item_is_decided(registry: Registry) -> None:
+    inbox = Inbox(registry)
+    inbox.receive(gate_event())
+    store = ChangeStore(registry)
+    state = store.get("CHG-12")
+    state["paused"] = {"since": "2026-10-22T09:00:00Z", "item": "other-item", "reason": "test"}
+    store.save(state)
+    result = inbox.decide("evt-gate-1", draft(kind="product"), outcome="approved")
+    assert result["change"]["dispatch"]["status"] == "skipped"
+    assert "other-item" in result["change"]["dispatch"]["error"]
+    assert result["change"]["paused"]["item"] == "other-item"

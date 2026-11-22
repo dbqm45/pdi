@@ -49,6 +49,7 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
         "get_change",
         "retry_dispatch",
         "open_due_impact_reviews",
+        "check_deadlines",
         "get_trace",
         "get_shipscope_connection",
         "record_problem",
@@ -143,7 +144,7 @@ async def test_stdio_end_to_end(tmp_path: Path, make_draft: Draft) -> None:
         listed = await session.list_tools()
         result = await session.call_tool("record_decision", make_draft())
 
-    assert len(listed.tools) == 25
+    assert len(listed.tools) == 26
     assert json.loads(result.content[0].text)["id"] == "DEC-0001"
     assert (tmp_path / "rejestr" / "decisions" / "_ogolne" / "DEC-0001.md").is_file()
 
