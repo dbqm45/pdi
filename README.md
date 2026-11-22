@@ -13,7 +13,7 @@ i triaż zgłoszeń, ocena skutku, graf śladu i prognoza zmiany** (niżej). Faz
 G1–G8: tamże, §8.
 
 Praca z kodem: `uv sync`, potem `uv run pytest`, `uv run ruff check src tests`, `uv run ruff format --check src tests`,
-`uv run mypy src` (te same kroki w CI: `.github/workflows/ci.yml`). Walidacja na sobie: [`eval/dogfood/`](eval/dogfood/README.md). Kod: `src/pdi/`, kontrakt 0.13.0 (decyzja, zgłoszenie, zmiana, cięcie, plan wydania z opcjonalnymi celami zmiany `targets`, zdarzenia z opcjonalnym `targets_status`, autonomia, eksport rekonstrukcji, ramki `design.md`): [`contract/`](contract/README.md), plan kroku: [`docs/plan-krok-1.md`](docs/plan-krok-1.md).
+`uv run mypy src` (te same kroki w CI: `.github/workflows/ci.yml`). Walidacja na sobie: [`eval/dogfood/`](eval/dogfood/README.md). Kod: `src/pdi/`, kontrakt 0.14.0 — od 2026-11-22 przypięta kopia z [dbqm45/di-contract](https://github.com/dbqm45/di-contract) (`tools/contract-pin.json`, aktualizacja: `python3 tools/sync_contract.py sync`; nie edytować `contract/` tutaj) (decyzja, zgłoszenie, zmiana, cięcie, plan wydania z opcjonalnymi celami zmiany `targets`, zdarzenia z opcjonalnym `targets_status`, autonomia, eksport rekonstrukcji, ramki `design.md`): [`contract/`](contract/README.md), plan kroku: [`docs/plan-krok-1.md`](docs/plan-krok-1.md).
 
 ## Skrzynka bramek i orkiestracja (G1.5, F4)
 
@@ -296,7 +296,7 @@ tylko komenda `uv run --directory <pdi> sdlc mcp pdi|shipscope`, która przy sta
 - [`docs/15-jedna-platforma.md`](docs/15-jedna-platforma.md) — **propozycja: jeden produkt dla ludzi** zamiast czterech aplikacji: menu według pytań (Now, Problems, Work, Product, Releases, …), proces zamiast Jiry jako źródło, katalog funkcjonalności z przełącznikami per środowisko; backend łączony stopniowo, tf zawsze osobno. Makieta: [`design/platforma/`](design/platforma/README.md).
 - [`docs/14-pdi-standalone.md`](docs/14-pdi-standalone.md) — **pierwszy krok: pdi jako niezależny rejestr decyzji** z zapisem jednym kliknięciem tam, gdzie decyzje zapadają (najpierw Claude CLI przez MCP i `/record-decision`, potem Slack, Confluence, Jira); flow SDLC korzysta z tego samego rejestru. Specyfikacja MVP i kryteria walidacji na sobie.
 
-- [`docs/decyzje.md`](docs/decyzje.md) — decyzje właściciela (przyjęte: D1 kontrakt w [`contract/`](contract/README.md), D2/R1 podział rejestru decyzji).
+- [`docs/decyzje.md`](docs/decyzje.md) — decyzje właściciela (przyjęte: D1 kontrakt w [`contract/`](contract/README.md), od 2026-11-22 w repo di-contract (D-P3), D2/R1 podział rejestru decyzji).
 - [`docs/plan-jeden-flow-sdlc.md`](docs/plan-jeden-flow-sdlc.md) — plan połączenia czterech projektów w jeden flow (fazy F0–F6, decyzje D1–D7).
 - [`docs/plan-g1-g2.md`](docs/plan-g1-g2.md) — plan domknięcia luk G1 (plan wydania i MVP) i G2 (kształt historyjki
   i kryteriów akceptacji): reguły, zmiany plik po pliku w pdi, tf, ci_for_sdlc i ShipScope, kroki, decyzje DG1–DG7.

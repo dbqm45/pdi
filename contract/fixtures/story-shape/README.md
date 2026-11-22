@@ -1,6 +1,6 @@
 # Zestaw wzorcowy: kształt historyjki i kryteriów akceptacji
 
-Wspólny wzorzec dla reguł STORY-001…003 i AC-001…004 ([plan G1/G2 §4.2](../../../docs/plan-g1-g2.md#42-nowe-reguły-ci_for_sdlc)).
+Wspólny wzorzec dla reguł STORY-001…003 i AC-001…004 ([plan G1/G2 §4.2](https://github.com/dbqm45/pdi/blob/main/docs/plan-g1-g2.md#42-nowe-reguły-ci_for_sdlc)).
 Testy tf (`requirements_lint.py`) i ci_for_sdlc (`story-shape.test.ts`) przechodzą po tych samych plikach
 z przypiętą wersją kontraktu; wynik ma się zgadzać z `expected.json`.
 

@@ -1,12 +1,12 @@
 # Kontrakt pdi
 
-Schematy i zasady wspólne dla pdi, tf, ci_for_sdlc i ShipScope ([decyzja D1](../docs/decyzje.md)).
+Schematy i zasady wspólne dla pdi, tf, ci_for_sdlc i ShipScope ([decyzja D1](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md)).
 Wersjonowany wg SemVer 2.0.0 w [`contract.json`](contract.json); zmiana niezgodna wstecz podnosi wersję główną
 (w 0.x — drugą liczbę). Odbiorca zdarzeń przypina wersję przez pole `contract_version`.
 
 Wersja: `0.14.0`. Historia: 0.14.0 — format Decision Record w decyzji: znacznik `record: decision`, `schema`
 i `contract_version` (DR1) oraz pola z MADR `consequences` (skutki `good` / `bad` / `neutral`) i `confirmation`
-(`how`, `kind`, `ref`: jak sprawdzić, że decyzję wykonano; DR4) — [propozycja](../docs/propozycja-decision-record.md);
+(`how`, `kind`, `ref`: jak sprawdzić, że decyzję wykonano; DR4) — [propozycja](https://github.com/dbqm45/pdi/blob/main/docs/propozycja-decision-record.md);
 0.13.0 — opcjonalne pole `second_review` w `gate.requested` (`status`, `reason`,
 `provider`, `model`, `same_vendor`, `cost_usd`, `findings_total`, `blocking`, `contradictions`: streszczenie
 drugiego przeglądu artefaktu przed B2 i B3, N1; tf wysyłał je od 5.64, a pdi 0.12.0 odrzucał prośbę kodem 400);
@@ -28,7 +28,7 @@ agenta; DA1, DA2), `source_reported_at` w nagłówku zmiany (lead time od zgłos
 
 | Plik | Obiekt | Gdzie żyje | Przykład |
 |---|---|---|---|
-| [`decision.schema.json`](decision.schema.json) | decyzja `DEC` (pola: [dokument 14 §4.1](../docs/14-pdi-standalone.md#41-schemat-decyzji-contractdecisionschemajson)) | rejestr pdi; nagłówki wpisów w `changes/CHG-n/decisions.md` | [`examples/decision.json`](examples/decision.json) |
+| [`decision.schema.json`](decision.schema.json) | decyzja `DEC` (pola: [dokument 14 §4.1](https://github.com/dbqm45/pdi/blob/main/docs/14-pdi-standalone.md#41-schemat-decyzji-contractdecisionschemajson)) | rejestr pdi; nagłówki wpisów w `changes/CHG-n/decisions.md` | [`examples/decision.json`](examples/decision.json) |
 | [`decision-record.md`](decision-record.md) | **Decision Record** — specyfikacja pliku decyzji: rozpoznanie po `record: decision`, znacznik, nazwa pliku, katalogi, zastąpienia, wersjonowanie; walidator `pdi-validate` | każdy plik decyzji, także poza pdi | przykład w §10 |
 | [`problem.schema.json`](problem.schema.json) | zgłoszenie `PRB`: kto nie może czego → skutek, stan triażu | baza pdi | [`examples/problem.json`](examples/problem.json) |
 | [`change.schema.json`](change.schema.json) | nagłówek YAML artefaktu w `docs/project/changes/CHG-n/` (nagłówek tf + `change`, `source`, od 0.5.0 opcjonalnie `source_reported_at`, `tasks`) | repo zmiany | [`examples/change.json`](examples/change.json) |
@@ -51,7 +51,7 @@ Zgodność wstecz: 0.14.0 dodaje tylko pola opcjonalne decyzji (`record`, `schem
 0.11.0 dodaje tylko pole opcjonalne; 0.9.0 dodaje nowy schemat i konwencję; 0.8.0 dodaje tylko nowy schemat; 0.7.0 dodaje tylko nowy typ zdarzenia i wartość `source.kind`; 0.6.0 dodaje tylko nowy schemat; wszystkie pola dodane w 0.5.0 są opcjonalne, a zdarzenia
 z `contract_version` 0.4.0–0.6.0 dalej przechodzą walidację. Zestaw wzorcowy `fixtures/story-shape/` ma wersję 0.4.0 — tę, w której zmienił się ostatnio.
 
-## Cele zmiany (`targets`, 0.12.0, decyzje [DZ6 i DZ7](../docs/decyzje.md))
+## Cele zmiany (`targets`, 0.12.0, decyzje [DZ6 i DZ7](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md))
 
 Plan wydania (`release.yaml`) może zawierać opcjonalne pole `targets` — mierzalne cele jakości zmiany, które
 proponuje architekt (persona `tomasz` w tf) w fazie `architecture`, a człowiek zatwierdza na bramce B3. Cele są
@@ -82,7 +82,7 @@ pozostawia dla nich miejsce, ale dziś je odrzuca (żeby nie wślizgnęły się 
   nie edytowane ręcznie; CI konsumenta sprawdza, że są bajt w bajt równe plikom z tagu.
 - Aktualizacja u konsumenta: zmiana wersji w pliku przypięcia, uruchomienie synchronizacji, testy, PR.
 
-## Poziomy autonomii (0.5.0, decyzje [DA1 i DA2](../docs/decyzje.md))
+## Poziomy autonomii (0.5.0, decyzje [DA1 i DA2](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md))
 
 | Poziom | Nazwa | Co się dzieje |
 |---|---|---|
@@ -124,7 +124,7 @@ z powodem lub pytaniem jest wymagana. Odczytana postać: `design-links.schema.js
 i ci_for_sdlc: `examples/design.md` daje dokładnie `examples/design-links.json` (sprawdza to też `pdi.design`).
 Domyślnie projektant robi ramki, a agent je dopasowuje; szkic ramek przez agenta tylko na żądanie (D-F1).
 
-## Identyfikatory ([D3](../docs/decyzje.md))
+## Identyfikatory ([D3](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md))
 
 - Kształt klucza jak w Jirze: `^[A-Z][A-Z0-9]+-[0-9]+$` (`contract.json` → `key_pattern`). ShipScope wyciąga takie
   klucze z commitów bez zmiany parsera.
@@ -135,7 +135,7 @@ Domyślnie projektant robi ramki, a agent je dopasowuje; szkic ramek przez agent
 
 ## Stany zgłoszenia i mapowanie na tf
 
-Stany biznesowe pdi — **R7, przyjęte 2026-10-23** ([decyzje](../docs/decyzje.md)). pdi jest źródłem prawdy o stanie
+Stany biznesowe pdi — **R7, przyjęte 2026-10-23** ([decyzje](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md)). pdi jest źródłem prawdy o stanie
 zgłoszenia. tf zostaje przy swoich stanach (etykiety zgłoszeń na GitHubie); **tłumaczenie tylko na granicy, według tej
 tabeli**: gdy tf wykonuje triaż dla pdi (F3), jego rekomendacja jest wyrażona stanem pdi z kontraktu. `parked`
 i `duplicate` tf tylko rekomenduje; decyzję i pilnowanie progu powrotu przejmuje pdi.
@@ -175,7 +175,7 @@ Powody odrzucenia: `out_of_strategy`, `works_as_designed`, `cost_disproportionat
 | `decision.vetoed` | pdi | `decision_type`, `vetoed_by` — od 0.5.0 |
 | `decision.recorded` | ci_for_sdlc | `decision_type`, `ref`, `statement`, `decided_by`, `drafted_by`; opcjonalnie `draft_edited` (człowiek) albo `automation` (automat, nigdy oba), `evidence` (cytaty), `supersedes`, `url`, `change`, `problem`. Decyzja już podjęta u nadawcy; pdi zapisuje ją w rejestrze i odpowiada numerem `DEC` — od 0.7.0 |
 | `run.progress` | tf | `phase`, `status` (`started` / `in_progress` / `waiting_gate` / `done` / `failed`); opcjonalnie `cost_usd`, `budget_usd` — od 0.5.0 |
-| `decision.basis_invalidated` | pdi | `decision`, `assumption`, `signal`, `attention_level` (0–3) — przyjęte 2026-10-23 ([dokument 12 §4.2](../docs/12-zmiana-kierunku-sdlc.md#42-nowe-zdarzenie-w-kontrakcie)), używane od F5 |
+| `decision.basis_invalidated` | pdi | `decision`, `assumption`, `signal`, `attention_level` (0–3) — przyjęte 2026-10-23 ([dokument 12 §4.2](https://github.com/dbqm45/pdi/blob/main/docs/12-zmiana-kierunku-sdlc.md#42-nowe-zdarzenie-w-kontrakcie)), używane od F5 |
 
 Każde zdarzenie: `id` (do deduplikacji), `type`, `occurred_at` (UTC, `RRRR-MM-DDTGG:MM:SSZ`), `source`,
 `contract_version`, `payload`.

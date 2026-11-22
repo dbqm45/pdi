@@ -1,8 +1,8 @@
 # Decision Record — specyfikacja pliku decyzji
 
-**Wersja:** kontrakt 0.14.0 · **Decyzje:** DR1–DR4 ([`docs/decyzje.md`](../docs/decyzje.md)) · **Schemat:**
+**Wersja:** kontrakt 0.14.0 · **Decyzje:** DR1–DR4 ([`docs/decyzje.md`](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md)) · **Schemat:**
 [`decision.schema.json`](decision.schema.json) · **Walidator:** `pdi-validate` ·
-**Uzasadnienie i porównanie z MADR:** [`docs/propozycja-decision-record.md`](../docs/propozycja-decision-record.md)
+**Uzasadnienie i porównanie z MADR:** [`docs/propozycja-decision-record.md`](https://github.com/dbqm45/pdi/blob/main/docs/propozycja-decision-record.md)
 
 Decision Record (DR) to plik jednej decyzji, który każda aplikacja może rozpoznać i odczytać bez pdi. Słowa
 „musi”, „nie może”, „powinien” i „może” mają znaczenie wymagań.
@@ -38,7 +38,7 @@ dopisuje go w miejscu.
 
 Poza znacznikiem nagłówek musi przejść [`decision.schema.json`](decision.schema.json) w wersji z
 `contract_version`. Wymagane: `id`, `statement`, `why`, `decided_at`, `decided_by`, `kind`, `source`, `status`,
-`drafted_by`. Opisy pól: [dokument 14 §4.1](../docs/14-pdi-standalone.md#41-schemat-decyzji-contractdecisionschemajson)
+`drafted_by`. Opisy pól: [dokument 14 §4.1](https://github.com/dbqm45/pdi/blob/main/docs/14-pdi-standalone.md#41-schemat-decyzji-contractdecisionschemajson)
 i opisy w schemacie; od 0.14.0 także `consequences` (skutki `good` / `bad` / `neutral`) i `confirmation` (`how`,
 `kind`, `ref`: jak sprawdzić, że decyzję wykonano).
 
@@ -89,8 +89,8 @@ Komunikaty podają plik i regułę, bez treści decyzji. Kod wyjścia 1 przy bł
 `pdi-records export-madr --out <katalog> [--project P] [--format 4|2]` zapisuje decyzje `kind: technical`
 (`recorded`, `superseded`) jako ADR w formacie MADR 4.0.0 (domyślnie) albo 2.1.2 (dla narzędzi, które czytają
 tylko ten układ): plik `NNNN-<slug>.md` z numeru decyzji. To widok dla ludzi i narzędzi ADR, nie Decision Record:
-źródłem prawdy zostaje plik decyzji. Mapowanie pól: [propozycja §4.1](../docs/propozycja-decision-record.md#41-pole-po-polu),
-plan: [`docs/plan-eksport-madr.md`](../docs/plan-eksport-madr.md).
+źródłem prawdy zostaje plik decyzji. Mapowanie pól: [propozycja §4.1](https://github.com/dbqm45/pdi/blob/main/docs/propozycja-decision-record.md#41-pole-po-polu),
+plan: [`docs/plan-eksport-madr.md`](https://github.com/dbqm45/pdi/blob/main/docs/plan-eksport-madr.md).
 
 ## 11. Przykład
 
