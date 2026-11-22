@@ -22,6 +22,8 @@ EVENT_TYPES = [
     "decision.vetoed",
     "run.progress",
     "decision.recorded",
+    "run.started",
+    "run.finished",
 ]
 
 
@@ -48,7 +50,7 @@ def test_schema_is_valid_json_schema_2020_12(name: str) -> None:
 def test_settings_define_version_key_pattern_and_default_prefixes() -> None:
     settings = contract.settings()
 
-    assert settings["version"] == contract.CONTRACT_VERSION == "0.14.0"
+    assert settings["version"] == contract.CONTRACT_VERSION == "0.15.1"
     assert settings["prefixes"] == {"problem": "PRB", "change": "CHG", "task": "TSK", "decision": "DEC"}
     assert settings["key_pattern"] == "^[A-Z][A-Z0-9]+-[0-9]+$"
 
@@ -461,7 +463,8 @@ def test_events_from_contract_0_5_0_are_still_valid() -> None:
 
 def test_schema_titles_carry_current_contract_version() -> None:
     for name in contract.SCHEMA_NAMES:
-        assert contract.load(name)["title"].endswith(f"kontrakt {contract.CONTRACT_VERSION})")
+        # Tytuły w di-contract: „… (kontrakt suity 0.15.1)”; liczy się bieżąca wersja na końcu.
+        assert contract.load(name)["title"].endswith(f" {contract.CONTRACT_VERSION})")
 
 
 # --- kontrakt 0.6.0: rekomendacja triażu (F3; schemat przeniesiony z tf) ---

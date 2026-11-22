@@ -11,7 +11,9 @@ import pytest
 from pdi.inbox import Inbox
 from pdi.receiver import MAX_BODY, PATH, connection_line, main, make_server
 from pdi.registry import Registry
+from pdi.runs import RunStore
 from tests.test_inbox import SECRET, gate_event, metric_event, readiness_event, released_event, sign, stage_event
+from tests.test_runs import finished, started
 
 TF_SECRET = "sekret-tf"  # noqa: S105 — sekret testowy
 FORM_TOKEN = "tok-formularza"  # noqa: S105 — token testowy
@@ -187,6 +189,15 @@ def test_tf_breached_metric_becomes_problem_item(server: HTTPServer, registry: R
 
     assert (status, answer["status"]) == (202, "created")
     assert Inbox(registry).get("tf-metric-rollbacks-2026-10-10")["kind"] == "problem"
+
+
+def test_tf_run_events_are_200_and_land_in_agent_runs(server: HTTPServer, registry: Registry) -> None:
+    for e in (started(), finished()):
+        status, answer = post(server, encode(e), path="/events/tf", event=e["type"], prefix="x-pdi", secret=TF_SECRET)
+        assert (status, answer["status"], answer["item"]) == (200, "recorded", None)
+
+    run = RunStore(registry).get("run-1")
+    assert run is not None and run["status"] == "done"
 
 
 def test_tf_path_refuses_the_shipscope_secret(server: HTTPServer) -> None:
