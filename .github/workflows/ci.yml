@@ -19,6 +19,9 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: uv sync --locked
+      - name: contract/ is the pinned copy of dbqm45/di-contract
+        if: matrix.python == '3.13'
+        run: python3 tools/sync_contract.py check
       - run: uv run pytest
       - run: uv run ruff check src tests
       - run: uv run ruff format --check src tests
