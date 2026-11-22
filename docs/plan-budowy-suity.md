@@ -380,8 +380,10 @@ Szacunki tygodni przy jednej osobie pracującej w sesjach, jak dotąd [założen
 | 16 | 5–6 | di-channels (nowe) | CH1: instalacja aplikacji na jednej platformie + akcja „dodaj pytanie” do DI Definition | pierwszy test refinementu z komunikatora | 14, 15, pyt. 2 |
 | 17 | 6 | di-channels, pdi | CH2: „czeka na Ciebie” z bramek DI Decision | powiadomienie z linkiem do konsoli | 8, 16 |
 
-Stan 2026-11-22: zrobione kroki 1–13, 15 i 16 (16 bez testu na żywym Slacku: brak przestrzeni testowej, adresu
-i kluczy); krok 8 przyjęty jako OM1 (`decyzje.md`). Otwarte: 13a, 14, 14a, 14b, 17.
+Stan 2026-11-22: zrobione kroki 1–13, 15 i 16; krok 8 przyjęty jako OM1 (`decyzje.md`). Krok 16 sprawdzony na
+żywo 2026-11-22: `/di-question` w testowej przestrzeni Slacka zapisał pytanie przy historyjce w DI Definition
+(di-channels uruchomione lokalnie przez tunel; instrukcja: `di-channels/slack-setup.md`). Otwarte: 13a, 14, 14a,
+14b, 17.
 
 Równolegle z tą tabelą idą kroki D1–D9 z §3a (decyzje widoczne w całej suicie). Kroki N1–N5 z §3b (routing i terminy) idą za krokami 8 i 17. Etapy AC2–AC4 Admin Console (§2b) idą za krokami 14b, 8 i 16. Poza tabelą, do wstawienia po decyzjach: `consulted` w decyzji i „Ask team” (T4), zdarzenie `test-result`
 i wysyłka z `qa summary` (DI Quality), konektor DI Release → DI Release Control, bramki B4/B5 z fabryki.
