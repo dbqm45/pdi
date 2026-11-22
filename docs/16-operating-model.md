@@ -1,11 +1,10 @@
 # Operating model — kto zatwierdza, w jakim terminie i co, gdy nie zatwierdzi
 
-Data: 2026-11-22 · Status: **szkic do przyjęcia przez właściciela** (wariant z jednym zatwierdzającym) · Realizuje
+Data: 2026-11-22 · Status: **przyjęty 2026-11-22 (decyzja właściciela, OM1)**, wariant z jednym zatwierdzającym · Realizuje
 P1 z [`plan-program-ai-wg-aplikacji.md`](plan-program-ai-wg-aplikacji.md) i krok 8 / N1 z
 [`plan-budowy-suity.md`](plan-budowy-suity.md) · Po przyjęciu: wpis w [`decyzje.md`](decyzje.md).
 
-Miejsca oznaczone **[do uzupełnienia]** wymagają odpowiedzi właściciela; wartości oznaczone **[propozycja]** są
-moimi wartościami wyjściowymi, nie ustaleniami.
+Wartości z §2–§8 przyjęte 2026-11-22 bez zmian względem szkicu (§11); zmienia je przegląd modelu.
 
 ## 1. Zakres
 
@@ -18,8 +17,8 @@ Nie dotyczy decyzji operacyjnych AI (bramka `operational-ai`, P2/P3 planu progra
 
 | Rola | Kto | Co robi |
 |---|---|---|
-| **Zatwierdzający** | **[do uzupełnienia: osoba]** | decyduje na każdej bramce i przy każdym typie chronionym; jedyna osoba, która może obniżyć poziom autonomii |
-| **Zastępca** | **[do uzupełnienia: osoba albo „brak”]** | decyduje zamiast zatwierdzającego tylko w czasie zapisanej nieobecności (§5) |
+| **Zatwierdzający** | właściciel projektu (dbqm45) | decyduje na każdej bramce i przy każdym typie chronionym; jedyna osoba, która może obniżyć poziom autonomii |
+| **Zastępca** | brak (2026-11-22): przy nieobecności bramki czekają, zmiany przechodzą w stan „wstrzymana” (§5) | decyduje zamiast zatwierdzającego tylko w czasie zapisanej nieobecności (§5) |
 | **Zgłaszający** | każdy, kto opisał problem | odpowiada na pytania doprecyzowujące; dostaje wynik triażu i informację o wydaniu |
 | **Pytany** | osoba wskazana przez zatwierdzającego przy konkretnej sprawie | doradza w terminie; nie decyduje |
 | **Agenci** (persony fabryki) | DI Agent Factory | przygotowują artefakt i rekomendację, proszą o bramkę; nie zatwierdzają niczego |
@@ -35,7 +34,7 @@ Zasady stałe:
 
 Bramki z `src/pdi/flow.py`. Kolumna „odwracalność” decyduje o terminie (§4) i o tym, co się dzieje po terminie (§5).
 
-| Bramka | Co zatwierdza | Na podstawie czego | Odwracalność | Termin [propozycja] |
+| Bramka | Co zatwierdza | Na podstawie czego | Odwracalność | Termin |
 |---|---|---|---|---|
 | triaż zgłoszenia | przyjąć, odrzucić albo odłożyć zgłoszenie | zgłoszenie, duplikaty, rekomendacja | łatwa (typ chroniony) | 2 dni robocze |
 | B1 | kierunek zmiany | `intent.md` | łatwa | 2 dni robocze |
@@ -57,7 +56,7 @@ dwie bramki są dziś decyzją wpisywaną ręcznie w skrzynce.
 Terminy są wewnętrzne (to nie SLA wobec klienta). Liczone w dniach roboczych od chwili, gdy prośba trafiła do
 skrzynki.
 
-| Rodzaj sprawy | Termin [propozycja] | Przypomnienie |
+| Rodzaj sprawy | Termin | Przypomnienie |
 |---|---|---|
 | bramka łatwa do cofnięcia | 2 dni robocze | po 1 dniu i w dniu terminu |
 | bramka trudna do cofnięcia (B3) | 5 dni roboczych | po 3 dniach i w dniu terminu |
@@ -65,7 +64,7 @@ skrzynki.
 | pytanie do osób pytanych („Ask team”) | ustala zatwierdzający; domyślnie 2 dni robocze | w dniu terminu |
 | pytanie agenta w trakcie fazy | jak bramka, przy której padło | razem z bramką |
 
-Godziny ciszy i dni wolne: **[do uzupełnienia: np. 18:00–8:00 i weekendy bez powiadomień]**.
+Godziny ciszy: **18:00–8:00 i weekendy** (Europe/Warsaw); powiadomienia z tego czasu czekają do 8:00 najbliższego dnia roboczego. Terminy liczone w dniach roboczych pomijają weekendy.
 
 ## 5. Co się dzieje po terminie
 
@@ -127,7 +126,7 @@ sama osoba. Wraca przy pierwszym zespole spoza autora (§9).
 
 ## 8. Miary
 
-| Miara | Cel [propozycja] | Skąd |
+| Miara | Cel | Skąd |
 |---|---|---|
 | odsetek bramek zatwierdzonych w terminie | ≥ 80% | wymaga metryk kolejki bramek (G7 w `TODO.md`, niezrobione) |
 | mediana czasu oczekiwania bramki | ≤ 1 dzień roboczy | jw. |
@@ -135,7 +134,7 @@ sama osoba. Wraca przy pierwszym zespole spoza autora (§9).
 | odsetek wiadomości „decydujesz” zamkniętych bez decyzji | ≤ 5% | DI Channels (N5) |
 | odsetek decyzji tymczasowych zmienionych przy bramce | obserwować, bez celu | rejestr |
 
-Przegląd modelu: **[do uzupełnienia: data pierwszego przeglądu, propozycja: 6 tygodni od przyjęcia]**.
+Przegląd modelu: **pierwszy 2027-01-03** (6 tygodni od przyjęcia), potem przy warunkach z §9.
 
 ## 9. Kiedy ten model przestaje wystarczać
 
@@ -162,11 +161,11 @@ Dokument opisuje zachowanie docelowe; dziś skrzynka nie zna terminów ani stanu
 | trzy poziomy powiadomień | brak | N5 |
 | metryki kolejki bramek | brak (G7) | do dopisania |
 
-## 11. Do uzupełnienia przez właściciela
+## 11. Przyjęte 2026-11-22
 
-1. Kto jest zatwierdzającym (§2).
-2. Czy jest zastępca; jeśli tak, kto i czy może zatwierdzać B5 (§2, §5).
-3. Terminy z §3 i §4: przyjąć czy zmienić.
-4. Mnożniki z §5 (2 × i 4 × termin): przyjąć czy zmienić.
-5. Godziny ciszy (§4).
-6. Cele miar (§8) i data pierwszego przeglądu.
+1. Zatwierdzający: właściciel projektu (§2).
+2. Zastępca: brak (§2, §5).
+3. Terminy z §3 i §4: jak w szkicu.
+4. Mnożniki z §5 (2 × i 4 × termin): jak w szkicu.
+5. Godziny ciszy: 18:00–8:00 i weekendy, Europe/Warsaw (§4).
+6. Cele miar z §8; pierwszy przegląd 2027-01-03.
