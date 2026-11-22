@@ -226,6 +226,28 @@ dopóki zaległa pozycja nie dostanie decyzji; decyzja zdejmuje wstrzymanie) i p
 „do przeglądu” (`needs_review`). Bramka nigdy nie zatwierdza się sama. Po przerwie idzie tylko najświeższy etap.
 Wstrzymanie działa w pdi; przebieg fazy już trwający w tf go nie widzi (do zrobienia po stronie tf).
 
+**Cron (macOS i Linux).** `sdlc deadlines` uruchamia `pdi-deadlines` ze zmiennymi z `~/.sdlc/env` i ścieżką rejestru
+z `sdlc up`, tak jak `sdlc impact-review`. Raz:
+
+1. Do `~/.sdlc/env` dopisz zmienne DI Channels (te same, które zna `pdi-receiver`):
+   ```
+   PDI_CHANNELS_URL=http://localhost:3100
+   PDI_CHANNELS_SIGNING_SECRET=<sekret wspólny z di-channels>
+   ```
+2. `crontab -e` i dodaj linie (ścieżkę do klonu pdi i do `uv` wpisz pełne: cron nie zna `PATH` z powłoki; `which uv`):
+   ```
+   # co godzinę: terminy skrzynki (N3)
+   0 * * * * /opt/homebrew/bin/uv run --directory /Users/<ty>/<ścieżka>/pdi sdlc deadlines >> ~/.sdlc/deadlines.log 2>&1
+   # raz dziennie o 7:05: oceny skutku i prognozy
+   5 7 * * * /opt/homebrew/bin/uv run --directory /Users/<ty>/<ścieżka>/pdi sdlc impact-review >> ~/.sdlc/daily.log 2>&1
+   10 7 * * * /opt/homebrew/bin/uv run --directory /Users/<ty>/<ścieżka>/pdi sdlc forecast >> ~/.sdlc/daily.log 2>&1
+   ```
+3. Sprawdzenie: `uv run sdlc deadlines` w terminalu wypisuje `{"stages": [...]}` (pusta lista, gdy nic nie minęło);
+   po godzinie w `~/.sdlc/deadlines.log` są kolejne linie. Komputer musi być włączony: cron nie nadrabia uśpienia,
+   ale następne uruchomienie wyśle najświeższy zaległy etap.
+
+Bez crona terminy sprawdzają się tylko przy otwarciu skrzynki w konsoli (`sdlc open`).
+
 ### Intake, wzbogacenie i przyjęcie do budowy (F3)
 
 - **Formularz**: z `PDI_FORM_TOKEN` odbiornik podaje `GET /problems/new?t=<token>` (strona bez skryptów) i przyjmuje
@@ -256,6 +278,7 @@ uv run sdlc down        # zatrzymuje procesy (konsolę, odbiornik, ShipScope) i 
 uv run sdlc check       # ponownie: gotowość zmian CHG z repo produktu do pdi (ci_for_sdlc --send-to-pdi)
 uv run sdlc impact-review # oceny skutku, których termin minął (pdi-impact-review ze zmiennymi z ~/.sdlc/env)
 uv run sdlc forecast    # wyniki prognoz i czas przepływu dostarczonych zmian (pdi-forecast, jak wyżej)
+uv run sdlc deadlines   # terminy skrzynki wg OM1: przypomnienia, „wstrzymana”, „do przeglądu” (pdi-deadlines, jak wyżej)
 uv run sdlc reset       # usuwa dane stosu po wpisaniu „usuń”
 uv run sdlc sandbox sdlc-proba   # repo próbne z szablonu dbqm45/sdlc-sandbox (L5)
 ```
