@@ -779,7 +779,7 @@ DAILY_RUNS = {"impact-review": "pdi-impact-review", "forecast": "pdi-forecast", 
 
 
 def cmd_daily(ctx: Ctx, name: str) -> int:
-    """Przebieg okresowy pdi (ocena skutku, prognozy, terminy) ze zmiennymi z ~/.sdlc/env, jak serwer MCP pdi (PRB-9)."""
+    """Przebieg okresowy pdi (ocena skutku, prognozy, terminy) ze zmiennymi z ~/.sdlc/env, jak MCP pdi (PRB-9)."""
     config = home.load_config(ctx.root / "config.toml")
     if config is None:
         raise Stop("Najpierw: uv run sdlc up")
