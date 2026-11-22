@@ -384,7 +384,7 @@ Stan 2026-11-22: zrobione kroki 1–13, 14a, 15, 16 i 17; krok 8 przyjęty jako 
 na żywo 2026-11-22: `/di-question` w testowej przestrzeni Slacka zapisał pytanie przy historyjce w DI Definition
 (di-channels uruchomione lokalnie przez tunel; instrukcja: `di-channels/slack-setup.md`). Krok 17: pdi wysyła
 `gate.waiting` dla nowych pozycji skrzynki z terminem z OM1, di-channels pisze do zatwierdzającego w Slacku (w godzinach
-ciszy wiadomość zaplanowana na 8:00); jeszcze bez testu na żywym Slacku. Krok 14a: `suite.yaml` w `di-contract`
+ciszy wiadomość zaplanowana na 8:00); sprawdzony na żywo 2026-11-22 w testowej przestrzeni Slacka. Krok 14a: `suite.yaml` w `di-contract`
 (wydanie suity 2026.11) ze sprawdzeniem w CI i `--live` wobec repozytoriów. Otwarte: 13a, 14, 14b — czekają na
 decyzje: pierwszy dostawca tożsamości, hosting i stos usługi (DA4), e-mail osoby w aplikacjach.
 
