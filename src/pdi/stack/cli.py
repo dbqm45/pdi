@@ -4,6 +4,7 @@
 (`~/.sdlc/env`, 600), startuje ShipScope (`npm run dev`: Postgres w Dockerze, web i worker) i pdi-receiver jako
 odłączone procesy, łączy ShipScope z pdi bez przeglądarki (`server/scripts/local-pdi.js` w ShipScope), wysyła gotowość
 zmian z ci_for_sdlc, buduje obraz kontenera faz tf (Z8a, `sdlc image`) i rejestruje serwery MCP w Claude Code.
+Po `sdlc init` także tożsamość suity: Keycloak, konfiguracja realmu i di-identity (`suite.py`).
 Sekrety idą do procesów tylko przez środowisko; w argv, logach i wyjściu `sdlc` ich nie ma. Tylko biblioteka
 standardowa. Plan: docs/plan-l4-sdlc.md.
 """
@@ -13,6 +14,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import dataclasses
+import getpass
 import json
 import os
 import re
@@ -31,7 +33,7 @@ from pathlib import Path
 from typing import Any
 
 from pdi import phase_sandbox
-from pdi.stack import home
+from pdi.stack import home, suite
 
 Run = Callable[[list[str], Path | None, Mapping[str, str], str | None], tuple[int, str, str]]
 Spawn = Callable[[str, list[str], Path, Mapping[str, str], Path], int]
@@ -77,6 +79,7 @@ class Ctx:
     port_free: Callable[[str, int], bool]
     which: Callable[[str], str | None]
     ask: Callable[[str, str], str]
+    ask_secret: Callable[[str], str]
     type_line: Callable[[str], str]
     out: Callable[[str], None]
     sleep: Callable[[float], None]
@@ -433,14 +436,29 @@ def cmd_up(ctx: Ctx) -> int:
     register_mcp(ctx, config)
     if pid_of(ctx, "pdi-console") is None:
         start_console(ctx, config, secrets)
+    try:
+        secrets = suite.up(ctx, config, secrets)
+    except suite.SuiteError as e:
+        raise Stop(str(e)) from e
     console = console_url(secrets)
     ctx.out("")
     ctx.out(f"  ShipScope       {url}/")
     ctx.out(f"  pdi-receiver    {RECEIVER_URL}/events/<shipscope|tf|ci_for_sdlc>")
     ctx.out(f"  pdi-console     {console}/ — otwórz: sdlc open")
+    if suite.enabled(config):
+        ctx.out(f"  Keycloak        {suite.KEYCLOAK_URL}/admin (realm suite)")
+        ctx.out(f"  di-identity     {suite.IDENTITY_URL}")
     ctx.out("  MCP w Claude    pdi, shipscope")
     ctx.out("  stan            uv run sdlc status")
     ctx.out("gotowe")
+    return 0
+
+
+def cmd_init(ctx: Ctx) -> int:
+    try:
+        suite.init(ctx, config_of(ctx))
+    except suite.SuiteError as e:
+        raise Stop(str(e)) from e
     return 0
 
 
@@ -467,6 +485,7 @@ def cmd_status(ctx: Ctx) -> int:
         ctx.out(f"  {line}")
     for key in home.SECRET_KEYS:
         ctx.out(f"{key}: {'ustawiony' if secrets.get(key) else 'brak'}")
+    suite.status(ctx, config)
     log = ctx.root / "logs" / "pdi-receiver.log"
     if log.is_file():
         lines = [line for line in log.read_text(encoding="utf-8", errors="replace").splitlines() if line.strip()]
@@ -656,6 +675,7 @@ def cmd_down(ctx: Ctx) -> int:
         )
     for name in ("pdi-console", "pdi-receiver", "shipscope"):
         ctx.out(f"{name}: {'zatrzymany' if stop(ctx, name) else 'nie działał'}")
+    suite.down(ctx)
     ctx.run(["docker", "stop", PG_CONTAINER], None, ctx.environ, None)
     ctx.out(f"Postgres zatrzymany; dane zostają w wolumenie {PG_CONTAINER}.")
     return 0
@@ -664,12 +684,14 @@ def cmd_down(ctx: Ctx) -> int:
 def cmd_reset(ctx: Ctx) -> int:
     ctx.out("Usunę dane lokalnego stosu: bazę ShipScope (kontener i wolumen), ~/.sdlc/ci-data, logs i run oraz")
     ctx.out("połączenie z ShipScope w ~/.sdlc/env. Zostaną: config.toml, pozostałe sekrety i rejestr decyzji.")
+    ctx.out("Tożsamość suity: Keycloak (realm, osoby, organizacje, agenci) i baza di-identity — też usunięte.")
     if ctx.type_line(f"Wpisz „{RESET_WORD}”, żeby potwierdzić: ").strip() != RESET_WORD:
         ctx.out("Nic nie usunięto.")
         return 1
     cmd_down(ctx)
     ctx.run(["docker", "rm", "-f", PG_CONTAINER], None, ctx.environ, None)
     ctx.run(["docker", "volume", "rm", PG_CONTAINER], None, ctx.environ, None)
+    suite.reset(ctx)
     for name in ("ci-data", "logs", "run"):
         _remove_tree(ctx.root / name)
     secrets = home.read_env(ctx.root / "env")
@@ -793,6 +815,7 @@ def cmd_daily(ctx: Ctx, name: str) -> int:
 def main(argv: list[str] | None = None, *, ctx: Ctx | None = None) -> int:
     parser = argparse.ArgumentParser(prog="sdlc", description="Cały workflow lokalnie: ShipScope, pdi i ci_for_sdlc.")
     sub = parser.add_subparsers(dest="command", required=True)
+    sub.add_parser("init", help="raz: ścieżki klonów, klon di-identity i klient Google dla tożsamości suity")
     sub.add_parser("up", help="startuje stos i łączy usługi (idempotentne)")
     sub.add_parser("status", help="procesy, połączenia, skrzynka pdi")
     sub.add_parser("check", help="ci_for_sdlc: gotowość zmian z repo produktu do pdi")
@@ -815,6 +838,8 @@ def main(argv: list[str] | None = None, *, ctx: Ctx | None = None) -> int:
     args = parser.parse_args(argv)
     ctx = ctx or real_ctx()
     try:
+        if args.command == "init":
+            return cmd_init(ctx)
         if args.command == "up":
             return cmd_up(ctx)
         if args.command == "status":
@@ -856,6 +881,7 @@ def real_ctx() -> Ctx:
         port_free=_port_free,
         which=shutil.which,
         ask=_ask,
+        ask_secret=getpass.getpass,
         type_line=input,
         out=print,
         sleep=time.sleep,

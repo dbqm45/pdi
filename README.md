@@ -276,6 +276,7 @@ przepisywania sekretów (decyzje DL2, DL3; plan: [`docs/plan-l4-sdlc.md`](docs/p
 (`evdt-service-shipscope`) i ci_for_sdlc obok siebie. ShipScope musi mieć `server/scripts/local-pdi.js`.
 
 ```bash
+uv run sdlc init        # raz, opcjonalnie: klon di-identity i klient Google (tożsamość suity, niżej)
 uv run sdlc up          # startuje i łączy wszystko (plus konsolę pdi); kończy się linią „gotowe”
 uv run sdlc status      # procesy, ShipScope ↔ pdi, ci_for_sdlc → pdi, sekrety (tylko ustawione/brak), skrzynka
 uv run sdlc deploy prod # GitHub Deployment HEAD main repo próbnego (też: test; --repo właściciel/nazwa)
@@ -297,6 +298,22 @@ szablonu `dbqm45/sdlc-sandbox` prywatne repo na Twoim koncie (albo używa istnie
 - ustawia je jako repo faz tf (`checkout` i `[deploy] repo` w `config.toml`).
 
 Cały przebieg na nim, krok po kroku z oczekiwanymi wynikami: [`docs/przebieg-lokalny.md`](docs/przebieg-lokalny.md).
+
+### Tożsamość suity w `sdlc` (ADR 17)
+
+Po `sdlc init` (klon `dbqm45/di-identity` i klient Google; sekret Google wpisujesz niewidoczny) `sdlc up` dodatkowo:
+- startuje Keycloak w kontenerze `sdlc-keycloak` na `http://localhost:8180` (dane w wolumenie o tej nazwie) i bazę
+  di-identity `sdlc-identity-pg` na 127.0.0.1:5434;
+- uruchamia `configure` realmu `suite` (przy każdym `up`, idempotentne) i zapisuje sekrety klientów aplikacji do
+  `~/.sdlc/env` jako `SUITE_CLIENT_SECRET_<KLIENT>` (`npm run identity -- secrets`): nikt nie kopiuje ich z konsoli;
+- startuje di-identity na `http://127.0.0.1:3200`.
+
+Hasło administratora Keycloak (`SUITE_KEYCLOAK_ADMIN_PASSWORD`, użytkownik `admin`), hasło bazy i wspólny sekret
+zdarzeń są generowane raz w `~/.sdlc/env`; do kontenerów i procesów idą przez środowisko, nigdy w argv ani w wyjściu
+`sdlc`. Ręcznie zostaje tylko klient Google (przekierowanie `http://localhost:8180/realms/suite/broker/google/endpoint`).
+Keycloak uruchomiony wcześniej ręcznie na 8180 trzeba zatrzymać (`sdlc up` powie, który port jest zajęty); realm w
+nowym kontenerze jest pusty, więc organizacje i role nadaje się na nowo (`npm run identity -- org …`, `role grant …`).
+Porty suity: Flags 3000, di-channels 3100, di-identity 3200, DI Definition 4317, Keycloak 8180.
 
 Pierwsze `sdlc up`:
 - pyta raz o ścieżki klonów, rejestru decyzji i (opcjonalnie) repo produktu dla faz tf;

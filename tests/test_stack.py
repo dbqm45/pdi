@@ -59,6 +59,7 @@ class World:
         self.opened: list[str] = []
         self.execs: list[tuple[list[str], dict[str, str]]] = []
         self.now = 0.0
+        self.secret_answer = ""
         self.answer(("node", "server/scripts/local-pdi.js", "connect"), 0, json.dumps(CONNECTED))
         self.answer(
             ("node", "server/scripts/local-pdi.js", "test"),
@@ -137,6 +138,7 @@ class World:
             port_free=lambda host, port: port not in self.busy_ports,
             which=lambda name: None if name in self.missing else f"/usr/local/bin/{name}",
             ask=self.ask,
+            ask_secret=lambda prompt: self.secret_answer,
             type_line=self.type_line,
             out=self.output.append,
             sleep=self.sleep,
@@ -1004,3 +1006,162 @@ def test_down_warns_when_a_phase_is_running(world: World) -> None:
     out = "\n".join(world.output[start:])
     assert "CHG-4" in out and "trwa faza" in out and "retry_dispatch" in out
     assert "CHG-3" not in out
+
+
+# --- tożsamość suity (Keycloak, di-identity) ---
+
+GOOGLE_SECRET = "google-tajny-sekret"  # noqa: S105 — sekret testowy
+CLIENT_SECRET = "sekret-klienta-di-identity"  # noqa: S105 — sekret testowy
+
+
+def with_suite(world: World, *, google: bool = True) -> Path:
+    """Klon di-identity, `sdlc init` z klientem Google i `secrets`, który dopisuje sekrety klientów jak prawdziwy."""
+    identity = world.projects / "di-identity"
+    (identity / "node_modules").mkdir(parents=True)
+    (identity / "package.json").write_text("{}", encoding="utf-8")
+    for name in ("sdlc-keycloak", "sdlc-identity-pg"):
+        world.answer(("docker", "inspect", "-f", "{{.State.Running}}", name), 1, "", "No such object")
+
+    def secrets(argv: list[str], cwd: Path | None, env: Mapping[str, str], stdin: str | None) -> None:
+        path = Path(argv[argv.index("--env-file") + 1])
+        path.write_text(path.read_text(encoding="utf-8") + f"SUITE_CLIENT_SECRET_DI_IDENTITY={CLIENT_SECRET}\n")
+
+    world.hooks[("npm", "run", "--silent", "identity", "--", "secrets")] = secrets
+    world.secret_answer = GOOGLE_SECRET if google else ""
+    original = world.ask
+
+    def ask(prompt: str, default: str) -> str:
+        if prompt.startswith("Klon di-identity"):
+            return str(identity)
+        if prompt == "Google client ID":
+            return "123.apps.googleusercontent.com" if google else ""
+        return original(prompt, default)
+
+    world.ask = ask  # type: ignore[method-assign]
+    assert cli.main(["init"], ctx=world.ctx()) == 0
+    return identity
+
+
+def test_without_init_the_suite_is_skipped(world: World) -> None:
+    assert up(world) == 0
+    assert "tożsamość suity: pominięta" in world.text()
+    assert "sdlc-keycloak" not in world.argv_text()
+
+
+def test_init_keeps_the_clone_and_google_client_without_showing_the_secret(world: World) -> None:
+    identity = with_suite(world)
+
+    assert home.load_config(world.home / ".sdlc/config.toml").identity == identity  # type: ignore[union-attr]
+    env = env_file(world)
+    assert env["SUITE_GOOGLE_CLIENT_ID"] == "123.apps.googleusercontent.com"
+    assert env["SUITE_GOOGLE_CLIENT_SECRET"] == GOOGLE_SECRET
+    assert GOOGLE_SECRET not in world.text()
+
+
+def test_up_starts_keycloak_configures_the_realm_and_starts_di_identity(world: World) -> None:
+    identity = with_suite(world)
+
+    assert up(world) == 0
+
+    env = env_file(world)
+    for key in ("SUITE_KEYCLOAK_ADMIN_PASSWORD", "SUITE_IDENTITY_DB_PASSWORD", "SUITE_EVENTS_SECRET"):
+        assert len(env[key]) >= 40
+    assert env["SUITE_CLIENT_SECRET_DI_IDENTITY"] == CLIENT_SECRET, "sekrety klientów z `secrets` zostają w env"
+    assert "PDI_SHIPSCOPE_TOKEN" in env, "pdi nie gubi własnych zmiennych przy dopisaniu sekretów suity"
+
+    runs = {argv[4]: (argv, envs) for argv, _, envs, _ in world.runs if argv[:2] == ["docker", "run"]}
+    keycloak, keycloak_env = runs["sdlc-keycloak"]
+    assert "keycloak/keycloak:26.4" in keycloak and "127.0.0.1:8180:8080" in keycloak
+    assert keycloak_env["KC_BOOTSTRAP_ADMIN_PASSWORD"] == env["SUITE_KEYCLOAK_ADMIN_PASSWORD"]
+    for secret in (
+        env["SUITE_KEYCLOAK_ADMIN_PASSWORD"],
+        env["SUITE_IDENTITY_DB_PASSWORD"],
+        GOOGLE_SECRET,
+        CLIENT_SECRET,
+    ):
+        assert secret not in world.argv_text(), "sekrety tylko przez środowisko, nigdy w argv"
+        assert secret not in world.text()
+
+    configure = next(r for r in world.runs if r[0][-1] == "configure")
+    assert configure[1] == identity
+    assert configure[2]["KEYCLOAK_URL"] == "http://localhost:8180"
+    assert configure[2]["GOOGLE_CLIENT_SECRET"] == GOOGLE_SECRET
+    steps = [r[0][5] for r in world.runs if r[0][:4] == ["npm", "run", "--silent", "identity"]]
+    assert steps == ["configure", "secrets"]
+
+    name, argv, service_env = next(s for s in world.spawned if s[0] == "di-identity")
+    assert argv == ["npm", "start"]
+    assert service_env["PORT"] == "3200" and service_env["OIDC_ISSUER"] == "http://localhost:8180/realms/suite"
+    assert service_env["SUITE_CLIENT_SECRET_DI_IDENTITY"] == CLIENT_SECRET
+    assert (
+        service_env["DATABASE_URL"]
+        == f"postgres://identity:{env['SUITE_IDENTITY_DB_PASSWORD']}@127.0.0.1:5434/identity"
+    )
+    assert not any(key.startswith("PDI_") for key in service_env), "di-identity nie dostaje sekretów pdi"
+    assert "di-identity     http://127.0.0.1:3200" in world.text()
+
+
+def test_up_again_keeps_secrets_and_does_not_recreate_running_containers(world: World) -> None:
+    with_suite(world)
+    assert up(world) == 0
+    first = env_file(world)
+    for name in ("sdlc-keycloak", "sdlc-identity-pg"):
+        world.answers[("docker", "inspect", "-f", "{{.State.Running}}", name)] = [(0, "true\n", "")]
+    before = len(world.runs)
+
+    assert up(world) == 0
+
+    later = [r[0] for r in world.runs[before:]]
+    assert not [argv for argv in later if argv[:2] in (["docker", "run"], ["docker", "start"])]
+    assert ["npm", "run", "--silent", "identity", "--", "configure"] in later, "configure przy każdym up (idempotentne)"
+    assert {k: v for k, v in env_file(world).items() if k.startswith("SUITE_")} == {
+        k: v for k, v in first.items() if k.startswith("SUITE_")
+    }
+
+
+def test_up_refuses_a_port_taken_by_a_keycloak_started_by_hand(world: World) -> None:
+    with_suite(world)
+    world.busy_ports.add(8180)
+
+    assert up(world) == 1
+    assert "sdlc-keycloak: port 8180 zajmuje inny proces" in world.text()
+
+
+def test_up_reports_a_failed_configure(world: World) -> None:
+    with_suite(world)
+    world.answer(
+        ("npm", "run", "--silent", "identity", "--", "configure"), 1, "", "Keycloak sign-in failed (HTTP 401)\n"
+    )
+
+    assert up(world) == 1
+    assert "di-identity: configure — Keycloak sign-in failed (HTTP 401)" in world.text()
+
+
+def test_up_without_google_warns_that_nobody_can_sign_in(world: World) -> None:
+    with_suite(world, google=False)
+
+    assert up(world) == 0
+    configure = next(r for r in world.runs if r[0][-1] == "configure")
+    assert "GOOGLE_CLIENT_ID" not in configure[2]
+    assert "bez klienta Google nikt się nie zaloguje" in world.text()
+
+
+def test_status_down_and_reset_cover_the_suite(world: World) -> None:
+    with_suite(world)
+    assert up(world) == 0
+    for name in ("sdlc-keycloak", "sdlc-identity-pg"):
+        world.answers[("docker", "inspect", "-f", "{{.State.Running}}", name)] = [(0, "true\n", "")]
+
+    assert cli.main(["status"], ctx=world.ctx()) == 0
+    assert "sdlc-keycloak: działa" in world.text()
+    assert "sekrety klientów suity: 1; klient Google: ustawiony" in world.text()
+
+    assert cli.main(["down"], ctx=world.ctx()) == 0
+    docker = [r[0] for r in world.runs if r[0][0] == "docker"]
+    assert ["docker", "stop", "sdlc-keycloak"] in docker and ["docker", "stop", "sdlc-identity-pg"] in docker
+    assert "di-identity: zatrzymany" in world.text()
+
+    world.typed = ["usuń"]
+    assert cli.main(["reset"], ctx=world.ctx()) == 0
+    docker = [r[0] for r in world.runs if r[0][0] == "docker"]
+    assert ["docker", "volume", "rm", "sdlc-keycloak"] in docker
