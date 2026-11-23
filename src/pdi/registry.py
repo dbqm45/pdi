@@ -58,6 +58,7 @@ FIELD_ORDER = (
     "tags",
 )
 _ID = re.compile(r"^DEC-(\d+)$")
+_CURSOR = re.compile(r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)(?:/([A-Z][A-Z0-9]+-[0-9]+))?$")
 _WORD = re.compile(r"\w{2,}")
 _MAX_ID_RETRIES = 5
 GENERAL_PROJECT_DIR = "_ogolne"
@@ -233,6 +234,56 @@ class Registry:
         """Wszystkie pełne wpisy rejestru, w kolejności ID."""
         return self._all()
 
+    def changes_since(
+        self,
+        since: str | None = None,
+        *,
+        project: str | None = None,
+        app: str | None = None,
+        scope: str | None = None,
+        limit: int = 200,
+    ) -> dict[str, Any]:
+        """Decyzje zmienione po znaczniku `since` (D7; plan docs/plan-d7-odczyt-przyrostowy.md), razem z zastąpionymi.
+
+        `since`: znacznik `<changed_at>/<id>` z poprzedniej odpowiedzi (to, co po nim) albo chwila UTC
+        `RRRR-MM-DDTGG:MM:SSZ` (od niej włącznie); brak — wszystko. Wpis dostaje `changed_at` (zapis; dla zastąpionej
+        — zapis następczyni) i `text` (plik Decision Record). Zwraca `decisions`, `next` i `complete`.
+        """
+        after: tuple[str, int] | None = None
+        start: str | None = None
+        if since is not None:
+            found = _CURSOR.match(since)
+            if not found:
+                raise InvalidDecision(
+                    "since: znacznik <RRRR-MM-DDTGG:MM:SSZ>/<DEC-n> z poprzedniej odpowiedzi "
+                    "albo chwila RRRR-MM-DDTGG:MM:SSZ."
+                )
+            if found.group(2):
+                after = (found.group(1), _number(found.group(2)))
+            else:
+                start = found.group(1)
+        files = {p: _read(p) for p in self._files()}
+        recorded = {d["id"]: _recorded_at(d) for d in files.values()}
+        wanted_project = project_slug(project) if project else None
+        rows: list[tuple[tuple[str, int], Path, Decision]] = []
+        for path, d in files.items():
+            changed = max(_recorded_at(d), recorded.get(d.get("superseded_by", ""), ""))
+            key = (changed, _number(d["id"]))
+            if (after and key <= after) or (start and changed < start):
+                continue
+            if wanted_project and d.get("project") != wanted_project:
+                continue
+            if app and source_app(d) != app:
+                continue
+            if scope and (d.get("origin") or {}).get("scope") != scope:
+                continue
+            rows.append((key, path, d))
+        rows.sort(key=lambda r: r[0])
+        page = rows[:limit]
+        out = [{**d, "changed_at": key[0], "text": path.read_text(encoding="utf-8")} for key, path, d in page]
+        nxt = f"{page[-1][0][0]}/{page[-1][2]['id']}" if page else since
+        return {"decisions": out, "next": nxt, "complete": len(rows) <= limit}
+
     # --- pliki ---
 
     def _path(self, decision: Decision) -> Path:
@@ -397,6 +448,11 @@ def _summary(d: Decision) -> Decision:
         if a["load_bearing"]
     ]
     return summary
+
+
+def _recorded_at(d: Decision) -> str:
+    """Chwila zapisu; wpisy sprzed pola `recorded_at` liczą się od początku dnia decyzji."""
+    return str(d.get("recorded_at") or f"{d['decided_at']}T00:00:00Z")
 
 
 def record_marker() -> dict[str, str]:

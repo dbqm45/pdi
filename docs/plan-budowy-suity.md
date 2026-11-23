@@ -300,6 +300,10 @@ ci_for_sdlc, tf i ShipScope, każdego typu; nowi nadawcy muszą podać `origin`;
 **D4 zrobione** w pdi ([plan](plan-d4-wyszukiwanie-suity.md)): `find_decisions` szuka też w dowodach, skutkach,
 sposobie potwierdzenia, odpowiedziach i numerze u właściciela, filtruje po aplikacji źródłowej (`app`) i zwraca
 `app`, `link` do oryginału i `origin`.
+**D7 zrobione** w pdi ([plan](plan-d7-odczyt-przyrostowy.md)): `Registry.changes_since`, polecenie
+`pdi-records changes` (JSON, dla hooka fabryki) i narzędzie MCP `list_decision_changes` — decyzje zmienione od
+znacznika `<changed_at>/<id>`, razem z zastąpionymi, z filtrami `project`, `app`, `scope`, każda z plikiem Decision
+Record (`text`). API HTTP razem z usługą pdi (DA4).
 
 Później: DI Release, DI Release Control i DI Quality publikują swoje decyzje tym samym zdarzeniem i dostają tę samą
 pamięć podręczną, gdy będą miały

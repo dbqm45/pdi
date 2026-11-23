@@ -277,6 +277,27 @@ def build_server(
         }
 
     @server.tool(annotations=_READ)
+    def list_decision_changes(
+        since: str | None = None,
+        project: str | None = None,
+        app: App | None = None,
+        scope: str | None = None,
+        limit: int = 200,
+    ) -> dict[str, Any]:
+        """Decyzje zmienione od znacznika — do odświeżenia lokalnej kopii decyzji suity (D7).
+
+        since: next z poprzedniego wywołania (zwraca to, co po nim) albo chwila RRRR-MM-DDTGG:MM:SSZ (od niej
+        włącznie); bez since — wszystko. Zwraca też decyzje zastąpione (ze statusem superseded), żeby kopia nie
+        pokazywała nieaktualnej decyzji jako obowiązującej. Filtry: project, app (pdi, tf, ci_for_sdlc, shipscope),
+        scope (origin.scope, np. repo owner/name). Każdy wpis ma changed_at i text (plik Decision Record dosłownie).
+        Zwraca decisions, next (znacznik na następny raz) i complete (false = jest kolejna strona).
+        """
+        try:
+            return open_registry().changes_since(since, project=project, app=app, scope=scope, limit=limit)
+        except InvalidDecision as e:
+            raise ToolError(str(e)) from e
+
+    @server.tool(annotations=_READ)
     def get_decision(decision_id: str) -> Decision:
         """Zwraca pełny wpis decyzji o ID w formacie DEC-nnnn (opcje, dowody, założenia, źródło, powiązania)."""
         try:

@@ -66,6 +66,11 @@ Log4brains, adr-log, pyadr): `PDI_REGISTRY_PATH=~/pdi-decisions uv run --directo
 --out ~/sklep/docs/decisions --project sklep`. Eksport nadpisuje tylko pliki, które sam wygenerował (komentarz
 `<!-- pdi: DEC-n -->`); ADR-y napisane ręcznie zostawia i zgłasza jako konflikt.
 
+Odczyt przyrostowy dla pamięci podręcznej decyzji suity (D7): `PDI_REGISTRY_PATH=~/pdi-decisions uv run --directory
+~/pdi pdi-records changes --since <next z poprzedniego razu> [--scope owner/repo]` wypisuje JSON z decyzjami
+zmienionymi od znacznika (także zastąpionymi), każdą z plikiem Decision Record, i znacznik `next` na następny raz.
+W Claude to samo daje narzędzie `list_decision_changes`.
+
 Opcjonalnie dopisz [`CLAUDE-fragment.md`](CLAUDE-fragment.md) do `~/.claude/CLAUDE.md` — Claude będzie sprawdzał
 wcześniejsze decyzje, zanim coś zaproponuje.
 
