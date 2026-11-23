@@ -37,6 +37,8 @@ class Config:
     registry: Path
     checkout: Path | None
     deploy_repo: str | None = None
+    # Klon di-identity (tożsamość suity, `sdlc init`); None = bez suity.
+    identity: Path | None = None
 
 
 def read_env(path: Path) -> dict[str, str]:
@@ -97,6 +99,7 @@ def load_config(path: Path) -> Config | None:
         registry=Path(paths["registry"]),
         checkout=Path(checkout) if checkout else None,
         deploy_repo=data.get("deploy", {}).get("repo") or None,
+        identity=Path(identity) if (identity := data.get("suite", {}).get("identity")) else None,
     )
 
 
@@ -107,7 +110,8 @@ def save_config(path: Path, config: Config) -> None:
     lines = ["# sdlc (pdi L4): ścieżki klonów. Zmieniaj ręcznie; `sdlc up` pyta tylko, gdy pliku brak.", "[paths]"]
     lines += [f"{name} = {quoted(getattr(config, name))}" for name in ("pdi", "shipscope", "ci_for_sdlc", "registry")]
     lines.append(f"checkout = {quoted(config.checkout or '')}")
-    lines += ["", "[deploy]", f"repo = {quoted(config.deploy_repo or '')}", ""]
+    lines += ["", "[deploy]", f"repo = {quoted(config.deploy_repo or '')}"]
+    lines += ["", "[suite]", f"identity = {quoted(config.identity or '')}", ""]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.parent.chmod(0o700)
     path.write_text("\n".join(lines), encoding="utf-8")
