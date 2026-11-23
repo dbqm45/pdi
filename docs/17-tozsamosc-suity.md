@@ -30,7 +30,8 @@ na ten identyfikator.
 ### 2.1 Silnik: Keycloak
 
 **Przyjęte 2026-11-22 (decyzja właściciela, DI1): Keycloak**, uruchamiany jako usługa w `di-identity`, z konfiguracją w repozytorium (eksport realmu
-albo narzędzie typu keycloak-config-cli [niezweryfikowane: wybór narzędzia]).
+albo narzędzie typu keycloak-config-cli). **Zrobione 2026-11-23 (krok 14):** stan realmu w `keycloak/suite.json` w
+`di-identity`, nakładany własnym poleceniem `configure` przez Admin REST API (bez dodatkowego narzędzia).
 
 | Kandydat | Licencja | Za | Przeciw |
 |---|---|---|---|
@@ -115,11 +116,13 @@ podmiotu, któremu nadaje się i odbiera uprawnienia. Dziś agent występuje tyl
 
 **Token agenta.**
 
-- Niesie `sub` agenta, `kind: agent`, `owner`, organizację i role (mappery atrybutów w Keycloak). Aplikacja zawsze
+- Niesie `sub` agenta, `kind: agent`, `owner`, organizację i role (mappery atrybutów w Keycloak; sprawdzone na
+  Keycloak 26.4.7: `organization` to lista aliasów, `azp` to klient agenta). Aplikacja zawsze
   sprawdza `kind`; token bez `kind` traktuje jak token osoby tylko wtedy, gdy pochodzi z logowania osoby.
 - **Krótki:** czas życia 10 minut (przyjęte, DI4), bez tokenu odświeżania; kolejny pobiera się przy potrzebie.
-- **Uwierzytelnienie klienta agenta podpisanym JWT** (`private_key_jwt`) zamiast współdzielonego sekretu, jeśli
-  Keycloak na to pozwala dla kont usługowych [niezweryfikowane]; klucz prywatny poza kontenerem fazy.
+- **Uwierzytelnienie klienta agenta podpisanym JWT** (`private_key_jwt`) zamiast współdzielonego sekretu
+  (sprawdzone na Keycloak 26.4.7: działa dla kont usługowych, ponowne użycie tej samej asercji jest odrzucane);
+  klucz prywatny poza kontenerem fazy.
 - **Zgodnie z DZ9 poświadczenia zostają poza kontenerem fazy:** token pobiera proces na hoście (pdi albo tf), a do
   kontenera trafia tylko krótki token dostępu dla konkretnej wywoływanej aplikacji, nigdy klucz klienta.
 - **W czyim imieniu:** przebieg uruchomiony przez człowieka niesie go w `started_by` (kontrakt 0.15), jak dziś.
@@ -150,6 +153,16 @@ zapisany w `run.finished`, więc audyt wiąże commit z agentem i właścicielem
 | `di-service-template` | `Identity` z `kind` i `owner`; `requireHuman` do tras zatwierdzania | razem z krokiem 14 |
 | `di-identity` (krok 14) | mappery `kind` i `owner`, typ konta agenta, wyłącznik organizacji | krok 14 i AC1 |
 | tf | pobieranie tokenu agenta na hoście, `agent_id` w zdarzeniach przebiegu | po zmianie kontraktu |
+
+### 2.7 Co wyszło przy wdrożeniu kroku 14 (2026-11-23, Keycloak 26.4.7)
+
+- **`aud` nie wystarcza:** Keycloak dopisuje do `aud` każdą aplikację, w której podmiot ma role, więc token wydany
+  jednej aplikacji przechodzi sprawdzenie `aud` w drugiej. Szablon usługi przyjmuje token osoby tylko wtedy, gdy
+  `azp` wskazuje tę aplikację albo klienta z `OIDC_AUTHORIZED_PARTIES`; token agenta tylko od klienta `agent-…`.
+- **Organizacje w API:** wyszukiwanie z `exact=true` porównuje nazwę, nie alias; `di-identity` szuka po aliasie.
+- **Konto usługowe agenta** może być członkiem organizacji, a jego atrybuty (`kind`, `owner`) trafiają do tokenu.
+- **Jeszcze nie zrobione:** wdrożenie na Hetznerze, logowanie prawdziwym kontem Google, ukrycie formularza hasła na
+  stronie logowania, przekierowanie do dostawcy organizacji po domenie — w kolejnych krokach (README `di-identity`).
 
 ## 3. Przejście aplikacji
 
