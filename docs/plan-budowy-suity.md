@@ -389,7 +389,11 @@ obszary IT są zapisane niżej jako opcja do rozważenia po zakończeniu tego pl
 | AN4 | **Katalog usług i właścicieli** (wycinek obszaru ⑤) | N5 kieruje pytania do „właściciela modułu”, a takiego źródła nie ma | plik w kontrakcie: usługa → właściciel → zależności → repo; czytają go DI Channels (routing), DI Release (usługi) i DI Decision (zatwierdzający) | przed N5 |
 | AN5 | **Bezpieczeństwo AI w działaniu.** Jest prewencja (hooki tf, sandbox, lista modeli), nie ma reakcji (Z6) | DI Definition i DI Channels czytają tekst od ludzi (Jira, Confluence, Slack od kroku 16): to droga prompt injection | procedura incydentu AI (krótki dokument); treść z zewnątrz oznaczana jako dane w promptach; test z wstrzyknięciem w zestawie ewaluacyjnym recenzenta (C2) | dokument teraz; test przy C2 |
 | AN6 | **Wyłącznik agentów, nie tylko funkcji.** FL1 wyłącza funkcję AI w produkcie; nie ma „zatrzymaj wszystkie przebiegi agentów w organizacji” | jeden przycisk na wypadek złego modelu, wycieku albo kosztu | stan organizacji „agenci wstrzymani” w DI Decision, honorowany przez tf przy starcie i w trakcie fazy | razem z honorowaniem stanu „wstrzymana” w trwającej fazie tf |
-| AN7 | **Autonomia procesu, nie tylko decyzji.** Poziomy DA1 dotyczą pojedynczej decyzji; L4–L5 opisu dotyczą całego procesu | pytanie, kiedy cała zmiana może przejść bez bramek B1–B3, nie ma odpowiedzi | pytanie otwarte (nr 12 w §6), nie krok; mapowanie L0–L5 ↔ poziomy 3→0 w dokumencie operating modelu przy N1 | przy N1 |
+| AN7 | **Autonomia procesu, nie tylko decyzji.** Poziomy DA1 dotyczą pojedynczej decyzji; L4–L5 opisu dotyczą całego procesu | pytanie, kiedy cała zmiana może przejść bez bramek B1–B3, nie ma odpowiedzi | pytanie otwarte (nr 12 w §6), nie krok; mapowanie L0–L5 ↔ poziomy 3→0 w dokumencie operating modelu przy N1 | przy N1 — **połączone z DV2 (§3d)**: polityka „jaka zmiana, jakie bramki” zamiast samego pytania |
+
+**Zasada pomiaru (dopisana 2026-11-23):** metryki suity liczymy tylko na poziomie zmiany, procesu i zespołu,
+nigdy osoby. Dotyczy AN3 i wszystkich kroków DV z §3d; pomysły oparte na obserwowaniu pracy ludzi (przełączanie
+kontekstu, spotkania, „niewidzialna praca”) świadomie zostają poza suitą.
 
 Świadomie nie dopisujemy: oceny i priorytetyzacji przypadków użycia AI (sekcje 3 i 9 opisu) — to praca
 warsztatowa, nie produkt; najwyżej pole oceny w triażu PRB, jeśli pilotaż o nie poprosi.
@@ -420,6 +424,30 @@ Pytania do rozstrzygnięcia przy powrocie:
 
 Sygnały, że warto wrócić wcześniej: klient pilotażu pyta o Service Desk albo dostępy; DI Decision dostaje
 zapotrzebowanie na bramki spoza SDLC; DI Model Gateway powstaje i ktoś spoza delivery chce z niego korzystać.
+
+## 3d. Inteligentny przepływ delivery: co dodać i gdzie (dopisane 2026-11-23)
+
+Źródło: portfolio pomysłów „AI w SDLC” (72 przypadki użycia w 9 fazach, od Discover do Adapt) przekazane przez
+właściciela 2026-11-23. Ocena na dokumentach i strukturze kodu pdi; repozytoriów ci_for_sdlc, tf i qa-platform
+pod tym kątem nie przeglądałem. Około jednej trzeciej pomysłów suita już ma (wygasanie decyzji przez
+`invalidated_if` i `decision.basis_invalidated`, pamięć odrzuconych opcji w `options`, prognoza G3, ocena skutku F5,
+duplikaty w triażu, jakość wymagań w DI Definition, implementacja i przegląd w tf, gotowość wydania w B5). Przepływ
+ciągły zamiast sprintów jest w suicie od początku (zmiana przechodzi przez bramki, sprintdeck służy konsensusowi
+o ryzyku, nie estymacji). Niżej tylko to, co warto dodać. Pomysły odłożone albo spoza suity: artefakt „ck-sdlc”.
+
+| # | Pomysł (nr w portfolio) | Repo | PR | Wynik | Zależy od |
+|---|---|---|---|---|---|
+| DV1 | AI Process Challenger + Deployment Policy Advisor (#64, #53) | pdi | licznik akceptacji z DA2 liczony też dla bramek (ile razy zatwierdzona bez uwag, ile razy zatrzymała zmianę); przy progu — szkic decyzji w skrzynce „obniż poziom bramki” albo „usuń krok”; decyduje człowiek | proces sam wskazuje kroki, które nie zmniejszają ryzyka | DV4 (czasy na bramkach) |
+| DV2 | Risk-based process / Change Confidence Score (#36, #40) | tf, di-contract, pdi | tf liczy ocenę ryzyka zmiany (rozszerzenie `tf risk`: złożoność, testy, zasięg zależności, historia podobnych zmian); kontrakt przenosi ją w zmianie i w `gate.requested`; pdi wybiera wymagane bramki z polityki w operating modelu | nie każda zmiana przechodzi ten sam proces; zastępuje pytanie AN7 | N1, N2 |
+| DV3 | Context Reconstruction Agent (#27) | tf | skill na start zadania: dlaczego zmiana (intencja, PRB), decyzje i odrzucone opcje, powiązane PR i komponenty z grafu śladu pdi, otwarte pytania z DI Definition | krótszy czas do pierwszej wartościowej zmiany | wersja pełna po D8; wersja z grafem śladu od razu |
+| DV4 | Decision Delay + Delivery Waste Detector (#68, #66) | pdi (+ DI Release `/flow`) | czas w każdym stanie zmiany i na każdej bramce, od pytania do decyzji, od PR do wdrożenia; widok „gdzie zmiana czeka” w konsoli | dane dla AN3 i DV1 | N3 (zrobione) |
+| DV5 | Scope Inflation Detector (#11) | ci_for_sdlc | porównanie intencji i `targets` zmiany z historyjkami i ich zmianami, obok istniejącego wykrywania rozjazdów; ustalenie „zakres poza celem” | mniejsze dostawy, mniej niepotrzebnego kodu | — [do sprawdzenia w kodzie ci_for_sdlc] |
+| DV6 | Zombie Work Detector (#13) | pdi, ci_for_sdlc | okresowy przegląd zgłoszeń `parked` po progu powrotu (R7) i starych historyjek w Jirze; propozycja zamknięcia albo ponownej walidacji jako szkic decyzji | odzyskana przepustowość, czysty backlog | — |
+| DV7 | Build vs. Don't Build / Simplification (#8, #12) | tf, pdi | rekomendacja triażu dostaje opcję „bez kodu” (konfiguracja, zmiana procesu, istniejąca funkcja) i powód w słowniku odrzuceń | mniej developmentu bez wartości | — |
+| DV8 | Test Trust / Test Waste / Flaky / Production-to-Test (#44, #45, #47, #49) | qa-platform, di-contract | wiarygodność i wartość testów z historii wyników; test regresji z błędu produkcyjnego | pierwszy produkt DI Quality w suicie | `test-result` w kontrakcie (pyt. 7), AN2 dla błędów produkcyjnych |
+
+Kolejność rekomendowana: **DV4 → DV1 → DV2** (pierwsze dwa na danych, które już są; DV2 domyka AN7), potem DV3,
+DV7, DV6, DV5; DV8 po decyzji o DI Quality.
 
 ## 4. Pierwsze kroki: każdy to jeden PR
 
@@ -459,10 +487,11 @@ decyzje: pierwszy dostawca tożsamości, hosting i stos usługi (DA4), e-mail os
 
 Stan 2026-11-23: zrobiony też N3 z §3b (przypomnienia, „po terminie”, stan „wstrzymana”, `sdlc deadlines`).
 Dopisana §3c (AI Native IT): zakres suity zostaje przy delivery (DS1), braki AN1–AN7, opcja całego IT na później.
+Dopisana §3d: kroki DV1–DV8 z portfolio pomysłów „AI w SDLC”; zasada pomiaru tylko na poziomie zmiany, procesu i zespołu.
 Decyzje 2026-11-23: pierwszy dostawca tożsamości Google (DI2), stos i hosting usług wg rekomendacji (DA4), e-mail osoby tylko dla aplikacji, które go potrzebują (DI3). Kroki 13a i 14 odblokowane; przed wdrożeniem w kroku 14 — wybór dostawcy hostingu (ADR 17 §5).
 
 Równolegle z tą tabelą idą kroki D1–D9 z §3a (decyzje widoczne w całej suicie). Kroki N1–N5 z §3b (routing i terminy) idą za krokami 8 i 17.
-Kroki AN1–AN7 z §3c idą w terminach podanych w tabeli tam (AN1 przed krokiem 14). Etapy AC2–AC4 Admin Console (§2b) idą za krokami 14b, 8 i 16. Poza tabelą, do wstawienia po decyzjach: `consulted` w decyzji i „Ask team” (T4), zdarzenie `test-result`
+Kroki AN1–AN7 z §3c idą w terminach podanych w tabeli tam (AN1 przed krokiem 14). Kroki DV1–DV8 z §3d idą równolegle, w kolejności podanej tam. Etapy AC2–AC4 Admin Console (§2b) idą za krokami 14b, 8 i 16. Poza tabelą, do wstawienia po decyzjach: `consulted` w decyzji i „Ask team” (T4), zdarzenie `test-result`
 i wysyłka z `qa summary` (DI Quality), konektor DI Release → DI Release Control, bramki B4/B5 z fabryki.
 
 Kryterium po sześciu tygodniach: wszyscy konsumenci na jednej wersji kontraktu z jednego repo; tablica „Now”
@@ -498,7 +527,7 @@ Odpowiedzi na 1–4 są potrzebne przed etapem 2; pozostałe przed krokiem, któ
 | 9 | D-P4: kto zatwierdza bramki B1–B5 i w jakim SLA | **rozstrzygnięte 2026-11-22 (OM1)**: właściciel, bez zastępcy, terminy ze szkicu ([16-operating-model.md](16-operating-model.md)) | — |
 | 10 | Nazwy repo: czy stare się zmieniają; czy nowe dostają prefiks `di-` (lista w §2) | **stare zostają; nowe z prefiksem `di-`** | zakładanie repo |
 | 11 | Kolejność wobec planu programu: fala 1 tamtego planu to Model Gateway i AI Registry; ten plan stawia przed nimi kontrakt, tożsamość, „Now” i kanał | **najpierw to, co łączy istniejące aplikacje** (ten plan), potem bramka modeli; do potwierdzenia, bo zmienia to kolejność fal | §7 |
-| 12 | Autonomia procesu (§3c, AN7): kiedy cała zmiana może przejść bez bramek B1–B3; mapowanie poziomów L0–L5 z opisu AI Native IT na poziomy 3→0 (DA1) | **odpowiedzieć przy N1**; do tego czasu każda zmiana przechodzi przez bramki | N1 |
+| 12 | Autonomia procesu (§3c, AN7): kiedy cała zmiana może przejść bez bramek B1–B3; mapowanie poziomów L0–L5 z opisu AI Native IT na poziomy 3→0 (DA1) | **odpowiedzieć przy N1 jako polityka DV2 (§3d)**; do tego czasu każda zmiana przechodzi przez bramki | N1 |
 | 13 | Zakres suity: tylko delivery czy całe IT (§3c) | **rozstrzygnięte 2026-11-23 (DS1): tylko delivery**; opcja całego IT zapisana w §3c do rozważenia po zakończeniu planu | — |
 
 ## 7. Różnice wobec planu programu
