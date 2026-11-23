@@ -1,6 +1,6 @@
 # Tożsamość suity — jedna usługa logowania dla wszystkich aplikacji (ADR)
 
-Data: 2026-11-22 · Status: **silnik przyjęty 2026-11-22 (Keycloak, DI1); pierwszy dostawca, stos i e-mail przyjęte 2026-11-23 (DI2, DA4, DI3); hosting Hetzner Cloud przyjęty 2026-11-23 (DA4a); tożsamość agenta (§2.6, AN1) — propozycja** · Krok 13 z
+Data: 2026-11-22 · Status: **silnik przyjęty 2026-11-22 (Keycloak, DI1); pierwszy dostawca, stos i e-mail przyjęte 2026-11-23 (DI2, DA4, DI3); hosting Hetzner Cloud przyjęty 2026-11-23 (DA4a); tożsamość agenta (§2.6, AN1) przyjęta 2026-11-23 (DI4)** · Krok 13 z
 [`plan-budowy-suity.md`](plan-budowy-suity.md) (§2a, §2b, pytanie 4a) · Po przyjęciu: wpis w [`decyzje.md`](decyzje.md).
 
 Miejsca oznaczone **[do decyzji]** wymagają odpowiedzi właściciela; **[niezweryfikowane]** — fakt, którego nie
@@ -94,7 +94,7 @@ specjalisty [niezweryfikowane: na ile Keycloak 26 pozwala ograniczyć administra
 
 ### 2.6 Agent jako podmiot (AN1, dopisane 2026-11-23)
 
-Propozycja; punkty **[do decyzji]** niżej. Powód: audyt musi odróżniać pracę agenta od pracy człowieka i zawsze
+**Przyjęte 2026-11-23 (DI4).** Powód: audyt musi odróżniać pracę agenta od pracy człowieka i zawsze
 wskazać człowieka odpowiedzialnego; macierz uprawnień agentów (T8 planu programu) i wyłącznik agentów (AN6) potrzebują
 podmiotu, któremu nadaje się i odbiera uprawnienia. Dziś agent występuje tylko jako nazwa persony w `run.started`
 (`agent`) i jako aplikacja GitHub dla commitów (DZ10).
@@ -105,8 +105,8 @@ podmiotu, któremu nadaje się i odbiera uprawnienia. Dziś agent występuje tyl
   `agent-<nazwa>` w realmie `suite`. Jego `sub` w tokenie to identyfikator agenta w suicie, jak `sub` osoby.
 - **Jednostka: jedna definicja agenta w jednej organizacji**, nie jeden przebieg. Przykład: persona fabryki
   `tomasz` w organizacji Acme to jedno konto; każdy przebieg tej persony używa tego samego konta, a przebieg odróżnia
-  pole `run` w zdarzeniach. **[do decyzji]** Rekomendacja: konto per persona i organizacja; konto per repozytorium
-  dopiero, gdy uprawnienia agenta muszą się różnić między repozytoriami.
+  pole `run` w zdarzeniach. **Przyjęte (DI4): konto per persona i organizacja**; konto per repozytorium dopiero,
+  gdy uprawnienia agenta muszą się różnić między repozytoriami.
 - **Atrybuty konta (obowiązkowe):** `kind: agent`, `owner` (`sub` człowieka odpowiedzialnego), organizacja, cel
   jednym zdaniem, `review_by` (data przeglądu; domyślnie 90 dni). Bez właściciela agenta nie da się utworzyć.
 - **Uprawnienia:** role klientów aplikacji, jak u osoby, ale **nigdy `admin`** i nigdy role, które pozwalają
@@ -117,7 +117,7 @@ podmiotu, któremu nadaje się i odbiera uprawnienia. Dziś agent występuje tyl
 
 - Niesie `sub` agenta, `kind: agent`, `owner`, organizację i role (mappery atrybutów w Keycloak). Aplikacja zawsze
   sprawdza `kind`; token bez `kind` traktuje jak token osoby tylko wtedy, gdy pochodzi z logowania osoby.
-- **Krótki:** czas życia 10 minut **[do decyzji]**, bez tokenu odświeżania; kolejny pobiera się przy potrzebie.
+- **Krótki:** czas życia 10 minut (przyjęte, DI4), bez tokenu odświeżania; kolejny pobiera się przy potrzebie.
 - **Uwierzytelnienie klienta agenta podpisanym JWT** (`private_key_jwt`) zamiast współdzielonego sekretu, jeśli
   Keycloak na to pozwala dla kont usługowych [niezweryfikowane]; klucz prywatny poza kontenerem fazy.
 - **Zgodnie z DZ9 poświadczenia zostają poza kontenerem fazy:** token pobiera proces na hoście (pdi albo tf), a do
@@ -190,8 +190,8 @@ Każde przejście to osobny PR w repozytorium aplikacji; dotychczasowe logowanie
    | **Railway** | kontenery i Postgres jednym kliknięciem, rozliczenie za zużycie | 5 USD planu + zużycie, rzędu 20–40 USD | najmniej konfiguracji, podgląd z gałęzi | koszt trudniejszy do przewidzenia; mniej kontroli nad regionem i kopiami |
 
 4. ~~E-mail osoby~~ — przyjęte 2026-11-23 (DI3, §2.2): tylko dla aplikacji, które go potrzebują.
-5. Tożsamość agenta (§2.6, AN1): konto per persona i organizacja czy per repozytorium; czas życia tokenu agenta
-   (rekomendacja: 10 minut). Do przyjęcia przed krokiem 14, bo zmienia model danych `di-identity`.
+5. ~~Tożsamość agenta~~ — przyjęte 2026-11-23 (DI4, §2.6): konto per persona i organizacja, token agenta ważny
+   10 minut.
 
 Kolejne kroki planu po przyjęciu: 13a `di-service-template`, 14 `di-identity` (usługa + AC1), potem przejście
 aplikacji wg §3, zaczynając od DI Release Control.
