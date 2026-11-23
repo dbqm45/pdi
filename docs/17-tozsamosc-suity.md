@@ -1,6 +1,6 @@
 # Tożsamość suity — jedna usługa logowania dla wszystkich aplikacji (ADR)
 
-Data: 2026-11-22 · Status: **silnik przyjęty 2026-11-22 (Keycloak, DI1); pierwszy dostawca, stos i e-mail przyjęte 2026-11-23 (DI2, DA4, DI3); hosting Hetzner Cloud przyjęty 2026-11-23 (DA4a)** · Krok 13 z
+Data: 2026-11-22 · Status: **silnik przyjęty 2026-11-22 (Keycloak, DI1); pierwszy dostawca, stos i e-mail przyjęte 2026-11-23 (DI2, DA4, DI3); hosting Hetzner Cloud przyjęty 2026-11-23 (DA4a); tożsamość agenta (§2.6, AN1) — propozycja** · Krok 13 z
 [`plan-budowy-suity.md`](plan-budowy-suity.md) (§2a, §2b, pytanie 4a) · Po przyjęciu: wpis w [`decyzje.md`](decyzje.md).
 
 Miejsca oznaczone **[do decyzji]** wymagają odpowiedzi właściciela; **[niezweryfikowane]** — fakt, którego nie
@@ -79,7 +79,9 @@ Organizacja ma przypisanego dostawcę tożsamości (Keycloak: dostawca powiązan
 
 ### 2.4 Aplikacja do aplikacji
 
-- **Tokeny usług:** każda aplikacja ma konto usługowe (client credentials) do wywołań API innych aplikacji.
+- **Tokeny usług:** każda aplikacja ma konto usługowe (client credentials) do wywołań API innych aplikacji. Konto
+  usługowe aplikacji to nie agent: działa w imieniu aplikacji (synchronizacja, odczyt), nie wykonuje pracy za
+  człowieka. Agenci mają osobne konta (§2.6).
 - **Zdarzenia** zostają podpisane HMAC jak dziś (sekret per para nadawca–odbiorca); przejście na podpis tokenem
   usługi to osobna decyzja, gdy będzie więcej niż kilku nadawców.
 
@@ -89,6 +91,65 @@ AC1 (plan §2b) to interfejs `di-identity` nad Keycloak: organizacja, użytkowni
 podłączenie dostawcy klienta, dziennik zmian. Na start, przed własnym interfejsem, wystarczy wbudowana konsola
 Keycloak dla właściciela suity; administratorowi klienta trzeba dać własny ekran, bo konsola Keycloak jest dla
 specjalisty [niezweryfikowane: na ile Keycloak 26 pozwala ograniczyć administratora do jego organizacji].
+
+### 2.6 Agent jako podmiot (AN1, dopisane 2026-11-23)
+
+Propozycja; punkty **[do decyzji]** niżej. Powód: audyt musi odróżniać pracę agenta od pracy człowieka i zawsze
+wskazać człowieka odpowiedzialnego; macierz uprawnień agentów (T8 planu programu) i wyłącznik agentów (AN6) potrzebują
+podmiotu, któremu nadaje się i odbiera uprawnienia. Dziś agent występuje tylko jako nazwa persony w `run.started`
+(`agent`) i jako aplikacja GitHub dla commitów (DZ10).
+
+**Model.**
+
+- **Agent = konto w Keycloak typu klient z kontem usługowym** (client credentials), z identyfikatorem
+  `agent-<nazwa>` w realmie `suite`. Jego `sub` w tokenie to identyfikator agenta w suicie, jak `sub` osoby.
+- **Jednostka: jedna definicja agenta w jednej organizacji**, nie jeden przebieg. Przykład: persona fabryki
+  `tomasz` w organizacji Acme to jedno konto; każdy przebieg tej persony używa tego samego konta, a przebieg odróżnia
+  pole `run` w zdarzeniach. **[do decyzji]** Rekomendacja: konto per persona i organizacja; konto per repozytorium
+  dopiero, gdy uprawnienia agenta muszą się różnić między repozytoriami.
+- **Atrybuty konta (obowiązkowe):** `kind: agent`, `owner` (`sub` człowieka odpowiedzialnego), organizacja, cel
+  jednym zdaniem, `review_by` (data przeglądu; domyślnie 90 dni). Bez właściciela agenta nie da się utworzyć.
+- **Uprawnienia:** role klientów aplikacji, jak u osoby, ale **nigdy `admin`** i nigdy role, które pozwalają
+  zatwierdzać. Zakres na start: `viewer` w aplikacjach, które agent czyta, i wąskie role robocze (np. wysyłka
+  zdarzeń do DI Decision).
+
+**Token agenta.**
+
+- Niesie `sub` agenta, `kind: agent`, `owner`, organizację i role (mappery atrybutów w Keycloak). Aplikacja zawsze
+  sprawdza `kind`; token bez `kind` traktuje jak token osoby tylko wtedy, gdy pochodzi z logowania osoby.
+- **Krótki:** czas życia 10 minut **[do decyzji]**, bez tokenu odświeżania; kolejny pobiera się przy potrzebie.
+- **Uwierzytelnienie klienta agenta podpisanym JWT** (`private_key_jwt`) zamiast współdzielonego sekretu, jeśli
+  Keycloak na to pozwala dla kont usługowych [niezweryfikowane]; klucz prywatny poza kontenerem fazy.
+- **Zgodnie z DZ9 poświadczenia zostają poza kontenerem fazy:** token pobiera proces na hoście (pdi albo tf), a do
+  kontenera trafia tylko krótki token dostępu dla konkretnej wywoływanej aplikacji, nigdy klucz klienta.
+- **W czyim imieniu:** przebieg uruchomiony przez człowieka niesie go w `started_by` (kontrakt 0.15), jak dziś.
+  Delegacja w samym tokenie (wymiana tokenu, roszczenie `act` z RFC 8693) dopiero, gdy aplikacja będzie musiała
+  sprawdzać uprawnienia człowieka, a nie agenta [niezweryfikowane: obsługa `act` w Keycloak 26].
+
+**Zasady w aplikacjach.**
+
+1. Agent nie zatwierdza bramek ani decyzji poziomu 3 (DA1) i typów chronionych (DA2): trasa zatwierdzania odrzuca
+   token z `kind: agent`, niezależnie od ról.
+2. Każdy zapis zmian w aplikacji zapamiętuje `sub` agenta i jego `owner`; dziennik pokazuje oba.
+3. Agent czyta tylko dane swojej organizacji; dane spoza niej nie istnieją dla jego tokenu.
+
+**Cykl życia.** Tworzy administrator organizacji w Admin Console (rozszerzenie AC1), z właścicielem i celem.
+Wyłączenie właściciela w organizacji zawiesza jego agentów. Przy `review_by` właściciel potwierdza albo agent jest
+zawieszany. **Wyłącznik (AN6):** wyłączenie konta agenta w Keycloak blokuje nowe tokeny od razu, a wydane wygasają
+w ciągu czasu życia tokenu; wyłącznik organizacji wyłącza naraz wszystkie konta z `kind: agent` w organizacji.
+
+**Związek z aplikacją GitHub (DZ10).** Commity i PR podpisuje aplikacja GitHub dla agentów: to tożsamość w GitHubie.
+Tożsamość suity dotyczy API suity. Łączy je przebieg: `run.started` niesie `sub` agenta, a PR z tego przebiegu jest
+zapisany w `run.finished`, więc audyt wiąże commit z agentem i właścicielem.
+
+**Zmiany potrzebne poza tym dokumentem.**
+
+| Gdzie | Zmiana | Kiedy |
+|---|---|---|
+| `di-contract` | `actor.kind` dostaje wartość `agent` i opcjonalne `owner` (`sub` człowieka); `run.started` może nieść `sub` agenta w nowym polu `agent_id` obok nazwy persony; zgodnie wstecz | przed pierwszym agentem z kontem (po kroku 14) |
+| `di-service-template` | `Identity` z `kind` i `owner`; `requireHuman` do tras zatwierdzania | razem z krokiem 14 |
+| `di-identity` (krok 14) | mappery `kind` i `owner`, typ konta agenta, wyłącznik organizacji | krok 14 i AC1 |
+| tf | pobieranie tokenu agenta na hoście, `agent_id` w zdarzeniach przebiegu | po zmianie kontraktu |
 
 ## 3. Przejście aplikacji
 
@@ -100,13 +161,15 @@ Każde przejście to osobny PR w repozytorium aplikacji; dotychczasowe logowanie
 | 2 | DI Definition | logowanie OIDC obok Atlassian; organizacje z tokenu zamiast własnych | dostęp do Jiry i Confluence dalej przez połączenie Atlassian przestrzeni — to nie logowanie |
 | 3 | DI Release | logowanie OIDC zamiast OAuth GitHub; najemca z organizacji | aplikacja GitHub zostaje do czytania repozytoriów i wdrożeń |
 | 4 | DI Decision | konsola jako usługa (DA4) z logowaniem OIDC; MCP z tokenem | razem z decyzją DA4 |
-| 5 | fabryka (tf) | `started_by.id` z konta suity, gdy sesja ma token; inaczej tylko nazwa z gita | bez wymogu logowania w terminalu |
+| 5 | fabryka (tf) | `started_by.id` z konta suity, gdy sesja ma token; inaczej tylko nazwa z gita; persony z kontem agenta (§2.6) | bez wymogu logowania w terminalu |
 
 ## 4. Konsekwencje
 
 - Jedna osoba w całej suicie: „Started by”, „czeka na Ciebie”, kanał w komunikatorze i Admin Console mają na czym stać.
 - Nowa usługa do utrzymania i nowy pojedynczy punkt awarii logowania: potrzebne SLO, kopie bazy Keycloak, plan
   aktualizacji (Keycloak wydaje często [niezweryfikowane: rytm wydań]) i dostęp awaryjny.
+- Agent ma tożsamość, właściciela i wyłącznik w jednym miejscu (§2.6); koszt: konto do utrzymania dla każdej persony
+  w każdej organizacji i przegląd co 90 dni.
 - Aplikacje działające poza suitą zachowują własne logowanie (zasada produktów sprzedawanych osobno).
 
 ## 5. Do decyzji właściciela
@@ -127,6 +190,8 @@ Każde przejście to osobny PR w repozytorium aplikacji; dotychczasowe logowanie
    | **Railway** | kontenery i Postgres jednym kliknięciem, rozliczenie za zużycie | 5 USD planu + zużycie, rzędu 20–40 USD | najmniej konfiguracji, podgląd z gałęzi | koszt trudniejszy do przewidzenia; mniej kontroli nad regionem i kopiami |
 
 4. ~~E-mail osoby~~ — przyjęte 2026-11-23 (DI3, §2.2): tylko dla aplikacji, które go potrzebują.
+5. Tożsamość agenta (§2.6, AN1): konto per persona i organizacja czy per repozytorium; czas życia tokenu agenta
+   (rekomendacja: 10 minut). Do przyjęcia przed krokiem 14, bo zmienia model danych `di-identity`.
 
 Kolejne kroki planu po przyjęciu: 13a `di-service-template`, 14 `di-identity` (usługa + AC1), potem przejście
 aplikacji wg §3, zaczynając od DI Release Control.
