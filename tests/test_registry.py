@@ -412,3 +412,76 @@ def test_measured_human_and_automation_decisions_are_recorded(
     registry: Registry, make_draft: Draft, fields: dict[str, Any]
 ) -> None:
     assert registry.record(make_draft(**fields))["id"] == "DEC-0001"
+
+
+# --- D4: wyszukiwarka decyzji całej suity (plan docs/plan-d4-wyszukiwanie-suity.md) ---
+
+TF_ORIGIN = {
+    "app": "tf",
+    "scope": "dbqm45/sklep",
+    "local_id": "D-012",
+    "url": "https://github.com/dbqm45/sklep/blob/main/docs/project/decisions.md",
+}
+
+
+@pytest.mark.parametrize(
+    ("fields", "query"),
+    [
+        pytest.param(
+            {"evidence": [{"text": "Przewoźnik podnosi cenę paczki o 14%.", "epistemic_status": "observation"}]},
+            "przewoźnik",
+            id="dowod",
+        ),
+        pytest.param(
+            {"consequences": [{"text": "Koszyki poniżej progu porzucane częściej.", "effect": "bad"}]},
+            "porzucane",
+            id="skutek",
+        ),
+        pytest.param({"confirmation": {"how": "Raport marży dostawy co miesiąc"}}, "marży", id="potwierdzenie"),
+        pytest.param(
+            {"answers": [{"question": "Czy dotyczy kurierów?", "answer": "Tylko paczkomatów."}]},
+            "paczkomat",
+            id="odpowiedz",
+        ),
+        pytest.param({"origin": TF_ORIGIN, "source": {"kind": "tf"}}, "D-012", id="local-id"),
+    ],
+)
+def test_find_searches_evidence_consequences_and_origin(
+    registry: Registry, make_draft: Draft, fields: dict[str, Any], query: str
+) -> None:
+    registry.record(make_draft(statement="Inna decyzja.", why="Bez związku."))
+    registry.record(make_draft(statement="Próg zostaje.", why="Uzasadnienie.", **fields))
+
+    found = registry.find(query)
+
+    assert [d["statement"] for d in found] == ["Próg zostaje."]
+
+
+def test_find_filters_by_source_app_and_links_to_the_original(registry: Registry, make_draft: Draft) -> None:
+    registry.record(make_draft(statement="Z pdi."))
+    registry.record(make_draft(statement="Z tf.", origin=TF_ORIGIN, source={"kind": "tf"}))
+    registry.record(
+        make_draft(
+            statement="Z ci sprzed 0.16.", source={"kind": "ci_for_sdlc", "url": "https://ci.example.com/items/PAY-12"}
+        )
+    )
+
+    by_app = {
+        app: [d["statement"] for d in registry.find(app=app)] for app in ("pdi", "tf", "ci_for_sdlc", "shipscope")
+    }
+
+    assert by_app == {"pdi": ["Z pdi."], "tf": ["Z tf."], "ci_for_sdlc": ["Z ci sprzed 0.16."], "shipscope": []}
+    tf = registry.find(app="tf")[0]
+    assert (tf["app"], tf["link"]) == ("tf", TF_ORIGIN["url"])
+    assert tf["origin"] == {"app": "tf", "scope": "dbqm45/sklep", "local_id": "D-012"}
+    ci = registry.find(app="ci_for_sdlc")[0]
+    assert (ci["app"], ci["link"]) == ("ci_for_sdlc", "https://ci.example.com/items/PAY-12")
+    own = registry.find(app="pdi")[0]
+    assert own["app"] == "pdi" and "link" not in own and "origin" not in own
+
+
+def test_suite_apps_are_the_event_sources_of_the_contract() -> None:
+    from pdi import contract
+    from pdi.registry import SUITE_APPS
+
+    assert list(SUITE_APPS) == contract.load("event")["properties"]["source"]["enum"]

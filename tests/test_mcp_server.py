@@ -89,7 +89,7 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
     assert {"decision_type", "draft_edited"} <= set(tools["decide_inbox_item"].input_schema["properties"])
     for name in ("record_decision", "supersede_decision", "decide_inbox_item"):
         assert {"consequences", "confirmation"} <= set(tools[name].input_schema["properties"]), name
-    assert "project" in tools["find_decisions"].input_schema["properties"]
+    assert {"project", "app"} <= set(tools["find_decisions"].input_schema["properties"])
 
 
 async def test_record_then_find_and_get(server: Any, make_draft: Draft) -> None:
@@ -389,3 +389,13 @@ async def test_consequences_and_confirmation_through_record_decision(
     assert got["consequences"] == [{"text": "Marża zostaje dodatnia.", "effect": "good"}]
     assert got["confirmation"] == {"how": "Raport marży", "kind": "metric"}
     assert got["record"] == "decision"
+
+
+async def test_find_decisions_by_app_through_the_tool(server: Any, make_draft: Draft) -> None:
+    await call(server, "record_decision", make_draft(statement="Z pdi."))
+
+    own = await call(server, "find_decisions", {"app": "pdi"})
+    other = await call(server, "find_decisions", {"app": "tf"})
+
+    assert [d["app"] for d in own["decisions"]] == ["pdi"]
+    assert other["decisions"] == []

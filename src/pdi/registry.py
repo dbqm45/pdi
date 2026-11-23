@@ -197,6 +197,7 @@ class Registry:
         status: str | None = None,
         kind: str | None = None,
         project: str | None = None,
+        app: str | None = None,
         limit: int = 10,
     ) -> list[Decision]:
         """Szuka decyzji po słowach zapytania (także fragmentach słów) i filtrach.
@@ -217,6 +218,8 @@ class Registry:
             if kind and decision["kind"] != kind:
                 continue
             if wanted_project and decision.get("project") != wanted_project:
+                continue
+            if app and source_app(decision) != app:
                 continue
             haystack = _searchable_text(decision)
             score = sum(1 for w in words if w in haystack)
@@ -345,7 +348,34 @@ def _searchable_text(d: Decision) -> str:
     parts += [a["statement"] for a in d.get("assumptions", ())]
     parts += d.get("dependencies", [])
     parts += d.get("tags", [])
+    # D4: także to, co decyzję uzasadnia i jej skutki, oraz numer u właściciela (np. D-012).
+    parts += [e["text"] for e in d.get("evidence", ())]
+    parts += [c["text"] for c in d.get("consequences", ())]
+    parts += [f"{a['question']} {a['answer']}" for a in d.get("answers", ())]
+    if d.get("confirmation"):
+        parts.append(d["confirmation"]["how"])
+    if d.get("source", {}).get("excerpt"):
+        parts.append(d["source"]["excerpt"])
+    if d.get("origin"):
+        parts.append(d["origin"]["local_id"])
     return " ".join(parts).lower()
+
+
+SUITE_APPS = ("pdi", "tf", "ci_for_sdlc", "shipscope")  # wartości `source` zdarzenia w kontrakcie
+
+
+def source_app(d: Decision) -> str:
+    """Aplikacja, z której pochodzi decyzja: `origin.app`; bez niego aplikacja suity z `source.kind` (decyzje
+    ci_for_sdlc sprzed kontraktu 0.16.0); inaczej `pdi` — decyzja podjęta w DI Decision."""
+    if d.get("origin"):
+        return str(d["origin"]["app"])
+    kind = d.get("source", {}).get("kind")
+    return str(kind) if kind in SUITE_APPS else "pdi"
+
+
+def _link(d: Decision) -> str | None:
+    url = (d.get("origin") or {}).get("url") or d.get("source", {}).get("url")
+    return str(url) if isinstance(url, str) and url.startswith(("https://", "http://")) else None
 
 
 def _summary(d: Decision) -> Decision:
@@ -355,6 +385,12 @@ def _summary(d: Decision) -> Decision:
     for k in ("tags", "superseded_by"):
         if k in d:
             summary[k] = d[k]
+    summary["app"] = source_app(d)
+    link = _link(d)
+    if link:
+        summary["link"] = link
+    if d.get("origin"):
+        summary["origin"] = {k: d["origin"][k] for k in ("app", "scope", "local_id")}
     summary["load_bearing_assumptions"] = [
         {"statement": a["statement"], "invalidated_if": a["invalidated_if"]}
         for a in d.get("assumptions", ())
