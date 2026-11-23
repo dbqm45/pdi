@@ -1,6 +1,6 @@
 # Tożsamość suity — jedna usługa logowania dla wszystkich aplikacji (ADR)
 
-Data: 2026-11-22 · Status: **silnik przyjęty 2026-11-22 (Keycloak, decyzja DI1); reszta — propozycja** · Krok 13 z
+Data: 2026-11-22 · Status: **silnik przyjęty 2026-11-22 (Keycloak, DI1); pierwszy dostawca, stos i e-mail przyjęte 2026-11-23 (DI2, DA4, DI3); otwarty dostawca hostingu (§5)** · Krok 13 z
 [`plan-budowy-suity.md`](plan-budowy-suity.md) (§2a, §2b, pytanie 4a) · Po przyjęciu: wpis w [`decyzje.md`](decyzje.md).
 
 Miejsca oznaczone **[do decyzji]** wymagają odpowiedzi właściciela; **[niezweryfikowane]** — fakt, którego nie
@@ -53,16 +53,29 @@ OpenID Connect, więc silnik da się później wymienić bez przepisywania aplik
   `di-definition`, `di-release`, `di-release-control`, …) z własnymi rolami (`viewer`, `editor`, `admin`; produkt może
   mieć własne). Przypisanie roli w organizacji = „ta osoba ma DI Release jako edytor w organizacji Acme”.
 - **Token dla aplikacji** niesie: `sub`, nazwę wyświetlaną, identyfikator organizacji, role tej aplikacji. E-mail
-  tylko tam, gdzie aplikacja go potrzebuje (zaproszenia, powiadomienia).
+  tylko tam, gdzie aplikacja go potrzebuje (zaproszenia, powiadomienia) — **przyjęte 2026-11-23 (DI3)**: zakres
+  `email` przypisany tylko klientom tych aplikacji w Keycloak (na start DI Channels i Admin Console).
 - **Bez własnej bazy haseł:** logowanie zawsze przez dostawcę klienta (§2.3). Wyjątek: konto awaryjne administratora
   realmu, jak dostęp awaryjny w Flags (osobne hasło, każde użycie w dzienniku).
 
 ### 2.3 Federacja z dostawcą klienta
 
 Organizacja ma przypisanego dostawcę tożsamości (Keycloak: dostawca powiązany z organizacją i domeną e-mail).
-Na start: **ten dostawca, którym loguje się zespół pilotażu** — **[do decyzji]**. Kandydaci: Microsoft Entra ID
-i Google (OIDC), GitHub (OAuth), Atlassian (OAuth 2.0; czy wystarcza jako dostawca w Keycloak bez dodatków —
-[niezweryfikowane]).
+**Pierwszy dostawca: Google (OIDC) — przyjęte 2026-11-23 (DI2).** W Keycloak to dostawca wbudowany.
+
+- **Klient OAuth** w Google Cloud (typ „Web application”), adres przekierowania Keycloak
+  (`…/realms/suite/broker/google/endpoint`), zakresy `openid email profile`.
+- **Weryfikacja aplikacji nie jest potrzebna** dla samych zakresów podstawowych. W stanie „Testing” Google
+  ogranicza aplikację do 100 użytkowników testowych z listy, a ich zgody wygasają po 7 dniach; jedna strona
+  Google mówi, że przy samych `openid email profile` logować się może każdy (z ostrzeżeniem o trybie
+  testowym) — **[niezweryfikowane na naszym projekcie]**, sprawdzić przy kroku 14. Na pilotaż wystarcza każdy
+  wariant; przed pierwszym klientem — stan „In production” (dla zakresów podstawowych bez przeglądu Google).
+- **Organizacja po domenie:** konto Google Workspace ma w tokenie `hd` (domena); organizacja Keycloak ma
+  przypisaną domenę, więc osoba z `@acme.com` trafia do organizacji Acme. Konto bez Workspace (gmail.com) nie ma
+  `hd` i nie dostaje organizacji automatycznie — tylko przez zaproszenie z Admin Console (AC1).
+- **Kolejni dostawcy później**, każdy osobnym krokiem: Microsoft Entra ID (wymaga administratora tenanta klienta),
+  GitHub (OAuth, bez domeny w tokenie), Atlassian (OAuth 2.0; czy wystarcza jako dostawca w Keycloak bez
+  dodatków — [niezweryfikowane]).
 
 ### 2.4 Aplikacja do aplikacji
 
@@ -99,9 +112,20 @@ Każde przejście to osobny PR w repozytorium aplikacji; dotychczasowe logowanie
 ## 5. Do decyzji właściciela
 
 1. ~~Silnik~~ — przyjęte: Keycloak (DI1).
-2. Pierwszy dostawca tożsamości klienta (ten, którego używa zespół pilotażu).
-3. Hosting `di-identity` i stos szablonu usługi (`di-service-template`), razem z DA4.
-4. Czy e-mail osoby może trafiać do aplikacji (zaproszenia, powiadomienia), czy tylko nazwa i `sub`.
+2. ~~Pierwszy dostawca tożsamości~~ — przyjęte 2026-11-23: Google (DI2, §2.3).
+3. Stos — przyjęte 2026-11-23 (DA4): usługi suity w **TypeScript + Fastify + Postgres** z wzorcami ShipScope,
+   serwer MCP pdi w Pythonie; Keycloak, di-identity i później usługa pdi na **jednym tanim hostingu kontenerów**.
+   **Otwarte: konkretny dostawca hostingu** — wybór przed krokiem 14. Propozycje (ceny z porównań w sieci
+   z 2026, **nie sprawdzone na stronach dostawców**; Keycloak potrzebuje ok. 1–2 GB RAM, cały zestaw z Postgresem
+   ok. 4 GB):
+
+   | Dostawca | Model | Szacunkowy koszt / mies. | Za | Przeciw |
+   |---|---|---|---|---|
+   | **Hetzner Cloud** (rekomendacja) | maszyna wirtualna (np. CX22, 2 vCPU / 4 GB) + Docker Compose + reverse proxy z TLS | ok. 4–5 EUR za maszynę, 8–15 EUR z większą maszyną i kopiami | najtańszy; centra danych w UE (RODO); Docker już jest w stosie lokalnym (DL2, DZ9), więc ten sam Compose | aktualizacje systemu, kopie bazy i monitoring po naszej stronie; ceny rosły w 2026 |
+   | **Fly.io** | maszyny z obrazów, Postgres zarządzany albo własny | rzędu 20–80 USD przy Keycloak + Postgres | wdrożenie z obrazu, TLS i regiony w UE bez administrowania maszyną | koszt rośnie z RAM (Keycloak jest pamięciożerny); cennik zmieniał się w 2026 |
+   | **Railway** | kontenery i Postgres jednym kliknięciem, rozliczenie za zużycie | 5 USD planu + zużycie, rzędu 20–40 USD | najmniej konfiguracji, podgląd z gałęzi | koszt trudniejszy do przewidzenia; mniej kontroli nad regionem i kopiami |
+
+4. ~~E-mail osoby~~ — przyjęte 2026-11-23 (DI3, §2.2): tylko dla aplikacji, które go potrzebują.
 
 Kolejne kroki planu po przyjęciu: 13a `di-service-template`, 14 `di-identity` (usługa + AC1), potem przejście
 aplikacji wg §3, zaczynając od DI Release Control.
@@ -118,3 +142,12 @@ aplikacji wg §3, zaczynając od DI Release Control.
   [docs.goauthentik.io/enterprise](https://docs.goauthentik.io/enterprise/),
   [github.com/goauthentik/authentik](https://github.com/goauthentik/authentik).
 - Stan logowania w aplikacjach: przeglądy repozytoriów 2026-11-22 (artefakt „Delivery Intelligence Suite v3”).
+- Google (sprawdzone 2026-11-23): limit 100 użytkowników testowych i wygasanie zgód po 7 dniach —
+  [support.google.com/cloud/answer/15549945](https://support.google.com/cloud/answer/15549945); zakresy podstawowe
+  bez listy użytkowników testowych —
+  [developers.google.com/identity/protocols/oauth2/production-readiness/overview](https://developers.google.com/identity/protocols/oauth2/production-readiness/overview);
+  aplikacje niezweryfikowane — [support.google.com/cloud/answer/7454865](https://support.google.com/cloud/answer/7454865).
+- Hosting (porównania z 2026, nie strony cenników dostawców):
+  [getdeploying.com/flyio-vs-hetzner](https://getdeploying.com/flyio-vs-hetzner),
+  [getdeploying.com/hetzner-vs-railway](https://getdeploying.com/hetzner-vs-railway),
+  [betterstack.com — Hetzner Cloud Review 2026](https://betterstack.com/community/guides/web-servers/hetzner-cloud-review/).
