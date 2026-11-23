@@ -1,6 +1,6 @@
 # Tożsamość suity — jedna usługa logowania dla wszystkich aplikacji (ADR)
 
-Data: 2026-11-22 · Status: **silnik przyjęty 2026-11-22 (Keycloak, DI1); pierwszy dostawca, stos i e-mail przyjęte 2026-11-23 (DI2, DA4, DI3); otwarty dostawca hostingu (§5)** · Krok 13 z
+Data: 2026-11-22 · Status: **silnik przyjęty 2026-11-22 (Keycloak, DI1); pierwszy dostawca, stos i e-mail przyjęte 2026-11-23 (DI2, DA4, DI3); hosting Hetzner Cloud przyjęty 2026-11-23 (DA4a)** · Krok 13 z
 [`plan-budowy-suity.md`](plan-budowy-suity.md) (§2a, §2b, pytanie 4a) · Po przyjęciu: wpis w [`decyzje.md`](decyzje.md).
 
 Miejsca oznaczone **[do decyzji]** wymagają odpowiedzi właściciela; **[niezweryfikowane]** — fakt, którego nie
@@ -115,13 +115,14 @@ Każde przejście to osobny PR w repozytorium aplikacji; dotychczasowe logowanie
 2. ~~Pierwszy dostawca tożsamości~~ — przyjęte 2026-11-23: Google (DI2, §2.3).
 3. Stos — przyjęte 2026-11-23 (DA4): usługi suity w **TypeScript + Fastify + Postgres** z wzorcami ShipScope,
    serwer MCP pdi w Pythonie; Keycloak, di-identity i później usługa pdi na **jednym tanim hostingu kontenerów**.
-   **Otwarte: konkretny dostawca hostingu** — wybór przed krokiem 14. Propozycje (ceny z porównań w sieci
+   **Dostawca hostingu: Hetzner Cloud — przyjęte 2026-11-23 (DA4a)**: maszyna wirtualna w UE, Docker Compose,
+   Caddy z certyfikatem TLS; wzór w `dbqm45/di-service-template` (`compose.yaml`). Rozważane propozycje (ceny z porównań w sieci
    z 2026, **nie sprawdzone na stronach dostawców**; Keycloak potrzebuje ok. 1–2 GB RAM, cały zestaw z Postgresem
    ok. 4 GB):
 
    | Dostawca | Model | Szacunkowy koszt / mies. | Za | Przeciw |
    |---|---|---|---|---|
-   | **Hetzner Cloud** (rekomendacja) | maszyna wirtualna (np. CX22, 2 vCPU / 4 GB) + Docker Compose + reverse proxy z TLS | ok. 4–5 EUR za maszynę, 8–15 EUR z większą maszyną i kopiami | najtańszy; centra danych w UE (RODO); Docker już jest w stosie lokalnym (DL2, DZ9), więc ten sam Compose | aktualizacje systemu, kopie bazy i monitoring po naszej stronie; ceny rosły w 2026 |
+   | **Hetzner Cloud** (wybrany) | maszyna wirtualna (np. CX22, 2 vCPU / 4 GB) + Docker Compose + reverse proxy z TLS | ok. 4–5 EUR za maszynę, 8–15 EUR z większą maszyną i kopiami | najtańszy; centra danych w UE (RODO); Docker już jest w stosie lokalnym (DL2, DZ9), więc ten sam Compose | aktualizacje systemu, kopie bazy i monitoring po naszej stronie; ceny rosły w 2026 |
    | **Fly.io** | maszyny z obrazów, Postgres zarządzany albo własny | rzędu 20–80 USD przy Keycloak + Postgres | wdrożenie z obrazu, TLS i regiony w UE bez administrowania maszyną | koszt rośnie z RAM (Keycloak jest pamięciożerny); cennik zmieniał się w 2026 |
    | **Railway** | kontenery i Postgres jednym kliknięciem, rozliczenie za zużycie | 5 USD planu + zużycie, rzędu 20–40 USD | najmniej konfiguracji, podgląd z gałęzi | koszt trudniejszy do przewidzenia; mniej kontroli nad regionem i kopiami |
 
