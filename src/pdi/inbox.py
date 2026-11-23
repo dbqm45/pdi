@@ -39,12 +39,15 @@ Item: TypeAlias = dict[str, Any]
 
 # Kto może przysłać który typ zdarzenia.
 ACCEPTED = {
-    "shipscope": ("release.stage_changed", "feature.released"),
-    "tf": ("gate.requested", "metric.breached", "run.started", "run.progress", "run.finished"),
+    "shipscope": ("release.stage_changed", "feature.released", "decision.recorded"),
+    "tf": ("gate.requested", "metric.breached", "run.started", "run.progress", "run.finished", "decision.recorded"),
     "ci_for_sdlc": ("gate.requested", "readiness.changed", "decision.recorded"),
 }
-# Typy decyzji, które nadawca zapisuje w rejestrze zdarzeniem `decision.recorded` (decyzja D-A2).
-RECORDABLE = {"ci_for_sdlc": ("finding.auto_close",)}
+# `decision.recorded` bez pola `origin` (kontrakt sprzed 0.16.0) przyjmujemy tylko od nadawców, którzy wysyłali
+# je wcześniej; nowi nadawcy podają pochodzenie (D2, contract/decision-record.md §8).
+ORIGIN_OPTIONAL = ("ci_for_sdlc",)
+# Pola pochodzenia, których zmiana nie jest nową wersją decyzji (przeniesienie pliku, nowy commit, inny link).
+_ORIGIN_NOT_CONTENT = ("path", "commit", "url")
 GATE_OUTCOMES = flow.OUTCOMES
 IMPACT_OUTCOMES = impact.OUTCOMES
 PROBLEM_OUTCOMES = ("accepted", "rejected")
@@ -251,18 +254,26 @@ class Inbox:
         """Decyzja podjęta u nadawcy → rejestr: `recorded` albo `duplicate` (to samo zdarzenie) z numerem `DEC`."""
         p, sender = event["payload"], event["source"]
         decision_type, ref = p["decision_type"], p["ref"]
-        allowed = RECORDABLE.get(sender, ())
-        if decision_type not in allowed:
+        origin = p.get("origin")
+        if origin is None and sender not in ORIGIN_OPTIONAL:
+            raise InvalidEvent(f"origin: {sender} podaje pochodzenie decyzji (app, scope, local_id; kontrakt 0.16.0).")
+        if origin is not None and origin["app"] != sender:
             raise InvalidEvent(
-                f"decision_type: {sender} nie zapisuje decyzji typu {decision_type} (może: {', '.join(allowed)})."
+                f"origin.app: {origin['app']} ≠ source {sender} — aplikacja publikuje tylko swoje decyzje."
             )
         if "automation" in p and decision_type in contract.settings()["autonomy"]["protected_types"]:
             raise InvalidEvent(f"{decision_type} to typ chroniony (DA2): decyduje człowiek, bez automation.")
         seen = self.registry.find(tags=[f"event:{event['id']}"], limit=1)
         if seen:
             return {"status": "duplicate", "item": None, "decision": seen[0]["id"]}
+        content = _content_tag(p)
+        previous = self._latest_by_origin(origin) if origin is not None else None
+        if previous is not None and content in previous.get("tags", ()):
+            return {"status": "duplicate", "item": None, "decision": previous["id"]}
 
-        tags = [sender, f"ref:{ref}", f"event:{event['id']}", f"typ:{decision_type}"]
+        tags = [sender, f"ref:{ref}", f"event:{event['id']}", f"typ:{decision_type}", content]
+        if origin is not None:
+            tags.insert(1, f"origin:{sender}")
         warnings = []
         if "automation" in p:
             policy_level = autonomy.level_of(self.registry, decision_type)
@@ -280,9 +291,11 @@ class Inbox:
             "kind": p.get("kind", "other"),
             "decision_type": decision_type,
             "drafted_by": p["drafted_by"],
-            "source": {"kind": sender, "url": p.get("url") or ref, "excerpt": ref},
+            "source": {"kind": sender, "url": (origin or {}).get("url") or p.get("url") or ref, "excerpt": ref},
             "tags": tags,
         }
+        if origin is not None:
+            draft["origin"] = origin
         for key in ("draft_edited", "automation"):
             if key in p:
                 draft[key] = p[key]
@@ -292,7 +305,12 @@ class Inbox:
         if links:
             draft["links"] = links
         try:
-            if "supersedes" in p:
+            if previous is not None:
+                # Ta sama decyzja u właściciela ze zmienioną treścią: nowa wersja zastępuje poprzednią w indeksie.
+                if p.get("supersedes", previous["id"]) != previous["id"]:
+                    raise InvalidEvent(f"supersedes: poprzednia wersja tej decyzji to {previous['id']}.")
+                decision = self.registry.supersede(previous["id"], draft)
+            elif "supersedes" in p:
                 self._check_superseded(p["supersedes"], sender, ref)
                 decision = self.registry.supersede(p["supersedes"], draft)
             else:
@@ -304,6 +322,19 @@ class Inbox:
         status = "duplicate" if decision.get("duplicate") else "recorded"
         result: dict[str, Any] = {"status": status, "item": None, "decision": decision["id"]}
         return {**result, "warning": " ".join(warnings)} if warnings else result
+
+    def _latest_by_origin(self, origin: dict[str, Any]) -> Decision | None:
+        """Obowiązująca wersja decyzji o tym kluczu pochodzenia (app + scope + local_id) albo None."""
+        key = (origin["app"], origin["scope"], origin["local_id"])
+        found = [
+            d
+            for d in self.registry.decisions()
+            if d["status"] == "recorded"
+            and (d.get("origin") or {}).get("app") == key[0]
+            and (d.get("origin") or {}).get("scope") == key[1]
+            and (d.get("origin") or {}).get("local_id") == key[2]
+        ]
+        return found[-1] if found else None
 
     def _check_superseded(self, old_id: str, sender: str, ref: str) -> None:
         """Nadawca zastępuje tylko własną decyzję o tym samym `ref` (np. ponowne otwarcie pytania)."""
@@ -1015,6 +1046,14 @@ def _checked_answers(item: Item, answers: Any) -> list[dict[str, str]] | None:
             raise InvalidDecision(f"answers: pusta odpowiedź na „{question}”.")
         out.append({"question": question, "answer": answer})
     return out
+
+
+def _content_tag(payload: dict[str, Any]) -> str:
+    """Znacznik treści decyzji z `decision.recorded`: skrót pól bez tych, które nie zmieniają decyzji (§8)."""
+    origin = {k: v for k, v in (payload.get("origin") or {}).items() if k not in _ORIGIN_NOT_CONTENT}
+    content = {**{k: v for k, v in payload.items() if k not in ("origin", "supersedes")}, "origin": origin}
+    digest = hashlib.sha256(json.dumps(content, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+    return f"content:{digest[:12]}"
 
 
 def _gate_of(event: dict[str, Any]) -> str | None:

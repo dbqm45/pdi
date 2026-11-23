@@ -292,6 +292,12 @@ trzyma swoje decyzje u siebie**; jako członek suity **udostępnia je pozostały
 | D9 | ci_for_sdlc | ta sama pamięć podręczna w DI Definition: decyzje spoza aplikacji widoczne przy ustaleniu i pytaniu, oznaczone jako pochodzące z suity | spójność definicji uwzględnia decyzje z fabryki i z bramek | D5, D7 |
 | D6 | pdi | uzgodnienie zapisu D2/R1 w `decyzje.md` z tym modelem (publikacja zdarzeniem zamiast odczytu z repo) | dokumenty mówią to, co robi kod | — |
 
+Stan 2026-11-23: **D1 zrobione** (di-contract #5, kontrakt 0.16.0: pole `origin`, reguła idempotencji w
+`decision-record.md` §8; do tego 0.17.0, di-contract #6: `source.kind` `tf` i `shipscope`, bez czego decyzji z tych
+aplikacji nie dało się zapisać). **D2 zrobione** w pdi (kontrakt przypięty na 0.17.0): `decision.recorded` od
+ci_for_sdlc, tf i ShipScope, każdego typu; nowi nadawcy muszą podać `origin`; idempotencja po
+`app` + `scope` + `local_id`, zmiana treści = nowa wersja zastępująca poprzednią.
+
 Później: DI Release, DI Release Control i DI Quality publikują swoje decyzje tym samym zdarzeniem i dostają tę samą
 pamięć podręczną, gdy będą miały
 co publikować (np. zmiana flagi na PROD, przyjęcie wyniku testów). Szukanie po znaczeniu dopiero, gdy DI Decision

@@ -1,6 +1,6 @@
 # Decision Record — specyfikacja pliku decyzji
 
-**Wersja:** kontrakt 0.14.0 · **Decyzje:** DR1–DR4 ([`docs/decyzje.md`](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md)) · **Schemat:**
+**Wersja:** kontrakt 0.17.0 (format od 0.14.0, pochodzenie od 0.16.0) · **Decyzje:** DR1–DR4 ([`docs/decyzje.md`](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md)) · **Schemat:**
 [`decision.schema.json`](decision.schema.json) · **Walidator:** `pdi-validate` ·
 **Uzasadnienie i porównanie z MADR:** [`docs/propozycja-decision-record.md`](https://github.com/dbqm45/pdi/blob/main/docs/propozycja-decision-record.md)
 
@@ -64,7 +64,31 @@ i opisy w schemacie; od 0.14.0 także `consequences` (skutki `good` / `bad` / `n
 - `status: reverted` jest w schemacie, ale jego znaczenie nie jest jeszcze opisane w kontrakcie, a rejestr pdi go
   nie nadaje; do czasu opisu aplikacje nie powinny go zapisywać.
 
-## 8. Wersjonowanie
+## 8. Pochodzenie i publikowanie w suicie (od 0.16.0)
+
+Każda aplikacja suity trzyma swoje decyzje u siebie; DI Decision (pdi) jest indeksem suity, nie drugim źródłem
+prawdy ([plan budowy suity §3a](https://github.com/dbqm45/pdi/blob/main/docs/plan-budowy-suity.md)).
+
+- **Pole `origin`** mówi, która aplikacja jest właścicielem decyzji i gdzie leży oryginał: `app` (te same wartości
+  co `source` zdarzenia), `scope` (gdzie `local_id` jest jednoznaczny: repo `owner/name`, przestrzeń DI Definition,
+  projekt), `local_id` (identyfikator u właściciela: `D-012`, `CHG-12/D1`, `PAY-12/COV-001`), opcjonalnie `path`,
+  `commit`, `url`. Decyzja bez `origin` zapadła w DI Decision.
+- **Publikowanie:** w suicie właściciel wysyła decyzję zdarzeniem `decision.recorded` z polem `origin`. `origin.app`
+  musi być równe `source` zdarzenia — aplikacja publikuje tylko własne decyzje. Poza suitą nie wysyła nic.
+- **Idempotencja:** kluczem decyzji w indeksie jest `origin.app` + `origin.scope` + `origin.local_id`.
+  - To samo zdarzenie albo ta sama decyzja wysłana ponownie (np. zaległa po przerwie w łączności) z niezmienioną
+    treścią nie tworzy nowego wpisu; indeks odpowiada tym samym numerem `DEC`.
+  - Ta sama decyzja ze zmienioną treścią to nowa wersja od właściciela: indeks zapisuje ją jako nowy wpis, który
+    zastępuje poprzedni (§7).
+  - Treść to pola decyzji bez pól nadawanych przez indeks (`id`, `status`, `recorded_at`, `supersedes`,
+    `superseded_by`, znacznik §3) i bez `origin.path`, `origin.commit` i `origin.url` — przeniesienie pliku albo
+    nowy commit bez zmiany decyzji nie tworzą nowej wersji.
+- **Zmiana tylko u właściciela:** wpis w indeksie zachowuje `origin`; aplikacja nie zmienia cudzej decyzji ani jej
+  kopii, tylko publikuje nową wersję własnej.
+- **Nadawcy sprzed 0.16.0** wysyłają `decision.recorded` bez `origin`; indeks rozpoznaje wtedy powtórzenie tylko po
+  `id` zdarzenia. Nadawca powinien podawać `origin`; pole stanie się wymagane, gdy przejdą na nie wszyscy nadawcy.
+
+## 9. Wersjonowanie
 
 - Kontrakt jest wersjonowany według SemVer ([`README.md`](README.md)); w 0.x zmianę niezgodną wstecz oznacza druga
   liczba.
@@ -73,7 +97,7 @@ i opisy w schemacie; od 0.14.0 także `consequences` (skutki `good` / `bad` / `n
 - Plik z `contract_version` nowszym niż kontrakt czytającego: czytający nie może twierdzić, że plik jest poprawny
   (może zawierać pola, których nie zna); powinien zgłosić potrzebę aktualizacji.
 
-## 9. Sprawdzanie
+## 10. Sprawdzanie
 
 `pdi-validate <plik|katalog>...` (pakiet pdi) sprawdza:
 - w katalogu — wszystkie pliki `.md` rekurencyjnie; pliki bez pola `record` pomija; plik podany wprost musi być DR;
@@ -84,7 +108,7 @@ i opisy w schemacie; od 0.14.0 także `consequences` (skutki `good` / `bad` / `n
 
 Komunikaty podają plik i regułę, bez treści decyzji. Kod wyjścia 1 przy błędzie, 0 bez błędów (do CI).
 
-## 10. Eksport do MADR
+## 11. Eksport do MADR
 
 `pdi-records export-madr --out <katalog> [--project P] [--format 4|2]` zapisuje decyzje `kind: technical`
 (`recorded`, `superseded`) jako ADR w formacie MADR 4.0.0 (domyślnie) albo 2.1.2 (dla narzędzi, które czytają
@@ -92,13 +116,13 @@ tylko ten układ): plik `NNNN-<slug>.md` z numeru decyzji. To widok dla ludzi i 
 źródłem prawdy zostaje plik decyzji. Mapowanie pól: [propozycja §4.1](https://github.com/dbqm45/pdi/blob/main/docs/propozycja-decision-record.md#41-pole-po-polu),
 plan: [`docs/plan-eksport-madr.md`](https://github.com/dbqm45/pdi/blob/main/docs/plan-eksport-madr.md).
 
-## 11. Przykład
+## 12. Przykład
 
 ```markdown
 ---
 record: decision
 schema: https://github.com/dbqm45/pdi/contract/decision.schema.json
-contract_version: 0.15.1
+contract_version: 0.17.0
 id: DEC-0041
 statement: Bulk konfiguracja ładowarek zaczyna od zmiany taryfy.
 why: Najczęstsza operacja w zgłoszeniach; restart i firmware mają inne ryzyka.
