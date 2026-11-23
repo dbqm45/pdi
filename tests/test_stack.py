@@ -7,6 +7,7 @@ import stat
 import subprocess
 import sys
 import time
+import urllib.parse
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -53,6 +54,9 @@ class World:
         self.down_until: dict[str, int] = {}
         self.http_calls: list[tuple[str, dict[str, str]]] = []
         self.http_answers: dict[str, tuple[int, bytes]] = {}
+        self.posts: list[tuple[str, dict[str, str], bytes]] = []
+        self.post_answers: dict[str, list[dict[str, Any]]] = {}
+        self.spawn_hooks: dict[str, Any] = {}
         self.output: list[str] = []
         self.asked: list[str] = []
         self.typed: list[str] = []
@@ -84,6 +88,8 @@ class World:
 
     def spawn(self, name: str, argv: list[str], cwd: Path, env: Mapping[str, str], log: Path) -> int:
         self.spawned.append((name, argv, dict(env)))
+        if name in self.spawn_hooks:
+            self.spawn_hooks[name](log)
         self.next_pid += 1
         self.alive_pids.add(self.next_pid)
         return self.next_pid
@@ -108,6 +114,12 @@ class World:
             body = {"workspace": {"id": "t1", "name": "Lokalnie"}, "pdi": {"state": "connected", "receiverUrl": "x"}}
             return 200, json.dumps(body).encode()
         return 200, b"{}"
+
+    def post(self, url: str, headers: Mapping[str, str], body: bytes) -> tuple[int, bytes]:
+        self.posts.append((url, dict(headers), body))
+        method = url.rsplit("/", 1)[-1]
+        queue = self.post_answers.get(method, [{"ok": False, "error": "not_mocked"}])
+        return 200, json.dumps(queue.pop(0) if len(queue) > 1 else queue[0]).encode()
 
     def ask(self, prompt: str, default: str) -> str:
         self.asked.append(prompt)
@@ -135,6 +147,7 @@ class World:
             alive=self.alive,
             kill=self.kill,
             http=self.http,
+            post=self.post,
             port_free=lambda host, port: port not in self.busy_ports,
             which=lambda name: None if name in self.missing else f"/usr/local/bin/{name}",
             ask=self.ask,
@@ -1035,6 +1048,8 @@ def with_suite(world: World, *, google: bool = True) -> Path:
             return str(identity)
         if prompt == "Google client ID":
             return "123.apps.googleusercontent.com" if google else ""
+        if prompt.startswith("Klon di-channels"):
+            return ""
         return original(prompt, default)
 
     world.ask = ask  # type: ignore[method-assign]
@@ -1165,3 +1180,152 @@ def test_status_down_and_reset_cover_the_suite(world: World) -> None:
     assert cli.main(["reset"], ctx=world.ctx()) == 0
     docker = [r[0] for r in world.runs if r[0][0] == "docker"]
     assert ["docker", "volume", "rm", "sdlc-keycloak"] in docker
+
+
+# --- pytania ze Slacka (DI Definition, di-channels, tunel) ---
+
+SLACK_SIGNING = "slack-podpis-tajny"  # noqa: S105 — sekret testowy
+BOT_TOKEN = "xoxb-tajny-token-bota"  # noqa: S105 — token testowy
+REFRESH = "xoxe-1-odswiezanie"  # noqa: S105 — token testowy
+TUNNEL = "https://cztery-slowa-losowe.trycloudflare.com"
+MANIFEST = {
+    "display_information": {"name": "DI Suite"},
+    "features": {
+        "slash_commands": [{"command": "/di-question", "url": "https://stary.trycloudflare.com/slack/commands"}]
+    },
+    "settings": {
+        "interactivity": {"is_enabled": True, "request_url": "https://stary.trycloudflare.com/slack/interactions"}
+    },
+}
+
+
+def with_channels(world: World, *, config_token: bool = True) -> Path:
+    """Suita z di-identity, klon di-channels, klucze Slacka w init i tunel, który wypisuje adres jak cloudflared."""
+    channels = world.projects / "di-channels"
+    channels.mkdir()
+    (channels / "package.json").write_text("{}", encoding="utf-8")
+    identity = world.projects / "di-identity"
+    (identity / "node_modules").mkdir(parents=True)
+    (identity / "package.json").write_text("{}", encoding="utf-8")
+    for name in ("sdlc-keycloak", "sdlc-identity-pg"):
+        world.answer(("docker", "inspect", "-f", "{{.State.Running}}", name), 1, "", "No such object")
+
+    def secrets(argv: list[str], cwd: Path | None, env: Mapping[str, str], stdin: str | None) -> None:
+        path = Path(argv[argv.index("--env-file") + 1])
+        lines = f"SUITE_CLIENT_SECRET_DI_IDENTITY={CLIENT_SECRET}\nSUITE_CLIENT_SECRET_DI_CHANNELS=sekret-kanalow\n"
+        path.write_text(path.read_text(encoding="utf-8") + lines)
+
+    world.hooks[("npm", "run", "--silent", "identity", "--", "secrets")] = secrets
+    world.spawn_hooks["tunnel"] = lambda log: log.write_text(f"INF |  {TUNNEL}  |\n", encoding="utf-8")
+    hidden = iter([GOOGLE_SECRET, SLACK_SIGNING, BOT_TOKEN, REFRESH if config_token else ""])
+    original = world.ask
+
+    def ask(prompt: str, default: str) -> str:
+        answers = {
+            "Google client ID": "123.apps.googleusercontent.com",
+            "App ID aplikacji (Basic Information, A0…)": "A0APP",
+        }
+        if prompt.startswith("Klon di-identity"):
+            return str(identity)
+        if prompt.startswith("Klon di-channels"):
+            return str(channels)
+        return answers.get(prompt) or original(prompt, default)
+
+    world.ask = ask  # type: ignore[method-assign]
+    ctx = world.ctx()
+    ctx.ask_secret = lambda prompt: next(hidden)
+    assert cli.main(["init"], ctx=ctx) == 0
+    world.post_answers = {
+        "tooling.tokens.rotate": [{"ok": True, "token": "xoxe.xoxp-dostep", "refresh_token": "xoxe-1-nowy"}],
+        "apps.manifest.export": [{"ok": True, "manifest": json.loads(json.dumps(MANIFEST))}],
+        "apps.manifest.update": [{"ok": True}],
+    }
+    return channels
+
+
+def test_init_keeps_slack_keys_hidden(world: World) -> None:
+    channels = with_channels(world)
+
+    assert home.load_config(world.home / ".sdlc/config.toml").channels == channels  # type: ignore[union-attr]
+    env = env_file(world)
+    assert (env["SUITE_SLACK_SIGNING_SECRET"], env["SUITE_SLACK_BOT_TOKEN"]) == (SLACK_SIGNING, BOT_TOKEN)
+    assert (env["SUITE_SLACK_CONFIG_REFRESH_TOKEN"], env["SUITE_SLACK_APP_ID"]) == (REFRESH, "A0APP")
+    for secret in (SLACK_SIGNING, BOT_TOKEN, REFRESH):
+        assert secret not in world.text()
+
+
+def test_up_starts_definition_channels_and_tunnel_and_points_slack(world: World) -> None:
+    with_channels(world)
+
+    assert up(world) == 0
+
+    env = env_file(world)
+    spawned = {name: (argv, envs) for name, argv, envs in world.spawned}
+    definition_argv, definition_env = spawned["di-definition"]
+    assert definition_argv == ["npm", "start"] and definition_env["PORT"] == "4317"
+    shared = env["SUITE_CHANNELS_SIGNING_SECRET"]
+    assert definition_env["CI_CHANNELS_SIGNING_SECRET"] == shared
+    _, channels_env = spawned["di-channels"]
+    assert channels_env["CI_CHANNELS_SIGNING_SECRET"] == shared, "jeden wspólny sekret, bez przepisywania"
+    assert channels_env["SLACK_BOT_TOKEN"] == BOT_TOKEN
+    assert channels_env["SUITE_CLIENT_SECRET"] == "sekret-kanalow"  # noqa: S105 — sekret testowy
+    assert channels_env["DI_IDENTITY_URL"] == "http://127.0.0.1:3200"
+    assert not any(key.startswith("PDI_") for key in channels_env)
+    tunnel_argv, _ = spawned["tunnel"]
+    assert tunnel_argv[-4:] == ["--protocol", "http2", "--url", "http://localhost:3100"]
+
+    update = next(body for url, _, body in world.posts if url.endswith("apps.manifest.update"))
+    manifest = json.loads(dict(urllib.parse.parse_qsl(update.decode()))["manifest"])
+    assert manifest["features"]["slash_commands"][0]["url"] == f"{TUNNEL}/slack/commands"
+    assert manifest["settings"]["interactivity"]["request_url"] == f"{TUNNEL}/slack/interactions"
+    assert env["SUITE_SLACK_CONFIG_REFRESH_TOKEN"] == "xoxe-1-nowy", "odnowiony refresh token zapisany od razu"  # noqa: S105
+    assert f"tunel: {TUNNEL}" in world.text() and "Slack: adresy ustawione" in world.text()
+    assert "di-channels: działa — http://127.0.0.1:3100; autor pytań: z suity" in world.text()
+    for secret in (SLACK_SIGNING, BOT_TOKEN, REFRESH, "xoxe-1-nowy", shared, "sekret-kanalow"):
+        assert secret not in world.argv_text() and secret not in world.text()
+
+
+def test_up_without_a_config_token_tells_which_addresses_to_enter(world: World) -> None:
+    with_channels(world, config_token=False)
+
+    assert up(world) == 0
+    assert not world.posts
+    assert f"wpisz ręcznie (api.slack.com/apps): komenda {TUNNEL}/slack/commands" in world.text()
+
+
+def test_up_keeps_going_when_slack_refuses_the_token(world: World) -> None:
+    with_channels(world)
+    world.post_answers["tooling.tokens.rotate"] = [{"ok": False, "error": "invalid_refresh_token"}]
+
+    assert up(world) == 0
+    assert "token konfiguracyjny odrzucony (invalid_refresh_token)" in world.text()
+    assert env_file(world)["SUITE_SLACK_CONFIG_REFRESH_TOKEN"] == REFRESH
+
+
+def test_up_without_cloudflared_skips_the_tunnel(world: World) -> None:
+    with_channels(world)
+    world.missing.add("cloudflared")
+
+    assert up(world) == 0
+    assert "tunel: pominięty — brak cloudflared" in world.text()
+    assert "tunnel" not in {name for name, _, _ in world.spawned}
+
+
+def test_up_refuses_a_definition_started_by_hand(world: World) -> None:
+    with_channels(world)
+    world.busy_ports.add(4317)
+
+    assert up(world) == 1
+    assert "DI Definition: port 4317 zajmuje inny proces" in world.text()
+
+
+def test_status_and_down_cover_slack_questions(world: World) -> None:
+    with_channels(world)
+    assert up(world) == 0
+
+    assert cli.main(["status"], ctx=world.ctx()) == 0
+    assert "tunnel: działa, pid" in world.text() and "adresy w Slacku ustawiane same: tak" in world.text()
+
+    assert cli.main(["down"], ctx=world.ctx()) == 0
+    for name in ("tunnel", "di-channels", "di-definition"):
+        assert f"{name}: zatrzymany" in world.text()

@@ -274,5 +274,4 @@ def init(ctx: Ctx, config: home.Config) -> home.Config:
     if client_secret:
         values["SUITE_GOOGLE_CLIENT_SECRET"] = client_secret
     home.write_env(ctx.root / "env", values)
-    ctx.out("Zapisane w ~/.sdlc/config.toml i ~/.sdlc/env. Dalej: uv run sdlc up")
     return config
