@@ -459,6 +459,7 @@ decyzje: pierwszy dostawca tożsamości, hosting i stos usługi (DA4), e-mail os
 
 Stan 2026-11-23: zrobiony też N3 z §3b (przypomnienia, „po terminie”, stan „wstrzymana”, `sdlc deadlines`).
 Dopisana §3c (AI Native IT): zakres suity zostaje przy delivery (DS1), braki AN1–AN7, opcja całego IT na później.
+Decyzje 2026-11-23: pierwszy dostawca tożsamości Google (DI2), stos i hosting usług wg rekomendacji (DA4), e-mail osoby tylko dla aplikacji, które go potrzebują (DI3). Kroki 13a i 14 odblokowane; przed wdrożeniem w kroku 14 — wybór dostawcy hostingu (ADR 17 §5).
 
 Równolegle z tą tabelą idą kroki D1–D9 z §3a (decyzje widoczne w całej suicie). Kroki N1–N5 z §3b (routing i terminy) idą za krokami 8 i 17.
 Kroki AN1–AN7 z §3c idą w terminach podanych w tabeli tam (AN1 przed krokiem 14). Etapy AC2–AC4 Admin Console (§2b) idą za krokami 14b, 8 i 16. Poza tabelą, do wstawienia po decyzjach: `consulted` w decyzji i „Ask team” (T4), zdarzenie `test-result`
@@ -489,8 +490,8 @@ Odpowiedzi na 1–4 są potrzebne przed etapem 2; pozostałe przed krokiem, któ
 | 2 | D-P9: Slack czy Teams na start | **rozstrzygnięte 2026-11-22: Slack**; tożsamość na start bez di-identity (autor z nazwy w Slacku) | — |
 | 3 | D-P10: kanały jako osobna usługa wspólna czy część DI Assistant; nazwa | **osobna usługa wspólna we własnym repo `di-channels`**, nazwa DI Channels | krok 16 |
 | 4 | Z7: wspólna tożsamość | **rozstrzygnięte 2026-11-22: usługa tożsamości suity** (§2a): aplikacje ufają jednemu wystawcy tokenów, który federuje do dostawcy klienta | — |
-| 4a | Silnik i stos usługi tożsamości; pierwszy federowany dostawca | **gotowy silnik OIDC (klasa Keycloak; Flags używa go już lokalnie) + cienka warstwa organizacji i uprawnień; bez własnej bazy haseł; pierwszy dostawca ten, którym loguje się zespół pilotażu** | kroki 13, 13a, 14 |
-| 5 | G6/P1: DI Team jako osobny produkt czy powłoka suity; oraz DA4: stos usługi pdi | **zacząć jako ekran konsoli DI Decision; decyzja po pierwszym zespole**; DA4 rozstrzygnąć przed etapem 4 | etap 4 |
+| 4a | Silnik i stos usługi tożsamości; pierwszy federowany dostawca | **rozstrzygnięte: silnik Keycloak (DI1, 2026-11-22); pierwszy dostawca Google (DI2, 2026-11-23); stos TypeScript + Fastify + Postgres (DA4); e-mail tylko dla aplikacji, które go potrzebują (DI3)**; otwarty tylko dostawca hostingu — propozycje w [ADR 17 §5](17-tozsamosc-suity.md#5-do-decyzji-właściciela) | wybór hostingu blokuje krok 14 (wdrożenie), nie 13a |
+| 5 | G6/P1: DI Team jako osobny produkt czy powłoka suity; oraz DA4: stos usługi pdi | **zacząć jako ekran konsoli DI Decision; decyzja po pierwszym zespole**; DA4 **rozstrzygnięte 2026-11-23**: TypeScript + Fastify + Postgres z wzorcami ShipScope, serwer MCP w Pythonie, usługi suity na jednym hostingu kontenerów | etap 4 (tylko G6/P1) |
 | 6 | D-P11: gdzie mieszka warstwa spotkania refinementu | **sprintdeck jako pokój refinementu, ale dopiero po R1–R4 w DI Definition**; sprintdeck nie ma dziś API, kont ani wdrożenia, więc to nie jest tani krok | warstwa spotkania |
 | 7 | Czy DI Quality wchodzi do planu programu jako produkt suity | **tak, jako produkt, z jednym połączeniem na start**: wynik testów jako dowód dla bramki B4/B5 przez kontrakt; usługa centralna później | `test-result` w kontrakcie |
 | 8 | DI Release Control: zostaje produktem suity mimo braku wdrożenia i konsumenta, czy staje się modułem DI Release | **zostaje osobno, ale przed FL1 potrzebuje wdrożenia i jednego serwisu-konsumenta**; inaczej flaga `ai-feature` nie ma czego przełączać | FL1, konektor flag |
