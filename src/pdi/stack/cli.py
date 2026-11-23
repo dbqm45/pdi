@@ -4,7 +4,8 @@
 (`~/.sdlc/env`, 600), startuje ShipScope (`npm run dev`: Postgres w Dockerze, web i worker) i pdi-receiver jako
 odłączone procesy, łączy ShipScope z pdi bez przeglądarki (`server/scripts/local-pdi.js` w ShipScope), wysyła gotowość
 zmian z ci_for_sdlc, buduje obraz kontenera faz tf (Z8a, `sdlc image`) i rejestruje serwery MCP w Claude Code.
-Po `sdlc init` także tożsamość suity: Keycloak, konfiguracja realmu i di-identity (`suite.py`).
+Po `sdlc init` także tożsamość suity: Keycloak, konfiguracja realmu i di-identity (`suite.py`), oraz pytania ze
+Slacka: DI Definition, di-channels i tunel z adresami w aplikacji Slack (`channels.py`).
 Sekrety idą do procesów tylko przez środowisko; w argv, logach i wyjściu `sdlc` ich nie ma. Tylko biblioteka
 standardowa. Plan: docs/plan-l4-sdlc.md.
 """
@@ -33,11 +34,12 @@ from pathlib import Path
 from typing import Any
 
 from pdi import phase_sandbox
-from pdi.stack import home, suite
+from pdi.stack import channels, home, suite
 
 Run = Callable[[list[str], Path | None, Mapping[str, str], str | None], tuple[int, str, str]]
 Spawn = Callable[[str, list[str], Path, Mapping[str, str], Path], int]
 Http = Callable[[str, Mapping[str, str]], tuple[int, bytes]]
+Post = Callable[[str, Mapping[str, str], bytes], tuple[int, bytes]]
 
 RECEIVER_URL = "http://127.0.0.1:8787"
 CONSOLE_HOST = "127.0.0.1"
@@ -76,6 +78,7 @@ class Ctx:
     alive: Callable[[int], bool]
     kill: Callable[[int], None]
     http: Http
+    post: Post
     port_free: Callable[[str, int], bool]
     which: Callable[[str], str | None]
     ask: Callable[[str, str], str]
@@ -438,6 +441,7 @@ def cmd_up(ctx: Ctx) -> int:
         start_console(ctx, config, secrets)
     try:
         secrets = suite.up(ctx, config, secrets)
+        secrets = channels.up(ctx, config, secrets)
     except suite.SuiteError as e:
         raise Stop(str(e)) from e
     console = console_url(secrets)
@@ -448,6 +452,9 @@ def cmd_up(ctx: Ctx) -> int:
     if suite.enabled(config):
         ctx.out(f"  Keycloak        {suite.KEYCLOAK_URL}/admin (realm suite)")
         ctx.out(f"  di-identity     {suite.IDENTITY_URL}")
+    if channels.enabled(config, secrets):
+        ctx.out(f"  DI Definition   {channels.DEFINITION_URL}/")
+        ctx.out(f"  di-channels     {channels.CHANNELS_URL} (tunel: {channels.tunnel_url(ctx) or 'brak'})")
     ctx.out("  MCP w Claude    pdi, shipscope")
     ctx.out("  stan            uv run sdlc status")
     ctx.out("gotowe")
@@ -456,9 +463,10 @@ def cmd_up(ctx: Ctx) -> int:
 
 def cmd_init(ctx: Ctx) -> int:
     try:
-        suite.init(ctx, config_of(ctx))
+        channels.init(ctx, suite.init(ctx, config_of(ctx)))
     except suite.SuiteError as e:
         raise Stop(str(e)) from e
+    ctx.out("Zapisane w ~/.sdlc/config.toml i ~/.sdlc/env. Dalej: uv run sdlc up")
     return 0
 
 
@@ -486,6 +494,7 @@ def cmd_status(ctx: Ctx) -> int:
     for key in home.SECRET_KEYS:
         ctx.out(f"{key}: {'ustawiony' if secrets.get(key) else 'brak'}")
     suite.status(ctx, config)
+    channels.status(ctx, config)
     log = ctx.root / "logs" / "pdi-receiver.log"
     if log.is_file():
         lines = [line for line in log.read_text(encoding="utf-8", errors="replace").splitlines() if line.strip()]
@@ -675,6 +684,7 @@ def cmd_down(ctx: Ctx) -> int:
         )
     for name in ("pdi-console", "pdi-receiver", "shipscope"):
         ctx.out(f"{name}: {'zatrzymany' if stop(ctx, name) else 'nie działał'}")
+    channels.down(ctx)
     suite.down(ctx)
     ctx.run(["docker", "stop", PG_CONTAINER], None, ctx.environ, None)
     ctx.out(f"Postgres zatrzymany; dane zostają w wolumenie {PG_CONTAINER}.")
@@ -815,7 +825,9 @@ def cmd_daily(ctx: Ctx, name: str) -> int:
 def main(argv: list[str] | None = None, *, ctx: Ctx | None = None) -> int:
     parser = argparse.ArgumentParser(prog="sdlc", description="Cały workflow lokalnie: ShipScope, pdi i ci_for_sdlc.")
     sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("init", help="raz: ścieżki klonów, klon di-identity i klient Google dla tożsamości suity")
+    sub.add_parser(
+        "init", help="raz: klony i klucze suity (di-identity z klientem Google, di-channels z kluczami Slacka)"
+    )
     sub.add_parser("up", help="startuje stos i łączy usługi (idempotentne)")
     sub.add_parser("status", help="procesy, połączenia, skrzynka pdi")
     sub.add_parser("check", help="ci_for_sdlc: gotowość zmian z repo produktu do pdi")
@@ -878,6 +890,7 @@ def real_ctx() -> Ctx:
         alive=_alive,
         kill=_kill,
         http=_http,
+        post=_post,
         port_free=_port_free,
         which=shutil.which,
         ask=_ask,
@@ -1016,6 +1029,17 @@ def _http(url: str, headers: Mapping[str, str]) -> tuple[int, bytes]:
     request = urllib.request.Request(url, headers=dict(headers))  # noqa: S310 — adresy localhost z konfiguracji
     try:
         with urllib.request.urlopen(request, timeout=5) as response:  # noqa: S310
+            return int(response.status), response.read()
+    except urllib.error.HTTPError as e:
+        return int(e.code), e.read()
+    except urllib.error.URLError as e:
+        raise OSError(str(e.reason)) from e
+
+
+def _post(url: str, headers: Mapping[str, str], body: bytes) -> tuple[int, bytes]:
+    request = urllib.request.Request(url, data=body, headers=dict(headers), method="POST")  # noqa: S310 — Slack API
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:  # noqa: S310
             return int(response.status), response.read()
     except urllib.error.HTTPError as e:
         return int(e.code), e.read()

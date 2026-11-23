@@ -315,6 +315,20 @@ Keycloak uruchomiony wcześniej ręcznie na 8180 trzeba zatrzymać (`sdlc up` po
 nowym kontenerze jest pusty, więc organizacje i role nadaje się na nowo (`npm run identity -- org …`, `role grant …`).
 Porty suity: Flags 3000, di-channels 3100, di-identity 3200, DI Definition 4317, Keycloak 8180.
 
+### Pytania ze Slacka w `sdlc` (DI Channels)
+
+`sdlc init` pyta też o klon `dbqm45/di-channels` i klucze aplikacji Slack (wpisywane niewidoczne): Signing Secret,
+Bot User OAuth Token i, opcjonalnie, refresh token konfiguracji z App ID (api.slack.com/apps → **Your App Configuration
+Tokens → Generate Token**). `sdlc up` wtedy:
+- startuje DI Definition (klon ci_for_sdlc, port 4317) i di-channels (3100) z jednym wygenerowanym sekretem podpisu
+  (`SUITE_CHANNELS_SIGNING_SECRET`); di-channels dostaje tożsamość suity, więc autorem pytania jest osoba z suity;
+- startuje tunel `cloudflared` (HTTP/2) do di-channels i odczytuje jego adres;
+- z refresh tokenem sam wpisuje adres tunelu w Request URL komendy i interaktywności aplikacji (`apps.manifest.update`;
+  token konfiguracyjny żyje 12 godzin, więc przy każdym `up` jest odnawiany, a nowy refresh token zapisany). Bez niego
+  `sdlc up` wypisuje oba adresy do wpisania ręcznie.
+
+DI Definition, di-channels i tunel uruchomione wcześniej ręcznie trzeba zatrzymać (porty 4317 i 3100).
+
 Pierwsze `sdlc up`:
 - pyta raz o ścieżki klonów, rejestru decyzji i (opcjonalnie) repo produktu dla faz tf;
 - prosi o jedno kliknięcie, które zakłada aplikację GitHub ShipScope;
