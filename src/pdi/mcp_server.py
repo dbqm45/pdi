@@ -43,6 +43,7 @@ i zamknij decide_inbox_item (approved albo rejected) dopiero po jego odpowiedzi.
 
 Kind = Literal["product", "technical", "process", "triage", "intent", "gate", "other"]
 Status = Literal["recorded", "superseded", "reverted"]
+App = Literal["pdi", "tf", "ci_for_sdlc", "shipscope"]
 InboxStatus = Literal["open", "decided", "superseded", "all"]
 ChangeStatus = Literal["open", "rejected", "done", "all"]
 GateOutcome = Literal["approved", "changes_requested", "rejected"]
@@ -256,18 +257,22 @@ def build_server(
         status: Status | None = None,
         kind: Kind | None = None,
         project: str | None = None,
+        app: App | None = None,
         limit: int = 10,
     ) -> dict[str, list[Decision]]:
-        """Szuka wcześniejszych decyzji: „co już zdecydowaliśmy w tej sprawie i dlaczego?”.
+        """Szuka wcześniejszych decyzji całej suity: „co już zdecydowaliśmy w tej sprawie i dlaczego?”.
 
-        query: słowa kluczowe (pasują też fragmenty słów, np. „dostaw” znajdzie „dostawy”); puste = najnowsze.
-        Filtry: tags (wszystkie muszą pasować), since (RRRR-MM-DD, data decyzji), status, kind, project
-        (np. nazwa bieżącego repo; bez filtra — wszystkie projekty); limit wyników.
-        Zwraca skróty z założeniami nośnymi; pełny wpis: get_decision.
+        query: słowa kluczowe (pasują też fragmenty słów, np. „dostaw” znajdzie „dostawy”); przeszukuje ustalenie,
+        uzasadnienie, opcje, założenia, dowody, skutki, sposób potwierdzenia, odpowiedzi i numer decyzji
+        u właściciela (np. D-012); puste = najnowsze. Filtry: tags (wszystkie muszą pasować), since (RRRR-MM-DD, data
+        decyzji), status, kind, project (np. nazwa bieżącego repo; bez filtra — wszystkie projekty), app (aplikacja,
+        z której decyzja pochodzi: pdi, tf, ci_for_sdlc, shipscope); limit wyników. Zwraca skróty z założeniami
+        nośnymi, aplikacją (app), linkiem do oryginału (link) i pochodzeniem (origin); decyzję z innej aplikacji
+        zmienia się u jej właściciela, nie w pdi. Pełny wpis: get_decision.
         """
         return {
             "decisions": open_registry().find(
-                query, tags=tags, since=since, status=status, kind=kind, project=project, limit=limit
+                query, tags=tags, since=since, status=status, kind=kind, project=project, app=app, limit=limit
             )
         }
 

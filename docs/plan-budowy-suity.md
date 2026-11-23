@@ -297,6 +297,9 @@ Stan 2026-11-23: **D1 zrobione** (di-contract #5, kontrakt 0.16.0: pole `origin`
 aplikacji nie dało się zapisać). **D2 zrobione** w pdi (kontrakt przypięty na 0.17.0): `decision.recorded` od
 ci_for_sdlc, tf i ShipScope, każdego typu; nowi nadawcy muszą podać `origin`; idempotencja po
 `app` + `scope` + `local_id`, zmiana treści = nowa wersja zastępująca poprzednią.
+**D4 zrobione** w pdi ([plan](plan-d4-wyszukiwanie-suity.md)): `find_decisions` szuka też w dowodach, skutkach,
+sposobie potwierdzenia, odpowiedziach i numerze u właściciela, filtruje po aplikacji źródłowej (`app`) i zwraca
+`app`, `link` do oryginału i `origin`.
 
 Później: DI Release, DI Release Control i DI Quality publikują swoje decyzje tym samym zdarzeniem i dostają tę samą
 pamięć podręczną, gdy będą miały
