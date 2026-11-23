@@ -1108,6 +1108,7 @@ def test_up_starts_keycloak_configures_the_realm_and_starts_di_identity(world: W
     assert argv == ["npm", "start"]
     assert service_env["PORT"] == "3200" and service_env["OIDC_ISSUER"] == "http://localhost:8180/realms/suite"
     assert service_env["SUITE_CLIENT_SECRET_DI_IDENTITY"] == CLIENT_SECRET
+    assert service_env["DI_IDENTITY_CLIENT_SECRET"] == CLIENT_SECRET, "stary .env w klonie nie przesłoni sekretu"
     assert (
         service_env["DATABASE_URL"]
         == f"postgres://identity:{env['SUITE_IDENTITY_DB_PASSWORD']}@127.0.0.1:5434/identity"
