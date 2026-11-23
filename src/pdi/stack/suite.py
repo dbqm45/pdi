@@ -175,7 +175,12 @@ def configure(ctx: Ctx, identity: Path, values: Mapping[str, str]) -> None:
 
 
 def identity_env(ctx: Ctx, values: Mapping[str, str]) -> dict[str, str]:
-    """Środowisko usługi di-identity: tylko to, czego potrzebuje (bez sekretów pdi i ShipScope)."""
+    """Środowisko usługi di-identity: tylko to, czego potrzebuje (bez sekretów pdi i ShipScope).
+
+    `npm start` czyta też `.env` z klonu, ale zmienne procesu mają pierwszeństwo. Dlatego sekret klienta idzie także
+    jako DI_IDENTITY_CLIENT_SECRET: stary `.env` z ręcznej konfiguracji (sekret z innego Keycloak) go nie przesłoni.
+    """
+    secret = values.get("SUITE_CLIENT_SECRET_DI_IDENTITY", "")
     return {
         **ctx.environ,
         "HOST": "127.0.0.1",
@@ -187,7 +192,8 @@ def identity_env(ctx: Ctx, values: Mapping[str, str]) -> dict[str, str]:
         "OIDC_SERVICE_CLIENTS": "di-channels",
         "KEYCLOAK_URL": KEYCLOAK_URL,
         "DI_EVENTS_SECRET": values["SUITE_EVENTS_SECRET"],
-        "SUITE_CLIENT_SECRET_DI_IDENTITY": values.get("SUITE_CLIENT_SECRET_DI_IDENTITY", ""),
+        "SUITE_CLIENT_SECRET_DI_IDENTITY": secret,
+        "DI_IDENTITY_CLIENT_SECRET": secret,
     }
 
 
