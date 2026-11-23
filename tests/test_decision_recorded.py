@@ -6,7 +6,6 @@ import pytest
 import yaml
 
 from pdi import autonomy
-from pdi import inbox as inbox_module
 from pdi.inbox import Inbox, InvalidEvent
 from pdi.registry import Registry
 
@@ -81,15 +80,14 @@ def test_ref_without_url_is_the_source(inbox: Inbox, registry: Registry) -> None
     assert d["source"]["url"] == "PAY-12/COV-001"
 
 
-def test_sender_records_only_its_decision_types(inbox: Inbox, registry: Registry) -> None:
-    with pytest.raises(InvalidEvent, match="flag.stage_advance"):
-        inbox.receive(recorded_event(decision_type="flag.stage_advance"))
+def test_any_decision_type_is_recorded(inbox: Inbox, registry: Registry) -> None:
+    """D2: każda decyzja aplikacji suity trafia do indeksu (wcześniej ci_for_sdlc tylko finding.auto_close)."""
+    result = inbox.receive(recorded_event(decision_type="question.resolved"))
 
-    assert registry.decisions() == []
+    assert registry.get(result["decision"])["decision_type"] == "question.resolved"
 
 
 def test_protected_type_is_never_recorded_as_automation(inbox: Inbox, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setitem(inbox_module.RECORDABLE, "ci_for_sdlc", ("triage",))  # nawet gdyby lista nadawcy go miała
     auto = {"level": 1, "rule": "x"}
 
     with pytest.raises(InvalidEvent, match="chroniony"):
@@ -162,8 +160,90 @@ def test_acceptance_counter_counts_recorded_decisions(inbox: Inbox, registry: Re
     assert row["recommendation"]["action"] == "lower"
 
 
-def test_other_senders_cannot_record_decisions(inbox: Inbox) -> None:
-    event = {**recorded_event(), "source": "shipscope"}
+def test_pdi_does_not_record_its_own_decisions_by_event(inbox: Inbox) -> None:
+    with pytest.raises(InvalidEvent, match="pdi"):
+        inbox.receive({**recorded_event(), "source": "pdi"})
 
-    with pytest.raises(InvalidEvent, match="shipscope"):
-        inbox.receive(event)
+
+# --- D2: decyzje z każdej aplikacji suity, idempotencja po pochodzeniu (kontrakt 0.16.0–0.17.0) ---
+
+TF_ORIGIN = {"app": "tf", "scope": "dbqm45/sklep", "local_id": "D-012", "path": "docs/project/decisions.md"}
+
+
+def tf_event(event_id: str = "evt-tf-1", **payload: Any) -> dict[str, Any]:
+    fields: dict[str, Any] = {
+        "decision_type": "architecture.choice",
+        "ref": "D-012",
+        "statement": "Kolejka zdarzeń na Postgresie.",
+        "why": "Jedna baza mniej do utrzymania.",
+        "kind": "technical",
+        "decided_by": "Anna",
+        "drafted_by": "human",
+        "origin": {**TF_ORIGIN, "commit": "abc1234"},
+        "url": None,
+        "evidence": None,
+        "change": None,
+        "draft_edited": None,
+    }
+    fields.update(payload)
+    return {**recorded_event(event_id, **fields), "source": "tf"}
+
+
+def test_decision_from_tf_is_indexed_with_its_origin(inbox: Inbox, registry: Registry) -> None:
+    result = inbox.receive(tf_event())
+
+    d = registry.get(result["decision"])
+    assert result["status"] == "recorded"
+    assert d["origin"] == {**TF_ORIGIN, "commit": "abc1234"}
+    assert d["source"]["kind"] == "tf"
+    assert {"tf", "origin:tf", "ref:D-012"} <= set(d["tags"])
+
+
+def test_shipscope_can_publish_too(inbox: Inbox, registry: Registry) -> None:
+    origin = {"app": "shipscope", "scope": "acme", "local_id": "flag-payment-retry-100"}
+    event = {**tf_event(origin=origin, decision_type="flag.stage_advance", ref="payment-retry"), "source": "shipscope"}
+
+    assert registry.get(inbox.receive(event)["decision"])["source"]["kind"] == "shipscope"
+
+
+def test_new_senders_must_give_the_origin(inbox: Inbox, registry: Registry) -> None:
+    with pytest.raises(InvalidEvent, match="origin"):
+        inbox.receive(tf_event(origin=None))
+    assert registry.decisions() == []
+
+
+def test_origin_app_must_be_the_sender(inbox: Inbox) -> None:
+    with pytest.raises(InvalidEvent, match="origin.app"):
+        inbox.receive(tf_event(origin={**TF_ORIGIN, "app": "ci_for_sdlc"}))
+
+
+def test_resend_with_the_same_content_returns_the_same_decision(inbox: Inbox, registry: Registry) -> None:
+    first = inbox.receive(tf_event())["decision"]
+    moved = {**TF_ORIGIN, "path": "docs/decisions.md", "commit": "def5678", "url": "https://github.com/x/y"}
+
+    again = inbox.receive(tf_event("evt-tf-2"))
+    after_move = inbox.receive(tf_event("evt-tf-3", origin=moved))
+
+    assert (again["status"], again["decision"]) == ("duplicate", first)
+    assert (after_move["status"], after_move["decision"]) == ("duplicate", first)
+    assert len(registry.decisions()) == 1
+
+
+def test_changed_content_supersedes_the_previous_version(inbox: Inbox, registry: Registry) -> None:
+    first = inbox.receive(tf_event())["decision"]
+
+    result = inbox.receive(tf_event("evt-tf-2", statement="Kolejka zdarzeń na Redisie."))
+
+    new = registry.get(result["decision"])
+    assert result["status"] == "recorded"
+    assert new["supersedes"] == first and new["origin"]["local_id"] == "D-012"
+    assert registry.get(first)["status"] == "superseded"
+    third = inbox.receive(tf_event("evt-tf-3", statement="Kolejka zdarzeń na Redisie."))
+    assert (third["status"], third["decision"]) == ("duplicate", new["id"])
+
+
+def test_same_local_id_in_another_scope_is_another_decision(inbox: Inbox, registry: Registry) -> None:
+    inbox.receive(tf_event())
+    inbox.receive(tf_event("evt-tf-2", origin={**TF_ORIGIN, "scope": "dbqm45/inny"}))
+
+    assert len(registry.decisions()) == 2

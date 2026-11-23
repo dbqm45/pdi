@@ -13,7 +13,7 @@ i triaż zgłoszeń, ocena skutku, graf śladu i prognoza zmiany** (niżej). Faz
 G1–G8: tamże, §8.
 
 Praca z kodem: `uv sync`, potem `uv run pytest`, `uv run ruff check src tests`, `uv run ruff format --check src tests`,
-`uv run mypy src` (te same kroki w CI: `.github/workflows/ci.yml`). Walidacja na sobie: [`eval/dogfood/`](eval/dogfood/README.md). Kod: `src/pdi/`, kontrakt 0.14.0 — od 2026-11-22 przypięta kopia z [dbqm45/di-contract](https://github.com/dbqm45/di-contract) (`tools/contract-pin.json`, aktualizacja: `python3 tools/sync_contract.py sync`; nie edytować `contract/` tutaj) (decyzja, zgłoszenie, zmiana, cięcie, plan wydania z opcjonalnymi celami zmiany `targets`, zdarzenia z opcjonalnym `targets_status`, autonomia, eksport rekonstrukcji, ramki `design.md`): [`contract/`](contract/README.md), plan kroku: [`docs/plan-krok-1.md`](docs/plan-krok-1.md).
+`uv run mypy src` (te same kroki w CI: `.github/workflows/ci.yml`). Walidacja na sobie: [`eval/dogfood/`](eval/dogfood/README.md). Kod: `src/pdi/`, kontrakt 0.17.0 — od 2026-11-22 przypięta kopia z [dbqm45/di-contract](https://github.com/dbqm45/di-contract) (`tools/contract-pin.json`, aktualizacja: `python3 tools/sync_contract.py sync`; nie edytować `contract/` tutaj) (decyzja, zgłoszenie, zmiana, cięcie, plan wydania z opcjonalnymi celami zmiany `targets`, zdarzenia z opcjonalnym `targets_status`, autonomia, eksport rekonstrukcji, ramki `design.md`): [`contract/`](contract/README.md), plan kroku: [`docs/plan-krok-1.md`](docs/plan-krok-1.md).
 
 ## Skrzynka bramek i orkiestracja (G1.5, F4)
 
@@ -133,6 +133,12 @@ u siebie (zamknięcie pytania z cytatem, `finding.auto_close`). Nie tworzy pozyc
 (`source.kind: ci_for_sdlc`, znaczniki `ref:<pytanie>` i `event:<id>`); odpowiedź niesie numer `DEC`. Licznik
 akceptacji (`autonomy_report`, `pdi-stats`) liczy te decyzje; decyzja automatu poniżej poziomu z `autonomy.yaml`
 dostaje znacznik `autonomy:outside-policy`.
+
+Od D2 ([plan budowy suity §3a](docs/plan-budowy-suity.md), kontrakt 0.17.0) pdi jest indeksem decyzji całej suity:
+`decision.recorded` przyjmuje od ci_for_sdlc, tf i ShipScope, każdego typu (typ chroniony nadal tylko jako decyzja
+człowieka). Nowi nadawcy podają pochodzenie `origin` (`app` = nadawca, `scope`, `local_id`); ponowne wysłanie tej
+samej decyzji zwraca ten sam `DEC`, a zmieniona treść tworzy nową wersję, która zastępuje poprzednią (zmiana samego
+`path`, `commit` albo `url` nie). Reguła: `contract/decision-record.md` §8.
 
 ShipScope wysyła tylko na publiczny adres `https://`, więc przed odbiornikiem stoi proxy TLS albo tunel (np.
 Cloudflare Tunnel). Admin w ShipScope wpisuje ten adres w Settings → Integrations → pdi („Connect”). ShipScope zakłada

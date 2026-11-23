@@ -369,3 +369,20 @@ def test_ci_for_sdlc_decision_is_recorded_and_answered_with_its_number(registry:
     assert (status, answer["status"], answer["item"]) == (200, "recorded", None)
     assert registry.get(answer["decision"])["decision_type"] == "finding.auto_close"
     assert (again, again_answer["status"], again_answer["decision"]) == (200, "duplicate", answer["decision"])
+
+
+def test_tf_decision_is_recorded_through_the_tf_path(registry: Registry) -> None:
+    from tests.test_decision_recorded import tf_event
+
+    srv = make_server(Inbox(registry), {"tf": TF_SECRET}, port=0, clock=lambda: NOW)
+    thread = threading.Thread(target=srv.serve_forever, daemon=True)
+    thread.start()
+    try:
+        args: dict[str, Any] = {"path": "/events/tf", "event": "decision.recorded", "prefix": "x-pdi"}
+        status, answer = post(srv, encode(tf_event()), secret=TF_SECRET, **args)
+    finally:
+        srv.shutdown()
+        srv.server_close()
+
+    assert (status, answer["status"]) == (200, "recorded")
+    assert registry.get(answer["decision"])["origin"]["app"] == "tf"

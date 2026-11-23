@@ -42,6 +42,7 @@ FIELD_ORDER = (
     "draft_edited",
     "automation",
     "source",
+    "origin",
     "options",
     "evidence",
     "assumptions",
@@ -253,11 +254,16 @@ class Registry:
         return f"DEC-{max(numbers, default=0) + 1:04d}"
 
     def _find_same(self, draft: Decision) -> Decision | None:
-        key = (draft["statement"].strip(), draft["decided_at"], draft.get("source", {}).get("url"))
-        for d in self._all():
-            if (d["statement"].strip(), d["decided_at"], d["source"].get("url")) == key:
-                return d
-        return None
+        """Ten sam zapis ponowiony: ta sama treść, dzień, link źródła i pochodzenie (decyzje z innych aplikacji suity
+        o tym samym numerze w różnych repo to różne decyzje)."""
+
+        def key(d: Decision) -> tuple[Any, ...]:
+            origin = d.get("origin") or {}
+            where = (origin.get("app"), origin.get("scope"), origin.get("local_id"))
+            return (d["statement"].strip(), d["decided_at"], d.get("source", {}).get("url"), where)
+
+        wanted = key(draft)
+        return next((d for d in self._all() if key(d) == wanted), None)
 
     def add_record_markers(self) -> dict[str, Any]:
         """Dopisuje znacznik Decision Record w plikach, które go nie mają (rejestry sprzed kontraktu 0.14.0).
