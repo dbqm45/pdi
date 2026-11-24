@@ -232,3 +232,29 @@ def test_inputs_are_capped() -> None:
     sent = json.loads(github.calls[0][2]["inputs"]["decisions"])
     assert len(github.calls[0][2]["inputs"]["decisions"]) <= dispatch.INPUT_MAX
     assert sent[-1]["id"] == "DEC-59"  # zostają najnowsze
+
+
+def test_the_approved_artifact_hash_goes_as_an_input() -> None:
+    github = FakeGitHub()
+
+    run(config(), github, artifact_sha256="ab" * 32)
+
+    assert github.calls[0][2]["inputs"]["artifact_sha256"] == "ab" * 32
+
+
+class TemplateWithoutHash(FakeGitHub):
+    """Szablon sdlc-phase.yml sprzed 0.21.0: zna Z1, nie zna artifact_sha256."""
+
+    def __call__(self, url: str, headers: dict[str, str], body: bytes) -> int:
+        super().__call__(url, headers, body)
+        return 422 if "artifact_sha256" in json.loads(body)["inputs"] else 204
+
+
+def test_a_template_without_the_hash_input_gets_the_phase_with_a_warning() -> None:
+    github = TemplateWithoutHash()
+
+    result = run(config(), github, decision_text="x", artifact_sha256="ab" * 32)
+
+    assert len(github.calls) == 2 and "artifact_sha256" not in github.calls[1][2]["inputs"]
+    assert github.calls[1][2]["inputs"]["decision_text"] == "x"  # wejścia Z1 zostają
+    assert result["status"] == "sent" and "artifact_sha256" in result["warning"]

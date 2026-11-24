@@ -842,7 +842,9 @@ class Inbox:
                 # OM1 §5: wstrzymana zmiana nie zaczyna następnej fazy, dopóki zaległa pozycja nie dostanie decyzji.
                 state["dispatch"] = {"status": "skipped", "at": at, "error": f"zmiana wstrzymana przez {paused_by}"}
             elif run:
-                state["dispatch"] = self._run(state["change"], run, gate, outcome, decision["id"], at)
+                state["dispatch"] = self._run(
+                    state["change"], run, gate, outcome, decision["id"], at, item.get("artifact_sha256")
+                )
             if gate == flow.BASELINE_GATE:
                 # „Approve for implementation” ustawia baseline historyjek w ci_for_sdlc (F4).
                 state["ci_for_sdlc"] = notify_ci_for_sdlc(self._notify, event, at=at, post=self._notify_post)
@@ -999,7 +1001,11 @@ class Inbox:
                 self._dispatch.local and run["source"] and not run["problem"]
             ):  # lokalnie treści zgłoszenia nie ma w stanie
                 run["problem"] = self.problems.phase_problem(self.problems.get(run["source"]))
-            state["dispatch"] = self._run(change, run, last["gate"], last["outcome"], last["decision"], at)
+            pinned = next(  # 0.21.0: ponowienie niesie skrót artefaktu z pozycji, którą zamknęła ta decyzja
+                (i.get("artifact_sha256") for i in self.items(status=None) if i.get("decision") == last["decision"]),
+                None,
+            )
+            state["dispatch"] = self._run(change, run, last["gate"], last["outcome"], last["decision"], at, pinned)
             state["history"].append({"at": at, "what": "dispatch.retried", "status": state["dispatch"]["status"]})
             out["dispatch"] = state["dispatch"]
         if redo_ci:
@@ -1011,7 +1017,16 @@ class Inbox:
         warning = self.registry.commit([path], f"{change}: ponowione uruchomienie fazy lub wysyłka do ci_for_sdlc")
         return {**out, **({"warning": warning} if warning else {})}
 
-    def _run(self, change: str, run: dict[str, Any], gate: str, outcome: str, decision: str, at: str) -> dict[str, Any]:
+    def _run(
+        self,
+        change: str,
+        run: dict[str, Any],
+        gate: str,
+        outcome: str,
+        decision: str,
+        at: str,
+        artifact_sha256: str | None = None,
+    ) -> dict[str, Any]:
         result = dispatch_phase(
             self._dispatch,
             change=change,
@@ -1027,6 +1042,7 @@ class Inbox:
             decision_text=self._decision_text(decision),
             answers=self._answers(decision),
             decisions=phase_decisions.linked(self.registry, change, exclude=decision),
+            artifact_sha256=artifact_sha256 if outcome == "approved" else None,
             runs_dir=self.registry.root / "runs",
             spawn=self._local_spawn,
             run=self._local_run,

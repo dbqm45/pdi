@@ -1442,3 +1442,22 @@ def test_pr_loop_waits_for_checks_then_reads_the_failed_log(checkout: Path, tmp_
     assert dispatch_local.pr_loop_path(Path(s["log"])).is_file()
     assert any(line.startswith(dispatch_local.PROGRESS_PREFIX) for line in lines)
     assert calls[-1] == "git switch pdi/CHG-12-delivery"
+
+
+def test_the_approved_hash_goes_to_tf_that_knows_it(checkout: Path, tmp_path: Path) -> None:
+    run = FakeRun({HELP: (0, "usage: ... [--why WHY] [--artifact-sha256 ARTIFACT_SHA256]\n")})
+
+    result, _ = execute(spec(checkout, tmp_path, artifact_sha256="ab" * 32), run)
+
+    assert result["status"] == "done"
+    (call,) = decision_calls(run)
+    assert call[-2:] == ["--artifact-sha256", "ab" * 32]
+
+
+def test_the_approved_hash_is_left_out_for_older_tf(checkout: Path, tmp_path: Path) -> None:
+    run = FakeRun({HELP: (0, "usage: ... [--why WHY]\n")})
+
+    execute(spec(checkout, tmp_path, artifact_sha256="ab" * 32), run)
+
+    (call,) = decision_calls(run)
+    assert "--artifact-sha256" not in call

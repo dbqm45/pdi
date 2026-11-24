@@ -29,6 +29,8 @@ _WORKFLOW = re.compile(r"^[A-Za-z0-9_.-]+\.ya?ml$")
 _REF = re.compile(r"^[A-Za-z0-9_./-]{1,200}$")
 # Z1: wejścia z decyzjami zmiany; szablon sprzed Z1 ich nie zna (GitHub odpowiada wtedy 422) i dostaje fazę bez nich.
 Z1_INPUTS = ("decision_text", "answers", "decisions")
+# Kontrakt 0.21.0: skrót zatwierdzonej wersji artefaktu — tf nie zaczyna następnej fazy na zmienionym artefakcie.
+PIN_INPUTS = ("artifact_sha256",)
 # Górna granica długości jednego wejścia z JSON-em (łączny limit wejść workflow_dispatch jest większy, §4 planu Z1).
 INPUT_MAX = 20_000
 
@@ -77,6 +79,7 @@ def dispatch_phase(
     decision_text: str | None = None,
     answers: list[dict[str, str]] | None = None,
     decisions: list[dict[str, Any]] | None = None,
+    artifact_sha256: str | None = None,
     runs_dir: Path | None = None,
     spawn: dispatch_local.Spawn | None = None,
     run: dispatch_local.Run | None = None,
@@ -112,6 +115,7 @@ def dispatch_phase(
             decision_text=decision_text,
             answers=answers,
             decisions=decisions,
+            artifact_sha256=artifact_sha256,
             run=run,
             spawn=spawn,
         )
@@ -147,6 +151,8 @@ def dispatch_phase(
         inputs["answers"] = _capped(answers)
     if decisions:
         inputs["decisions"] = _capped(decisions)
+    if artifact_sha256:
+        inputs["artifact_sha256"] = artifact_sha256
     url = f"{API}/repos/{config.repo}/actions/workflows/{config.workflow}/dispatches"
     headers = {
         "authorization": f"Bearer {config.token}",
@@ -156,16 +162,23 @@ def dispatch_phase(
     }
     try:
         status = _send(post or _post, url, headers, config.ref, inputs)
-        if status == 422 and set(Z1_INPUTS) & set(inputs):
-            older = {k: v for k, v in inputs.items() if k not in Z1_INPUTS}
-            if 200 <= _send(post or _post, url, headers, config.ref, older) < 300:
-                return {
-                    **result,
-                    "status": "sent",
-                    "warning": f"{config.workflow} w {config.repo} nie zna wejść {', '.join(Z1_INPUTS)} (szablon "
-                    "sprzed Z1) — faza ruszyła bez decyzji zmiany; zaktualizuj szablon: phase_run.py workflow "
-                    "install --force.",
-                }
+        # Starszy szablon odrzuca nieznane wejścia (422): najpierw bez skrótu artefaktu (szablon sprzed 0.21.0), potem
+        # bez wejść Z1 (szablon sprzed Z1) — faza rusza, a ostrzeżenie mówi, czego zabrakło.
+        dropped: tuple[str, ...] = ()
+        for stage in (PIN_INPUTS, PIN_INPUTS + Z1_INPUTS):
+            if status != 422 or not set(stage) & set(inputs) or set(stage) <= set(dropped):
+                continue
+            dropped = stage
+            status = _send(post or _post, url, headers, config.ref, {k: v for k, v in inputs.items() if k not in stage})
+        if dropped and 200 <= status < 300:
+            missing = [k for k in dropped if k in inputs]
+            what = "bez decyzji zmiany" if set(Z1_INPUTS) & set(missing) else "bez skrótu zatwierdzonego artefaktu"
+            return {
+                **result,
+                "status": "sent",
+                "warning": f"{config.workflow} w {config.repo} nie zna wejść {', '.join(missing)} (starszy szablon) — "
+                f"faza ruszyła {what}; zaktualizuj szablon: phase_run.py workflow install --force.",
+            }
     except OSError:
         # Treść wyjątku może zawierać nagłówki albo adres z tokenem — nie przepisujemy jej.
         return {**result, "error": "Nie udało się nawiązać połączenia z GitHubem."}

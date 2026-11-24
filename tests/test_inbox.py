@@ -1234,3 +1234,30 @@ def test_ready_pr_item_closes_with_reviewed_without_a_registry_entry(inbox: Inbo
     out = inbox.decide(item["id"], make_draft(), outcome="reviewed")
     assert out["item"]["status"] == "decided" and out["decision"] is None
     assert len(inbox.registry.decisions()) == before
+
+
+def test_the_approved_artifact_hash_goes_to_the_next_phase(registry: Registry, make_draft: Draft) -> None:
+    """Kontrakt 0.21.0: tf zapisuje zatwierdzony skrót i nie zaczyna następnej fazy na zmienionym artefakcie."""
+    github = FakeGitHub()
+    inbox = dispatching(registry, github)
+    event = gate_event(artifact_sha256="ab" * 32, artifact_commit="abc1234")
+    event["contract_version"] = "0.21.0"
+    inbox.receive(event)
+
+    inbox.decide("evt-gate-1", make_draft(), outcome="approved")
+
+    assert github.calls[0]["inputs"]["artifact_sha256"] == "ab" * 32
+
+
+def test_a_retried_dispatch_keeps_the_approved_artifact_hash(registry: Registry, make_draft: Draft) -> None:
+    github = FakeGitHub(status=500)
+    inbox = dispatching(registry, github)
+    event = gate_event(artifact_sha256="cd" * 32)
+    event["contract_version"] = "0.21.0"
+    inbox.receive(event)
+    inbox.decide("evt-gate-1", make_draft(), outcome="approved")
+
+    github.status = 204
+    inbox.retry_dispatch("CHG-12")
+
+    assert github.calls[-1]["inputs"]["artifact_sha256"] == "cd" * 32

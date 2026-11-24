@@ -108,7 +108,7 @@ na apps.extensions.modelcontextprotocol.io z datą przed planem [niezweryfikowan
 Źródło: artykuł o Accension („How to Verify AI-Generated Code: Checks, Review and Receipts”, 2026-10) — zgoda człowieka
 dotyczy konkretnego dowodu, a zmieniony dowód unieważnia zgodę. Dziś `gate.requested` z tf niesie ścieżkę artefaktu
 i link do PR, bez skrótu treści.
-- [x] (zrobione 2026-11-24: kontrakt 0.21.0, tf wysyła skrót i commit, pdi zapisuje go i odsyła w `gate.decided`; porównanie w tf przed następną fazą — do zrobienia) Kontrakt zdarzenia `gate.requested`: pole ze skrótem SHA-256 artefaktu i SHA commita (zmiana wstecznie zgodna —
+- [x] (zrobione 2026-11-24: kontrakt 0.21.0, tf wysyła skrót i commit, pdi zapisuje go i odsyła w `gate.decided`; porównanie w tf przed następną fazą zrobione tego samego dnia: pdi przekazuje zatwierdzony skrót do fazy, tf zapisuje go w `decisions.md` i nie zaczyna fazy na zmienionym artefakcie) Kontrakt zdarzenia `gate.requested`: pole ze skrótem SHA-256 artefaktu i SHA commita (zmiana wstecznie zgodna —
   pole opcjonalne, potem wymagane). Zatwierdzenie bramki w pdi zapisuje ten skrót; zdarzenie zwrotne do tf niesie go
   z powrotem, a tf przed następną fazą porównuje go z bieżącym artefaktem (pozycja w `tf/docs/todo.md`).
 - [x] (zrobione 2026-11-24: konsola pokazuje skrót i commit, zatwierdzenie zmienionego artefaktu → 409; skrót liczony z końcami linii LF) UI zatwierdzenia pokazuje skrót i datę artefaktu; zgoda na nieaktualną wersję jest odrzucana z komunikatem

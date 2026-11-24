@@ -217,6 +217,7 @@ def start(
     problem: str | None = None,
     decision_text: str | None = None,
     answers: list[dict[str, str]] | None = None,
+    artifact_sha256: str | None = None,
     decisions: list[dict[str, Any]] | None = None,
     run: Run | None = None,
     spawn: Spawn | None = None,
@@ -261,6 +262,7 @@ def start(
             "decision_text": (decision_text or "")[:DECISION_TEXT_MAX] or None,
             # Z1: odpowiedzi na pytania bramki i decyzje zmiany z rejestru (pdi.phase_decisions, już przycięte).
             "answers": answers or None,
+            "artifact_sha256": artifact_sha256 or None,
             "decisions": decisions or None,
             "rework": rework,
             "budget_usd": budget_usd,
@@ -569,8 +571,9 @@ def execute(
                 step("decision", script("decision_record.py", "decision", "import", change, "--json", str(path)))
         if spec.get("decision"):
             gate_args = ["--gate", spec["gate"], "--outcome", spec["outcome"], "--id", spec["decision"]]
-            if spec.get("decision_text") or spec.get("answers"):
-                # Treść decyzji (PRB-3) i odpowiedzi na pytania (Z1) idą tylko do tf, który zna `--why`/`--answers`.
+            if spec.get("decision_text") or spec.get("answers") or spec.get("artifact_sha256"):
+                # Treść decyzji (PRB-3), odpowiedzi na pytania (Z1) i skrót zatwierdzonego artefaktu (0.21.0) idą tylko
+                # do tf, który zna `--why` / `--answers` / `--artifact-sha256`.
                 code, usage = step(
                     "decision", script("decision_record.py", "decision", "gate", "--help"), ok=(0, 2), quiet=True
                 )
@@ -578,6 +581,8 @@ def execute(
                     gate_args += ["--why", spec["decision_text"]]
                 if code == 0 and spec.get("answers") and "--answers" in usage:
                     gate_args += ["--answers", str(_data_file(spec, "answers", spec["answers"]))]
+                if code == 0 and spec.get("artifact_sha256") and "--artifact-sha256" in usage:
+                    gate_args += ["--artifact-sha256", spec["artifact_sha256"]]
             step("decision", script("decision_record.py", "decision", "gate", change, *gate_args))
 
         if phase == "delivery":
