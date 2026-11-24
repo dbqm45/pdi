@@ -244,6 +244,7 @@ trzyma swoje decyzje u siebie**; jako członek suity **udostępnia je pozostały
   zależności, tagi; dopasowanie fragmentów słów, bez dowodów i skutków, bez szukania po znaczeniu.
 - Decyzja D2/R1 („pdi indeksuje decyzje z repo, nie kopiuje”) nie jest tak zrealizowana: w pdi nie ma kodu, który
   czyta `decisions.md` z repozytoriów; działa kopiowanie przez MCP.
+  Zapis decyzji poprawiony w D6: DD1 w [`decyzje.md`](decyzje.md) zastępuje „odczyt z repo” publikacją zdarzeniem.
 - Ile decyzji faktycznie jest w rejestrze, nie dało się policzyć: rejestr leży na komputerze właściciela.
 
 ### Model
@@ -304,6 +305,22 @@ sposobie potwierdzenia, odpowiedziach i numerze u właściciela, filtruje po apl
 `pdi-records changes` (JSON, dla hooka fabryki) i narzędzie MCP `list_decision_changes` — decyzje zmienione od
 znacznika `<changed_at>/<id>`, razem z zastąpionymi, z filtrami `project`, `app`, `scope`, każda z plikiem Decision
 Record (`text`). API HTTP razem z usługą pdi (DA4).
+
+Stan 2026-11-24: **wszystkie kroki D1–D9 zrobione.**
+**D3 zrobione** w tf (#412, mode-pdi): hook `decision_publish.py` wysyła zaakceptowane wiersze D-NNN i ADR jako
+`decision.recorded` z `origin` (repo, ścieżka, commit), stan wysłanych poza gitem, ponawianie przy 5xx; pliki w repo
+bez zmian (warstwa publikacji).
+**D5 zrobione** w ci_for_sdlc (#149): do pdi idzie każda decyzja o znalezisku — rozstrzygnięcie, przyjęcie ryzyka,
+odrzucenie, potwierdzenie i wycofanie, obok odpowiedzi ze źródeł (A2b) — z `origin` (przestrzeń, `<KEY>/<finding>`),
+kontrakt 0.17.0.
+**D8 zrobione** w tf (#416): hook `decision_cache.py` trzyma kopię indeksu w `.tf/cache/suite-decisions/` (tylko do
+odczytu, znacznik „nie edytuj”, wiek kopii w kontekście sesji), odświeżaną przyrostowo przez `pdi-records changes`;
+`search` przeszukuje ją razem z lokalnymi decyzjami.
+**D9 zrobione** w ci_for_sdlc (#150): ta sama kopia (`CI_SUITE_DECISIONS_CMD`), odświeżana przy starcie, co 15 min
+i na żądanie; strona historyjki pokazuje decyzje zmiany i wyszukiwanie, z aplikacją, stanem i wiekiem kopii.
+**D6 zrobione** w pdi: decyzja DD1 w [`decyzje.md`](decyzje.md), D2/R1 z odsyłaczem.
+Do zrobienia później: kopia czyta dziś polecenie lokalne, bo rejestr pdi leży na komputerze właściciela; API HTTP
+zastąpi je z usługą pdi (DA4). Decyzje suity jako źródło odpowiedzi AI w DI Definition — osobny krok.
 
 Później: DI Release, DI Release Control i DI Quality publikują swoje decyzje tym samym zdarzeniem i dostają tę samą
 pamięć podręczną, gdy będą miały
