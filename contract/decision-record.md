@@ -1,6 +1,6 @@
 # Decision Record — specyfikacja pliku decyzji
 
-**Wersja:** kontrakt 0.21.0 (format od 0.14.0, pochodzenie od 0.16.0, odwracalność od 0.19.0) · **Decyzje:** DR1–DR4 ([`docs/decyzje.md`](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md)) · **Schemat:**
+**Wersja:** kontrakt 0.22.0 (format od 0.14.0, pochodzenie od 0.16.0, odwracalność od 0.19.0, `applies_to` od 0.22.0) · **Decyzje:** DR1–DR4 ([`docs/decyzje.md`](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md)) · **Schemat:**
 [`decision.schema.json`](decision.schema.json) · **Walidator:** `pdi-validate` ·
 **Uzasadnienie i porównanie z MADR:** [`docs/propozycja-decision-record.md`](https://github.com/dbqm45/pdi/blob/main/docs/propozycja-decision-record.md)
 
@@ -41,7 +41,25 @@ Poza znacznikiem nagłówek musi przejść [`decision.schema.json`](decision.sch
 `drafted_by`. Opisy pól: [dokument 14 §4.1](https://github.com/dbqm45/pdi/blob/main/docs/14-pdi-standalone.md#41-schemat-decyzji-contractdecisionschemajson)
 i opisy w schemacie; od 0.14.0 także `consequences` (skutki `good` / `bad` / `neutral`) i `confirmation` (`how`,
 `kind`, `ref`: jak sprawdzić, że decyzję wykonano). Od 0.19.0 opcjonalnie `reversibility` (`local`, `broad`, `one_way`) i `provisional` (decyzja tymczasowa, do
-potwierdzenia przez decydenta; nie przy `one_way`).
+potwierdzenia przez decydenta; nie przy `one_way`). Od 0.22.0 opcjonalnie `applies_to` (§4a).
+
+## 4a. Czego dotyczy decyzja (`applies_to`)
+
+`applies_to` przypina decyzję do miejsc w kodzie: `paths` (wzorce ścieżek) i/lub `components` (nazwy komponentów
+w kształcie `project`). Odbiorca, który pyta o decyzje dla zbioru plików, zwraca te, w których co najmniej jeden
+wzorzec pasuje do co najmniej jednej ścieżki albo jedna z nazw komponentów jest równa podanej. Wzorzec:
+
+- jest względny wobec korzenia repo projektu decyzji (`project`, `origin.scope`) i zakotwiczony w nim: `docs` nie
+  pasuje do `src/docs/a.md`; dopasowanie w dowolnym miejscu daje `**/docs/**`;
+- separatorem segmentów jest `/`; `*` to dowolne znaki w jednym segmencie, `?` — jeden znak, `**` jako cały
+  segment — zero lub więcej segmentów; innych znaków specjalnych nie ma (`[`, `{` to zwykłe znaki);
+- pasuje do pliku i do katalogu, w którym plik leży: `services/document-processing` obejmuje
+  `services/document-processing/api/handler.py` (to samo co `services/document-processing/**`);
+- rozróżnia wielkość liter; nie zaczyna się od `/` ani `./`, nie ma segmentów `.` i `..` ani znaku `\`.
+
+Ścieżkę pliku przed dopasowaniem odbiorca zapisuje z `/` zamiast `\` i bez wiodącego `./`. Przypadki, które każda
+implementacja musi spełnić: [`fixtures/applies-to/cases.json`](fixtures/applies-to/cases.json); implementacja
+wzorcowa: `applies_to_match` w `tools/check_contract.py`.
 
 ## 5. Identyfikator i nazwa pliku
 
@@ -123,7 +141,7 @@ plan: [`docs/plan-eksport-madr.md`](https://github.com/dbqm45/pdi/blob/main/docs
 ---
 record: decision
 schema: https://github.com/dbqm45/pdi/contract/decision.schema.json
-contract_version: 0.21.0
+contract_version: 0.22.0
 id: DEC-0041
 statement: Bulk konfiguracja ładowarek zaczyna od zmiany taryfy.
 why: Najczęstsza operacja w zgłoszeniach; restart i firmware mają inne ryzyka.
@@ -136,6 +154,9 @@ drafted_by: ai
 draft_edited: false
 source:
   kind: manual
+applies_to:
+  paths:
+  - services/charger-config/**
 consequences:
 - text: Operator zmienia taryfę na wielu ładowarkach naraz zamiast po jednej.
   effect: good

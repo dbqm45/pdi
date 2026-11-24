@@ -48,12 +48,12 @@ Przypadek z niego: dwa PR-y, każdy poprawny, razem odwracają przyjętą decyzj
 ani bramka nie wiedzą, że zmiana rusza obszar objęty decyzją.
 
 **Do zrobienia** (TDD, wersja kontraktu wg SemVer; tag `contract-v…` po merge'u):
-- [ ] **Pole `applies_to` w decyzji** — wzorce ścieżek (`services/document-processing/**`) i/lub nazwy komponentów;
+- [x] **Pole `applies_to` w decyzji** (zrobione 2026-11-24: kontrakt 0.22.0, `paths` i `components`, dopasowanie w `decision-record.md` §4a; [plan](docs/plan-applies-to.md)) — wzorce ścieżek (`services/document-processing/**`) i/lub nazwy komponentów;
   opcjonalne, więc zgodne wstecz (podbicie minor kontraktu). Przykład w `contract/examples/`, README kontraktu.
-- [ ] **Zapytanie „decyzje dla tych ścieżek”** w MCP (`find_decisions` z parametrem ścieżek albo osobne narzędzie):
+- [x] **Zapytanie „decyzje dla tych ścieżek”** (zrobione 2026-11-24: `find_decisions` z `paths` i `components`, pole `matched`) w MCP (`find_decisions` z parametrem ścieżek albo osobne narzędzie):
   przyjęte decyzje, których `applies_to` pasuje do podanych plików, z `why` i założeniami. Agent woła je przed planem
   zmiany i podaje w podsumowaniu, które decyzje sprawdził.
-- [ ] **`applies_to` przy zapisie decyzji** — `record_decision` przyjmuje pole; tf `decision add` je przekazuje (pozycja
+- [x] **`applies_to` przy zapisie decyzji** (zrobione 2026-11-24: `record_decision` i `decision.recorded`; tf `decision add --applies-to`) — `record_decision` przyjmuje pole; tf `decision add` je przekazuje (pozycja
   w tf przy następnej zmianie `mode-pdi`).
 - [x] **Sposób weryfikacji i odwracalność decyzji** (zrobione 2026-11-24: `reversibility` `local` / `broad` / `one_way` i `provisional` w kontrakcie 0.19.0, N2; terminy z bramek w pdi #206) (źródło: J. Wąsowski, „SDD — Missing Spec Decisions: The
   Two-Implementations Technique and a Decision Register”, 2026-10): sposób weryfikacji jest już w kontrakcie 0.14.0

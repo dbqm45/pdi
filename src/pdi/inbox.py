@@ -332,7 +332,7 @@ class Inbox:
         }
         if origin is not None:
             draft["origin"] = origin
-        for key in ("draft_edited", "automation"):
+        for key in ("draft_edited", "automation", "applies_to"):
             if key in p:
                 draft[key] = p[key]
         if p.get("evidence"):
