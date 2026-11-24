@@ -126,7 +126,7 @@ def timeline(state: dict[str, Any], *, now: datetime, items: Sequence[dict[str, 
     }
 
 
-def _gate_order(name: str) -> tuple[int, str]:
+def gate_order(name: str) -> tuple[int, str]:
     order = [g.name for g in flow.GATES]
     return (order.index(name), name) if name in order else (len(order), name)
 
@@ -155,7 +155,7 @@ def report(states: Sequence[dict[str, Any]], items: Sequence[dict[str, Any]], *,
             "max_hours": max(gate_hours[name]) if gate_hours[name] else None,
             "open": gate_open[name],
         }
-        for name in sorted(gate_hours, key=_gate_order)
+        for name in sorted(gate_hours, key=gate_order)
     ]
     per_kind: dict[str, dict[str, Any]] = {}
     for item in items:

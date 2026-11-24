@@ -11,7 +11,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp_types import ToolAnnotations
 from typing_extensions import TypedDict  # pydantic na 3.11 wymaga TypedDict z typing_extensions
 
-from pdi import autonomy, delays, forecast, pr_state
+from pdi import autonomy, delays, forecast, pr_state, process
 from pdi.changes import ChangeNotFound
 from pdi.dispatch import DispatchConfig
 from pdi.impact import ShipScopeConfig, read_connection
@@ -646,6 +646,22 @@ def build_server(
         i pracy każdej zmiany z udziałem czekania. Godziny zegarowe; tylko odczyt."""
         inbox = open_inbox()
         return delays.report(inbox.changes.all(status=None), inbox.items(status=None), now=inbox.registry.now())
+
+    @server.tool(annotations=_READ)
+    def process_report() -> dict[str, list[dict[str, Any]]]:
+        """Bramki do uproszczenia (DV1): dla każdej bramki okno ostatnich decyzji (jak licznik akceptacji szkiców),
+        ile przeszło bez uwag (passed), ile zatrzymało zmianę (stopped: changes_requested, rejected), mediana czekania
+        w godzinach i rekomendacja challenge (prawie nigdy nie zatrzymuje — rozważ uproszczenie) albo keep z powodem.
+        B5 (wydanie na PROD) zawsze keep. Tylko odczyt; propozycje do skrzynki tworzy propose_process_changes."""
+        inbox = open_inbox()
+        return {"gates": process.report(inbox.changes.all(status=None), now=inbox.registry.now())}
+
+    @server.tool(annotations=_WRITE)
+    def propose_process_changes() -> dict[str, list[dict[str, Any]]]:
+        """Otwiera w skrzynce pozycje kind process „uprościć bramkę X?” dla rekomendacji challenge z process_report
+        (najwyżej jedna otwarta na bramkę; po decyzji kolejna dopiero po pełnym nowym oknie). Decyzja człowieka:
+        decide_inbox_item z outcome approved albo rejected; przebiegu pdi samo nie zmienia."""
+        return {"items": open_inbox().propose_process_changes()}
 
     @server.tool(annotations=_READ)
     def forecast_report() -> dict[str, Any]:
