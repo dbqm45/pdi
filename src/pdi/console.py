@@ -27,6 +27,7 @@ code.claude.com/docs/en/agent-sdk/typescript. Plan: `docs/plan-z3-lokalnie.md`.
 
 from __future__ import annotations
 
+import hashlib
 import hmac
 import html
 import json
@@ -664,7 +665,7 @@ def _inbox_body(deps: Deps, token: str) -> str:
             f'<span class="pill">{_escape(item["kind"])}</span> '
             f'<span class="pill open">czeka</span></h2>'
             f"<p><strong>{_escape(item.get('summary'))}</strong></p>"
-            f"{_risk_html(item)}"
+            f"{_risk_html(item)}{_pin_html(item)}"
             f'<form method="post" action="/inbox/{_escape(item["id"])}/decide?t={_escape(token)}">'
             f'<input type="hidden" name="t" value="{_escape(token)}">'
             f'<input type="hidden" name="loaded_at" value="{_escape(item["received_at"])}">'
@@ -839,6 +840,15 @@ def _share(value: Any) -> str:
     return "—" if value is None else f"{round(100 * value)}%"
 
 
+def _pin_html(item: dict[str, Any]) -> str:
+    """Wersja artefaktu, której dotyczy zgoda (kontrakt 0.21.0): skrót i commit."""
+    digest = item.get("artifact_sha256")
+    if not digest:
+        return ""
+    commit = f" · commit {_escape(str(item.get('artifact_commit'))[:12])}" if item.get("artifact_commit") else ""
+    return f"<p><small>artefakt: {_escape(str(digest)[:12])}{commit} — zgoda dotyczy tej wersji</small></p>"
+
+
 _RISK_LABEL = {"low": "niskie", "medium": "średnie", "high": "wysokie"}
 
 
@@ -927,6 +937,27 @@ def _flow_body(deps: Deps, token: str, now: datetime) -> str:
 
 
 # --- pliki artefaktów i diff ---
+
+
+def _artifact_changed(deps: Deps, item: dict[str, Any]) -> str | None:
+    """Komunikat, gdy artefakt bramki zmienił się po wysłaniu prośby (kontrakt 0.21.0: `artifact_sha256`); None, gdy
+    jest ten sam albo nie da się tego sprawdzić (brak skrótu, klonu albo pliku). Końce linii jako LF, jak liczy tf."""
+    expected = item.get("artifact_sha256")
+    artifact = str(item.get("artifact") or "")
+    if not expected or not item.get("change") or deps.checkout is None:
+        return None
+    name = artifact.rsplit("/", 1)[-1]
+    try:
+        current = _read_artifact(deps, str(item["change"]), name)
+    except Refused:
+        return None
+    digest = hashlib.sha256(current.replace(b"\r\n", b"\n")).hexdigest()
+    if digest == expected:
+        return None
+    return (
+        f"Artefakt {name} zmienił się po wysłaniu prośby (skrót {str(expected)[:12]} → {digest[:12]}) — zgoda "
+        "dotyczyłaby innej wersji niż ta, o którą proszono. Poproś o bramkę ponownie dla bieżącej wersji."
+    )
 
 
 def _read_artifact(deps: Deps, change: str, name: str) -> bytes:
@@ -1182,6 +1213,9 @@ def make_server(
                 msg = "Pozycja zmieniła się od czasu wczytania strony. Odśwież i spróbuj ponownie."
                 return self._html(409, f"<h1>409</h1><p>{msg}</p>")
             outcome = one("outcome") or None
+            changed = _artifact_changed(deps, item) if item.get("kind") == "gate" and outcome == "approved" else None
+            if changed:
+                return self._html(409, f"<h1>409</h1><p>{_escape(changed)}</p>")
             statement = _sanitize_text(one("statement"), limit=800)
             why = _sanitize_text(one("why"), limit=2000)
             if not statement or not why:

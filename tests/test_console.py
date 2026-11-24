@@ -951,3 +951,69 @@ def test_flow_page_shows_the_risk_of_the_waiting_gate(registry: Registry) -> Non
         server.shutdown()
     waiting = page.split("Gdzie zmiana czeka", 1)[1].split("</table>", 1)[0]
     assert "<th>Ryzyko</th>" in waiting and "wysokie" in waiting
+
+
+# --- kontrakt 0.21.0: zgoda przypięta do wersji artefaktu (artifact_sha256 z gate.requested) ---
+
+
+def _pinned_gate(registry: Registry, digest: str) -> dict[str, Any]:
+    _write_change(registry, "CHG-1", waiting=["B3"])
+    item = _write_inbox_gate(registry, item_id="evt-pin", change="CHG-1", gate="B3")
+    item.update(artifact="docs/project/changes/CHG-1/plan.md", artifact_sha256=digest, artifact_commit="abc1234")
+    (registry.root / "inbox" / "evt-pin.yaml").write_text(json.dumps(item), encoding="utf-8")
+    return item
+
+
+def _decide_pin(url: str, item: dict[str, Any], outcome: str) -> tuple[int, bytes]:
+    return _post(
+        f"{url}/inbox/{item['id']}/decide?t={TOKEN}",
+        {
+            "t": TOKEN,
+            "loaded_at": item["received_at"],
+            "statement": "Plan przyjęty.",
+            "why": "Zgodny z celami.",
+            "outcome": outcome,
+        },
+    )
+
+
+def test_approval_of_a_changed_artifact_is_refused(registry: Registry, checkout: Path) -> None:
+    import hashlib
+
+    item = _pinned_gate(registry, hashlib.sha256(b"# plan sprzed zmiany\n").hexdigest())
+    server, url = _serve(console.Deps(registry, checkout=checkout))
+    try:
+        status, body = _decide_pin(url, item, "approved")
+        page = _get(f"{url}/inbox?t={TOKEN}")[1].decode("utf-8")
+    finally:
+        server.shutdown()
+    assert status == 409 and "zmienił się po wysłaniu prośby" in body.decode("utf-8")
+    assert Inbox(registry).get("evt-pin")["status"] == "open"
+    assert "artefakt: " in page and "abc1234" in page
+
+
+def test_approval_of_the_same_artifact_carries_its_hash_back(registry: Registry, checkout: Path) -> None:
+    import hashlib
+
+    _commit_on(checkout, "pdi/CHG-1-architecture", {"plan.md": b"# plan\r\nkrok 1\r\n"})  # Windows: CRLF
+    item = _pinned_gate(registry, hashlib.sha256(b"# plan\nkrok 1\n").hexdigest())
+    server, url = _serve(console.Deps(registry, checkout=checkout))
+    try:
+        status, _ = _decide_pin(url, item, "approved")
+    finally:
+        server.shutdown()
+    assert status == 200
+    sent = [json.loads(p.read_text(encoding="utf-8")) for p in (registry.root / "outbox").glob("*.json")]
+    assert [e["payload"].get("artifact_sha256") for e in sent if e["type"] == "gate.decided"] == [
+        item["artifact_sha256"]
+    ]
+
+
+def test_sending_back_a_changed_artifact_is_allowed(registry: Registry, checkout: Path) -> None:
+    item = _pinned_gate(registry, "0" * 64)
+    server, url = _serve(console.Deps(registry, checkout=checkout))
+    try:
+        status, _ = _decide_pin(url, item, "changes_requested")
+    finally:
+        server.shutdown()
+    assert status == 200

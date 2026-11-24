@@ -249,6 +249,8 @@ class Inbox:
             "default_option",
             "asked",
             "risk",
+            "artifact_sha256",
+            "artifact_commit",
         ):  # 0.19.0 (N2), risk: 0.20.0 (DV2, doradcza ocena ryzyka zmiany)
             if key in payload:
                 item[key] = payload[key]
@@ -830,7 +832,9 @@ class Inbox:
         if item["kind"] == "gate":
             assert outcome is not None and state is not None  # noqa: S101 — zawężenie typu, sprawdzone wyżej
             state, run = flow.gate_decided(state, gate, outcome, decision["id"], at=at, targets=item.get("targets"))
-            event = _gate_decided_event(item_id, item["change"], gate, outcome, decision["id"], at)
+            event = _gate_decided_event(
+                item_id, item["change"], gate, outcome, decision["id"], at, item.get("artifact_sha256")
+            )
             touched.append(self._write_outbox(event))
             result["event"] = event
             paused_by = (state.get("paused") or {}).get("item")
@@ -1212,14 +1216,22 @@ def _tags(item: Item, gate: str, outcome: str | None) -> list[str]:
     return tags
 
 
-def _gate_decided_event(item_id: str, change: str, gate: str, outcome: str, decision: str, at: str) -> dict[str, Any]:
+def _gate_decided_event(
+    item_id: str, change: str, gate: str, outcome: str, decision: str, at: str, artifact_sha256: str | None = None
+) -> dict[str, Any]:
     event = {
         "id": f"gate.decided-{item_id}",
         "type": "gate.decided",
         "occurred_at": at,
         "source": "pdi",
         "contract_version": contract.CONTRACT_VERSION,
-        "payload": {"change": change, "gate": gate, "outcome": outcome, "decision": decision},
+        "payload": {
+            "change": change,
+            "gate": gate,
+            "outcome": outcome,
+            "decision": decision,
+            **({"artifact_sha256": artifact_sha256} if artifact_sha256 else {}),  # 0.21.0: zatwierdzona wersja
+        },
     }
     errors = contract.errors("event", event)
     if errors:  # błąd programu, nie danych z zewnątrz

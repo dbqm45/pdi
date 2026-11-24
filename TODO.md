@@ -55,7 +55,7 @@ ani bramka nie wiedzą, że zmiana rusza obszar objęty decyzją.
   zmiany i podaje w podsumowaniu, które decyzje sprawdził.
 - [ ] **`applies_to` przy zapisie decyzji** — `record_decision` przyjmuje pole; tf `decision add` je przekazuje (pozycja
   w tf przy następnej zmianie `mode-pdi`).
-- [ ] **Sposób weryfikacji i odwracalność decyzji** (źródło: J. Wąsowski, „SDD — Missing Spec Decisions: The
+- [x] **Sposób weryfikacji i odwracalność decyzji** (zrobione 2026-11-24: `reversibility` `local` / `broad` / `one_way` i `provisional` w kontrakcie 0.19.0, N2; terminy z bramek w pdi #206) (źródło: J. Wąsowski, „SDD — Missing Spec Decisions: The
   Two-Implementations Technique and a Decision Register”, 2026-10): sposób weryfikacji jest już w kontrakcie 0.14.0
   jako `confirmation` (`kind`: test / ci_check / review…, `ref`: np. id testu); zostaje opcjonalne `reversibility` (`local` — agent decyduje
   i zapisuje; `broad` — agent proponuje, człowiek akceptuje; `one_way` — właściciel rozstrzyga przed implementacją:
@@ -108,10 +108,10 @@ na apps.extensions.modelcontextprotocol.io z datą przed planem [niezweryfikowan
 Źródło: artykuł o Accension („How to Verify AI-Generated Code: Checks, Review and Receipts”, 2026-10) — zgoda człowieka
 dotyczy konkretnego dowodu, a zmieniony dowód unieważnia zgodę. Dziś `gate.requested` z tf niesie ścieżkę artefaktu
 i link do PR, bez skrótu treści.
-- [ ] Kontrakt zdarzenia `gate.requested`: pole ze skrótem SHA-256 artefaktu i SHA commita (zmiana wstecznie zgodna —
+- [x] (zrobione 2026-11-24: kontrakt 0.21.0, tf wysyła skrót i commit, pdi zapisuje go i odsyła w `gate.decided`; porównanie w tf przed następną fazą — do zrobienia) Kontrakt zdarzenia `gate.requested`: pole ze skrótem SHA-256 artefaktu i SHA commita (zmiana wstecznie zgodna —
   pole opcjonalne, potem wymagane). Zatwierdzenie bramki w pdi zapisuje ten skrót; zdarzenie zwrotne do tf niesie go
   z powrotem, a tf przed następną fazą porównuje go z bieżącym artefaktem (pozycja w `tf/docs/todo.md`).
-- [ ] UI zatwierdzenia pokazuje skrót i datę artefaktu; zgoda na nieaktualną wersję jest odrzucana z komunikatem
+- [x] (zrobione 2026-11-24: konsola pokazuje skrót i commit, zatwierdzenie zmienionego artefaktu → 409; skrót liczony z końcami linii LF) UI zatwierdzenia pokazuje skrót i datę artefaktu; zgoda na nieaktualną wersję jest odrzucana z komunikatem
   „artefakt zmienił się po wysłaniu prośby”. TDD: test zgody na zmieniony artefakt.
 
 ## Propozycja do G7 „miary przepływu”: wskaźniki wyprzedzające w parze z opóźnionymi (zapisane 2026-10-30)
@@ -121,7 +121,7 @@ i link do PR, bez skrótu treści.
 najlepiej udokumentowanym sygnałem wyprzedzającym przy kodzie od agentów jest kolejka czekająca na przegląd człowieka
 (liczby z artykułu [niezweryfikowane]). pdi ma już dane do takiej kolejki: każda pozycja `inbox/` i
 `changes/<CHG>.yaml` niesie historię bramek.
-- [ ] Miara kolejki bramek z istniejących plików skrzynki i zmian, bez nowego źródła danych:
+- [x] (zrobione 2026-11-24 w DV4: strona „Przepływ”, `flow_delays`; bez p90) Miara kolejki bramek z istniejących plików skrzynki i zmian, bez nowego źródła danych:
   - liczba pozycji czekających na decyzję;
   - wiek najstarszej pozycji;
   - mediana i p90 czasu od `gate.requested` do `gate.decided`, w podziale na bramki B1–B5.
