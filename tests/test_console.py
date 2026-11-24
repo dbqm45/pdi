@@ -535,7 +535,14 @@ def test_menu_links_keep_the_token(registry: Registry) -> None:
         assert status == 200
         nav = body.decode().split("<nav>", 1)[1].split("</nav>", 1)[0]
         links = re.findall(r'href="([^"]+)"', nav)
-        assert [link.split("?")[0] for link in links] == ["/now", "/board", "/inbox", "/decisions", "/autonomy"]
+        assert [link.split("?")[0] for link in links] == [
+            "/now",
+            "/board",
+            "/inbox",
+            "/decisions",
+            "/autonomy",
+            "/flow",
+        ]
         for link in links:
             assert f"t={TOKEN}" in link
             assert _get(f"{url}{link.replace('&amp;', '&')}")[0] == 200
@@ -848,3 +855,51 @@ def test_now_requires_token_and_works_without_runs(registry: Registry) -> None:
     finally:
         server.shutdown()
     assert status == 200 and body.decode("utf-8").count("<small>nic</small>") == 4
+
+
+# --- DV4: „Przepływ” — gdzie zmiana czeka ---
+
+
+def test_flow_page_shows_where_changes_wait(registry: Registry) -> None:
+    from pdi.changes import ChangeStore
+
+    store = ChangeStore(registry)
+    store.save(
+        {
+            "change": "CHG-41",
+            "status": "open",
+            "history": [
+                {"at": "2026-11-20T12:00:00Z", "what": "gate.requested", "gate": "B1"},
+                {
+                    "at": "2026-11-20T16:00:00Z",
+                    "what": "gate.decided",
+                    "gate": "B1",
+                    "outcome": "approved",
+                    "decision": "DEC-1",
+                },
+                {"at": "2026-11-21T12:00:00Z", "what": "gate.requested", "gate": "B2"},
+            ],
+        }
+    )
+    _write_inbox_gate(registry, item_id="evt-gate-41", change="CHG-41", gate="B2")
+    server, url = _serve_at(console.Deps(registry, checkout=None))
+    try:
+        status, body, _ = _get(f"{url}/flow?t={TOKEN}")
+        page = body.decode("utf-8")
+    finally:
+        server.shutdown()
+    assert status == 200 and "<h1>Przepływ</h1>" in page
+    waiting = page.split("Gdzie zmiana czeka", 1)[1].split("</table>", 1)[0]
+    assert "CHG-41" in waiting and "B2" in waiting and "24.0 h" in waiting
+    per_gate = page.split("Bramki", 1)[1].split("</table>", 1)[0]
+    assert "B1" in per_gate and "4.0 h" in per_gate
+    assert "czekanie" in page and "praca" in page
+
+
+def test_flow_page_without_changes_says_so(registry: Registry) -> None:
+    server, url = _serve(console.Deps(registry, checkout=None))
+    try:
+        status, body, _ = _get(f"{url}/flow?t={TOKEN}")
+    finally:
+        server.shutdown()
+    assert status == 200 and "nic nie czeka" in body.decode("utf-8")

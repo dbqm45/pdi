@@ -476,6 +476,8 @@ o ryzyku, nie estymacji). Niżej tylko to, co warto dodać. Pomysły odłożone 
 | DV7 | Build vs. Don't Build / Simplification (#8, #12) | tf, pdi | rekomendacja triażu dostaje opcję „bez kodu” (konfiguracja, zmiana procesu, istniejąca funkcja) i powód w słowniku odrzuceń | mniej developmentu bez wartości | — |
 | DV8 | Test Trust / Test Waste / Flaky / Production-to-Test (#44, #45, #47, #49) | qa-platform, di-contract | wiarygodność i wartość testów z historii wyników; test regresji z błędu produkcyjnego | pierwszy produkt DI Quality w suicie | `test-result` w kontrakcie (pyt. 7), AN2 dla błędów produkcyjnych |
 
+Stan 2026-11-24: **DV4 zrobione** w pdi ([plan](plan-dv4-gdzie-zmiana-czeka.md)): `pdi.delays` liczy z historii zmian czas czekania na każdej bramce (z rundami po `changes_requested`), czekanie i pracę zmiany oraz czas od wpływu do decyzji dla rodzajów pozycji skrzynki; strona konsoli `/flow` („Przepływ”: gdzie zmiana czeka, z etapem terminu) i narzędzie MCP `flow_delays`. Czas od PR do wdrożenia zostaje w DI Release, połączenie przy AN3.
+
 Kolejność rekomendowana: **DV4 → DV1 → DV2** (pierwsze dwa na danych, które już są; DV2 domyka AN7), potem DV3,
 DV7, DV6, DV5; DV8 po decyzji o DI Quality.
 
