@@ -11,7 +11,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp_types import ToolAnnotations
 from typing_extensions import TypedDict  # pydantic na 3.11 wymaga TypedDict z typing_extensions
 
-from pdi import autonomy, delays, forecast, pr_state, process
+from pdi import autonomy, context, delays, forecast, pr_state, process
 from pdi.changes import ChangeNotFound
 from pdi.dispatch import DispatchConfig
 from pdi.impact import ShipScopeConfig, read_connection
@@ -491,6 +491,27 @@ def build_server(
         """
         try:
             return trace(open_registry(), change, shipscope=ShipScopeConfig.from_env(), live=live)
+        except ChangeNotFound as e:
+            raise ToolError(str(e)) from e
+
+    @server.tool(annotations=_READ)
+    def change_context(
+        change: str | None = None,
+        paths: list[str] | None = None,
+        components: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Kontekst na start pracy nad zmianą (DV3): wołaj, zanim napiszesz plan zmiany albo cięcia.
+
+        change: CHG-n; paths: pliki, które praca ruszy (względem korzenia repo); components: nazwy komponentów.
+        Zwraca: change (status, bramki czekające i zatwierdzone), problem (zgłoszenie: kto nie może czego, skutek),
+        intent (decyzja o intencji z metryką sukcesu), decisions (obowiązujące decyzje o zmianie z odrzuconymi
+        opcjami i założeniami nośnymi), code_decisions (decyzje, których applies_to obejmuje paths / components,
+        z matched), open_questions (otwarte pozycje skrzynki tej zmiany), prs i gaps (z grafu śladu). Bez change —
+        tylko code_decisions. Nie idź wbrew decyzji bez propozycji jej zastąpienia; odrzuconych opcji nie wracaj
+        bez nowego powodu.
+        """
+        try:
+            return context.reconstruct(open_registry(), change, paths=paths or (), components=components or ())
         except ChangeNotFound as e:
             raise ToolError(str(e)) from e
 

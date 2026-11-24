@@ -69,6 +69,7 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
         "flow_delays",
         "process_report",
         "propose_process_changes",
+        "change_context",
     }
     assert tools["list_decision_changes"].annotations.read_only_hint is True
     assert tools["flow_delays"].annotations.read_only_hint is True
@@ -152,7 +153,7 @@ async def test_stdio_end_to_end(tmp_path: Path, make_draft: Draft) -> None:
         listed = await session.list_tools()
         result = await session.call_tool("record_decision", make_draft())
 
-    assert len(listed.tools) == 30
+    assert len(listed.tools) == 31
     assert json.loads(result.content[0].text)["id"] == "DEC-0001"
     assert (tmp_path / "rejestr" / "decisions" / "_ogolne" / "DEC-0001.md").is_file()
 
