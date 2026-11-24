@@ -3,11 +3,12 @@
   "type": "gate.decided",
   "occurred_at": "2026-10-23T10:00:00Z",
   "source": "pdi",
-  "contract_version": "0.20.0",
+  "contract_version": "0.21.0",
   "payload": {
     "change": "CHG-12",
     "gate": "B1",
     "outcome": "approved",
-    "decision": "DEC-42"
+    "decision": "DEC-42",
+    "artifact_sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
   }
 }
