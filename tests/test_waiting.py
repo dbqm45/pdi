@@ -243,3 +243,16 @@ def test_w23_a_gate_with_the_new_fields_is_accepted_and_keeps_them(registry: Reg
     item = result["item"]
     assert item["reversibility"] == "one_way" and item["closes_at"] == "2026-10-30T09:00:00Z"
     assert item["default_option"] == "Bez migracji" and item["asked"] == asked
+
+
+def test_w24_a_gate_keeps_its_change_risk(registry: Registry) -> None:
+    risk = {
+        "level": "medium",
+        "files": 3,
+        "base": "main",
+        "items": [{"level": "medium", "category": "evidence-adr", "file": "src/retry/", "reason": "no ADR"}],
+    }
+    event = gate_event(gate="B4", risk=risk)
+    event["contract_version"] = "0.20.0"
+    item = Inbox(registry).receive(event)["item"]
+    assert item["risk"] == risk

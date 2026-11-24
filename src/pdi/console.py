@@ -664,6 +664,7 @@ def _inbox_body(deps: Deps, token: str) -> str:
             f'<span class="pill">{_escape(item["kind"])}</span> '
             f'<span class="pill open">czeka</span></h2>'
             f"<p><strong>{_escape(item.get('summary'))}</strong></p>"
+            f"{_risk_html(item)}"
             f'<form method="post" action="/inbox/{_escape(item["id"])}/decide?t={_escape(token)}">'
             f'<input type="hidden" name="t" value="{_escape(token)}">'
             f'<input type="hidden" name="loaded_at" value="{_escape(item["received_at"])}">'
@@ -838,6 +839,25 @@ def _share(value: Any) -> str:
     return "—" if value is None else f"{round(100 * value)}%"
 
 
+_RISK_LABEL = {"low": "niskie", "medium": "średnie", "high": "wysokie"}
+
+
+def _risk_html(item: dict[str, Any]) -> str:
+    """Doradcza ocena ryzyka zmiany (DV2) na karcie pozycji: poziom i do 10 pozycji z plikiem i powodem."""
+    risk = item.get("risk")
+    if not isinstance(risk, dict) or risk.get("level") not in _RISK_LABEL:
+        return ""
+    rows = "".join(
+        f"<li><code>{_escape(i.get('file') or '—')}</code> — {_escape(i.get('reason'))}</li>"
+        for i in (risk.get("items") or [])[:10]
+        if isinstance(i, dict)
+    )
+    return (
+        f'<p><span class="pill">ryzyko: {_RISK_LABEL[risk["level"]]}</span> '
+        "<small>ocena doradcza (tf risk), bramki bez zmian</small></p>" + (f"<ul>{rows}</ul>" if rows else "")
+    )
+
+
 _STAGE_LABEL = {
     "new": "nowa",
     "reminder": "przypomnienie",
@@ -858,10 +878,11 @@ def _flow_body(deps: Deps, token: str, now: datetime) -> str:
         "".join(
             f'<tr><td><a href="/trace/{_escape(w["change"])}?t={t}">{_escape(w["change"])}</a></td>'
             f"<td>{_escape(w['gate'])}</td><td>{_escape(w['since'])}</td><td>{_h(w['hours'])}</td>"
-            f"<td>{_escape(_STAGE_LABEL.get(w['stage'] or '', '—'))}</td></tr>"
+            f"<td>{_escape(_STAGE_LABEL.get(w['stage'] or '', '—'))}</td>"
+            f"<td>{_escape(_RISK_LABEL.get(w.get('risk') or '', '—'))}</td></tr>"
             for w in r["waiting"]
         )
-        or "<tr><td colspan=5><small>nic nie czeka na decyzję</small></td></tr>"
+        or "<tr><td colspan=6><small>nic nie czeka na decyzję</small></td></tr>"
     )
     gate_rows = (
         "".join(
@@ -891,7 +912,7 @@ def _flow_body(deps: Deps, token: str, now: datetime) -> str:
         "<p><small>Godziny zegarowe od prośby o bramkę do decyzji (DV4); czekanie — bramki otwarte, praca — reszta "
         "czasu zmiany do wydania albo do teraz.</small></p>"
         "<h2>Gdzie zmiana czeka</h2>"
-        "<table><thead><tr><th>Zmiana</th><th>Bramka</th><th>Od</th><th>Czeka</th><th>Termin</th></tr></thead>"
+        "<table><thead><tr><th>Zmiana</th><th>Bramka</th><th>Od</th><th>Czeka</th><th>Termin</th><th>Ryzyko</th></tr></thead>"
         f"<tbody>{waiting_rows}</tbody></table>"
         "<h2>Bramki</h2>"
         "<table><thead><tr><th>Bramka</th><th>Decyzje</th><th>Mediana</th><th>Najdłużej</th><th>Zatrzymała</th><th>Otwarte</th></tr>"

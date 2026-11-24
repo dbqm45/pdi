@@ -904,3 +904,50 @@ def test_flow_page_without_changes_says_so(registry: Registry) -> None:
     finally:
         server.shutdown()
     assert status == 200 and "nic nie czeka" in body.decode("utf-8")
+
+
+# --- DV2: ocena ryzyka zmiany (kontrakt 0.20.0) przy bramce, doradcza ---
+
+RISK = {
+    "level": "high",
+    "files": 2,
+    "base": "main",
+    "items": [{"level": "high", "category": "auth", "file": "src/auth/<login>.py", "reason": "authentication"}],
+}
+
+
+def test_inbox_card_shows_the_change_risk(registry: Registry) -> None:
+    item = _write_inbox_gate(registry, item_id="evt-risk-1", change="CHG-5", gate="B4")
+    item["risk"] = RISK
+    (registry.root / "inbox" / "evt-risk-1.yaml").write_text(json.dumps(item), encoding="utf-8")
+    server, url = _serve(console.Deps(registry, checkout=None))
+    try:
+        status, body, _ = _get(f"{url}/inbox?t={TOKEN}")
+        page = body.decode("utf-8")
+    finally:
+        server.shutdown()
+    assert status == 200 and "ryzyko: wysokie" in page
+    assert "src/auth/&lt;login&gt;.py" in page and "<login>" not in page and "authentication" in page
+
+
+def test_flow_page_shows_the_risk_of_the_waiting_gate(registry: Registry) -> None:
+    from pdi.changes import ChangeStore
+
+    ChangeStore(registry).save(
+        {
+            "change": "CHG-5",
+            "status": "open",
+            "history": [{"at": "2026-11-21T12:00:00Z", "what": "gate.requested", "gate": "B4"}],
+        }
+    )
+    item = _write_inbox_gate(registry, item_id="evt-risk-2", change="CHG-5", gate="B4")
+    item["risk"] = RISK
+    (registry.root / "inbox" / "evt-risk-2.yaml").write_text(json.dumps(item), encoding="utf-8")
+    server, url = _serve_at(console.Deps(registry, checkout=None))
+    try:
+        _, body, _ = _get(f"{url}/flow?t={TOKEN}")
+        page = body.decode("utf-8")
+    finally:
+        server.shutdown()
+    waiting = page.split("Gdzie zmiana czeka", 1)[1].split("</table>", 1)[0]
+    assert "<th>Ryzyko</th>" in waiting and "wysokie" in waiting
