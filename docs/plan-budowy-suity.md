@@ -480,6 +480,8 @@ Stan 2026-11-24: **DV4 zrobione** w pdi ([plan](plan-dv4-gdzie-zmiana-czeka.md))
 
 **DV1 zrobione** w pdi ([plan](plan-dv1-bramki-do-uproszczenia.md)): `pdi.process` mierzy dla każdej bramki w oknie ostatnich decyzji (30, próg 95% jak licznik akceptacji szkiców), ile przeszło bez uwag, a ile zatrzymało zmianę; bramka, która prawie nie zatrzymuje zmian, dostaje w skrzynce szkic „uprościć?” (`kind: process`, typ `process.gate_change`, decyduje człowiek; B5 nigdy); narzędzia MCP `process_report` i `propose_process_changes`, kolumna „Zatrzymała” na stronie „Przepływ”.
 
+**DV2 część 1 zrobiona** (decyzja DV2 w [`decyzje.md`](decyzje.md): na razie tylko ocena): kontrakt 0.20.0 (di-contract #9, `risk` w `gate.requested`), tf wysyła ocenę `tf risk` liczoną bez artefaktów zmiany, pdi zapisuje ją w pozycji bramki i pokazuje w skrzynce i w „Przepływie”. Część 2 (polityka bramek według ryzyka) — po danych, razem z N1.
+
 Kolejność rekomendowana: **DV4 → DV1 → DV2** (pierwsze dwa na danych, które już są; DV2 domyka AN7), potem DV3,
 DV7, DV6, DV5; DV8 po decyzji o DI Quality.
 

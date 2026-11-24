@@ -248,7 +248,8 @@ class Inbox:
             "closes_at",
             "default_option",
             "asked",
-        ):  # 0.19.0 (N2)
+            "risk",
+        ):  # 0.19.0 (N2), risk: 0.20.0 (DV2, doradcza ocena ryzyka zmiany)
             if key in payload:
                 item[key] = payload[key]
         if missing:

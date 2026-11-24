@@ -49,6 +49,21 @@ def _union_hours(spans: Iterable[tuple[datetime, datetime]]) -> float:
     return round(total / 3600, 1)
 
 
+def _risk(items: Sequence[dict[str, Any]], change: str, gate: str) -> str | None:
+    """Poziom ryzyka zmiany (DV2, kontrakt 0.20.0) z otwartej pozycji bramki tej zmiany; None bez oceny."""
+    for item in items:
+        if (
+            item.get("kind") == "gate"
+            and item.get("status") == "open"
+            and item.get("change") == change
+            and item.get("gate") == gate
+            and isinstance(item.get("risk"), dict)
+        ):
+            level = item["risk"].get("level")
+            return str(level) if level else None
+    return None
+
+
 def _stage(items: Sequence[dict[str, Any]], change: str, gate: str, now: datetime) -> str | None:
     """Najświeższy osiągnięty etap terminu (N3) otwartej pozycji bramki tej zmiany; None bez pozycji."""
     for item in items:
@@ -118,6 +133,7 @@ def timeline(state: dict[str, Any], *, now: datetime, items: Sequence[dict[str, 
             "since": current["requested_at"],
             "hours": current["hours"],
             "stage": _stage(items, change, current["gate"], now),
+            "risk": _risk(items, change, current["gate"]),
         },
         "released_at": None if released is None else released.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "total_hours": total,

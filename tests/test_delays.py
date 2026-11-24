@@ -42,7 +42,7 @@ def test_dv01_requests_are_paired_with_the_next_decision_of_the_same_gate() -> N
         ("B2", 2.0, "approved", 2),
         ("B3", 24.0, None, 1),
     ]
-    assert t["open"] == {"gate": "B3", "since": "2026-11-23T12:00:00Z", "hours": 24.0, "stage": None}
+    assert t["open"] == {"gate": "B3", "since": "2026-11-23T12:00:00Z", "hours": 24.0, "stage": None, "risk": None}
 
 
 def test_dv02_waiting_is_the_union_of_open_gates_and_work_is_the_rest() -> None:
