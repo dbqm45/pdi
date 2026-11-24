@@ -11,7 +11,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp_types import ToolAnnotations
 from typing_extensions import TypedDict  # pydantic na 3.11 wymaga TypedDict z typing_extensions
 
-from pdi import autonomy, forecast, pr_state
+from pdi import autonomy, delays, forecast, pr_state
 from pdi.changes import ChangeNotFound
 from pdi.dispatch import DispatchConfig
 from pdi.impact import ShipScopeConfig, read_connection
@@ -637,6 +637,15 @@ def build_server(
             return open_inbox().make_forecast(change)
         except ChangeNotFound as e:
             raise ToolError(str(e)) from e
+
+    @server.tool(annotations=_READ)
+    def flow_delays() -> dict[str, Any]:
+        """Gdzie zmiany czekają (DV4): waiting — otwarte bramki od najdłużej czekającej (zmiana, bramka, od kiedy,
+        godziny, etap terminu z N3); gates — dla każdej bramki liczba decyzji, mediana i maksimum czekania w godzinach
+        i liczba otwartych; items — rodzaje pozycji skrzynki z medianą czasu do decyzji; changes — czas czekania
+        i pracy każdej zmiany z udziałem czekania. Godziny zegarowe; tylko odczyt."""
+        inbox = open_inbox()
+        return delays.report(inbox.changes.all(status=None), inbox.items(status=None), now=inbox.registry.now())
 
     @server.tool(annotations=_READ)
     def forecast_report() -> dict[str, Any]:

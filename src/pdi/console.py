@@ -43,7 +43,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, quote, urlsplit
 
-from pdi import autonomy, dispatch_local, pr_state
+from pdi import autonomy, delays, dispatch_local, pr_state
 from pdi import trace as trace_mod
 from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig
@@ -254,6 +254,7 @@ def _nav(token: str) -> str:
         ("inbox", "Skrzynka"),
         ("decisions", "Decyzje"),
         ("autonomy", "Autonomia"),
+        ("flow", "Przepływ"),
     )
     return "<nav>" + "".join(f'<a href="/{path}?t={t}">{label}</a>' for path, label in pages) + "</nav>"
 
@@ -829,6 +830,79 @@ def _autonomy_body(deps: Deps, token: str) -> str:
     )
 
 
+def _h(value: Any) -> str:
+    return "—" if value is None else f"{value:.1f} h"
+
+
+def _share(value: Any) -> str:
+    return "—" if value is None else f"{round(100 * value)}%"
+
+
+_STAGE_LABEL = {
+    "new": "nowa",
+    "reminder": "przypomnienie",
+    "due_today": "termin dziś",
+    "overdue": "po terminie",
+    "paused": "wstrzymana",
+    "review": "do przeglądu",
+}
+
+
+def _flow_body(deps: Deps, token: str, now: datetime) -> str:
+    """DV4: gdzie zmiana czeka — otwarte bramki od najdłużej czekającej, bramki, rodzaje pozycji, czekanie i praca."""
+    r = delays.report(deps.changes.all(status=None), deps.inbox.items(status=None), now=now)
+    t = _escape(token)
+    waiting_rows = (
+        "".join(
+            f'<tr><td><a href="/trace/{_escape(w["change"])}?t={t}">{_escape(w["change"])}</a></td>'
+            f"<td>{_escape(w['gate'])}</td><td>{_escape(w['since'])}</td><td>{_h(w['hours'])}</td>"
+            f"<td>{_escape(_STAGE_LABEL.get(w['stage'] or '', '—'))}</td></tr>"
+            for w in r["waiting"]
+        )
+        or "<tr><td colspan=5><small>nic nie czeka na decyzję</small></td></tr>"
+    )
+    gate_rows = (
+        "".join(
+            f"<tr><td>{_escape(g['gate'])}</td><td>{g['decided']}</td><td>{_h(g['median_hours'])}</td>"
+            f"<td>{_h(g['max_hours'])}</td><td>{g['open']}</td></tr>"
+            for g in r["gates"]
+        )
+        or "<tr><td colspan=5><small>brak bramek w historii zmian</small></td></tr>"
+    )
+    kind_rows = (
+        "".join(
+            f"<tr><td>{_escape(k['kind'])}</td><td>{k['decided']}</td><td>{_h(k['median_hours'])}</td><td>{k['open']}</td></tr>"
+            for k in r["items"]
+        )
+        or "<tr><td colspan=4><small>skrzynka pusta</small></td></tr>"
+    )
+    change_rows = (
+        "".join(
+            f"<tr><td>{_escape(c['change'])}</td><td>{_h(c['waiting_hours'])}</td><td>{_h(c['working_hours'])}</td>"
+            f"<td>{_share(c['waiting_share'])}</td></tr>"
+            for c in r["changes"]
+        )
+        or "<tr><td colspan=4><small>brak zmian</small></td></tr>"
+    )
+    return (
+        "<h1>Przepływ</h1>"
+        "<p><small>Godziny zegarowe od prośby o bramkę do decyzji (DV4); czekanie — bramki otwarte, praca — reszta "
+        "czasu zmiany do wydania albo do teraz.</small></p>"
+        "<h2>Gdzie zmiana czeka</h2>"
+        "<table><thead><tr><th>Zmiana</th><th>Bramka</th><th>Od</th><th>Czeka</th><th>Termin</th></tr></thead>"
+        f"<tbody>{waiting_rows}</tbody></table>"
+        "<h2>Bramki</h2>"
+        "<table><thead><tr><th>Bramka</th><th>Decyzje</th><th>Mediana</th><th>Najdłużej</th><th>Otwarte</th></tr>"
+        f"</thead><tbody>{gate_rows}</tbody></table>"
+        "<h2>Skrzynka</h2>"
+        "<table><thead><tr><th>Rodzaj</th><th>Decyzje</th><th>Mediana do decyzji</th><th>Otwarte</th></tr></thead>"
+        f"<tbody>{kind_rows}</tbody></table>"
+        "<h2>Zmiany</h2>"
+        "<table><thead><tr><th>Zmiana</th><th>czekanie</th><th>praca</th><th>udział czekania</th></tr></thead>"
+        f"<tbody>{change_rows}</tbody></table>"
+    )
+
+
 # --- pliki artefaktów i diff ---
 
 
@@ -947,6 +1021,9 @@ def make_server(
                     return self._html(
                         200, _render_page("Autonomia", _autonomy_body(deps, token), nonce=nonce, token=token)
                     )
+                if path == "/flow":
+                    body = _flow_body(deps, token, clock())
+                    return self._html(200, _render_page("Przepływ", body, nonce=nonce, token=token))
                 if path.startswith("/trace/"):
                     return self._trace_route(path, params, token)
                 if path == "/sse/progress":

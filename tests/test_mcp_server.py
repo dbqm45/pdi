@@ -66,8 +66,10 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
         "forecast_report",
         "propose_decisions_from_conversation",
         "list_decision_changes",
+        "flow_delays",
     }
     assert tools["list_decision_changes"].annotations.read_only_hint is True
+    assert tools["flow_delays"].annotations.read_only_hint is True
     assert tools["propose_decisions_from_conversation"].annotations.read_only_hint is False
     assert tools["forecast_report"].annotations.read_only_hint is True
     assert tools["forecast_change"].annotations.read_only_hint is False
@@ -146,7 +148,7 @@ async def test_stdio_end_to_end(tmp_path: Path, make_draft: Draft) -> None:
         listed = await session.list_tools()
         result = await session.call_tool("record_decision", make_draft())
 
-    assert len(listed.tools) == 27
+    assert len(listed.tools) == 28
     assert json.loads(result.content[0].text)["id"] == "DEC-0001"
     assert (tmp_path / "rejestr" / "decisions" / "_ogolne" / "DEC-0001.md").is_file()
 
@@ -412,3 +414,9 @@ async def test_list_decision_changes_through_the_tool(server: Any, make_draft: D
     assert [d["id"] for d in first["decisions"]] == ["DEC-0001"]
     assert first["decisions"][0]["text"].startswith("---\nrecord: decision")
     assert second["decisions"] == []
+
+
+async def test_flow_delays_through_the_tool(server: Any) -> None:
+    report = await call(server, "flow_delays", {})
+
+    assert report == {"waiting": [], "gates": [], "items": [], "changes": []}
