@@ -52,6 +52,8 @@ FIELD_ORDER = (
     "consequences",
     "confirmation",
     "review_by",
+    "reversibility",
+    "provisional",
     "supersedes",
     "superseded_by",
     "links",
