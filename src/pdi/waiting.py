@@ -58,6 +58,36 @@ def business_days(kind: str, gate: str | None) -> int:
     return _KIND_DAYS.get(kind, DEFAULT_DAYS)
 
 
+_HARD_DAYS = 5  # OM1 §3: bramka trudna do cofnięcia (B3)
+
+
+def deadline_days(item: dict[str, Any]) -> int:
+    """Termin pozycji w dniach roboczych: OM1, a `reversibility: one_way` z bramki (kontrakt 0.19.0) daje bramce
+    bez własnego terminu w OM1 tyle, co bramka trudna do cofnięcia."""
+    kind, gate = str(item["kind"]), item.get("gate")
+    days = business_days(kind, gate)
+    has_own = kind == "gate" and gate and (gate in _GATE_DAYS or str(gate).startswith("stage:"))
+    if item.get("reversibility") == "one_way" and kind == "gate" and not has_own:
+        return max(days, _HARD_DAYS)
+    return days
+
+
+def _moment(text: str) -> datetime:
+    return datetime.fromisoformat(str(text).replace("Z", "+00:00")).astimezone(UTC)
+
+
+def _closes_at(item: dict[str, Any], received: datetime) -> datetime | None:
+    """`closes_at` z bramki (kontrakt 0.19.0), gdy jest późniejszy niż wpływ; inaczej None (termin z OM1)."""
+    raw = item.get("closes_at")
+    if not raw:
+        return None
+    try:
+        when = _moment(str(raw))
+    except ValueError:
+        return None
+    return when if when > received else None
+
+
 STAGES = ("new", "reminder", "due_today", "overdue", "paused", "review")
 
 
@@ -81,10 +111,18 @@ def _half_business_day(moment: datetime) -> datetime:
 
 def stages(item: dict[str, Any]) -> list[tuple[str, datetime]]:
     """Etapy pozycji po „new” z chwilami (UTC), rosnąco (OM1 §4–§5)."""
-    received = datetime.fromisoformat(str(item["received_at"]).replace("Z", "+00:00")).astimezone(UTC)
-    days = business_days(str(item["kind"]), item.get("gate"))
+    received = _moment(str(item["received_at"]))
+    closes = _closes_at(item, received)
+    if closes is not None:  # termin z bramki: te same proporcje co OM1 (połowa, 2 ×, 4 ×)
+        span = closes - received
+        out = [("reminder", received + span / 2)]
+        start_of_due_day = closes.replace(hour=0, minute=0, second=0, microsecond=0)
+        if start_of_due_day > out[-1][1]:
+            out.append(("due_today", start_of_due_day))
+        return [*out, ("overdue", closes), ("paused", received + 2 * span), ("review", received + 4 * span)]
+    days = deadline_days(item)
     due = add_business_days(received, days)
-    out: list[tuple[str, datetime]] = []
+    out = []
     if days == 1:
         out.append(("reminder", _half_business_day(received)))
     else:
@@ -116,7 +154,8 @@ def message(item: dict[str, Any], config: ChannelsConfig, stage: str = "new") ->
 
     `stage` ≠ „new” (N3) dokleja etap do `id`, więc każdy etap to osobna wiadomość, a ponowiony — ta sama."""
     received = date.fromisoformat(str(item["received_at"])[:10])
-    days = business_days(str(item["kind"]), item.get("gate"))
+    days = deadline_days(item)
+    closes = _closes_at(item, _moment(str(item["received_at"])))
     out: dict[str, Any] = {
         "id": (f"waiting-{item['id']}" if stage == "new" else f"waiting-{item['id']}-{stage}")[:128],
         "type": "gate.waiting",
@@ -126,7 +165,7 @@ def message(item: dict[str, Any], config: ChannelsConfig, stage: str = "new") ->
         "kind": item["kind"],
         "summary": str(item.get("summary") or item["id"])[:300],
         "received_at": item["received_at"],
-        "due": due_date(received, days).isoformat(),
+        "due": (closes.date() if closes else due_date(received, days)).isoformat(),
         "business_days": days,
         "where": "sdlc open → Skrzynka",
     }
@@ -134,6 +173,10 @@ def message(item: dict[str, Any], config: ChannelsConfig, stage: str = "new") ->
         out["change"] = item["change"]
     if item.get("gate"):
         out["gate"] = item["gate"]
+    # kontrakt 0.19.0 (N2): co obowiązuje po terminie i jak trudno to cofnąć
+    for key in ("default_option", "reversibility"):
+        if item.get(key):
+            out[key] = item[key]
     if config.console_url:
         out["url"] = f"{config.console_url.rstrip('/')}/inbox/{item['id']}"
     return out

@@ -184,3 +184,62 @@ def test_w14_a_paused_change_starts_no_next_phase_until_its_item_is_decided(regi
     assert result["change"]["dispatch"]["status"] == "skipped"
     assert "other-item" in result["change"]["dispatch"]["error"]
     assert result["change"]["paused"]["item"] == "other-item"
+
+
+# --- terminy z bramki (po N2 i N4, kontrakt 0.19.0): closes_at, reversibility, default_option, asked ---
+
+from pdi.waiting import deadline_days  # noqa: E402
+
+
+def test_w20_a_one_way_gate_without_its_own_om1_term_gets_five_days() -> None:
+    assert deadline_days({"kind": "gate", "gate": "B1", "reversibility": "one_way"}) == 5
+    assert deadline_days({"kind": "gate", "gate": "B1", "reversibility": "local"}) == 2
+    assert deadline_days({"kind": "gate", "gate": "B5", "reversibility": "one_way"}) == 1  # OM1 ma własny termin
+    assert deadline_days({"kind": "gate", "gate": "B1"}) == 2
+
+
+def test_w21_closes_at_sets_the_deadline_and_the_other_stages_keep_their_proportions() -> None:
+    item = {"kind": "gate", "gate": "B1", "received_at": "2026-10-23T09:30:00Z", "closes_at": "2026-10-27T09:30:00Z"}
+    assert stages(item) == [
+        ("reminder", at("2026-10-25T09:30:00")),
+        ("due_today", at("2026-10-27T00:00:00")),
+        ("overdue", at("2026-10-27T09:30:00")),
+        ("paused", at("2026-10-31T09:30:00")),
+        ("review", at("2026-11-08T09:30:00")),
+    ]
+    past = {**item, "closes_at": "2026-10-22T09:30:00Z"}  # termin sprzed wpływu — liczy się OM1
+    assert stages(past) == stages({k: v for k, v in item.items() if k != "closes_at"})
+
+
+def test_w22_the_message_carries_the_deadline_the_default_and_the_reversibility() -> None:
+    item = {
+        "id": "evt-gate-9",
+        "kind": "gate",
+        "gate": "B1",
+        "change": "CHG-12",
+        "summary": "Intencja",
+        "received_at": "2026-10-23T09:30:00Z",
+        "closes_at": "2026-10-28T12:00:00Z",
+        "default_option": "Przyjąć intencję",
+        "reversibility": "local",
+    }
+    msg = message(item, CONFIG)
+    assert msg["due"] == "2026-10-28" and msg["reversibility"] == "local"
+    assert msg["default_option"] == "Przyjąć intencję"
+    plain = message(
+        {k: v for k, v in item.items() if k not in ("closes_at", "default_option", "reversibility")}, CONFIG
+    )
+    assert plain["due"] == "2026-10-27" and "default_option" not in plain and "reversibility" not in plain
+
+
+def test_w23_a_gate_with_the_new_fields_is_accepted_and_keeps_them(registry: Registry) -> None:
+    asked = [{"name": "Ola", "kind": "human"}]
+    event = gate_event(
+        reversibility="one_way", closes_at="2026-10-30T09:00:00Z", default_option="Bez migracji", asked=asked
+    )
+    event["contract_version"] = "0.19.0"
+    result = Inbox(registry).receive(event)
+    assert result["status"] == "created"
+    item = result["item"]
+    assert item["reversibility"] == "one_way" and item["closes_at"] == "2026-10-30T09:00:00Z"
+    assert item["default_option"] == "Bez migracji" and item["asked"] == asked

@@ -1,6 +1,6 @@
 # Decision Record — specyfikacja pliku decyzji
 
-**Wersja:** kontrakt 0.17.0 (format od 0.14.0, pochodzenie od 0.16.0) · **Decyzje:** DR1–DR4 ([`docs/decyzje.md`](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md)) · **Schemat:**
+**Wersja:** kontrakt 0.19.0 (format od 0.14.0, pochodzenie od 0.16.0, odwracalność od 0.19.0) · **Decyzje:** DR1–DR4 ([`docs/decyzje.md`](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md)) · **Schemat:**
 [`decision.schema.json`](decision.schema.json) · **Walidator:** `pdi-validate` ·
 **Uzasadnienie i porównanie z MADR:** [`docs/propozycja-decision-record.md`](https://github.com/dbqm45/pdi/blob/main/docs/propozycja-decision-record.md)
 
@@ -40,7 +40,8 @@ Poza znacznikiem nagłówek musi przejść [`decision.schema.json`](decision.sch
 `contract_version`. Wymagane: `id`, `statement`, `why`, `decided_at`, `decided_by`, `kind`, `source`, `status`,
 `drafted_by`. Opisy pól: [dokument 14 §4.1](https://github.com/dbqm45/pdi/blob/main/docs/14-pdi-standalone.md#41-schemat-decyzji-contractdecisionschemajson)
 i opisy w schemacie; od 0.14.0 także `consequences` (skutki `good` / `bad` / `neutral`) i `confirmation` (`how`,
-`kind`, `ref`: jak sprawdzić, że decyzję wykonano).
+`kind`, `ref`: jak sprawdzić, że decyzję wykonano). Od 0.19.0 opcjonalnie `reversibility` (`local`, `broad`, `one_way`) i `provisional` (decyzja tymczasowa, do
+potwierdzenia przez decydenta; nie przy `one_way`).
 
 ## 5. Identyfikator i nazwa pliku
 
@@ -122,7 +123,7 @@ plan: [`docs/plan-eksport-madr.md`](https://github.com/dbqm45/pdi/blob/main/docs
 ---
 record: decision
 schema: https://github.com/dbqm45/pdi/contract/decision.schema.json
-contract_version: 0.17.0
+contract_version: 0.19.0
 id: DEC-0041
 statement: Bulk konfiguracja ładowarek zaczyna od zmiany taryfy.
 why: Najczęstsza operacja w zgłoszeniach; restart i firmware mają inne ryzyka.
