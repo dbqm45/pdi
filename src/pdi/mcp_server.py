@@ -140,6 +140,11 @@ class SuccessMetric(TypedDict):
     horizon: NotRequired[str]
 
 
+class AppliesTo(TypedDict, total=False):
+    paths: list[str]
+    components: list[str]
+
+
 class Links(TypedDict, total=False):
     prb: str
     chg: str
@@ -168,6 +173,7 @@ DRAFT_FIELDS = (
     "consequences",
     "confirmation",
     "review_by",
+    "applies_to",
     "links",
     "tags",
 )
@@ -223,6 +229,7 @@ def build_server(
         consequences: list[Consequence] | None = None,
         confirmation: Confirmation | None = None,
         review_by: str | None = None,
+        applies_to: AppliesTo | None = None,
         links: Links | None = None,
         tags: list[str] | None = None,
     ) -> Decision:
@@ -239,8 +246,11 @@ def build_server(
         i wniosku AI. assumptions: założenia; load_bearing=true, gdy ich upadek zmienia decyzję; invalidated_if:
         sygnał, po którym założenie przestaje być prawdziwe. consequences: skutki (effect good / bad / neutral)
         i confirmation: jak sprawdzić, że decyzję wykonano (how; kind test / ci_check / review / metric / manual; ref
-        np. id testu) — tylko gdy padły w rozmowie. Plik dostaje znacznik Decision Record od rejestru (nie podawaj
-        record, schema, contract_version). Ponowienie identycznego zapisu zwraca istniejący wpis.
+        np. id testu) — tylko gdy padły w rozmowie. applies_to: czego dotyczy decyzja w kodzie — paths (wzorce ścieżek
+        względem korzenia repo projektu: `services/docs/**`, `src/*.py`; katalog obejmuje wszystko pod nim) i/lub
+        components (nazwy jak project); podaj, gdy decyzja dotyczy konkretnych miejsc. Plik dostaje znacznik Decision
+        Record od rejestru (nie podawaj record, schema, contract_version). Ponowienie identycznego zapisu zwraca
+        istniejący wpis.
         """
         draft = _draft(locals())
         reg = open_registry()
@@ -258,6 +268,8 @@ def build_server(
         kind: Kind | None = None,
         project: str | None = None,
         app: App | None = None,
+        paths: list[str] | None = None,
+        components: list[str] | None = None,
         limit: int = 10,
     ) -> dict[str, list[Decision]]:
         """Szuka wcześniejszych decyzji całej suity: „co już zdecydowaliśmy w tej sprawie i dlaczego?”.
@@ -269,10 +281,22 @@ def build_server(
         z której decyzja pochodzi: pdi, tf, ci_for_sdlc, shipscope); limit wyników. Zwraca skróty z założeniami
         nośnymi, aplikacją (app), linkiem do oryginału (link) i pochodzeniem (origin); decyzję z innej aplikacji
         zmienia się u jej właściciela, nie w pdi. Pełny wpis: get_decision.
+        paths / components: „decyzje dla tych plików” — przed planem zmiany podaj pliki, które zmiana ruszy (ścieżki
+        względem korzenia repo), i/lub nazwy komponentów; zwraca tylko obowiązujące decyzje, których applies_to je
+        obejmuje, z polem matched (które pliki i komponenty trafiły). W podsumowaniu zmiany podaj, które sprawdziłeś.
         """
         return {
             "decisions": open_registry().find(
-                query, tags=tags, since=since, status=status, kind=kind, project=project, app=app, limit=limit
+                query,
+                tags=tags,
+                since=since,
+                status=status,
+                kind=kind,
+                project=project,
+                app=app,
+                paths=paths,
+                components=components,
+                limit=limit,
             )
         }
 

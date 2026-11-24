@@ -18,7 +18,7 @@ from typing import Any, TypeAlias
 
 import yaml
 
-from pdi import contract
+from pdi import applies_to, contract
 
 SCHEMA_PATH = contract.schema_path("decision")
 
@@ -54,6 +54,7 @@ FIELD_ORDER = (
     "review_by",
     "reversibility",
     "provisional",
+    "applies_to",
     "supersedes",
     "superseded_by",
     "links",
@@ -201,16 +202,25 @@ class Registry:
         kind: str | None = None,
         project: str | None = None,
         app: str | None = None,
+        paths: Iterable[str] | None = None,
+        components: Iterable[str] | None = None,
         limit: int = 10,
     ) -> list[Decision]:
         """Szuka decyzji po słowach zapytania (także fragmentach słów) i filtrach.
 
+        `paths` / `components` (kontrakt 0.22.0): tylko decyzje, których `applies_to` obejmuje któryś plik albo
+        komponent; bez `status` — tylko obowiązujące (`recorded`). Skrót dostaje wtedy `matched`.
         Kolejność: najwięcej trafionych słów, potem najnowsze.
         """
+        wanted_paths, wanted_components = list(paths or ()), list(components or ())
+        scoped = bool(wanted_paths or wanted_components)
+        if scoped and status is None:
+            status = "recorded"
         words = [w.lower() for w in _WORD.findall(query)]
         wanted_tags = set(tags or ())
         wanted_project = project_slug(project) if project else None
         hits: list[tuple[int, Decision]] = []
+        where: dict[str, dict[str, list[str]]] = {}
         for decision in self._all():
             if wanted_tags and not wanted_tags <= set(decision.get("tags", ())):
                 continue
@@ -224,13 +234,22 @@ class Registry:
                 continue
             if app and source_app(decision) != app:
                 continue
+            if scoped:
+                hit = applies_to.matched(decision, wanted_paths, wanted_components)
+                if hit is None:
+                    continue
+                where[decision["id"]] = hit
             haystack = _searchable_text(decision)
             score = sum(1 for w in words if w in haystack)
             if words and score == 0:
                 continue
             hits.append((score, decision))
         hits.sort(key=lambda h: (h[0], h[1]["decided_at"], _number(h[1]["id"])), reverse=True)
-        return [_summary(d) for _, d in hits[:limit]]
+        found = [_summary(d) for _, d in hits[:limit]]
+        for d in found:
+            if d["id"] in where:
+                d["matched"] = where[d["id"]]
+        return found
 
     def decisions(self) -> list[Decision]:
         """Wszystkie pełne wpisy rejestru, w kolejności ID."""
@@ -435,7 +454,7 @@ def _summary(d: Decision) -> Decision:
     summary: Decision = {
         k: d[k] for k in ("id", "statement", "why", "decided_at", "kind", "project", "status") if k in d
     }
-    for k in ("tags", "superseded_by"):
+    for k in ("tags", "superseded_by", "applies_to"):
         if k in d:
             summary[k] = d[k]
     summary["app"] = source_app(d)
