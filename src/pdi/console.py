@@ -43,7 +43,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, quote, urlsplit
 
-from pdi import autonomy, delays, dispatch_local, pr_state
+from pdi import autonomy, delays, dispatch_local, pr_state, process
 from pdi import trace as trace_mod
 from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig
@@ -850,7 +850,9 @@ _STAGE_LABEL = {
 
 def _flow_body(deps: Deps, token: str, now: datetime) -> str:
     """DV4: gdzie zmiana czeka — otwarte bramki od najdłużej czekającej, bramki, rodzaje pozycji, czekanie i praca."""
-    r = delays.report(deps.changes.all(status=None), deps.inbox.items(status=None), now=now)
+    states = deps.changes.all(status=None)
+    r = delays.report(states, deps.inbox.items(status=None), now=now)
+    stopped = {p["gate"]: f"{p['stopped']} z {p['measured']}" for p in process.report(states, now=now)}
     t = _escape(token)
     waiting_rows = (
         "".join(
@@ -864,10 +866,10 @@ def _flow_body(deps: Deps, token: str, now: datetime) -> str:
     gate_rows = (
         "".join(
             f"<tr><td>{_escape(g['gate'])}</td><td>{g['decided']}</td><td>{_h(g['median_hours'])}</td>"
-            f"<td>{_h(g['max_hours'])}</td><td>{g['open']}</td></tr>"
+            f"<td>{_h(g['max_hours'])}</td><td>{_escape(stopped.get(g['gate'], '—'))}</td><td>{g['open']}</td></tr>"
             for g in r["gates"]
         )
-        or "<tr><td colspan=5><small>brak bramek w historii zmian</small></td></tr>"
+        or "<tr><td colspan=6><small>brak bramek w historii zmian</small></td></tr>"
     )
     kind_rows = (
         "".join(
@@ -892,7 +894,7 @@ def _flow_body(deps: Deps, token: str, now: datetime) -> str:
         "<table><thead><tr><th>Zmiana</th><th>Bramka</th><th>Od</th><th>Czeka</th><th>Termin</th></tr></thead>"
         f"<tbody>{waiting_rows}</tbody></table>"
         "<h2>Bramki</h2>"
-        "<table><thead><tr><th>Bramka</th><th>Decyzje</th><th>Mediana</th><th>Najdłużej</th><th>Otwarte</th></tr>"
+        "<table><thead><tr><th>Bramka</th><th>Decyzje</th><th>Mediana</th><th>Najdłużej</th><th>Zatrzymała</th><th>Otwarte</th></tr>"
         f"</thead><tbody>{gate_rows}</tbody></table>"
         "<h2>Skrzynka</h2>"
         "<table><thead><tr><th>Rodzaj</th><th>Decyzje</th><th>Mediana do decyzji</th><th>Otwarte</th></tr></thead>"

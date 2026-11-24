@@ -27,7 +27,19 @@ from typing import Any, TypeAlias
 
 import yaml
 
-from pdi import autonomy, capture, contract, dispatch_local, flow, forecast, impact, phase_decisions, runs, waiting
+from pdi import (
+    autonomy,
+    capture,
+    contract,
+    dispatch_local,
+    flow,
+    forecast,
+    impact,
+    phase_decisions,
+    process,
+    runs,
+    waiting,
+)
 from pdi import pr_state as pr_state_mod
 from pdi.changes import ChangeNotFound, ChangeStore
 from pdi.dispatch import DispatchConfig, Post, dispatch_phase
@@ -62,9 +74,20 @@ MVP_RELEASE = "R1"
 SEEN_EVENTS_KEPT = 200
 # ID zdarzenia staje się nazwą pliku, więc tylko bezpieczne znaki i bez „..”.
 _EVENT_ID = re.compile(r"^(?!.*\.\.)[A-Za-z0-9._-]{1,128}$")
-_DECISION_KIND = {"gate": "gate", "impact_review": "product", "problem": "triage", "autonomy": "process"}
+_DECISION_KIND = {
+    "gate": "gate",
+    "impact_review": "product",
+    "problem": "triage",
+    "autonomy": "process",
+    "process": "process",
+}
 # Typ decyzji (kontrakt 0.5.0) nadawany przez skrzynkę, gdy szkic go nie podaje; bramki: zob. _decision_type.
-_DECISION_TYPE = {"impact_review": "outcome.assessment", "problem": "triage", "autonomy": autonomy.LEVEL_CHANGE_TYPE}
+_DECISION_TYPE = {
+    "impact_review": "outcome.assessment",
+    "problem": "triage",
+    "autonomy": autonomy.LEVEL_CHANGE_TYPE,
+    "process": process.GATE_CHANGE_TYPE,
+}
 
 
 class BadSignature(ValueError):
@@ -551,6 +574,44 @@ class Inbox:
             created.append({**item, **({"warning": warning} if warning else {})})
         return {"items": created, "refused": refused, "duplicates": duplicates}
 
+    def propose_process_changes(self) -> list[Item]:
+        """Pozycje „uprościć bramkę X?” dla bramek, które w pełnym oknie decyzji prawie nie zatrzymują zmian (DV1).
+
+        Najwyżej jedna otwarta na bramkę; po decyzji następna dopiero po pełnym nowym oknie decyzji tej bramki.
+        Decyduje człowiek (`decide`, outcome approved albo rejected); przebiegu pdi nie zmienia samo.
+        """
+        now = self.registry.now()
+        found = process.proposals(self.changes.all(status=None), now=now)
+        earlier = [i for i in self.items(status=None) if i["kind"] == "process"]
+        at = _iso(now)
+        day = at[:10].replace("-", "")
+        created: list[Item] = []
+        for proposal in found:
+            mine = [i for i in earlier if i.get("gate") == proposal["gate"]]
+            if any(i["status"] == "open" for i in mine):
+                continue
+            last = max((int(i["measurement"]["decided"]) for i in mine), default=None)
+            if last is not None and proposal["measurement"]["decided"] < last + proposal["measurement"]["window"]:
+                continue
+            item: Item = {
+                "id": f"process-{proposal['gate']}-{day}-{proposal['measurement']['decided']}",
+                "kind": "process",
+                "status": "open",
+                "change": None,
+                "source": "pdi",
+                "release": None,
+                "received_at": at,
+                **proposal,
+            }
+            self._dir.mkdir(parents=True, exist_ok=True)
+            try:
+                self._write(item, overwrite=False)
+            except FileExistsError:
+                continue
+            warning = self.registry.commit([self._path(item["id"])], f"inbox {item['id']}: {item['summary'][:60]}")
+            created.append({**item, **({"warning": warning} if warning else {})})
+        return created
+
     def propose_autonomy_changes(self) -> list[Item]:
         """Pozycje „zmienić poziom autonomii typu X?” dla rekomendacji z licznika akceptacji szkiców.
 
@@ -698,6 +759,8 @@ class Inbox:
             raise InvalidDecision(f"Triaż problemu wymaga outcome: jednego z {', '.join(PROBLEM_OUTCOMES)}.")
         if item["kind"] == "autonomy" and outcome not in AUTONOMY_OUTCOMES:
             raise InvalidDecision(f"Propozycja autonomii wymaga outcome: {' albo '.join(AUTONOMY_OUTCOMES)}.")
+        if item["kind"] == "process" and outcome not in AUTONOMY_OUTCOMES:
+            raise InvalidDecision(f"Propozycja uproszczenia bramki wymaga outcome: {' albo '.join(AUTONOMY_OUTCOMES)}.")
         if item["kind"] == "capture" and outcome not in CAPTURE_OUTCOMES:
             raise InvalidDecision(f"Szkic z rozmowy wymaga outcome: {' albo '.join(CAPTURE_OUTCOMES)}.")
         if item["kind"] == "capture" and outcome == "rejected":
@@ -741,11 +804,15 @@ class Inbox:
             extra = _problem_fields(item, draft)
         if item["kind"] == "autonomy":
             extra = {"evidence": [*(draft.get("evidence") or []), autonomy.evidence(item)]}
+        if item["kind"] == "process":
+            extra = {"evidence": [*(draft.get("evidence") or []), process.evidence(item)]}
         if item["kind"] == "capture":
             extra = capture.decision_fields(item, draft)
         decision_type = draft.get("decision_type") or _decision_type(item, gate)
         if item["kind"] == "autonomy":
             decision_type = autonomy.LEVEL_CHANGE_TYPE
+        if item["kind"] == "process":
+            decision_type = process.GATE_CHANGE_TYPE
         record = {
             **draft,
             **extra,
@@ -1132,6 +1199,8 @@ def _tags(item: Item, gate: str, outcome: str | None) -> list[str]:
         return ["capture", f"capture:{item['source']['kind']}"]
     if item["kind"] == "autonomy":
         return ["autonomy", f"autonomy:{outcome}", f"typ:{item['decision_type']}"]
+    if item["kind"] == "process":
+        return ["process", f"process:{outcome}", f"bramka:{item['gate']}"]
     if item["kind"] == "problem":
         return ["metric-breached", f"problem:{outcome}", f"metric:{item['metric']['metric']}"]
     if item["kind"] != "gate":
