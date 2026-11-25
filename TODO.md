@@ -262,6 +262,10 @@ silnika ma już sprintdeck. „Discuss with team” (T5) ma z nich korzystać, a
 
 ## Checki PR jako Definition of Done (zapisane 2026-11-25, pomysł właściciela — do zrobienia na samym końcu)
 
+> **Plan przyjęty 2026-11-25, wdrożenie odłożone:** [`docs/plan-dod-checki.md`](docs/plan-dod-checki.md) (pilot w pdi, nazwy po
+> angielsku, zbiorczy `Definition of Done`, punkt 9 najpierw tylko informuje, zmiana w dwóch krokach bez zerwania
+> wymaganych checków). Pytania „Do rozstrzygnięcia” niżej mają odpowiedzi w planie.
+
 **Pomysł:** lista checków w PR mówi, czy zmiana jest *skończona*, a nie tylko, które zadania CI przeszły. Zadania
 techniczne zostają (macierz Pythona, shardy tf), dostają nazwy punktów DoD (`DoD 2 · Testy (Python 3.11)`), a jeden
 zbiorczy check **„Definition of Done”** ma tabelę wszystkich punktów w szczegółach i jako jedyny jest wymagany

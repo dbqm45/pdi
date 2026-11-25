@@ -1,6 +1,6 @@
 # Checki PR jako Definition of Done — plan
 
-Stan: 2026-11-25, propozycja do zatwierdzenia przez właściciela. Źródło: `TODO.md`, sekcja „Checki PR jako Definition
+Stan: 2026-11-25, decyzje 1–6 przyjęte przez właściciela; **wdrożenie odłożone** (wrócimy do tego później, od pilota w pdi). Źródło: `TODO.md`, sekcja „Checki PR jako Definition
 of Done” (pomysł właściciela, ostatni punkt listy). Pomysł: lista checków w PR mówi, czy zmiana jest *skończona*.
 Jeden zbiorczy check **„Definition of Done”** ma w szczegółach tabelę wszystkich punktów i to on jest wymagany w
 ochronie gałęzi.
