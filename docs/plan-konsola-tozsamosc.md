@@ -1,6 +1,6 @@
 # Konsola pdi na tożsamości suity (ADR 17 §3, krok 4) — plan
 
-Stan: 2026-11-25, propozycja do decyzji właściciela (bez kodu). Wcześniej przeszły DI Release Control
+Stan: 2026-11-25, decyzje 1–5 przyjęte przez właściciela; kroki 1–4 zrobione (ten PR), sprawdzone na żywo. Wcześniej przeszły DI Release Control
 (`evdt-shipscope-flags` 0.7.6), DI Definition (`ci_for_sdlc` 0.1.72) i DI Release, krok 1 (`evdt-service-shipscope`
 0.2.70). Wszystko lokalnie, bez hostingu (wdrożenie na Hetzner — gdy suita zadziała end-to-end).
 
@@ -41,3 +41,14 @@ Stan: 2026-11-25, propozycja do decyzji właściciela (bez kodu). Wcześniej prz
 
 - Sesje w pamięci znikają przy restarcie konsoli: trzeba zalogować się ponownie (akceptowalne lokalnie).
 - `cryptography` jako zależność bezpośrednia: wersja z `uv.lock` bez zmian; uzasadnienie w commicie.
+
+## Co wyszło przy wdrożeniu (2026-11-25)
+
+- Widoki konsoli wstawiają `?t=` do każdego linku; w trybie suity dostają stałą, niesekretną wartość (`s`), a dostęp
+  daje sesja w ciasteczku (HttpOnly, SameSite=Lax). W adresie nie ma już poświadczenia.
+- POST w trybie suity wymaga nagłówka Origin albo Referer z tej konsoli (sesja jedzie w ciasteczku).
+- Rola `viewer` widzi strony bez przycisków decyzji, z wyjaśnieniem; serwer i tak odmawia (403).
+- `sdlc up` startuje konsolę po konfiguracji suity (sekret klienta `di-decision` powstaje przy pierwszym `up`);
+  połowiczne `PDI_SUITE_*` nie trafiają do konsoli.
+- Na żywo (Keycloak 26.4.7, di-identity 0.1.3): osoba spoza `acme` — 403 z powodem; `viewer` — tylko odczyt, decyzja 403;
+  `editor` — decyzja zapisana z `decided_by: Ola Test`.

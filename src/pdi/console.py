@@ -12,6 +12,11 @@ Bezpieczeństwo:
 
 - Nasłuch na `127.0.0.1` z hardcode; port z `PDI_CONSOLE_PORT` (domyślnie 8788).
 - Token w URL (`?t=<token>`) i w treści POST; brak albo niezgodność → 404 (jak w formularzu, nie zdradzamy istnienia).
+- Z `PDI_SUITE_ISSUER`/`PDI_SUITE_CLIENT_SECRET`/`PDI_SUITE_ORGANIZATION` (docs/plan-konsola-tozsamosc.md) zamiast
+  tokenu logowanie przez tożsamość suity (`suite_login.py`): `/login` → wystawca (PKCE) → `/callback`, sesja w
+  ciasteczku HttpOnly, SameSite=Lax; bez sesji każda strona przekierowuje na `/login`, a token w adresie nic nie
+  otwiera. POST wymaga sesji z rolą `editor`/`admin` (DI Decision) i nagłówka Origin albo Referer z tej konsoli;
+  `decided_by` = nazwa osoby z tokenu. `/logout` kończy sesję.
 - CSP bez `script-src 'unsafe-inline'`; jedyny JS to statyczny plik z nonce.
 - POST tylko `application/x-www-form-urlencoded`; `Origin` i `Referer` ograniczone do `http://127.0.0.1:<port>`.
 - Każde pole treści (tekst decyzji, pytania, logi, ścieżki, nazwy gałęzi) idzie przez `html.escape`; linie postępu
@@ -39,12 +44,13 @@ import sys
 import time
 from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
+from http.cookies import CookieError, SimpleCookie
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from urllib.parse import parse_qs, quote, urlsplit
 
-from pdi import autonomy, delays, dispatch_local, pr_state, process, stale
+from pdi import autonomy, delays, dispatch_local, pr_state, process, stale, suite_login
 from pdi import trace as trace_mod
 from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig
@@ -61,6 +67,11 @@ POLL_SECONDS = 0.5
 FILE_SIZE_LIMIT = 256 * 1024
 BINARY_PEEK = 8 * 1024
 SSE_RETRY_MS = 2000
+# Tryb suity (docs/plan-konsola-tozsamosc.md): ciasteczka logowania i sesji; widoki dostają w linkach `?t=` tę stałą,
+# niesekretną wartość, bo o dostępie decyduje sesja, nie adres.
+LOGIN_COOKIE = "pdi_login"
+SESSION_COOKIE = "pdi_session"
+SUITE_LINK_TOKEN = "s"  # noqa: S105 — wartość w linkach, nie sekret
 # Mapowanie faza/bramka → pas (Z7a; makieta design/konsola/v2-klikalna/*).
 LANES: dict[str, int] = {
     "intake": 1,
@@ -1077,9 +1088,16 @@ def make_server(
     host: str = DEFAULT_HOST,
     port: int = DEFAULT_PORT,
     clock: Callable[[], datetime] = _utc_now,
+    suite: suite_login.SuiteLogin | None = None,
 ) -> ThreadedHTTPServer:
-    """Serwer HTTP konsoli; `port=0` wybiera wolny port (do testów)."""
+    """Serwer HTTP konsoli; `port=0` wybiera wolny port (do testów).
+
+    Z `suite` (logowanie przez tożsamość suity, docs/plan-konsola-tozsamosc.md) strony wymagają sesji z logowania,
+    a `token` w adresie niczego nie otwiera; decyzja zapisuje osobę z sesji w `decided_by`, a decydować może tylko
+    rola `editor` albo `admin` klienta `di-decision`."""
     nonce = secrets.token_urlsafe(16)
+    if suite is not None:
+        token = SUITE_LINK_TOKEN
 
     def _csp() -> str:
         return (
@@ -1093,11 +1111,91 @@ def make_server(
         )
 
     class Handler(BaseHTTPRequestHandler):
+        session: suite_login.Session | None = None
+
+        def _cookie(self, name: str) -> str:
+            jar: SimpleCookie = SimpleCookie()
+            try:
+                jar.load(self.headers.get("cookie") or "")
+            except CookieError:
+                return ""
+            morsel = jar.get(name)
+            return morsel.value if morsel is not None else ""
+
+        def _redirect_uri(self) -> str:
+            return f"http://{host}:{cast(ThreadedHTTPServer, self.server).server_port}/callback"
+
+        def _decider(self) -> str:
+            if self.session is not None:
+                return self.session.name
+            return os.environ.get("PDI_DECIDED_BY") or "console"
+
+        def _redirect(self, location: str, cookies: list[str] | None = None) -> None:
+            self.send_response(302)
+            self.send_header("location", location)
+            for cookie in cookies or []:
+                self.send_header("set-cookie", cookie)
+            self.send_header("content-length", "0")
+            self.send_header("cache-control", "no-store")
+            self.end_headers()
+
+        def _suite_get(self, path: str, params: Mapping[str, str]) -> bool:
+            """Logowanie przez suitę: `/login`, `/callback` i sesja przed każdą stroną; True, gdy odpowiedź poszła."""
+            assert suite is not None  # noqa: S101 — wołane tylko w trybie suity
+            if path == "/login":
+                try:
+                    location, state = suite.begin(self._redirect_uri())
+                except suite_login.SuiteSignInError as e:
+                    sys.stderr.write(f"pdi-console: wystawca suity nieosiągalny: {e}\n")
+                    self._html(502, "<h1>502</h1><p>Usługa tożsamości suity nie odpowiada. Spróbuj za chwilę.</p>")
+                    return True
+                ttl = suite_login.LOGIN_TTL_SECONDS
+                cookie = f"{LOGIN_COOKIE}={state}; Path=/callback; Max-Age={ttl}; HttpOnly; SameSite=Lax"
+                self._redirect(location, [cookie])
+                return True
+            if path == "/callback":
+                clear = f"{LOGIN_COOKIE}=; Path=/callback; Max-Age=0; HttpOnly; SameSite=Lax"
+                try:
+                    session_id, _ = suite.complete(
+                        self._redirect_uri(), code=params.get("code", ""), state=params.get("state", ""),
+                        cookie_state=self._cookie(LOGIN_COOKIE),
+                    )  # fmt: skip
+                except KeyError:
+                    self._html(
+                        400,
+                        "<h1>400</h1><p>Logowanie wygasło albo nie zaczęło się tutaj. "
+                        '<a href="/login">Zaloguj się ponownie</a>.</p>',
+                    )
+                    return True
+                except suite_login.Refused as e:
+                    self._html(403, f"<h1>403</h1><p>{_escape(str(e))}</p>")
+                    return True
+                except suite_login.SuiteSignInError as e:
+                    sys.stderr.write(f"pdi-console: logowanie przez suitę odrzucone: {e}\n")
+                    self._html(
+                        502,
+                        "<h1>502</h1><p>Logowanie przez suitę nie powiodło się. "
+                        '<a href="/login">Spróbuj ponownie</a>.</p>',
+                    )
+                    return True
+                ttl = suite_login.SESSION_TTL_SECONDS
+                session = f"{SESSION_COOKIE}={session_id}; Path=/; Max-Age={ttl}; HttpOnly; SameSite=Lax"
+                self._redirect("/", [clear, session])
+                return True
+            self.session = suite.session(self._cookie(SESSION_COOKIE))
+            if self.session is None:
+                self._redirect("/login")
+                return True
+            return False
+
         def do_GET(self) -> None:  # noqa: N802
             url = urlsplit(self.path)
             params = {k: v[-1] for k, v in parse_qs(url.query).items() if v}
             given = params.get("t", "")
-            if not _token_ok(token, given):
+            if suite is not None:
+                if self._suite_get(url.path, params):
+                    return None
+            elif not _token_ok(token, given):
                 return self._html(404, "<h1>404</h1><p>Brak takiej strony.</p>")
 
             path = url.path
@@ -1219,7 +1317,8 @@ def make_server(
             match = re.match(r"^/inbox/([A-Za-z0-9._-]{1,128})/decide$", url.path)
             triage = re.match(r"^/problems/(PRB-[0-9]{1,9})/triage$", url.path)
             stale_review = re.match(r"^/problems/(PRB-[0-9]{1,9})/stale$", url.path)  # DV6
-            if match is None and triage is None and stale_review is None:
+            logout = suite is not None and url.path == "/logout"
+            if match is None and triage is None and stale_review is None and not logout:
                 return self._html(404, "<h1>404</h1>")
             origin = self.headers.get("origin") or ""
             referer = self.headers.get("referer") or ""
@@ -1227,6 +1326,18 @@ def make_server(
                 return self._html(403, "<h1>403</h1><p>origin</p>")
             if referer and not referer.startswith(f"http://{host}:"):
                 return self._html(403, "<h1>403</h1><p>referer</p>")
+            if suite is not None:
+                # Sesja jedzie w ciasteczku, więc zmiana musi przyjść z tej strony: Origin albo Referer jest wymagany.
+                if not origin and not referer:
+                    return self._html(403, "<h1>403</h1><p>brak nagłówka Origin</p>")
+                self.session = suite.session(self._cookie(SESSION_COOKIE))
+                if logout:
+                    suite.end(self._cookie(SESSION_COOKIE))
+                    return self._redirect("/login", [f"{SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax"])
+                if self.session is None:
+                    return self._redirect("/login")
+                if self.session.access != "decide":
+                    return self._html(403, "<h1>403</h1><p>Decydować może rola editor albo admin w DI Decision.</p>")
             length = self.headers.get("content-length", "")
             if not length.isdigit() or int(length) > MAX_BODY:
                 return self._html(413, "<h1>413</h1><p>treść za duża</p>")
@@ -1240,7 +1351,7 @@ def make_server(
                 values = fields.get(name) or []
                 return values[0] if values else ""
 
-            if not _token_ok(token, one("t")):
+            if suite is None and not _token_ok(token, one("t")):
                 return self._html(404, "<h1>404</h1>")
             if triage is not None:
                 return self._triage(triage.group(1), one)
@@ -1272,7 +1383,7 @@ def make_server(
             draft: Decision = {
                 "statement": statement,
                 "why": why,
-                "decided_by": os.environ.get("PDI_DECIDED_BY") or "console",
+                "decided_by": self._decider(),
                 "decided_at": clock().date().isoformat(),
                 # Kontrakt pdi: `draft_edited` tylko przy `drafted_by: ai` (decision.schema.json allOf, 2026-11-06).
                 "drafted_by": "human",
@@ -1315,7 +1426,7 @@ def make_server(
             draft: Decision = {
                 "statement": statement,
                 "why": why,
-                "decided_by": os.environ.get("PDI_DECIDED_BY") or "console",
+                "decided_by": self._decider(),
                 "decided_at": clock().date().isoformat(),
                 "drafted_by": "human",
                 "kind": "triage",
@@ -1354,7 +1465,7 @@ def make_server(
             draft: Decision = {
                 "statement": statement,
                 "why": why,
-                "decided_by": os.environ.get("PDI_DECIDED_BY") or "console",
+                "decided_by": self._decider(),
                 "decided_at": clock().date().isoformat(),
                 "drafted_by": "human",
                 "kind": "triage",
@@ -1385,6 +1496,21 @@ def make_server(
 
         def _html(self, status: int, body: str) -> None:
             page = body if body.startswith("<!doctype") else _render_page("pdi", body, nonce=nonce)
+            if self.session is not None:
+                # Kto jest zalogowany (tryb suity) i wylogowanie — formularz bez skryptu, ten sam Origin co reszta.
+                level = "decyduje" if self.session.access == "decide" else "tylko odczyt"
+                who = (
+                    f'<div class="who">{_escape(self.session.name)} · {level} '
+                    '<form method="post" action="/logout" style="display:inline">'
+                    '<button type="submit">Wyloguj</button></form></div>'
+                )
+                if self.session.access != "decide":
+                    # Rola viewer: przyciski decyzji schowane (serwer i tak odmawia, 403), z wyjaśnieniem.
+                    who += (
+                        '<p class="read-only">Masz rolę viewer w DI Decision: decyzje podejmuje editor albo admin.</p>'
+                        "<style>form[action*='/decide'],form[action*='/triage'],form[action*='/stale']{display:none}</style>"
+                    )
+                page = page.replace("<main>", f"<main>{who}", 1)
             data = page.encode("utf-8")
             self.send_response(status)
             self.send_header("content-type", "text/html; charset=utf-8")
@@ -1456,9 +1582,13 @@ def main() -> None:
     registry_path = os.environ.get("PDI_REGISTRY_PATH")
     if not registry_path:
         raise SystemExit("Brak PDI_REGISTRY_PATH — katalog rejestru pdi.")
+    try:
+        suite_config = suite_login.config_from_env(os.environ)
+    except ValueError as e:
+        raise SystemExit(str(e)) from e
     token = os.environ.get("PDI_CONSOLE_TOKEN") or ""
-    if not token:
-        raise SystemExit("Brak PDI_CONSOLE_TOKEN — token sesji konsoli.")
+    if not token and suite_config is None:
+        raise SystemExit("Brak PDI_CONSOLE_TOKEN — token sesji konsoli (albo PDI_SUITE_* — logowanie przez suitę).")
     port = int(os.environ.get("PDI_CONSOLE_PORT", str(DEFAULT_PORT)))
     try:
         registry = Registry(Path(registry_path))
@@ -1467,7 +1597,8 @@ def main() -> None:
     checkout_raw = os.environ.get("PDI_DISPATCH_CHECKOUT")
     checkout = Path(checkout_raw) if checkout_raw else None
     deps = Deps(registry, checkout=checkout, inbox=inbox_from_env(registry))
-    server = make_server(deps, token=token, port=port)
+    suite = suite_login.SuiteLogin(suite_config) if suite_config is not None else None
+    server = make_server(deps, token=token or secrets.token_urlsafe(32), port=port, suite=suite)
     sys.stderr.write(f"pdi-console: nasłuchuje na http://{DEFAULT_HOST}:{port}/\n")
     try:
         server.serve_forever()

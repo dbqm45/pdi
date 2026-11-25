@@ -337,6 +337,9 @@ Pierwsze `sdlc up`:
 Resztę robi sam:
 - generuje sekrety (w tym `PDI_CONSOLE_TOKEN` sesji konsoli);
 - startuje ShipScope (`npm run dev`: Postgres w Dockerze, web i worker), `pdi-receiver` i `pdi-console` w tle;
+  z tożsamością suity (`sdlc init` z klonem di-identity) i `PDI_SUITE_ORGANIZATION=<alias>` w `~/.sdlc/env` konsola
+  loguje przez suitę zamiast tokenu w adresie: `viewer` czyta, `editor`/`admin` decyduje, `decided_by` = osoba z
+  tokenu ([plan](docs/plan-konsola-tozsamosc.md); adres przekierowania `REDIRECT_DI_DECISION` ustawia `sdlc up`);
 - łączy ShipScope z pdi bez przeglądarki (`local-pdi.js connect` i `test` w trybie lokalnym ShipScope);
 - wysyła gotowość zmian z ci_for_sdlc;
 - sprawdza Dockera i buduje obraz kontenera faz `pdi-phase` (Z8a; pierwszy raz kilka minut), a gdy w `~/.sdlc/env`

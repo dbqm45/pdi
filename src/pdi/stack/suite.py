@@ -158,7 +158,21 @@ def admin_env(ctx: Ctx, values: Mapping[str, str]) -> dict[str, str]:
         env["GOOGLE_CLIENT_ID"] = values["SUITE_GOOGLE_CLIENT_ID"]
         env["GOOGLE_CLIENT_SECRET"] = values["SUITE_GOOGLE_CLIENT_SECRET"]
     env.update({key: value for key, value in values.items() if key.startswith("REDIRECT_DI_")})
+    # Konsola pdi wraca z logowania na swój /callback (docs/plan-konsola-tozsamosc.md);
+    # własny adres w env ma pierwszeństwo.
+    port = values.get("PDI_CONSOLE_PORT") or home.DEFAULTS["PDI_CONSOLE_PORT"]
+    env.setdefault("REDIRECT_DI_DECISION", f"http://127.0.0.1:{port}/*")
     return env
+
+
+def console_env(config: home.Config, values: Mapping[str, str]) -> dict[str, str]:
+    """Zmienne logowania konsoli pdi przez suitę: gdy suita działa w sdlc, jest sekret klienta di-decision i właściciel
+    wskazał organizację (`PDI_SUITE_ORGANIZATION` w ~/.sdlc/env). Inaczej pusto — konsola zostaje przy tokenie."""
+    organization = (values.get("PDI_SUITE_ORGANIZATION") or "").strip()
+    secret = values.get("SUITE_CLIENT_SECRET_DI_DECISION") or ""
+    if not enabled(config) or not organization or not secret:
+        return {}
+    return {"PDI_SUITE_ISSUER": ISSUER, "PDI_SUITE_CLIENT_SECRET": secret, "PDI_SUITE_ORGANIZATION": organization}
 
 
 def configure(ctx: Ctx, identity: Path, values: Mapping[str, str]) -> None:

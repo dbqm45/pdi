@@ -1117,6 +1117,49 @@ def test_up_starts_keycloak_configures_the_realm_and_starts_di_identity(world: W
     assert "di-identity     http://127.0.0.1:3200" in world.text()
 
 
+DECISION_SECRET = "sekret-klienta-di-decision"  # noqa: S105 — sekret testowy
+
+
+def test_console_signs_in_through_the_suite_once_the_organization_is_set(world: World) -> None:
+    """docs/plan-konsola-tozsamosc.md: z `PDI_SUITE_ORGANIZATION` konsola loguje przez suitę; `sdlc open` → /login."""
+    with_suite(world)
+    previous = world.hooks[("npm", "run", "--silent", "identity", "--", "secrets")]
+
+    def secrets(argv: list[str], cwd: Path | None, env: Mapping[str, str], stdin: str | None) -> None:
+        previous(argv, cwd, env, stdin)
+        path = Path(argv[argv.index("--env-file") + 1])
+        path.write_text(path.read_text(encoding="utf-8") + f"SUITE_CLIENT_SECRET_DI_DECISION={DECISION_SECRET}\n")
+
+    world.hooks[("npm", "run", "--silent", "identity", "--", "secrets")] = secrets
+    env_path = world.home / ".sdlc" / "env"
+    env_path.write_text(env_path.read_text(encoding="utf-8") + "PDI_SUITE_ORGANIZATION=acme\n", encoding="utf-8")
+
+    assert up(world) == 0
+
+    configure = next(r for r in world.runs if r[0][-1] == "configure")
+    assert configure[2]["REDIRECT_DI_DECISION"] == "http://127.0.0.1:8788/*"
+    _, _, console_env = next(s for s in world.spawned if s[0] == "pdi-console")
+    assert console_env["PDI_SUITE_ISSUER"] == "http://localhost:8180/realms/suite"
+    assert console_env["PDI_SUITE_CLIENT_SECRET"] == DECISION_SECRET
+    assert console_env["PDI_SUITE_ORGANIZATION"] == "acme"
+    assert DECISION_SECRET not in world.argv_text() and DECISION_SECRET not in world.text()
+    assert "pdi-console" in world.text() and "logowanie przez suitę (acme)" in world.text()
+    world.opened.clear()
+    cli.main(["open"], ctx=world.ctx())
+    assert world.opened[0] == "http://127.0.0.1:8788/login"
+
+
+def test_console_keeps_its_token_without_the_organization(world: World) -> None:
+    with_suite(world)
+
+    assert up(world) == 0
+
+    _, _, console_env = next(s for s in world.spawned if s[0] == "pdi-console")
+    assert "PDI_SUITE_ISSUER" not in console_env
+    cli.main(["open"], ctx=world.ctx())
+    assert world.opened[0].startswith("http://127.0.0.1:8788/board?t=")
+
+
 def test_up_again_keeps_secrets_and_does_not_recreate_running_containers(world: World) -> None:
     with_suite(world)
     assert up(world) == 0
