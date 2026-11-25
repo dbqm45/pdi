@@ -254,3 +254,34 @@ silnika ma już sprintdeck. „Discuss with team” (T5) ma z nich korzystać, a
 - Granica z DI Assistant (rozmowa z Claude dla ludzi spoza IT) — DI Team rozmowy nie ma.
 - Czy głosowanie w „Ask team” używa silnika sprintdecka jako usługi, czy jego reguły zostają przeniesione.
 - Poziom szczegółu postępu agenta widoczny dla całego zespołu (czynność w zwykłych słowach tak; treść promptów nie).
+
+## Checki PR jako Definition of Done (zapisane 2026-11-25, pomysł właściciela — do zrobienia na samym końcu)
+
+**Pomysł:** lista checków w PR mówi, czy zmiana jest *skończona*, a nie tylko, które zadania CI przeszły. Zadania
+techniczne zostają (macierz Pythona, shardy tf), dostają nazwy punktów DoD (`DoD 2 · Testy (Python 3.11)`), a jeden
+zbiorczy check **„Definition of Done”** ma tabelę wszystkich punktów w szczegółach i jako jedyny jest wymagany
+w ochronie gałęzi. Para z gotowością definicji (Definition of Ready) z bramki ci_for_sdlc.
+
+**Punkty DoD (propozycja):**
+
+| # | Punkt | Jak sprawdzane | Stan 2026-11-25 |
+|---|---|---|---|
+| 1 | Opis zmiany w formacie Conventional Commits (≤ 72 znaki) | `conventional-commit` | jest (tf, ci_for_sdlc) |
+| 2 | Testy przechodzą na wspieranych wersjach | pdi `test (3.11/3.13)`, tf `workspace (…)`, `repo`, ci `test` | jest |
+| 3 | Jakość kodu: lint, format, typy | ruff, `mypy --strict`, `typecheck` | jest, wewnątrz zadań testowych |
+| 4 | Build działa | `npm run build`, kontener tf | jest (ci, tf) |
+| 5 | Kontrakt suity zgodny z przypiętym tagiem | `sync_contract.py check`, `contract:check` | jest |
+| 6 | Definicja gotowa (cięcia z weryfikacją i kryteriami) | `analyze --repo . --fail-on critical` | w projektach opcjonalne |
+| 7 | Cele zmiany spełnione (pokrycie, mutacje — TGT) | `analyze --coverage … --mutation …` | gdy `release.yaml` ma cele |
+| 8 | Bezpieczeństwo: skan bez błędów (SEC-001) | `analyze --sarif …` | gdy podłączony skaner |
+| 9 | Wpływ na decyzje wypełniony; „tak” tylko z decyzją zastępującą | sekcja w opisie PR + `analyze --base` | dziś tylko informuje (blokowanie: następny krok reguły w ci_for_sdlc) |
+| 10 | Skille przeszły bramkę (tf) | `skill_gate.py --status` | jest, wewnątrz `workspace` |
+| 11 | Dokumentacja i plan zaktualizowane | pole w opisie PR (przypomnienie) | ręczne |
+| 12 | Przegląd człowieka | review na GitHubie (nie check) | — |
+
+**Do rozstrzygnięcia przed startem:**
+- zakres: wszystkie cztery repozytoria czy najpierw szablon `change-check.yml` w tf (trafia do każdego projektu);
+- nazwy checków po polsku czy po angielsku (tf jest publiczne, po angielsku);
+- czy punkt 9 blokuje od razu, czy po odczycie odpowiedzi z opisu PR;
+- zmiana nazw zrywa wymagane checki w ochronie gałęzi: właściciel przestawia „required status checks” w ustawieniach
+  repozytoriów w tym samym momencie (z sesji agenta nie ma do nich dostępu), inaczej PR-y czekają na „Expected”.
