@@ -21,7 +21,7 @@ from typing import Any, TypeAlias
 
 import yaml
 
-from pdi import contract, dispatch_local, phase_decisions
+from pdi import contract, dispatch_local, phase_decisions, stale
 from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig, Post, dispatch_phase
 from pdi.notify import ReporterNotifyConfig, notify_reporter
@@ -158,6 +158,66 @@ class ProblemStore:
         path = self._write(updated, overwrite=True)
         self.registry.commit([path], f"{problem_id}: opis poprawiony")
         return updated
+
+    def last_questions_at(self, problem_id: str) -> str | None:
+        """Chwila ostatnich pytań do zgłaszającego (DV6), z notatek; None, gdy pytań nie było."""
+        asked = self._notes(problem_id).get("questions") or []
+        return str(asked[-1]["at"]) if asked and isinstance(asked[-1], dict) and asked[-1].get("at") else None
+
+    def review_stale(self, problem_id: str, outcome: str, draft: Decision) -> dict[str, Any]:
+        """Decyzja człowieka o porzuconym zgłoszeniu (DV6): `close` → `rejected` (powód `other`), `revalidate` → z
+        powrotem do triażu. Tylko dla zgłoszeń z raportu `pdi.stale.report`."""
+        if outcome not in stale.OUTCOMES:
+            raise InvalidDecision(f"outcome: jeden z {', '.join(stale.OUTCOMES)}.")
+        listed = {r["problem"]: r for r in stale.report(self, self.registry, now=self.registry.now())}
+        if problem_id not in listed:
+            raise InvalidDecision(
+                f"{problem_id} nie jest porzucone (odłożone > {stale.PARKED_DAYS} dni albo pytania bez odpowiedzi > "
+                f"{stale.CLARIFYING_DAYS} dni) — sprawdź stale_problems."
+            )
+        item = self.get(problem_id)
+        if outcome == "close":
+            updated = {
+                **{k: v for k, v in item.items() if k != "return_when"},
+                "status": "rejected",
+                "rejection_reason": "other",
+                "rejection_note": str(draft["statement"]).strip(),
+            }
+        else:
+            updated = {**{k: v for k, v in item.items() if k != "return_when"}, "status": "ready_for_triage"}
+        self._check({**updated, "triage_decision": "DEC-1"}, InvalidDecision)
+        tags = [*(draft.get("tags") or []), "porzucone", f"porzucone:{outcome}"]
+        decision = self.registry.record(
+            {
+                **draft,
+                "kind": "triage",
+                "decision_type": stale.REVIEW_TYPE,
+                "links": {**(draft.get("links") or {}), "prb": problem_id},
+                "tags": list(dict.fromkeys(tags)),
+                "evidence": [
+                    *(draft.get("evidence") or []),
+                    {
+                        "text": f"pdi, przegląd porzuconych (DV6): {listed[problem_id]['reason']}.",
+                        "epistemic_status": "observation",
+                    },
+                ],
+            }
+        )
+        if outcome == "close":
+            updated["triage_decision"] = decision["id"]
+        warning = self.registry.commit(
+            [self._write(updated, overwrite=True)], f"{problem_id}: przegląd porzuconych {outcome} ({decision['id']})"
+        )
+        if outcome == "close":
+            notification = self._send(updated, "rejected", decision=decision["id"])
+        else:
+            notification = self._send(updated, "returned", round=int(updated.get("reports_count") or 1), stale=True)
+        return {
+            "problem": updated,
+            "decision": decision,
+            "notification": notification,
+            **({"warning": warning} if warning else {}),
+        }
 
     def get(self, problem_id: str) -> Problem:
         path = self._path(problem_id) if _KEY.match(problem_id) else None
@@ -499,6 +559,8 @@ def _message(item: Problem, what: str, d: dict[str, Any]) -> str:
         return f"Zmiana {d['change']} z Twojego zgłoszenia {item['id']} jest u ludzi{line} od {d['released_at']}."
     if what == "questions":
         return f"{head}: mamy pytania, zanim je ocenimy — odpowiedz, proszę, na kanale, którym przyszło."
+    if what == "returned" and d.get("stale"):
+        return f"{head} wraca do oceny po przeglądzie odłożonych zgłoszeń."
     if what == "returned":
         return f"{head} wraca do oceny: zgłosiło je już {d['round']} osób."
     result = IMPACT_TEXT.get(d["outcome"], d["outcome"])

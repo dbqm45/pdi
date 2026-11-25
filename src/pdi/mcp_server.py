@@ -11,7 +11,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp_types import ToolAnnotations
 from typing_extensions import TypedDict  # pydantic na 3.11 wymaga TypedDict z typing_extensions
 
-from pdi import autonomy, context, delays, forecast, pr_state, process
+from pdi import autonomy, context, delays, forecast, pr_state, process, stale
 from pdi.changes import ChangeNotFound
 from pdi.dispatch import DispatchConfig
 from pdi.impact import ShipScopeConfig, read_connection
@@ -663,6 +663,38 @@ def build_server(
                 duplicate_of=duplicate_of,
                 no_code={"kind": no_code["kind"], "how": no_code["how"]} if no_code else None,
             )
+        except (ProblemNotFound, InvalidDecision) as e:
+            raise ToolError(str(e)) from e
+
+    @server.tool(annotations=_READ)
+    def stale_problems() -> dict[str, list[dict[str, Any]]]:
+        """Zgłoszenia porzucone (DV6): odłożone ponad 90 dni (warunek powrotu się nie spełnił) i z pytaniami bez
+        odpowiedzi ponad 30 dni. Każde: stan, od kiedy, ile dni, powód i rekomendacja (close / revalidate). Decyzję
+        podejmuje człowiek: review_stale_problem."""
+        reg = open_registry()
+        return {"problems": stale.report(open_problems(), reg, now=reg.now())}
+
+    @server.tool(annotations=_WRITE)
+    def review_stale_problem(
+        problem_id: str,
+        outcome: Literal["close", "revalidate"],
+        statement: str,
+        why: str,
+        source: Source,
+        drafted_by: Literal["ai", "human"],
+        draft_edited: bool | None = None,
+        decided_by: str | None = None,
+        decided_at: str | None = None,
+        evidence: list[Evidence] | None = None,
+        tags: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Decyzja o porzuconym zgłoszeniu (DV6) — wywołuj po zatwierdzeniu szkicu przez człowieka. outcome: close
+        (zgłoszenie odrzucone z powodem other, notatka = statement) albo revalidate (wraca do triażu). Zapisuje decyzję
+        kind triage, typ problem.stale_review, ze znacznikiem porzucone; powiadamia zgłaszającego. Tylko dla zgłoszeń
+        ze stale_problems."""
+        draft = _draft({**locals(), "kind": "triage"})
+        try:
+            return open_problems().review_stale(problem_id, outcome, draft)
         except (ProblemNotFound, InvalidDecision) as e:
             raise ToolError(str(e)) from e
 

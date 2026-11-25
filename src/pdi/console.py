@@ -44,7 +44,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, quote, urlsplit
 
-from pdi import autonomy, delays, dispatch_local, pr_state, process
+from pdi import autonomy, delays, dispatch_local, pr_state, process, stale
 from pdi import trace as trace_mod
 from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig
@@ -677,7 +677,7 @@ def _inbox_body(deps: Deps, token: str) -> str:
             f"{action_buttons}"
             "</form></section>"
         )
-    triage = _triage_cards(deps, token)
+    triage = _triage_cards(deps, token) + _stale_cards(deps, token)
     body = "".join(rows) if rows else "<p><small>brak pozycji bramek i ocen</small></p>"
     return f"<h1>Skrzynka</h1>{triage}{body}"
 
@@ -697,6 +697,35 @@ NO_CODE_KINDS = (
     ("process_change", "zmiana procesu"),
     ("existing_feature", "istniejąca funkcja"),
 )
+
+
+def _stale_cards(deps: Deps, token: str) -> str:
+    """DV6: zgłoszenia porzucone — odłożone i bez odpowiedzi — z decyzją „zamknąć” albo „zwalidować ponownie”."""
+    rows = stale.report(deps.inbox.problems, deps.inbox.registry, now=deps.inbox.registry.now())
+    if not rows:
+        return ""
+    t = _escape(token)
+    labels = {"close": "zamknąć", "revalidate": "zwalidować ponownie"}
+    cards = []
+    for r in rows:
+        pid = _escape(r["problem"])
+        cards.append(
+            f'<section class="card"><h2>{pid} <span class="pill">porzucone</span> '
+            f'<span class="pill open">{_escape(r["days"])} dni</span></h2>'
+            f"<p><strong>{_escape(r['title'])}</strong></p><p>{_escape(r['reason'])}. Rekomendacja: "
+            f"{_escape(labels[r['recommendation']])}.</p>"
+            f'<form method="post" action="/problems/{pid}/stale?t={t}">'
+            f'<input type="hidden" name="t" value="{t}">'
+            '<div class="row"><label>Treść decyzji (statement)</label>'
+            '<textarea name="statement" required maxlength="800"></textarea></div>'
+            '<div class="row"><label>Dlaczego (why)</label>'
+            '<textarea name="why" required maxlength="2000"></textarea></div>'
+            '<div class="row">'
+            '<button class="warn" name="outcome" value="close">zamknij</button> '
+            '<button name="outcome" value="revalidate">zwaliduj ponownie</button>'
+            "</div></form></section>"
+        )
+    return "<h2>Zgłoszenia porzucone</h2>" + "".join(cards)
 
 
 def _triage_cards(deps: Deps, token: str) -> str:
@@ -1186,7 +1215,8 @@ def make_server(
             # /inbox/<ID>/decide albo /problems/<PRB>/triage
             match = re.match(r"^/inbox/([A-Za-z0-9._-]{1,128})/decide$", url.path)
             triage = re.match(r"^/problems/(PRB-[0-9]{1,9})/triage$", url.path)
-            if match is None and triage is None:
+            stale_review = re.match(r"^/problems/(PRB-[0-9]{1,9})/stale$", url.path)  # DV6
+            if match is None and triage is None and stale_review is None:
                 return self._html(404, "<h1>404</h1>")
             origin = self.headers.get("origin") or ""
             referer = self.headers.get("referer") or ""
@@ -1211,6 +1241,8 @@ def make_server(
                 return self._html(404, "<h1>404</h1>")
             if triage is not None:
                 return self._triage(triage.group(1), one)
+            if stale_review is not None:
+                return self._stale(stale_review.group(1), one)
             if match is None:  # pragma: no cover — jedno z dwóch dopasowań jest zawsze ustawione
                 return self._html(404, "<h1>404</h1>")
             item_id = match.group(1)
@@ -1269,6 +1301,34 @@ def make_server(
                 info += f"<p class='warn'>{_escape(warning)}</p>"
             info += f'<p><a href="{back}">wróć do skrzynki</a></p>'
             return self._html(200, _render_page("Decyzja zapisana", info, nonce=nonce, token=token))
+
+        def _stale(self, problem_id: str, one: Callable[[str], str]) -> None:
+            """DV6: decyzja o porzuconym zgłoszeniu — ten sam `ProblemStore.review_stale` co MCP."""
+            outcome = one("outcome")
+            statement = _sanitize_text(one("statement"), limit=800)
+            why = _sanitize_text(one("why"), limit=2000)
+            if not statement or not why:
+                return self._html(400, "<h1>400</h1><p>Brak treści decyzji albo powodu.</p>")
+            draft: Decision = {
+                "statement": statement,
+                "why": why,
+                "decided_by": os.environ.get("PDI_DECIDED_BY") or "console",
+                "decided_at": clock().date().isoformat(),
+                "drafted_by": "human",
+                "kind": "triage",
+                "source": {"kind": "console", "url": f"http://{host}:{port}/inbox", "excerpt": problem_id},
+            }
+            try:
+                result = deps.inbox.problems.review_stale(problem_id, outcome, draft)
+            except InvalidDecision as e:
+                return self._html(409, f"<h1>409</h1><p>{_escape(str(e))}</p>")
+            except LookupError as e:
+                return self._html(404, f"<h1>404</h1><p>{_escape(str(e))}</p>")
+            decision = result.get("decision") or {}
+            return self._html(
+                200,
+                f"<h1>Decyzja zapisana</h1><p>{_escape(decision.get('id'))}: {_escape(decision.get('statement'))}</p>",
+            )
 
         def _triage(self, problem_id: str, one: Callable[[str], str]) -> None:
             """Triaż zgłoszenia przyciskiem: ten sam `ProblemStore.triage` co narzędzie MCP `triage_problem`."""
