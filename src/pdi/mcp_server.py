@@ -733,9 +733,9 @@ def build_server(
     @server.tool(annotations=_READ)
     def flow_delays() -> dict[str, Any]:
         """Gdzie zmiany czekają (DV4): waiting — otwarte bramki od najdłużej czekającej (zmiana, bramka, od kiedy,
-        godziny, etap terminu z N3); gates — dla każdej bramki liczba decyzji, mediana i maksimum czekania w godzinach
-        i liczba otwartych; items — rodzaje pozycji skrzynki z medianą czasu do decyzji; changes — czas czekania
-        i pracy każdej zmiany z udziałem czekania. Godziny zegarowe; tylko odczyt."""
+        godziny, etap terminu z N3); gates — dla każdej bramki liczba decyzji, mediana, p90 i maksimum czekania
+        w godzinach i liczba otwartych; items — rodzaje pozycji skrzynki z medianą i p90 czasu do decyzji; changes —
+        czas czekania i pracy każdej zmiany z udziałem czekania. Godziny zegarowe; tylko odczyt."""
         inbox = open_inbox()
         return delays.report(inbox.changes.all(status=None), inbox.items(status=None), now=inbox.registry.now())
 

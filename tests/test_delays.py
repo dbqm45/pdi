@@ -114,15 +114,31 @@ def test_dv05_report_lists_waiting_changes_gates_and_inbox_kinds() -> None:
         ("CHG-20", "B1", 2.0),
     ]
     by_gate = {g["gate"]: g for g in r["gates"]}
-    assert by_gate["B2"] == {"gate": "B2", "decided": 2, "median_hours": 7.0, "max_hours": 12.0, "open": 0}
+    assert by_gate["B2"] == {
+        "gate": "B2",
+        "decided": 2,
+        "median_hours": 7.0,
+        "p90_hours": 12.0,
+        "max_hours": 12.0,
+        "open": 0,
+    }
     assert by_gate["B1"]["open"] == 1 and by_gate["B3"]["decided"] == 0
     assert [g["gate"] for g in r["gates"]] == ["B1", "B2", "B3"]  # kolejność łańcucha
     kinds = {k["kind"]: k for k in r["items"]}
-    assert kinds["gate"] == {"kind": "gate", "decided": 2, "median_hours": 3.0, "open": 0}
-    assert kinds["problem"] == {"kind": "problem", "decided": 1, "median_hours": 40.0, "open": 1}
+    assert kinds["gate"] == {"kind": "gate", "decided": 2, "median_hours": 3.0, "p90_hours": 4.0, "open": 0}
+    assert kinds["problem"] == {"kind": "problem", "decided": 1, "median_hours": 40.0, "p90_hours": 40.0, "open": 1}
     assert r["changes"][0] == {"change": "CHG-12", "waiting_hours": 42.0, "working_hours": 58.0, "waiting_share": 0.42}
 
 
 def test_dv06_an_empty_history_gives_an_empty_timeline() -> None:
     t = delays.timeline(state("CHG-1", []), now=NOW)
     assert t["gates"] == [] and t["open"] is None and t["total_hours"] == 0.0 and t["waiting_hours"] == 0.0
+
+
+def test_dv07_p90_is_the_nearest_rank_of_ten_decisions() -> None:
+    states = [
+        state(f"CHG-{n}", [req("2026-11-20T00:00:00Z", "B1"), dec(f"2026-11-20T{n:02d}:00:00Z", "B1")])
+        for n in range(1, 11)
+    ]
+    b1 = delays.report(states, [], now=NOW)["gates"][0]
+    assert (b1["median_hours"], b1["p90_hours"], b1["max_hours"]) == (5.5, 9.0, 10.0)

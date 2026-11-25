@@ -894,6 +894,7 @@ def test_flow_page_shows_where_changes_wait(registry: Registry) -> None:
     per_gate = page.split("Bramki", 1)[1].split("</table>", 1)[0]
     assert "B1" in per_gate and "4.0 h" in per_gate
     assert "<th>Zatrzymała</th>" in per_gate and "<td>0 z 1</td>" in per_gate
+    assert "<th>p90</th>" in per_gate  # 9 na 10 decyzji szybciej niż ta wartość
     assert "czekanie" in page and "praca" in page
 
 
