@@ -1130,6 +1130,10 @@ def make_server(
                 return self.session.name
             return os.environ.get("PDI_DECIDED_BY") or "console"
 
+        def _decider_id(self) -> dict[str, str]:
+            """`decided_by_id` (kontrakt 0.25.0): `sub` osoby z sesji suity; bez sesji — pole pominięte."""
+            return {"decided_by_id": self.session.sub} if self.session is not None else {}
+
         def _redirect(self, location: str, cookies: list[str] | None = None) -> None:
             self.send_response(302)
             self.send_header("location", location)
@@ -1384,6 +1388,7 @@ def make_server(
                 "statement": statement,
                 "why": why,
                 "decided_by": self._decider(),
+                **self._decider_id(),
                 "decided_at": clock().date().isoformat(),
                 # Kontrakt pdi: `draft_edited` tylko przy `drafted_by: ai` (decision.schema.json allOf, 2026-11-06).
                 "drafted_by": "human",
@@ -1427,6 +1432,7 @@ def make_server(
                 "statement": statement,
                 "why": why,
                 "decided_by": self._decider(),
+                **self._decider_id(),
                 "decided_at": clock().date().isoformat(),
                 "drafted_by": "human",
                 "kind": "triage",
@@ -1466,6 +1472,7 @@ def make_server(
                 "statement": statement,
                 "why": why,
                 "decided_by": self._decider(),
+                **self._decider_id(),
                 "decided_at": clock().date().isoformat(),
                 "drafted_by": "human",
                 "kind": "triage",
