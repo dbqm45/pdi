@@ -75,18 +75,21 @@ by się rozjeżdżała.
 Dziś serwer MCP pdi działa przez stdio (lokalnie, bez autoryzacji). Etap 2 planu — ten sam serwer jako zdalny
 connector Claude.ai / desktop (HTTP) — wymaga autoryzacji wg specyfikacji MCP. Źródło przeglądu: artykuł „MCP
 Learnings” (C. Hobbs, 2026-10); wymagania sprawdzić w specyfikacji na modelcontextprotocol.io z datą przed planem.
-- [ ] **Przed etapem 2:** OAuth 2.1 z PKCE i odkrywaniem serwera autoryzacji z metadanych zasobu; rejestracja
-  klienta przez Client ID Metadata Documents oraz (dla starszych klientów) Dynamic Client Registration
-  (sprawdzone 2026-10-29, specyfikacja `2026-07-28`: DCR przestarzałe, działa dla zgodności, usunięcie w przyszłej
-  wersji bez daty; klient sprawdza `iss` wg RFC 9207 i podaje `application_type`); serwer MCP tylko waliduje tokeny (odbiorca, termin, zakresy),
-  a wydawanie i odświeżanie zostawia zewnętrznemu dostawcy OAuth zamiast własnego serwera autoryzacji.
-- [ ] Zakresy (scopes) dopasowane do narzędzi: odczyt rejestru osobno od zapisu decyzji i od `supersede_decision`;
-  zapis decyzji i zastępowanie jako narzędzia wysokiego ryzyka z potwierdzeniem (wzorzec „zgoda związana z
-  argumentami”, pozycja w `tf/docs/todo.md`, sekcja wzorców bezpieczeństwa).
-
-- [ ] Specyfikacja `2026-07-28` ma bezstanowy rdzeń (bez `initialize` i `Mcp-Session-Id`, nagłówki `Mcp-Method`
-  i `Mcp-Name`): zdalny serwer pdi projektować od razu bez sesji protokołu; stan (np. szkic decyzji przed
-  zatwierdzeniem) jako jawny identyfikator zwracany z narzędzia. Przestarzałe Sampling/Roots/Logging nie używać.
+- [x] **Przed etapem 2:** OAuth 2.1 z PKCE i odkrywaniem serwera autoryzacji z metadanych zasobu; serwer MCP tylko
+  waliduje tokeny, a wydaje je zewnętrzny dostawca (zrobione 2026-11-25, lokalnie: `pdi-mcp --http`,
+  [plan](docs/plan-mcp-zdalny.md); wystawcą jest Keycloak suity). Rejestracja klienta inaczej, niż zapisano tu
+  2026-10-29: klient zarejestrowany z góry `di-decision-mcp` w `dbqm45/di-identity`. W Keycloak 26.4.7 nie ma Client
+  ID Metadata Documents, a anonimowa dynamiczna rejestracja otwierałaby realm. Wrócić do CIMD, gdy Keycloak go
+  obsłuży.
+- [x] Zakresy dopasowane do narzędzi, zrobione rolami zamiast zakresów OAuth: `viewer` odczyt, `editor`/`admin` zapis
+  (z `supersede_decision`), agent tylko odczyt. Zakres OAuth jest jeden (`openid`), bo klient MCP inaczej prosi o całą
+  listę wystawcy.
+- [ ] Zapis decyzji i zastępowanie jako narzędzia wysokiego ryzyka z potwierdzeniem (wzorzec „zgoda związana z
+  argumentami”, pozycja w `tf/docs/todo.md`, sekcja wzorców bezpieczeństwa) — razem z kartą MCP Apps niżej.
+- [x] Bez sesji protokołu: `pdi-mcp --http` działa bezstanowo (`stateless_http`, odpowiedzi JSON). Stan (np. szkic
+  przed zatwierdzeniem) to jawny identyfikator z narzędzia. Przestarzałych Sampling/Roots/Logging nie używa.
+- [ ] Przed hostingiem: connector w Claude.ai (publiczny https, adres zwrotny Claude.ai w `di-decision-mcp`) i decyzja
+  o `offline_access` (patrz `docs/plan-mcp-zdalny.md`, „Co wyszło przy wdrożeniu”).
 
 ## Karta zatwierdzenia decyzji jako MCP App (etap 2, zapisane 2026-10-29)
 

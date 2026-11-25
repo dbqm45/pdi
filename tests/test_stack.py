@@ -1373,3 +1373,32 @@ def test_status_and_down_cover_slack_questions(world: World) -> None:
     assert cli.main(["down"], ctx=world.ctx()) == 0
     for name in ("tunnel", "di-channels", "di-definition"):
         assert f"{name}: zatrzymany" in world.text()
+
+
+def test_remote_mcp_starts_over_http_with_suite_tokens_once_the_organization_is_set(world: World) -> None:
+    """docs/plan-mcp-zdalny.md: obok konsoli `pdi-mcp --http` na 127.0.0.1:8790, bez sekretu (serwer zasobów)."""
+    with_suite(world)
+    env_path = world.home / ".sdlc" / "env"
+    env_path.write_text(env_path.read_text(encoding="utf-8") + "PDI_SUITE_ORGANIZATION=acme\n", encoding="utf-8")
+
+    assert up(world) == 0
+
+    name, argv, mcp_env = next(s for s in world.spawned if s[0] == "pdi-mcp")
+    assert argv == ["uv", "run", "--directory", str(world.projects / "pdi"), "pdi-mcp", "--http"]
+    assert mcp_env["PDI_SUITE_ISSUER"] == "http://localhost:8180/realms/suite"
+    assert mcp_env["PDI_SUITE_ORGANIZATION"] == "acme"
+    assert "PDI_SUITE_CLIENT_SECRET" not in mcp_env
+    text = world.text()
+    assert "claude mcp add --transport http --client-id di-decision-mcp --callback-port 33418" in text
+    assert "http://127.0.0.1:8790/mcp" in text
+    world.output.clear()
+    cli.main(["down"], ctx=world.ctx())
+    assert "pdi-mcp: zatrzymany" in world.text()
+
+
+def test_remote_mcp_does_not_start_without_the_organization(world: World) -> None:
+    with_suite(world)
+
+    assert up(world) == 0
+
+    assert not [s for s in world.spawned if s[0] == "pdi-mcp"]

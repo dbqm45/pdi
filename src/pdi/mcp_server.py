@@ -1,17 +1,27 @@
-"""Serwer MCP pdi (stdio): zapis i odczyt decyzji z miejsca pracy (Claude Code, Claude Desktop)."""
+"""Serwer MCP pdi: zapis i odczyt decyzji z miejsca pracy (Claude Code, Claude Desktop).
+
+stdio bez logowania (jedna osoba na własnym komputerze) albo HTTP z tokenami suity (`pdi-mcp --http`,
+docs/plan-mcp-zdalny.md): wtedy narzędzia zależą od roli w DI Decision, a `decided_by_id` pochodzi z tokenu."""
 
 from __future__ import annotations
 
+import os
+import sys
+import urllib.parse
 from collections.abc import Callable
 from datetime import date
 from typing import Any, Literal, NotRequired
 
+import uvicorn
+from mcp.server.auth.middleware.auth_context import get_access_token
+from mcp.server.auth.settings import AuthSettings
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp_types import ToolAnnotations
+from pydantic import AnyHttpUrl
 from typing_extensions import TypedDict  # pydantic na 3.11 wymaga TypedDict z typing_extensions
 
-from pdi import autonomy, context, delays, forecast, pr_state, process, stale
+from pdi import autonomy, context, delays, forecast, mcp_auth, pr_state, process, stale
 from pdi.changes import ChangeNotFound
 from pdi.dispatch import DispatchConfig
 from pdi.impact import ShipScopeConfig, read_connection
@@ -19,6 +29,7 @@ from pdi.inbox import Inbox, ItemClosed, ItemNotFound
 from pdi.notify import NotifyConfig, ReporterNotifyConfig
 from pdi.problems import InvalidProblem, ProblemNotFound, ProblemStore
 from pdi.registry import CannotSupersede, Decision, DecisionNotFound, InvalidDecision, Registry
+from pdi.suite_login import Http
 from pdi.trace import trace
 from pdi.waiting import ChannelsConfig
 
@@ -193,11 +204,61 @@ _WRITE = ToolAnnotations(read_only_hint=False, destructive_hint=False, idempoten
 _READ = ToolAnnotations(read_only_hint=True)
 
 
+class _AuthorizedServer(MCPServer):
+    """Serwer HTTP z tokenami suity: lista i wywołania narzędzi według roli osoby z tokenu."""
+
+    def __init__(self, config: mcp_auth.McpAuthConfig, http: Http | None) -> None:
+        super().__init__(
+            "pdi",
+            instructions=INSTRUCTIONS,
+            token_verifier=mcp_auth.SuiteTokenVerifier(config, http=http),
+            auth=AuthSettings(
+                issuer_url=AnyHttpUrl(config.issuer),
+                resource_server_url=AnyHttpUrl(config.resource_url),
+                validate_token_resource=False,  # odbiorcę (`aud`) sprawdza SuiteTokenVerifier
+                required_scopes=mcp_auth.SCOPES,
+            ),
+        )
+        self.pdi_auth = config
+
+    def _caller(self) -> mcp_auth.Caller:
+        token = get_access_token()
+        if token is None or token.claims is None:
+            return mcp_auth.Caller(sub="", name="", kind="person", access=None, reason="Sign in to the suite first.")
+        return mcp_auth.caller(token.claims, self.pdi_auth)
+
+    def _allowed(self, who: mcp_auth.Caller, annotations: ToolAnnotations | None) -> bool:
+        read_only = bool(annotations and annotations.read_only_hint)
+        return who.access == "write" or (who.access == "read" and read_only)
+
+    async def list_tools(self) -> list[Any]:
+        who = self._caller()
+        return [t for t in await super().list_tools() if self._allowed(who, t.annotations)]
+
+    async def call_tool(self, name: str, arguments: dict[str, Any], context: Any = None) -> Any:
+        who = self._caller()
+        if who.access is None:
+            raise ToolError(who.reason)
+        tool = self._tool_manager.get_tool(name)
+        if tool is not None and not self._allowed(who, tool.annotations):
+            if who.kind == "agent":
+                raise ToolError("Agents only read in pdi: a person approves and records decisions.")
+            raise ToolError("Recording needs the role editor or admin in DI Decision; your role only reads.")
+        reset = mcp_auth.current_caller.set(who)
+        try:
+            return await super().call_tool(name, arguments, context)
+        finally:
+            mcp_auth.current_caller.reset(reset)
+
+
 def build_server(
     registry: Callable[[], Registry] = Registry.from_env,
     dispatch: Callable[[], DispatchConfig] = DispatchConfig.from_env,
+    *,
+    auth: mcp_auth.McpAuthConfig | None = None,
+    http: Http | None = None,
 ) -> MCPServer:
-    server = MCPServer("pdi", instructions=INSTRUCTIONS)
+    server = MCPServer("pdi", instructions=INSTRUCTIONS) if auth is None else _AuthorizedServer(auth, http)
 
     def open_registry() -> Registry:
         try:
@@ -809,12 +870,36 @@ def build_server(
 
 
 def _draft(args: dict[str, Any]) -> Decision:
-    """Szkic decyzji z argumentów narzędzia: tylko pola kontraktu, bez pominiętych (None)."""
-    return {k: args[k] for k in DRAFT_FIELDS if args.get(k) is not None}
+    """Szkic decyzji z argumentów narzędzia: tylko pola kontraktu, bez pominiętych (None).
+
+    Przez HTTP kto zdecydował ustala token: `decided_by_id` to `sub` osoby (kontrakt 0.25.0), a bez `decided_by`
+    w argumentach — jej nazwa z tokenu."""
+    draft: Decision = {k: args[k] for k in DRAFT_FIELDS if args.get(k) is not None}
+    who = mcp_auth.current_caller.get()
+    if who is not None:
+        draft["decided_by_id"] = who.sub
+        draft.setdefault("decided_by", who.name)
+    return draft
 
 
-def main() -> None:
-    build_server().run("stdio")
+def main(argv: list[str] | None = None) -> None:
+    """`pdi-mcp` — stdio; `pdi-mcp --http` — HTTP na 127.0.0.1 z tokenami suity (PDI_SUITE_ISSUER, …)."""
+    args = sys.argv[1:] if argv is None else argv
+    if args[:1] != ["--http"]:
+        build_server().run("stdio")
+        return
+    try:
+        config = mcp_auth.config_from_env(os.environ)
+    except ValueError as e:
+        raise SystemExit(str(e)) from e
+    if config is None:
+        raise SystemExit(
+            "pdi-mcp --http wymaga logowania przez suitę: ustaw PDI_SUITE_ISSUER i PDI_SUITE_ORGANIZATION."
+        )
+    port = int(urllib.parse.urlsplit(config.resource_url).port or mcp_auth.DEFAULT_PORT)
+    app = build_server(auth=config).streamable_http_app(stateless_http=True, json_response=True)
+    print(f"pdi MCP: {config.resource_url} (tokeny z {config.issuer})", file=sys.stderr)  # noqa: T201
+    uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # Zdalny serwer MCP pdi z OAuth (etap 2 z `docs/14-pdi-standalone.md`) — plan
 
-Stan: 2026-11-25, propozycja do zatwierdzenia przez właściciela. Źródło zakresu: `TODO.md`, sekcja „Autoryzacja
+Stan: 2026-11-25, decyzje 1–8 przyjęte przez właściciela; kroki 1–4 zrobione (lokalnie), sprawdzone na żywo. Źródło zakresu: `TODO.md`, sekcja „Autoryzacja
 zdalnego serwera MCP”, i ADR 17 (`docs/17-tozsamosc-suity.md`, wiersz DI Decision: „MCP z tokenem”). Wszystko
 lokalnie: Keycloak z `dbqm45/di-identity` na `http://localhost:8180`, serwer MCP na `127.0.0.1`. Connector w Claude.ai
 potrzebuje publicznego adresu https, więc przyjdzie razem z hostingiem (Hetzner). Do tego czasu klientem jest
@@ -82,3 +82,27 @@ Claude Code i klient MCP w testach.
 - Tokeny osób żyją `personTokenSeconds` (realm). Odebranie roli w Admin Console działa dopiero od następnego tokenu.
 - Specyfikacja i SDK zmieniają się szybko. Wersje sprawdzone wyżej mają datę 2026-11-25, a przed hostingiem trzeba
   je sprawdzić ponownie (Claude.ai, CIMD w Keycloaku).
+
+## Co wyszło przy wdrożeniu (2026-11-25)
+
+- **Zakresy.** Klient MCP z SDK (`OAuthClientProvider`, `mcp` 2.3.0) wybiera zakresy najpierw z `WWW-Authenticate`,
+  potem ze `scopes_supported` w metadanych zasobu, a na końcu z całej listy wystawcy. Bez własnych prosił więc o
+  wszystko, z `email`, a Keycloak odmawiał (`invalid_scope`). Dlatego metadane zasobu ogłaszają i serwer wymaga tylko
+  `openid`. Role i organizacja przychodzą w domyślnych zakresach klienta.
+- **`offline_access` do decyzji.** Ten sam klient dopisuje `offline_access`, gdy wystawca go ogłasza, a klient ma
+  odświeżanie tokenów (SEP-2207). Klient `di-decision-mcp` nie ma żadnych zakresów opcjonalnych (`dbqm45/di-identity`),
+  więc takie logowanie Keycloak odrzuca. Na żywo sprawdzono klienta bez odświeżania. Czy Claude Code też dopisuje
+  `offline_access`, nie sprawdziłem [niezweryfikowane]. Jeśli tak, potrzebna jest decyzja: `offline_access` tylko dla
+  tego klienta z krótką sesją offline, albo zostawić odmowę.
+- **Odmowa zamiast `403`.** Osoba bez roli albo spoza organizacji dostaje pustą listę narzędzi, a wywołanie zwraca
+  błąd narzędzia z powodem. Token bez `openid` dostaje `403` (`insufficient_scope`).
+- **Parametr `resource` (RFC 8707).** Klient go wysyła, a Keycloak 26.4.7 przyjmuje go bez błędu. Odbiorcę i tak
+  ustala mapper (`aud: di-decision`), więc serwer go nie wymaga.
+- **Na żywo** (lokalny Keycloak, klient MCP z SDK z OAuth, przeglądarka przez Playwright):
+  - `ola.test` (`editor`) widzi 33 narzędzia i zapisała decyzję z `decided_by_id` = `sub` i `decided_by`
+    „Ola Test” z tokenu;
+  - `adm.test` (`viewer`) widzi 17 narzędzi, a zapis dostał odmowę;
+  - `bez.roli` i `bez.organizacji` nie widzą narzędzi i dostają odmowę z powodem;
+  - token ma `azp: di-decision-mcp`, `aud: di-decision`, tylko role DI Decision i nie ma e-maila.
+- Nie sprawdzone: logowanie z samego Claude Code (potrzebna przeglądarka na komputerze właściciela) i adres zwrotny
+  `/callback` Claude Code [niezweryfikowane].

@@ -55,7 +55,9 @@ INSTALL = {
     "uv": "curl -LsSf https://astral.sh/uv/install.sh | sh",
 }
 FIRST_RUN_WAIT = 15 * 60
-START_WAIT = {"shipscope": 3 * 60, "pdi-receiver": 30, "pdi-console": 30}
+START_WAIT = {"shipscope": 3 * 60, "pdi-receiver": 30, "pdi-console": 30, "pdi-mcp": 30}
+MCP_URL = "http://127.0.0.1:8790/mcp"
+MCP_ADD = f"claude mcp add --transport http --client-id di-decision-mcp --callback-port 33418 pdi-remote {MCP_URL}"
 POLL_SECONDS = 2.0
 WORKSPACE_POLL_SECONDS = 5.0
 DEPLOY_ENVIRONMENTS = {"prod": "production", "test": "test"}
@@ -259,6 +261,16 @@ def start_console(ctx: Ctx, config: home.Config, secrets: Mapping[str, str]) -> 
     wait_for(ctx, "pdi-console", f"{url}/", seconds=START_WAIT["pdi-console"], any_status=True)
 
 
+def start_mcp(ctx: Ctx, config: home.Config, secrets: Mapping[str, str], env: Mapping[str, str]) -> None:
+    """Zdalny serwer MCP pdi z tokenami suity (docs/plan-mcp-zdalny.md): `pdi-mcp --http`, tylko 127.0.0.1:8790."""
+    argv = ["uv", "run", "--directory", str(config.pdi), "pdi-mcp", "--http"]
+    ensure_port_free(ctx, "pdi-mcp", MCP_URL)
+    base = {k: v for k, v in pdi_env(ctx, config, secrets).items() if not k.startswith("PDI_SUITE_")}
+    start(ctx, "pdi-mcp", argv, config.pdi, {**base, **env})
+    metadata = MCP_URL.removesuffix("/mcp") + "/.well-known/oauth-protected-resource/mcp"
+    wait_for(ctx, "pdi-mcp", metadata, seconds=START_WAIT["pdi-mcp"], any_status=False)
+
+
 # --- polecenia ---
 
 
@@ -448,6 +460,9 @@ def cmd_up(ctx: Ctx) -> int:
     # Po suicie: konsola potrzebuje sekretu klienta di-decision, który `secrets` dopisuje przy pierwszym up.
     if pid_of(ctx, "pdi-console") is None:
         start_console(ctx, config, secrets)
+    remote_mcp = suite.mcp_env(config, secrets)
+    if remote_mcp and pid_of(ctx, "pdi-mcp") is None:
+        start_mcp(ctx, config, secrets, remote_mcp)
     console = console_url(secrets)
     sign_in = suite.console_env(config, secrets)
     how = f"logowanie przez suitę ({sign_in['PDI_SUITE_ORGANIZATION']})" if sign_in else "token w adresie"
@@ -462,6 +477,8 @@ def cmd_up(ctx: Ctx) -> int:
         ctx.out(f"  DI Definition   {channels.DEFINITION_URL}/")
         ctx.out(f"  di-channels     {channels.CHANNELS_URL} (tunel: {channels.tunnel_url(ctx) or 'brak'})")
     ctx.out("  MCP w Claude    pdi, shipscope")
+    if remote_mcp:
+        ctx.out(f"  pdi-mcp (HTTP)  {MCP_URL} — tokeny suity; w Claude Code: {MCP_ADD}")
     ctx.out("  stan            uv run sdlc status")
     ctx.out("gotowe")
     return 0
@@ -689,7 +706,7 @@ def cmd_down(ctx: Ctx) -> int:
             f"Po `sdlc up` sprawdź `get_change {'-'.join(change)}`; przy `step: gate` ponów ją: "
             f"`retry_dispatch {'-'.join(change)}` (wysyła tylko prośbę o bramkę)."
         )
-    for name in ("pdi-console", "pdi-receiver", "shipscope"):
+    for name in ("pdi-mcp", "pdi-console", "pdi-receiver", "shipscope"):
         ctx.out(f"{name}: {'zatrzymany' if stop(ctx, name) else 'nie działał'}")
     channels.down(ctx)
     suite.down(ctx)
