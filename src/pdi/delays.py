@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from datetime import UTC, datetime
+from math import ceil
 from statistics import median
 from typing import Any
 
@@ -142,13 +143,22 @@ def timeline(state: dict[str, Any], *, now: datetime, items: Sequence[dict[str, 
     }
 
 
+def p90(values: Sequence[float]) -> float | None:
+    """90. percentyl metodą najbliższej rangi (9 na 10 wartości nie przekracza wyniku); None bez wartości."""
+    if not values:
+        return None
+    ordered = sorted(values)
+    return round(ordered[ceil(0.9 * len(ordered)) - 1], 1)
+
+
 def gate_order(name: str) -> tuple[int, str]:
     order = [g.name for g in flow.GATES]
     return (order.index(name), name) if name in order else (len(order), name)
 
 
 def report(states: Sequence[dict[str, Any]], items: Sequence[dict[str, Any]], *, now: datetime) -> dict[str, Any]:
-    """Zestawienia DV4: zmiany, które teraz czekają (najdłużej czekająca pierwsza), bramki, rodzaje pozycji, zmiany."""
+    """Zestawienia DV4: zmiany, które teraz czekają (najdłużej czekająca pierwsza), bramki i rodzaje pozycji (mediana,
+    p90 i najdłużej), zmiany."""
     lines = [timeline(s, now=now, items=items) for s in states]
     waiting_now = sorted(
         ({"change": t["change"], **t["open"]} for t in lines if t["open"]), key=lambda w: -float(w["hours"])
@@ -168,6 +178,7 @@ def report(states: Sequence[dict[str, Any]], items: Sequence[dict[str, Any]], *,
             "gate": name,
             "decided": len(gate_hours[name]),
             "median_hours": round(median(gate_hours[name]), 1) if gate_hours[name] else None,
+            "p90_hours": p90(gate_hours[name]),
             "max_hours": max(gate_hours[name]) if gate_hours[name] else None,
             "open": gate_open[name],
         }
@@ -186,6 +197,7 @@ def report(states: Sequence[dict[str, Any]], items: Sequence[dict[str, Any]], *,
             "kind": k,
             "decided": len(v["hours"]),
             "median_hours": round(median(v["hours"]), 1) if v["hours"] else None,
+            "p90_hours": p90(v["hours"]),
             "open": v["open"],
         }
         for k, v in sorted(per_kind.items())

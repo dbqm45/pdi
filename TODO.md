@@ -63,7 +63,7 @@ ani bramka nie wiedzą, że zmiana rusza obszar objęty decyzją.
   życzenie; ci_for_sdlc może sprawdzić, że `verify` wskazuje istniejący test. Klasy decyzji, o które pytać, gdy
   specyfikacja milczy: skala, tryb wykonania (od razu / w tle), awaria i ponowienia, uprawnienia, migracja
   istniejących danych.
-- [ ] **Szablon PR „Wpływ na decyzje”** (`.github/pull_request_template.md`): których decyzji dotyczy, czy zmienia
+- [x] **Szablon PR „Wpływ na decyzje”** (zrobione 2026-11-25: pdi#214, ci_for_sdlc#151, tf#442; bramka ci_for_sdlc czyta odpowiedź, ci_for_sdlc#152) (`.github/pull_request_template.md`): których decyzji dotyczy, czy zmienia
   przyjętą (nie / tak / nie wiem), uzasadnienie. Ten sam szablon w ci_for_sdlc i tf.
 
 **Odbiorca:** ci_for_sdlc — reguła na PR, gdy zmienione pliki trafiają w `applies_to` przyjętej decyzji (pozycja w
@@ -121,7 +121,7 @@ i link do PR, bez skrótu treści.
 najlepiej udokumentowanym sygnałem wyprzedzającym przy kodzie od agentów jest kolejka czekająca na przegląd człowieka
 (liczby z artykułu [niezweryfikowane]). pdi ma już dane do takiej kolejki: każda pozycja `inbox/` i
 `changes/<CHG>.yaml` niesie historię bramek.
-- [x] (zrobione 2026-11-24 w DV4: strona „Przepływ”, `flow_delays`; bez p90) Miara kolejki bramek z istniejących plików skrzynki i zmian, bez nowego źródła danych:
+- [x] (zrobione 2026-11-24 w DV4: strona „Przepływ”, `flow_delays`; p90 od 2026-11-25) Miara kolejki bramek z istniejących plików skrzynki i zmian, bez nowego źródła danych:
   - liczba pozycji czekających na decyzję;
   - wiek najstarszej pozycji;
   - mediana i p90 czasu od `gate.requested` do `gate.decided`, w podziale na bramki B1–B5.
@@ -218,8 +218,10 @@ konsola pdi (`src/pdi/console.py`: tablica zmian, ślad, postęp fazy na żywo, 
 **Kroki (każdy osobno, kolejność do potwierdzenia):**
 - [x] **T1 — kontrakt** (zrobione 2026-11-22: di-contract 0.15.0/0.15.1 — `run.started`, `run.finished`, `run`, `started_by`, `activity` w `run.progress`, `review` w `run.finished`; pdi przyjmuje je od tf do `agent-runs/`, `pdi.runs`; wersja z planu poniżej zostaje dla historii): `started_by` oraz zdarzenia `run.started` / `run.progress` / `run.finished` (zadanie, zmiana,
   agent, czynność, cięcie, koszt, budżet); stan przeglądu PR (werdykt AI, ryzyko, recenzent) w zdarzeniu.
-- [ ] **T2 — fabryka:** hook zgłaszający start, postęp i koniec przebiegu także dla sesji ręcznych (dziś tylko fazy
-  uruchamiane przez pdi mają postęp); tożsamość z gita albo z konta suity.
+- [x] **T2 — fabryka:** hook zgłaszający start, postęp i koniec przebiegu także dla sesji ręcznych (dziś tylko fazy
+  uruchamiane przez pdi mają postęp); tożsamość z gita albo z konta suity. (sprawdzone 2026-11-25: tf `run_report.py`
+  zgłasza każdą sesję — `run.started`, `run.progress`, `run.finished` — z tożsamością z `git config user.name`;
+  tożsamość z konta suity dopiero z di-identity, krok 14)
 - [x] **T3 — „Now” tylko do odczytu** (zrobione 2026-11-22: `/now` w lokalnej konsoli, `pdi.console._now_body`; dla wielu osób dopiero z konsolą jako usługą — DA4): nowy ekran w istniejącej konsoli pdi (cztery kolumny, „Started by”, filtr po
   osobie, linia stanu u góry), dla wielu osób; świeżość karty widoczna (kiedy ostatnio się zmieniła).
 - [ ] **T4 — „Ask team” online:** przycisk na karcie decyzji, wybór osób, opcje z pytania, odpowiedzi ukryte do
