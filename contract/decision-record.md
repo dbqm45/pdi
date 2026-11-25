@@ -1,6 +1,6 @@
 # Decision Record — specyfikacja pliku decyzji
 
-**Wersja:** kontrakt 0.22.0 (format od 0.14.0, pochodzenie od 0.16.0, odwracalność od 0.19.0, `applies_to` od 0.22.0) · **Decyzje:** DR1–DR4 ([`docs/decyzje.md`](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md)) · **Schemat:**
+**Wersja:** kontrakt 0.23.0 (format od 0.14.0, pochodzenie od 0.16.0, odwracalność od 0.19.0, `applies_to` od 0.22.0) · **Decyzje:** DR1–DR4 ([`docs/decyzje.md`](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md)) · **Schemat:**
 [`decision.schema.json`](decision.schema.json) · **Walidator:** `pdi-validate` ·
 **Uzasadnienie i porównanie z MADR:** [`docs/propozycja-decision-record.md`](https://github.com/dbqm45/pdi/blob/main/docs/propozycja-decision-record.md)
 
@@ -80,8 +80,10 @@ wzorcowa: `applies_to_match` w `tools/check_contract.py`.
 - `status: superseded` wtedy i tylko wtedy, gdy jest `superseded_by`.
 - Łańcuch musi być spójny w obie strony: jeśli A ma `superseded_by: B`, to B ma `supersedes: A`, i odwrotnie.
 - Treści zastąpionej decyzji się nie zmienia; zmieniają się tylko `status` i `superseded_by`.
-- `status: reverted` jest w schemacie, ale jego znaczenie nie jest jeszcze opisane w kontrakcie, a rejestr pdi go
-  nie nadaje; do czasu opisu aplikacje nie powinny go zapisywać.
+- Decyzji nie cofa się zmianą statusu. Decyzję wycofaną bez innej w jej miejsce (np. usunięto moduł, którego
+  dotyczyła) zapisuje się jako nową decyzję, która ją zastępuje: ustalenie „wycofujemy DEC-n”, uzasadnienie, kto
+  i kiedy. Stara dostaje `superseded`, jak przy każdym zastąpieniu. Status `reverted` był w schemacie do 0.22.0 bez
+  opisanego znaczenia i nikt go nie nadawał; od 0.23.0 go nie ma.
 
 ## 8. Pochodzenie i publikowanie w suicie (od 0.16.0)
 
@@ -141,7 +143,7 @@ plan: [`docs/plan-eksport-madr.md`](https://github.com/dbqm45/pdi/blob/main/docs
 ---
 record: decision
 schema: https://github.com/dbqm45/pdi/contract/decision.schema.json
-contract_version: 0.22.0
+contract_version: 0.23.0
 id: DEC-0041
 statement: Bulk konfiguracja ładowarek zaczyna od zmiany taryfy.
 why: Najczęstsza operacja w zgłoszeniach; restart i firmware mają inne ryzyka.

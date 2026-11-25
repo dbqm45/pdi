@@ -166,7 +166,7 @@ Kroki (TDD, wersja kontraktu wg SemVer, tag `contract-v…` po merge'u):
   2026-11-07; 3.x nie osobno). Nadpisuje tylko własne pliki (komentarz `<!-- pdi: DEC-n -->`). Log4brains woli
   nazwy bez numerów — jeśli zespół go użyje, dodać opcję nazwy bez `NNNN-`. Import ADR-ów — dopiero przy zespole
   z istniejącymi ADR.
-- [ ] **Znaczenie `status: reverted`** (specyfikacja §7): opisać albo usunąć z kontraktu; dziś pdi go nie nadaje,
+- [x] **Znaczenie `status: reverted`** (zrobione 2026-11-25: usunięty w kontrakcie 0.23.0, wycofanie to nowa decyzja zastępująca; decyzja właściciela) (specyfikacja §7): opisać albo usunąć z kontraktu; dziś pdi go nie nadaje,
   a eksport MADR go pomija.
 
 ## DI Team: tablica „Now” i „Ask team” (zapisane 2026-11-19, pomysł właściciela, do zrobienia w suicie)

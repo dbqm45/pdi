@@ -19,7 +19,7 @@ Dwa formaty, wybór opcją:
 
 ## Ustalenia
 1. **Co:** decyzje `kind: technical` ze statusem `recorded` albo `superseded`, opcjonalnie jednego projektu
-   (`--project`). `reverted` pomijane (znaczenie nieopisane w kontrakcie). Polecenie:
+   (`--project`). Inne statusy pomijane (`reverted` usunięty z kontraktu w 0.23.0). Polecenie:
    `pdi-records export-madr --out <katalog> [--project P] [--format 4|2]`, zwykle `--out docs/decisions` w repo projektu.
 2. **Plik:** `NNNN-<slug>.md`, `NNNN` z numeru decyzji (`DEC-0041` → `0041`), `slug` z `statement` (małe litery
    ASCII, polskie znaki bez ogonków, myślniki, do 50 znaków).
