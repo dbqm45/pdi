@@ -33,6 +33,7 @@ FIELD_ORDER = (
     "why",
     "decided_at",
     "decided_by",
+    "decided_by_id",
     "recorded_at",
     "kind",
     "decision_type",

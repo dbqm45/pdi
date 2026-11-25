@@ -1,6 +1,6 @@
 # Decision Record — specyfikacja pliku decyzji
 
-**Wersja:** kontrakt 0.24.0 (format od 0.14.0, pochodzenie od 0.16.0, odwracalność od 0.19.0, `applies_to` od 0.22.0) · **Decyzje:** DR1–DR4 ([`docs/decyzje.md`](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md)) · **Schemat:**
+**Wersja:** kontrakt 0.25.0 (format od 0.14.0, pochodzenie od 0.16.0, odwracalność od 0.19.0, `applies_to` od 0.22.0) · **Decyzje:** DR1–DR4 ([`docs/decyzje.md`](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md)) · **Schemat:**
 [`decision.schema.json`](decision.schema.json) · **Walidator:** `pdi-validate` ·
 **Uzasadnienie i porównanie z MADR:** [`docs/propozycja-decision-record.md`](https://github.com/dbqm45/pdi/blob/main/docs/propozycja-decision-record.md)
 
@@ -42,6 +42,8 @@ Poza znacznikiem nagłówek musi przejść [`decision.schema.json`](decision.sch
 i opisy w schemacie; od 0.14.0 także `consequences` (skutki `good` / `bad` / `neutral`) i `confirmation` (`how`,
 `kind`, `ref`: jak sprawdzić, że decyzję wykonano). Od 0.19.0 opcjonalnie `reversibility` (`local`, `broad`, `one_way`) i `provisional` (decyzja tymczasowa, do
 potwierdzenia przez decydenta; nie przy `one_way`). Od 0.22.0 opcjonalnie `applies_to` (§4a).
+Od 0.25.0 opcjonalnie `decided_by_id`: `sub` osoby z tożsamości suity (DI Identity); `decided_by` zostaje nazwą
+do wyświetlenia. Brak przy decyzji automatu i w decyzjach zapisanych przed 0.25.0.
 
 ## 4a. Czego dotyczy decyzja (`applies_to`)
 
@@ -143,7 +145,7 @@ plan: [`docs/plan-eksport-madr.md`](https://github.com/dbqm45/pdi/blob/main/docs
 ---
 record: decision
 schema: https://github.com/dbqm45/pdi/contract/decision.schema.json
-contract_version: 0.24.0
+contract_version: 0.25.0
 id: DEC-0041
 statement: Bulk konfiguracja ładowarek zaczyna od zmiany taryfy.
 why: Najczęstsza operacja w zgłoszeniach; restart i firmware mają inne ryzyka.

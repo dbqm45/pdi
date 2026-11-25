@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/dbqm45/pdi/contract/decision.schema.json",
-  "title": "Decyzja (kontrakt suity 0.24.0)",
+  "title": "Decyzja (kontrakt suity 0.25.0)",
   "description": "Jedna decyzja w rejestrze pdi albo w nagłówku wpisu changes/CHG-n/decisions.md. Pola: docs/14-pdi-standalone.md §4.1.",
   "type": "object",
   "additionalProperties": false,
@@ -54,6 +54,12 @@
     "decided_by": {
       "type": "string",
       "minLength": 1
+    },
+    "decided_by_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Stały identyfikator osoby, która zdecydowała: `sub` z tożsamości suity (DI Identity, ADR 17). `decided_by` zostaje nazwą do wyświetlenia. Brak przy decyzji automatu i przy decyzjach sprzed 0.25.0."
     },
     "recorded_at": {
       "type": "string",

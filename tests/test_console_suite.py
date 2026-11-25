@@ -304,6 +304,7 @@ def test_an_editor_decides_and_the_decision_names_them(suite_console: Console, r
     assert len(decided) == 1
     decision = registry.get(decided[0]["decision"])
     assert decision["decided_by"] == "Ewa Decydentka"
+    assert decision["decided_by_id"] == "sub-1"  # `sub` osoby z tokenu (kontrakt 0.25.0)
     assert decision["source"]["kind"] == "console"
     # Bez nagłówka Origin/Referer zmiana jest odrzucona (sesja w ciasteczku, nie w treści).
     status, _, _, _ = suite_console.request("POST", "/inbox/evt-1/decide", cookie=session, form=form, origin=False)
