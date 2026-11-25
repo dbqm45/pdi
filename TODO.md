@@ -227,7 +227,7 @@ konsola pdi (`src/pdi/console.py`: tablica zmian, ślad, postęp fazy na żywo, 
   tożsamość z konta suity dopiero z di-identity, krok 14)
 - [x] **T3 — „Now” tylko do odczytu** (zrobione 2026-11-22: `/now` w lokalnej konsoli, `pdi.console._now_body`; dla wielu osób dopiero z konsolą jako usługą — DA4): nowy ekran w istniejącej konsoli pdi (cztery kolumny, „Started by”, filtr po
   osobie, linia stanu u góry), dla wielu osób; świeżość karty widoczna (kiedy ostatnio się zmieniła).
-- [ ] **T4 — „Ask team” online:** przycisk na karcie decyzji, wybór osób, opcje z pytania, odpowiedzi ukryte do
+- [x] **T4 — „Ask team” online** (zrobione 2026-11-25 w lokalnej konsoli z logowaniem przez suitę, [plan](docs/plan-t4-ask-team.md); dla zespołu z różnych komputerów — z konsolą jako usługą): przycisk na karcie decyzji, wybór osób, opcje z pytania, odpowiedzi ukryte do
   zamknięcia, skutki opcji od agenta, czas zamknięcia; wynik jako szkic decyzji z listą zapytanych; typ decyzji
   w kontrakcie dostaje pole konsultacji (`consulted`: kto, opcja, uzasadnienie).
 - [ ] **T5 — „Discuss with team” jako agenda:** sprawy z rozbieżnością i oznaczone „talk live”, kolejność według

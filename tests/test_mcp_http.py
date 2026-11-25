@@ -312,4 +312,4 @@ async def test_mh11_outsider_sees_no_tools_and_is_refused_with_the_reason(served
 async def test_mh12_stdio_server_without_auth_is_unchanged(registry: Registry) -> None:
     server = build_server(lambda: registry)
     tools = await server.list_tools()
-    assert len(tools) == 33
+    assert len(tools) == 34

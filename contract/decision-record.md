@@ -1,6 +1,6 @@
 # Decision Record — specyfikacja pliku decyzji
 
-**Wersja:** kontrakt 0.25.0 (format od 0.14.0, pochodzenie od 0.16.0, odwracalność od 0.19.0, `applies_to` od 0.22.0) · **Decyzje:** DR1–DR4 ([`docs/decyzje.md`](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md)) · **Schemat:**
+**Wersja:** kontrakt 0.26.0 (format od 0.14.0, pochodzenie od 0.16.0, odwracalność od 0.19.0, `applies_to` od 0.22.0, `consulted` od 0.26.0) · **Decyzje:** DR1–DR4 ([`docs/decyzje.md`](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md)) · **Schemat:**
 [`decision.schema.json`](decision.schema.json) · **Walidator:** `pdi-validate` ·
 **Uzasadnienie i porównanie z MADR:** [`docs/propozycja-decision-record.md`](https://github.com/dbqm45/pdi/blob/main/docs/propozycja-decision-record.md)
 
@@ -44,6 +44,10 @@ i opisy w schemacie; od 0.14.0 także `consequences` (skutki `good` / `bad` / `n
 potwierdzenia przez decydenta; nie przy `one_way`). Od 0.22.0 opcjonalnie `applies_to` (§4a).
 Od 0.25.0 opcjonalnie `decided_by_id`: `sub` osoby z tożsamości suity (DI Identity); `decided_by` zostaje nazwą
 do wyświetlenia. Brak przy decyzji automatu i w decyzjach zapisanych przed 0.25.0.
+
+Od 0.26.0 opcjonalnie `consulted`: kogo decydent zapytał o zdanie przed decyzją („Ask team”, DI Team T4) i co
+każdy odpowiedział (`person_id`, `name`, `option`, `reason`; `option` i `reason` są `null`, gdy ktoś nie odpowiedział
+do zamknięcia). Zapytani doradzają; decyzję podejmuje i podpisuje `decided_by`. Brak pola znaczy, że nikogo nie pytano.
 
 ## 4a. Czego dotyczy decyzja (`applies_to`)
 
@@ -145,7 +149,7 @@ plan: [`docs/plan-eksport-madr.md`](https://github.com/dbqm45/pdi/blob/main/docs
 ---
 record: decision
 schema: https://github.com/dbqm45/pdi/contract/decision.schema.json
-contract_version: 0.25.0
+contract_version: 0.26.0
 id: DEC-0041
 statement: Bulk konfiguracja ładowarek zaczyna od zmiany taryfy.
 why: Najczęstsza operacja w zgłoszeniach; restart i firmware mają inne ryzyka.

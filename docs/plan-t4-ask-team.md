@@ -1,6 +1,6 @@
 # DI Team T4 — „Ask team” online — plan
 
-Stan: 2026-11-25, propozycja do zatwierdzenia przez właściciela. Źródło: `TODO.md`, sekcja „DI Team”, krok T4
+Stan: 2026-11-25, decyzje 1–8 przyjęte przez właściciela; kroki 1–3 zrobione, sprawdzone na żywo. Źródło: `TODO.md`, sekcja „DI Team”, krok T4
 (ustalenia z rozmowy 2026-11-19). Makieta: kadr „Discuss with team”. T1–T3 są gotowe: kontrakt przebiegów,
 zgłaszanie sesji z tf, tablica `/now` tylko do odczytu.
 
@@ -81,3 +81,25 @@ zgłaszanie sesji z tf, tablica `/now` tylko do odczytu.
   Wystarcza lokalnie; w usłudze to dane w bazie.
 - Termin zamknięcia liczy się przy odczycie, bez osobnego procesu. Pytanie po terminie zamyka się przy pierwszym
   wejściu kogokolwiek.
+
+## Co wyszło przy wdrożeniu (2026-11-25)
+
+- **Zgodność po terminie liczy się wśród tych, którzy odpowiedzieli.** Jedna opcja i nikt nie wybrał „talk live”
+  daje `agree`, a na liście widać, kto nie odpowiedział. Brak jakiejkolwiek odpowiedzi daje „Nobody answered”.
+  Odpowiedź po zamknięciu jest odrzucana.
+- **Zapis:**
+  - `consultations/<pozycja>.json` w rejestrze;
+  - `people.json` z `sub`, nazwą i datą ostatniego logowania, bez e-maila;
+  - decyzja z przycisku dostaje `consulted` (kontrakt 0.26.0) i zamyka konsultację.
+- **Uprawnienia:** zapytana osoba z rolą `viewer` może odpowiedzieć (trasa `/inbox/<id>/answer`). Pytać i zamykać
+  wcześniej może tylko decydent (`editor` albo `admin`), który zadał pytanie.
+- **MCP:**
+  - `list_inbox` pokazuje `consultation`: stan, liczby, termin i skutki opcji, bez odpowiedzi przed zamknięciem;
+  - `add_option_effects` dopisuje skutki opcji;
+  - narzędzi jest 34, w tym 17 do zapisu.
+- **Na żywo** (lokalny Keycloak, konsola na `127.0.0.1:8788`, Playwright):
+  - `ola.test` (editor) zapytała `adm.test` (viewer);
+  - tablica i karta pokazały „With team · 0/1”;
+  - `adm.test` zobaczył „Asked of you” i odpowiedział `approved` ze zdaniem;
+  - `ola.test` zobaczyła „Team agrees: approved” z odpowiedzią, a szkic decyzji był już wypełniony;
+  - decyzja `DEC-0001` ma `consulted` z `person_id`, opcją i powodem.

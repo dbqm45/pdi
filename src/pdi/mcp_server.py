@@ -21,7 +21,7 @@ from mcp_types import ToolAnnotations
 from pydantic import AnyHttpUrl
 from typing_extensions import TypedDict  # pydantic na 3.11 wymaga TypedDict z typing_extensions
 
-from pdi import autonomy, context, delays, forecast, mcp_auth, pr_state, process, stale
+from pdi import autonomy, consult, context, delays, forecast, mcp_auth, pr_state, process, stale
 from pdi.changes import ChangeNotFound
 from pdi.dispatch import DispatchConfig
 from pdi.impact import ShipScopeConfig, read_connection
@@ -451,7 +451,27 @@ def build_server(
         """
         box = open_inbox()
         box.open_ready_prs()  # PR-y cięć po pętli PR (N2): pozycja dopiero przy green albo needs_human
-        return {"items": box.items(status=None if status == "all" else status)}
+        items = box.items(status=None if status == "all" else status)
+        consults = consult.Consultations(box.registry.root, now=box.registry.now)
+        for item in items:
+            # „Ask team” (T4): stan konsultacji bez odpowiedzi innych przed zamknięciem — agent nie głosuje.
+            view = consults.view(item["id"], "")
+            if view is not None:
+                item["consultation"] = {k: v for k, v in view.items() if k not in ("mine", "is_asked", "decider_sub")}
+        return {"items": items}
+
+    @server.tool(annotations=_WRITE)
+    def add_option_effects(item_id: str, option: str, effects: str) -> dict[str, Any]:
+        """Dopisuje przy opcji pozycji skrzynki, którą zespół konsultuje („Ask team”, DI Team T4), co się stanie, gdy
+        decydent ją wybierze: plan, koszt, testy (do 1000 znaków). Agent nie głosuje i nie widzi odpowiedzi przed
+        zamknięciem; decyzję podejmuje człowiek. option: wynik pozycji (np. approved, changes_requested) albo talk_live.
+        """
+        reg = open_registry()
+        try:
+            consult.Consultations(reg.root, now=reg.now).add_effects(item_id, option, effects)
+        except consult.ConsultError as e:
+            raise ToolError(str(e)) from e
+        return {"item_id": item_id, "option": option}
 
     @server.tool(annotations=_WRITE)
     def decide_inbox_item(
