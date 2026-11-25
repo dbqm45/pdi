@@ -88,8 +88,8 @@ Learnings” (C. Hobbs, 2026-10); wymagania sprawdzić w specyfikacji na modelco
   argumentami”, pozycja w `tf/docs/todo.md`, sekcja wzorców bezpieczeństwa) — razem z kartą MCP Apps niżej.
 - [x] Bez sesji protokołu: `pdi-mcp --http` działa bezstanowo (`stateless_http`, odpowiedzi JSON). Stan (np. szkic
   przed zatwierdzeniem) to jawny identyfikator z narzędzia. Przestarzałych Sampling/Roots/Logging nie używa.
-- [ ] Przed hostingiem: connector w Claude.ai (publiczny https, adres zwrotny Claude.ai w `di-decision-mcp`) i decyzja
-  o `offline_access` (patrz `docs/plan-mcp-zdalny.md`, „Co wyszło przy wdrożeniu”).
+- [ ] Przed hostingiem: connector w Claude.ai (publiczny https, adres zwrotny Claude.ai w `di-decision-mcp`).
+  `offline_access` rozstrzygnięte 2026-11-25: tylko ten klient, sesja offline 24 h bez użycia, najwyżej 14 dni.
 
 ## Karta zatwierdzenia decyzji jako MCP App (etap 2, zapisane 2026-10-29)
 

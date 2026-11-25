@@ -89,11 +89,12 @@ Claude Code i klient MCP w testach.
   potem ze `scopes_supported` w metadanych zasobu, a na końcu z całej listy wystawcy. Bez własnych prosił więc o
   wszystko, z `email`, a Keycloak odmawiał (`invalid_scope`). Dlatego metadane zasobu ogłaszają i serwer wymaga tylko
   `openid`. Role i organizacja przychodzą w domyślnych zakresach klienta.
-- **`offline_access` do decyzji.** Ten sam klient dopisuje `offline_access`, gdy wystawca go ogłasza, a klient ma
-  odświeżanie tokenów (SEP-2207). Klient `di-decision-mcp` nie ma żadnych zakresów opcjonalnych (`dbqm45/di-identity`),
-  więc takie logowanie Keycloak odrzuca. Na żywo sprawdzono klienta bez odświeżania. Czy Claude Code też dopisuje
-  `offline_access`, nie sprawdziłem [niezweryfikowane]. Jeśli tak, potrzebna jest decyzja: `offline_access` tylko dla
-  tego klienta z krótką sesją offline, albo zostawić odmowę.
+- **`offline_access`: rozstrzygnięte przez właściciela 2026-11-25 (wariant a).** Ten sam klient dopisuje
+  `offline_access`, gdy wystawca go ogłasza, a klient ma odświeżanie tokenów (SEP-2207). Bez tego zakresu u klienta
+  Keycloak odrzuca logowanie. Zakres jest dozwolony tylko dla `di-decision-mcp` (dbqm45/di-identity#10). Sesja offline
+  kończy się po 24 h bez użycia i najpóźniej po 14 dniach. Sprawdzone na żywo: klient prosi o `openid offline_access`
+  i dostaje token odświeżania typu `Offline` na 24 h. Czy Claude Code też prosi o ten zakres, nie sprawdziłem
+  [niezweryfikowane]; działa w obu przypadkach.
 - **Odmowa zamiast `403`.** Osoba bez roli albo spoza organizacji dostaje pustą listę narzędzi, a wywołanie zwraca
   błąd narzędzia z powodem. Token bez `openid` dostaje `403` (`insufficient_scope`).
 - **Parametr `resource` (RFC 8707).** Klient go wysyła, a Keycloak 26.4.7 przyjmuje go bez błędu. Odbiorcę i tak
