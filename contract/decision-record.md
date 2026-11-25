@@ -1,6 +1,6 @@
 # Decision Record — specyfikacja pliku decyzji
 
-**Wersja:** kontrakt 0.23.0 (format od 0.14.0, pochodzenie od 0.16.0, odwracalność od 0.19.0, `applies_to` od 0.22.0) · **Decyzje:** DR1–DR4 ([`docs/decyzje.md`](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md)) · **Schemat:**
+**Wersja:** kontrakt 0.24.0 (format od 0.14.0, pochodzenie od 0.16.0, odwracalność od 0.19.0, `applies_to` od 0.22.0) · **Decyzje:** DR1–DR4 ([`docs/decyzje.md`](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md)) · **Schemat:**
 [`decision.schema.json`](decision.schema.json) · **Walidator:** `pdi-validate` ·
 **Uzasadnienie i porównanie z MADR:** [`docs/propozycja-decision-record.md`](https://github.com/dbqm45/pdi/blob/main/docs/propozycja-decision-record.md)
 
@@ -143,7 +143,7 @@ plan: [`docs/plan-eksport-madr.md`](https://github.com/dbqm45/pdi/blob/main/docs
 ---
 record: decision
 schema: https://github.com/dbqm45/pdi/contract/decision.schema.json
-contract_version: 0.23.0
+contract_version: 0.24.0
 id: DEC-0041
 statement: Bulk konfiguracja ładowarek zaczyna od zmiany taryfy.
 why: Najczęstsza operacja w zgłoszeniach; restart i firmware mają inne ryzyka.

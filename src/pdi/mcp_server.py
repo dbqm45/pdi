@@ -53,7 +53,13 @@ PrReadyOutcome = Literal["reviewed"]
 TriageOutcome = Literal["accepted", "rejected", "parked", "duplicate"]
 Channel = Literal["form", "slack", "teams", "support", "postmortem", "operate", "manual"]
 RejectionReason = Literal[
-    "out_of_strategy", "works_as_designed", "cost_disproportionate", "already_exists", "out_of_scope_recorded", "other"
+    "out_of_strategy",
+    "works_as_designed",
+    "cost_disproportionate",
+    "already_exists",
+    "out_of_scope_recorded",
+    "no_code",
+    "other",
 ]
 ProblemStatus = Literal["new", "clarifying", "ready_for_triage", "accepted", "rejected", "parked", "duplicate", "all"]
 PROBLEM_FIELDS = (
@@ -143,6 +149,11 @@ class SuccessMetric(TypedDict):
 class AppliesTo(TypedDict, total=False):
     paths: list[str]
     components: list[str]
+
+
+class NoCode(TypedDict):
+    kind: Literal["configuration", "process_change", "existing_feature"]
+    how: str
 
 
 class Links(TypedDict, total=False):
@@ -625,6 +636,7 @@ def build_server(
         rejection_note: str | None = None,
         return_when: str | None = None,
         duplicate_of: str | None = None,
+        no_code: NoCode | None = None,
         decided_by: str | None = None,
         decided_at: str | None = None,
         evidence: list[Evidence] | None = None,
@@ -632,7 +644,9 @@ def build_server(
     ) -> dict[str, Any]:
         """Triaż zgłoszenia — wywołuj po zatwierdzeniu szkicu przez człowieka. outcome: accepted (change opcjonalnie;
         bez niej pdi nadaje kolejny CHG-n, zakłada stan zmiany i uruchamia fazę intent w tf, która otworzy PR z
-        intent.md i poprosi o B1), rejected (rejection_reason, rejection_note), parked (return_when, np. „3 nowe
+        intent.md i poprosi o B1), rejected (rejection_reason, rejection_note; rejection_reason no_code z no_code
+        {kind: configuration | process_change | existing_feature, how}, gdy problem znika bez developmentu — how
+        dostaje zgłaszający; rozważ to przed accepted, DV7), parked (return_when, np. „3 nowe
         zgłoszenia” — po tylu duplikatach wróci do triażu), duplicate (duplicate_of; oryginał dostaje liczbę zgłoszeń i
         dowód). Zapisuje decyzję kind triage z links.prb i wynik w zgłoszeniu, potem powiadamia zgłaszającego.
         """
@@ -647,6 +661,7 @@ def build_server(
                 rejection_note=rejection_note,
                 return_when=return_when,
                 duplicate_of=duplicate_of,
+                no_code={"kind": no_code["kind"], "how": no_code["how"]} if no_code else None,
             )
         except (ProblemNotFound, InvalidDecision) as e:
             raise ToolError(str(e)) from e

@@ -689,7 +689,13 @@ REJECTION_REASONS = (
     ("cost_disproportionate", "koszt nieproporcjonalny"),
     ("already_exists", "już istnieje"),
     ("out_of_scope_recorded", "poza zakresem (zapisane)"),
+    ("no_code", "bez kodu (konfiguracja, proces, istniejąca funkcja)"),
     ("other", "inny powód"),
+)
+NO_CODE_KINDS = (
+    ("configuration", "konfiguracja"),
+    ("process_change", "zmiana procesu"),
+    ("existing_feature", "istniejąca funkcja"),
 )
 
 
@@ -700,6 +706,7 @@ def _triage_cards(deps: Deps, token: str) -> str:
         return ""
     t = _escape(token)
     reasons = "".join(f'<option value="{v}">{_escape(label)}</option>' for v, label in REJECTION_REASONS)
+    kinds = "".join(f'<option value="{v}">{_escape(label)}</option>' for v, label in NO_CODE_KINDS)
     cards = []
     for p in waiting:
         pid = _escape(p["id"])
@@ -720,6 +727,9 @@ def _triage_cards(deps: Deps, token: str) -> str:
             '<textarea name="why" required maxlength="2000"></textarea></div>'
             f'<div class="row"><label>Powód odrzucenia (tylko przy reject)</label>'
             f'<select name="rejection_reason"><option value="">—</option>{reasons}</select></div>'
+            '<div class="row"><label>Bez kodu: rodzaj i co zrobić (tylko przy powodzie „bez kodu”)</label>'
+            f'<select name="no_code_kind"><option value="">—</option>{kinds}</select>'
+            '<textarea name="no_code_how" maxlength="2000"></textarea></div>'
             '<div class="row">'
             '<button name="outcome" value="accepted">accept (załóż CHG)</button> '
             '<button class="warn" name="outcome" value="rejected">reject</button>'
@@ -1272,6 +1282,12 @@ def make_server(
             reason = one("rejection_reason") or None
             if outcome == "rejected" and reason not in {v for v, _ in REJECTION_REASONS}:
                 return self._html(409, "<h1>409</h1><p>Odrzucenie wymaga powodu z listy.</p>")
+            no_code = None
+            if outcome == "rejected" and reason == "no_code":
+                kind, how = one("no_code_kind"), _sanitize_text(one("no_code_how"), limit=2000)
+                if kind not in {v for v, _ in NO_CODE_KINDS} or not how:
+                    return self._html(409, "<h1>409</h1><p>„Bez kodu” wymaga rodzaju i opisu, co zrobić.</p>")
+                no_code = {"kind": kind, "how": how}
             draft: Decision = {
                 "statement": statement,
                 "why": why,
@@ -1288,6 +1304,7 @@ def make_server(
                     draft,
                     rejection_reason=reason if outcome == "rejected" else None,
                     rejection_note=why if outcome == "rejected" else None,
+                    no_code=no_code,
                 )
             except InvalidDecision as e:
                 return self._html(409, f"<h1>409</h1><p>{_escape(str(e))}</p>")
