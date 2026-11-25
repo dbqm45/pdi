@@ -252,7 +252,10 @@ def start_console(ctx: Ctx, config: home.Config, secrets: Mapping[str, str]) -> 
     argv = ["uv", "run", "--directory", str(config.pdi), "pdi-console"]
     url = console_url(secrets)
     ensure_port_free(ctx, "pdi-console", url)
-    start(ctx, "pdi-console", argv, config.pdi, pdi_env(ctx, config, secrets))
+    # Logowanie przez suitę tylko w całości (docs/plan-konsola-tozsamosc.md):
+    # połowiczne PDI_SUITE_* zatrzymałyby konsolę.
+    env = {k: v for k, v in pdi_env(ctx, config, secrets).items() if not k.startswith("PDI_SUITE_")}
+    start(ctx, "pdi-console", argv, config.pdi, {**env, **suite.console_env(config, secrets)})
     wait_for(ctx, "pdi-console", f"{url}/", seconds=START_WAIT["pdi-console"], any_status=True)
 
 
@@ -437,18 +440,21 @@ def cmd_up(ctx: Ctx) -> int:
     if sandbox == "docker":
         ensure_phase_image(ctx, config, secrets)
     register_mcp(ctx, config)
-    if pid_of(ctx, "pdi-console") is None:
-        start_console(ctx, config, secrets)
     try:
         secrets = suite.up(ctx, config, secrets)
         secrets = channels.up(ctx, config, secrets)
     except suite.SuiteError as e:
         raise Stop(str(e)) from e
+    # Po suicie: konsola potrzebuje sekretu klienta di-decision, który `secrets` dopisuje przy pierwszym up.
+    if pid_of(ctx, "pdi-console") is None:
+        start_console(ctx, config, secrets)
     console = console_url(secrets)
+    sign_in = suite.console_env(config, secrets)
+    how = f"logowanie przez suitę ({sign_in['PDI_SUITE_ORGANIZATION']})" if sign_in else "token w adresie"
     ctx.out("")
     ctx.out(f"  ShipScope       {url}/")
     ctx.out(f"  pdi-receiver    {RECEIVER_URL}/events/<shipscope|tf|ci_for_sdlc>")
-    ctx.out(f"  pdi-console     {console}/ — otwórz: sdlc open")
+    ctx.out(f"  pdi-console     {console}/ — {how}; otwórz: sdlc open")
     if suite.enabled(config):
         ctx.out(f"  Keycloak        {suite.KEYCLOAK_URL}/admin (realm suite)")
         ctx.out(f"  di-identity     {suite.IDENTITY_URL}")
@@ -652,7 +658,8 @@ def cmd_open(ctx: Ctx) -> int:
     env = home.read_env(ctx.root / "env")
     form = env.get("PDI_FORM_TOKEN", "")
     console_token = env.get("PDI_CONSOLE_TOKEN", "")
-    ctx.open_url(f"{console_url(env)}/board?t={console_token}")
+    signed_in = bool(suite.console_env(config, env))
+    ctx.open_url(f"{console_url(env)}/login" if signed_in else f"{console_url(env)}/board?t={console_token}")
     ctx.open_url(f"{shipscope_url(config)}/")
     ctx.open_url(f"{RECEIVER_URL}/problems/new?t={form}")
     ctx.out("Otwieram konsolę pdi, ShipScope i formularz zgłoszeń.")

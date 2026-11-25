@@ -9,6 +9,7 @@ dependencies = [
     "pyyaml>=6",
     "jsonschema>=4.23",
     "typing-extensions>=4.12",
+    "cryptography>=46",
 ]
 
 [project.scripts]
