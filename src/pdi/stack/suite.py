@@ -175,6 +175,16 @@ def console_env(config: home.Config, values: Mapping[str, str]) -> dict[str, str
     return {"PDI_SUITE_ISSUER": ISSUER, "PDI_SUITE_CLIENT_SECRET": secret, "PDI_SUITE_ORGANIZATION": organization}
 
 
+def mcp_env(config: home.Config, values: Mapping[str, str]) -> dict[str, str]:
+    """Zmienne zdalnego serwera MCP pdi (docs/plan-mcp-zdalny.md): wystawca i organizacja, bez sekretu.
+
+    Serwer tylko sprawdza tokeny; Claude Code loguje osobę klientem publicznym di-decision-mcp."""
+    organization = (values.get("PDI_SUITE_ORGANIZATION") or "").strip()
+    if not enabled(config) or not organization:
+        return {}
+    return {"PDI_SUITE_ISSUER": ISSUER, "PDI_SUITE_ORGANIZATION": organization}
+
+
 def configure(ctx: Ctx, identity: Path, values: Mapping[str, str]) -> None:
     """Realm `suite` według keycloak/suite.json (idempotentne), potem sekrety klientów do ~/.sdlc/env."""
     if not (identity / "node_modules").is_dir():

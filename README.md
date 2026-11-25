@@ -315,6 +315,27 @@ Keycloak uruchomiony wcześniej ręcznie na 8180 trzeba zatrzymać (`sdlc up` po
 nowym kontenerze jest pusty, więc organizacje i role nadaje się na nowo (`npm run identity -- org …`, `role grant …`).
 Porty suity: Flags 3000, di-channels 3100, di-identity 3200, DI Definition 4317, Keycloak 8180.
 
+### Zdalny serwer MCP z tokenami suity
+
+`pdi-mcp --http` ([plan](docs/plan-mcp-zdalny.md)) to ten sam serwer co w stdio, przez Streamable HTTP pod
+`http://127.0.0.1:8790/mcp` (port `PDI_MCP_PORT`). pdi tylko sprawdza tokeny (RS256 z JWKS wystawcy, `iss`, `aud`
+`di-decision`, `azp`, `exp`). Wydaje je Keycloak suity, a nie własny serwer autoryzacji. Metadane zasobu
+(`/.well-known/oauth-protected-resource/mcp`) wskazują wystawcę i jedyny zakres `openid`. Dostęp:
+- członek organizacji `PDI_SUITE_ORGANIZATION` z rolą `viewer` widzi i woła tylko narzędzia do odczytu;
+- z rolą `editor` albo `admin` może też zapisywać;
+- agent (DI4) tylko czyta;
+- bez roli albo spoza organizacji nie widzi żadnego narzędzia, a wywołanie dostaje odmowę z powodem.
+
+Przez HTTP `decided_by_id` zawsze pochodzi z tokenu, a `decided_by`, gdy go nie podano, to nazwa z tokenu. `sdlc up`
+startuje serwer, gdy suita działa i jest ustawione `PDI_SUITE_ORGANIZATION`, i wypisuje polecenie dla Claude Code:
+
+```bash
+claude mcp add --transport http --client-id di-decision-mcp --callback-port 33418 pdi-remote http://127.0.0.1:8790/mcp
+```
+
+Klient `di-decision-mcp` (publiczny, PKCE, bez e-maila) jest w `keycloak/suite.json` w `dbqm45/di-identity`. Lokalne
+stdio (`pdi`) zostaje bez logowania, dla jednej osoby na własnym komputerze.
+
 ### Pytania ze Slacka w `sdlc` (DI Channels)
 
 `sdlc init` pyta też o klon `dbqm45/di-channels` i klucze aplikacji Slack (wpisywane niewidoczne): Signing Secret,

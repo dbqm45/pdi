@@ -42,6 +42,10 @@ class SuiteSignInError(Exception):
     """Wystawca odmówił albo odpowiedział czymś, czego klient nie przyjmuje (502); bez tokenu w treści."""
 
 
+class UnknownKey(SuiteSignInError):
+    """Token podpisany kluczem, którego nie ma w JWKS wystawcy (może być po rotacji kluczy)."""
+
+
 class Refused(Exception):
     """Osoba zalogowana, ale bez dostępu do konsoli (403): spoza organizacji albo bez roli."""
 
@@ -158,6 +162,32 @@ def _strings(value: Any) -> tuple[str, ...]:
     return ()
 
 
+def signed_claims(token: str, keys: Any) -> dict[str, Any]:
+    """Treść JWT podpisanego RS256 kluczem z JWKS wystawcy (`keys`), wybranym po `kid`; inaczej SuiteSignInError.
+
+    Klucz nigdy nie pochodzi z samego tokenu; `alg` musi być RS256. Roszczeń (`iss`, `aud`, `exp`) nie sprawdza."""
+    parts = token.split(".")
+    if len(parts) != 3:
+        raise SuiteSignInError("ID token to nie JWT")
+    header = _json_part(parts[0])
+    if header.get("alg") != "RS256":
+        raise SuiteSignInError("ID token nie jest podpisany RS256")
+    jwk = next(
+        (k for k in keys or [] if isinstance(k, dict) and k.get("kid") == header.get("kid") and k.get("kty") == "RSA"),
+        None,
+    )
+    if jwk is None or not isinstance(jwk.get("n"), str) or not isinstance(jwk.get("e"), str):
+        raise UnknownKey("ID token podpisany nieznanym kluczem")
+    public = rsa.RSAPublicNumbers(
+        e=int.from_bytes(_b64decode(jwk["e"]), "big"), n=int.from_bytes(_b64decode(jwk["n"]), "big")
+    ).public_key()
+    try:
+        public.verify(_b64decode(parts[2]), f"{parts[0]}.{parts[1]}".encode(), padding.PKCS1v15(), hashes.SHA256())
+    except InvalidSignature as e:
+        raise SuiteSignInError("podpis ID tokenu się nie zgadza") from e
+    return _json_part(parts[1])
+
+
 def _random() -> str:
     return secrets.token_urlsafe(32)
 
@@ -214,32 +244,8 @@ class SuiteClient:
         id_token = tokens.get("id_token") if isinstance(tokens, dict) else None
         if not isinstance(id_token, str):
             raise SuiteSignInError("wystawca nie dał ID tokenu")
-        parts = id_token.split(".")
-        if len(parts) != 3:
-            raise SuiteSignInError("ID token to nie JWT")
-        header = _json_part(parts[0])
-        if header.get("alg") != "RS256":
-            raise SuiteSignInError("ID token nie jest podpisany RS256")
         jwks = self.http.get_json(meta["jwks_uri"])
-        keys = jwks.get("keys") if isinstance(jwks, dict) else None
-        jwk = next(
-            (
-                k
-                for k in keys or []
-                if isinstance(k, dict) and k.get("kid") == header.get("kid") and k.get("kty") == "RSA"
-            ),
-            None,
-        )
-        if jwk is None or not isinstance(jwk.get("n"), str) or not isinstance(jwk.get("e"), str):
-            raise SuiteSignInError("ID token podpisany nieznanym kluczem")
-        public = rsa.RSAPublicNumbers(
-            e=int.from_bytes(_b64decode(jwk["e"]), "big"), n=int.from_bytes(_b64decode(jwk["n"]), "big")
-        ).public_key()
-        try:
-            public.verify(_b64decode(parts[2]), f"{parts[0]}.{parts[1]}".encode(), padding.PKCS1v15(), hashes.SHA256())
-        except InvalidSignature as e:
-            raise SuiteSignInError("podpis ID tokenu się nie zgadza") from e
-        claims = _json_part(parts[1])
+        claims = signed_claims(id_token, jwks.get("keys") if isinstance(jwks, dict) else None)
         if claims.get("iss") != self.config.issuer:
             raise SuiteSignInError("ID token od innego wystawcy")
         if self.config.client_id not in _strings(claims.get("aud")):
