@@ -187,6 +187,7 @@ class ProblemStore:
         rejection_note: str | None = None,
         return_when: str | None = None,
         duplicate_of: str | None = None,
+        no_code: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         """Decyzja z triażu (`kind: triage`, `links.prb`), jej wynik w zgłoszeniu, potem powiadomienie zgłaszającego."""
         item = self.get(problem_id)
@@ -202,7 +203,10 @@ class ProblemStore:
             "rejection_note": rejection_note,
             "return_when": return_when,
             "duplicate_of": duplicate_of,
+            "no_code": no_code,
         }
+        if no_code and rejection_reason != "no_code":
+            raise InvalidDecision("no_code: tylko z rejection_reason no_code (rozwiązanie bez kodu, DV7).")
         needed = REQUIRED_FOR.get(outcome)
         if needed and not given[needed]:
             raise InvalidDecision(f"Wynik {outcome} wymaga {needed}.")
@@ -223,6 +227,8 @@ class ProblemStore:
         if change:
             links["chg"] = change
         tags = [*(draft.get("tags") or []), f"problem:{outcome}"]
+        if rejection_reason == "no_code":
+            tags.append("bez-kodu")  # DV7: zgłoszenia rozwiązane bez developmentu da się policzyć
         decision = self.registry.record(
             {
                 **draft,
@@ -478,6 +484,8 @@ def _message(item: Problem, what: str, d: dict[str, Any]) -> str:
     head = f"Twoje zgłoszenie {item['id']} „{item['title']}”"
     if what == "accepted":
         return f"{head} zostało przyjęte do realizacji jako zmiana {d['change']}."
+    if what == "rejected" and item.get("no_code"):
+        return f"{head} da się rozwiązać bez zmian w systemie: {item['no_code']['how']}"
     if what == "rejected":
         note = f" {item['rejection_note']}" if item.get("rejection_note") else ""
         return f"{head} zostało odrzucone.{note}"
