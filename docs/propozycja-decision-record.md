@@ -55,7 +55,7 @@ z 2024-09-17, licencja MIT albo CC0, pliki `nnnn-title.md` w `docs/decisions/`. 
 | MADR 4.0.0 | Gdzie w MADR | pdi (kontrakt 0.13.0) | Uwagi |
 |---|---|---|---|
 | tytuł (`# {short title}`) | nagłówek treści | `statement` | pdi: jedno zdanie decyzji, w treści jako `# DEC-n: …` |
-| `status`: proposed / rejected / accepted / deprecated / superseded by ADR-0123 | nagłówek (opcjonalnie) | `status`: recorded / superseded / reverted; `superseded_by` | pdi nie ma „proposed” ani „rejected” w rejestrze: propozycje żyją w skrzynce, odrzucony szkic nie trafia do rejestru; accepted ≈ recorded, deprecated ≈ reverted |
+| `status`: proposed / rejected / accepted / deprecated / superseded by ADR-0123 | nagłówek (opcjonalnie) | `status`: recorded / superseded; `superseded_by` | pdi nie ma „proposed” ani „rejected” w rejestrze: propozycje żyją w skrzynce, odrzucony szkic nie trafia do rejestru; accepted ≈ recorded, deprecated ≈ nowa decyzja „wycofujemy”, która zastępuje starą (od kontraktu 0.23.0) |
 | `date` | nagłówek | `decided_at` (+ `recorded_at`) | |
 | `decision-makers` (lista) | nagłówek | `decided_by` (jeden tekst) | pdi: jedno pole tekstowe |
 | `consulted`, `informed` | nagłówek | — | brak w pdi |

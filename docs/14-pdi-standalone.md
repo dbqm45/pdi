@@ -67,7 +67,7 @@ Pierwszy schemat kontraktu (F0). Pola z [dokumentu 12 §4.1](12-zmiana-kierunku-
 | `answers[]` | nie | od kontraktu 0.11.0: odpowiedzi człowieka na pytania z `## Pytania do bramki` (`question`, `answer`); przekazywane do faz tf (Z1) |
 | `success_metric` | nie | metryka, wartość docelowa, horyzont |
 | `review_by` | nie | data przeglądu |
-| `status` | tak | `recorded` / `superseded` / `reverted` |
+| `status` | tak | `recorded` / `superseded` (od kontraktu 0.23.0 bez `reverted`: wycofanie to nowa decyzja, która zastępuje starą) |
 | `supersedes`, `superseded_by` | nie | zastępowanie zamiast nadpisywania |
 | `links` | nie | `{prb, chg, tsk, pr, adr}` — powiązanie z flow SDLC |
 | `tags[]` | nie | obszar, projekt |

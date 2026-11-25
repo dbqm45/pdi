@@ -42,7 +42,7 @@ transkrypcji spotkania: wyciągnij tylko to, co uczestnicy rzeczywiście ustalil
 i zamknij decide_inbox_item (approved albo rejected) dopiero po jego odpowiedzi."""
 
 Kind = Literal["product", "technical", "process", "triage", "intent", "gate", "other"]
-Status = Literal["recorded", "superseded", "reverted"]
+Status = Literal["recorded", "superseded"]
 App = Literal["pdi", "tf", "ci_for_sdlc", "shipscope"]
 InboxStatus = Literal["open", "decided", "superseded", "all"]
 ChangeStatus = Literal["open", "rejected", "done", "all"]

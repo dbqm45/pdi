@@ -247,3 +247,12 @@ def test_same_local_id_in_another_scope_is_another_decision(inbox: Inbox, regist
     inbox.receive(tf_event("evt-tf-2", origin={**TF_ORIGIN, "scope": "dbqm45/inny"}))
 
     assert len(registry.decisions()) == 2
+
+
+def test_reversibility_and_provisional_reach_the_registry(inbox: Inbox, registry: Registry) -> None:
+    """Kontrakt 0.19.0: odwracalność i decyzja tymczasowa z `decision.recorded` trafiają do rejestru."""
+    result = inbox.receive(recorded_event(reversibility="local", provisional=True))
+    d = registry.get(result["decision"])
+    assert (d["reversibility"], d["provisional"]) == ("local", True)
+    plain = registry.get(inbox.receive(recorded_event("evt-dec-2", statement="Inna decyzja."))["decision"])
+    assert "reversibility" not in plain and "provisional" not in plain

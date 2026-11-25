@@ -430,3 +430,10 @@ async def test_flow_delays_through_the_tool(server: Any) -> None:
 async def test_process_tools_without_history(server: Any) -> None:
     assert await call(server, "process_report", {}) == {"gates": []}
     assert await call(server, "propose_process_changes", {}) == {"items": []}
+
+
+async def test_find_decisions_has_no_reverted_status(server: Any) -> None:
+    """Kontrakt 0.23.0: status decyzji to tylko recorded albo superseded."""
+    tools = {t.name: t for t in await server.list_tools()}
+    status = json.dumps(tools["find_decisions"].input_schema["properties"]["status"])
+    assert "superseded" in status and "reverted" not in status
