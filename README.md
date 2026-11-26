@@ -330,6 +330,21 @@ Z logowaniem przez suitę decydent (`editor` albo `admin`) może przy pozycji sk
 Tablica „Now” pokazuje „With team · N/M”. Lokalnie to kilka kont w jednej konsoli; zespół z różnych komputerów
 zacznie korzystać z tego razem z konsolą jako usługą.
 
+### „Discuss with team” (DI Team T5)
+
+Strona `/discuss` ([plan](docs/plan-t5-discuss-with-team.md)) to agenda spraw, których „Ask team” skończyło się
+rozbieżnością albo prośbą o rozmowę na żywo. Kolejność wyznacza to, co sprawa blokuje:
+1. wstrzymany przebieg;
+2. termin minął;
+3. bramka trzyma zmianę;
+4. liczba chętnych do rozmowy;
+5. czas czekania.
+
+Karta podaje powód słowami. Decydent może przesunąć sprawę (`agenda.json`). Decyzja z karty zapisuje się jako
+decyzja ze spotkania (`source.kind: meeting`, z `consulted`). Pod listą jest Markdown dla zaproszenia albo notatki.
+Agent czyta agendę narzędziem MCP `discussion_agenda`. Sprawy z historyjek DI Definition i pokój sprintdecka dojdą
+osobno.
+
 ### Zdalny serwer MCP z tokenami suity
 
 `pdi-mcp --http` ([plan](docs/plan-mcp-zdalny.md)) to ten sam serwer co w stdio, przez Streamable HTTP pod

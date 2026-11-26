@@ -63,6 +63,7 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
         "autonomy_report",
         "propose_autonomy_changes",
         "add_option_effects",
+        "discussion_agenda",
         "forecast_change",
         "forecast_report",
         "propose_decisions_from_conversation",
@@ -156,7 +157,7 @@ async def test_stdio_end_to_end(tmp_path: Path, make_draft: Draft) -> None:
         listed = await session.list_tools()
         result = await session.call_tool("record_decision", make_draft())
 
-    assert len(listed.tools) == 34
+    assert len(listed.tools) == 35
     assert json.loads(result.content[0].text)["id"] == "DEC-0001"
     assert (tmp_path / "rejestr" / "decisions" / "_ogolne" / "DEC-0001.md").is_file()
 

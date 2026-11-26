@@ -50,7 +50,7 @@ from pathlib import Path
 from typing import Any, cast
 from urllib.parse import parse_qs, quote, urlsplit
 
-from pdi import autonomy, consult, delays, dispatch_local, pr_state, process, stale, suite_login
+from pdi import agenda, autonomy, consult, delays, dispatch_local, pr_state, process, stale, suite_login
 from pdi import trace as trace_mod
 from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig
@@ -209,6 +209,7 @@ class Deps:
         # DI Team T4 „Ask team”: konsultacje przy pozycjach skrzynki i osoby, które logowały się przez suitę.
         self.consults = consult.Consultations(registry.root, now=registry.now)
         self.people = consult.People(registry.root, now=registry.now)
+        self.agenda = agenda.Order(registry.root)
         self.changes = ChangeStore(registry)
         self.checkout = checkout
         self.git = git or _git_run
@@ -265,6 +266,7 @@ def _nav(token: str) -> str:
     t = _escape(token)
     pages = (
         ("now", "Now"),
+        ("discuss", "Discuss"),
         ("board", "Tablica"),
         ("inbox", "Skrzynka"),
         ("decisions", "Decyzje"),
@@ -757,6 +759,64 @@ def _ask_html(deps: Deps, item: dict[str, Any], viewer: Any) -> str:
         for a in view["answers"]
     )
     return verdict + f"<ul>{rows}</ul>" + effects_html
+
+
+def _discuss_body(deps: Deps, viewer: Any, now: datetime, token: str = "") -> str:
+    """„Discuss with team” (T5): sprawy z rozbieżnością zespołu według tego, co blokują, z decyzją ze spotkania."""
+    deps.inbox.check_deadlines()
+    entries = agenda.build(deps.inbox.items(status="open"), deps.consults, order=deps.agenda.get(), now=now)
+    decides = viewer is None or viewer.access == "decide"
+    cards = []
+    for n, e in enumerate(entries, 1):
+        iid = _escape(e["item_id"])
+        where = " · ".join(_escape(x) for x in (e["change"], e["gate"]) if x)
+        answers = "".join(
+            f"<li>{_escape(a['name'])}: <strong>{_escape(a['option'] or '—')}</strong>"
+            f"{' — ' + _escape(a['reason']) if a['reason'] else ''}</li>"
+            for a in e["answers"]
+        )
+        effects = "".join(f"<li><strong>{_escape(o)}</strong>: {_escape(t)}</li>" for o, t in e["effects"].items())
+        move = ""
+        decide = ""
+        if decides:
+            q = f"?t={_escape(token)}" if token else ""
+            hidden = f'<input type="hidden" name="t" value="{_escape(token)}">' if token else ""
+            move = " ".join(
+                f'<form class="inline" method="post" action="/discuss/{iid}/{d}{q}">{hidden}'
+                f'<button type="submit">{arrow}</button></form>'
+                for d, arrow in (("up", "↑"), ("down", "↓"))
+            )
+            buttons = " ".join(
+                f'<button name="outcome" value="{_escape(o)}">{_escape(o)}</button>' for o in e["options"]
+            )
+            decide = (
+                f'<form method="post" action="/inbox/{iid}/decide{q}">{hidden}'
+                '<input type="hidden" name="via" value="agenda">'
+                f'<input type="hidden" name="loaded_at" value="{_escape(e["received_at"])}">'
+                '<div class="row"><label>Treść decyzji (statement)</label>'
+                '<textarea name="statement" required maxlength="800"></textarea></div>'
+                '<div class="row"><label>Dlaczego (why)</label>'
+                '<textarea name="why" required maxlength="2000"></textarea></div>'
+                f'<div class="row">{buttons}</div></form>'
+            )
+        cards.append(
+            f'<section class="card"><h2>{n}. {_escape(_sanitize_text(e["summary"], 200))} '
+            f'<span class="pill">{where or _escape(e["kind"])}</span> {move}</h2>'
+            f"<p><small>Why now: {_escape('; '.join(e['reasons']))} · asked by {_escape(e['decider'])}</small></p>"
+            f"<ul>{answers}</ul>"
+            + (f"<p><small>Agent on the options:</small></p><ul>{effects}</ul>" if effects else "")
+            + f"{decide}</section>"
+        )
+    md = agenda.markdown(entries, day=now.date().isoformat())
+    body = (
+        "".join(cards) if cards else "<p>Nothing to discuss: no team question ended in a split or a call to talk.</p>"
+    )
+    export = (
+        "<details><summary>Markdown for the invitation or notes</summary>"
+        f'<textarea readonly rows="12" style="width:100%">{_escape(md)}</textarea></details>'
+    )
+    hint = "<p><small>Ordered by what each item blocks; the decider may move them.</small></p>"
+    return f"<h1>Discuss with team</h1>{hint}{body}{export}"
 
 
 def _inbox_body(deps: Deps, token: str, viewer: Any = None) -> str:
@@ -1319,6 +1379,9 @@ def make_server(
                 if path == "/now":
                     body = _now_body(deps, token, params.get("who", ""), clock())
                     return self._html(200, _render_page("Now", body, nonce=nonce, token=token))
+                if path == "/discuss":
+                    body = _discuss_body(deps, self.session, clock(), token if suite is None else "")
+                    return self._html(200, _render_page("Discuss with team", body, nonce=nonce, token=token))
                 if path == "/" or path == "/board":
                     return self._html(200, _render_page("Tablica", _board_body(deps, token), nonce=nonce, token=token))
                 if path == "/inbox":
@@ -1441,8 +1504,16 @@ def make_server(
                 if suite is not None
                 else None
             )
+            reorder = re.match(r"^/discuss/([A-Za-z0-9._-]{1,128})/(up|down)$", url.path)  # T5
             logout = suite is not None and url.path == "/logout"
-            if match is None and triage is None and stale_review is None and team is None and not logout:
+            if (
+                match is None
+                and triage is None
+                and stale_review is None
+                and team is None
+                and reorder is None
+                and not logout
+            ):
                 return self._html(404, "<h1>404</h1>")
             origin = self.headers.get("origin") or ""
             referer = self.headers.get("referer") or ""
@@ -1480,6 +1551,16 @@ def make_server(
                 return self._html(404, "<h1>404</h1>")
             if team is not None:
                 return self._team(team.group(1), team.group(2), fields, one)
+            if reorder is not None:
+                entries = agenda.build(
+                    deps.inbox.items(status="open"), deps.consults, order=deps.agenda.get(), now=clock()
+                )
+                deps.agenda.set(agenda.moved([e["item_id"] for e in entries], reorder.group(1), reorder.group(2)))
+                self.send_response(303)
+                self.send_header("location", f"/discuss?t={token}" if suite is None else "/discuss")
+                self.send_header("content-length", "0")
+                self.end_headers()
+                return None
             if triage is not None:
                 return self._triage(triage.group(1), one)
             if stale_review is not None:
@@ -1520,6 +1601,13 @@ def make_server(
                     "kind": "console",
                     "url": f"http://{host}:{port}/inbox/{item_id}",
                     "excerpt": _sanitize_text(item.get("summary"), limit=200),
+                }
+                if one("via") != "agenda"
+                else {  # T5: decyzja ze spotkania, z agendy „Discuss with team”
+                    "kind": "meeting",
+                    "url": f"http://{host}:{port}/discuss",
+                    "excerpt": f"Discuss with team, {clock().date().isoformat()}: "
+                    + _sanitize_text(item.get("summary"), limit=150),
                 },
             }
             if answers is not None:

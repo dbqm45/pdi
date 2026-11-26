@@ -1,6 +1,6 @@
 # DI Team T5 — „Discuss with team” jako agenda — plan
 
-Stan: 2026-11-26, propozycja do zatwierdzenia przez właściciela. Źródło: `TODO.md`, sekcja „DI Team”, krok T5, oraz
+Stan: 2026-11-26, decyzje 1–6 przyjęte przez właściciela; kroki 1–3 zrobione, sprawdzone na żywo. Źródło: `TODO.md`, sekcja „DI Team”, krok T5, oraz
 powiązania z 2026-11-21. Kadr makiety: „Discuss with team”. T4 („Ask team”) jest gotowe
 (dbqm45/pdi#226): pozycja z rozbieżnością albo z „talk live” dostaje znacznik „To discuss”.
 
@@ -12,8 +12,16 @@ powiązania z 2026-11-21. Kadr makiety: „Discuss with team”. T4 („Ask team
   `needs_review`), a przy bramkach zmianę i jej fazę.
 - Kontrakt ma `source.kind: meeting` (0.10.0) dla decyzji ze spotkania.
 - W DI Definition krok **R5** (zestaw historyjek ułożony pod rozmowę, przez API) **nie jest zbudowany**
-  (`ci_for_sdlc/docs/REFINEMENT-PLAN.md`, stan 2026-11-21). Pokój na żywo z ukrytymi głosami ma sprintdeck. Ta sesja
-  nie ma dostępu do sprintdecka, więc nie sprawdzałem go tutaj [niezweryfikowane].
+  (`ci_for_sdlc/docs/REFINEMENT-PLAN.md`, stan 2026-11-21). Pokój na żywo z ukrytymi głosami ma sprintdeck.
+- Sprintdeck (sprawdzone 2026-11-26 na `main` z 2026-10-27, `supabase/migrations/`, `docs/PLAN.md` §12.3):
+  - pokój i jego zadania obsługują funkcje RPC w Postgresie (`create_room`, `add_item`, `reorder_items`,
+    `start_round`, `reveal_round`, `finalize_item` i inne);
+  - logowanie jest anonimowe przez Supabase;
+  - zadania dodaje się ręcznie, a importu nie ma (poza MVP);
+  - plan po MVP przewiduje sesję wyzwalaną z zewnątrz i „notatkę z zatwierdzenia jako decyzję w rejestrze pdi”.
+
+  Agenda może więc później zakładać pokój z listą spraw przez te funkcje. Wymaga to kont w sprintdecku albo
+  tożsamości suity, bo dziś logowanie jest anonimowe.
 
 ## Decyzje do potwierdzenia (rekomendacja w każdej)
 
@@ -58,3 +66,18 @@ powiązania z 2026-11-21. Kadr makiety: „Discuss with team”. T4 („Ask team
 - Bez R5 agenda pokazuje tylko decyzje z pdi, a nie pytania z historyjek. Do zbudowania R5 to „połowa refinementu”.
 - Lokalnie agenda działa dla kont w jednej konsoli. Z zespołem z różnych komputerów zadziała dopiero z konsolą jako
   usługą.
+
+## Co wyszło przy wdrożeniu (2026-11-26)
+
+- **Ręczna kolejność:** przesunięcie (↑/↓) zapisuje w `agenda.json` całą bieżącą kolejność. Sprawy, które
+  pojawią się później, idą za ustawionymi, według tego, co blokują.
+- **Bez skryptu:** Markdown dla zaproszenia jest w polu tekstowym tylko do odczytu, bo CSP konsoli nie pozwala
+  na schowek przez skrypt.
+- **Tryb z tokenem** (bez suity): formularze agendy niosą token konsoli, tak jak w skrzynce.
+- **MCP:** `discussion_agenda` (odczyt); razem 35 narzędzi.
+- **Na żywo** (lokalny Keycloak, konsola na `127.0.0.1:8788`, Playwright):
+  - dwie bramki z „talk live” od `adm.test`;
+  - sprawa CHG-2 z wstrzymanym przebiegiem wyszła na pierwsze miejsce przed starszą CHG-1, z powodem „the run is
+    paused; CHG-2 waits at B2; 1 wants to talk live; waiting 1 h”;
+  - decyzja z agendy (`DEC-0001`) ma `source.kind: meeting`, adres agendy i `consulted`;
+  - po decyzji na agendzie została tylko CHG-1.

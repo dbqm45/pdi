@@ -537,6 +537,7 @@ def test_menu_links_keep_the_token(registry: Registry) -> None:
         links = re.findall(r'href="([^"]+)"', nav)
         assert [link.split("?")[0] for link in links] == [
             "/now",
+            "/discuss",
             "/board",
             "/inbox",
             "/decisions",
