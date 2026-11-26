@@ -277,6 +277,7 @@ class Session:
     name: str
     access: Access
     expires_at: float
+    admin: bool = False  # rola admin w DI Decision (T7: eskalacja typów chronionych tylko do admina)
 
 
 class SuiteLogin:
@@ -320,7 +321,13 @@ class SuiteLogin:
         person = self.client(redirect_uri).finish(code, entry[0])
         level = access(person, self.config)
         session_id = secrets.token_urlsafe(32)
-        session = Session(sub=person.sub, name=person.name, access=level, expires_at=self.now() + SESSION_TTL_SECONDS)
+        session = Session(
+            sub=person.sub,
+            name=person.name,
+            access=level,
+            expires_at=self.now() + SESSION_TTL_SECONDS,
+            admin="admin" in person.roles,
+        )
         with self._lock:
             self._sessions[hashlib.sha256(session_id.encode()).hexdigest()] = session
         return session_id, session

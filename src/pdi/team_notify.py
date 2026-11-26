@@ -24,10 +24,11 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
-from pdi import agenda, consult, waiting
+from pdi import agenda, consult, escalate, waiting
 from pdi.notify import LOCAL_HOSTS, TIMEOUT_SECONDS
 
 ASKED_PATH = "/pdi/asked"
+ESCALATED_PATH = "/pdi/escalated"
 DIGEST_PATH = "/pdi/digest"
 MAX_ITEMS = 10
 
@@ -133,6 +134,44 @@ def notify_asked(
     return result
 
 
+def notify_escalated(
+    config: waiting.ChannelsConfig,
+    item: dict[str, Any],
+    e: dict[str, Any],
+    *,
+    at: str,
+    post: JsonPost | None = None,
+    now: int | None = None,
+) -> dict[str, Any]:
+    """Wysyła `team.escalated` (T7): adresat dostaje wiadomość, że decyzja o tej sprawie jest teraz jego."""
+    msg: dict[str, Any] = {
+        "type": "team.escalated",
+        "id": f"escalated-{item['id']}-{e['at']}"[:128],
+        "item": item["id"],
+        "summary": str(item.get("summary") or item["id"])[:300],
+        "by": e["by"]["name"][:80],
+        "to": e["to"]["sub"],
+        "reason": e["reason"][:1000],
+        "due": _due(item, config),
+        **_link(config, "inbox"),
+    }
+    for key in ("change", "gate"):
+        if item.get(key):
+            msg[key] = item[key]
+    sent, answer = _send(config, ESCALATED_PATH, msg, post, now)
+    result: dict[str, Any] = {**sent, "at": at}
+    if sent["status"] == "sent" and isinstance(answer, dict) and isinstance(answer.get("delivered"), str):
+        result["delivered"] = answer["delivered"]
+    return result
+
+
+def _due(item: dict[str, Any], config: waiting.ChannelsConfig) -> str:
+    """Termin sprawy z OM1 (dzień); eskalacja go nie zmienia."""
+    if item.get("received_at"):
+        return str(waiting.message(item, config)["due"])
+    return datetime.now(UTC).date().isoformat()
+
+
 def stage_of(item: dict[str, Any], now: datetime) -> str:
     """Najświeższy etap terminu osiągnięty teraz (OM1 §4–§5); „new”, gdy żaden."""
     if not item.get("received_at"):
@@ -203,12 +242,22 @@ def person_digests(
     *,
     now: datetime,
     config: waiting.ChannelsConfig,
+    escalations: escalate.Escalations | None = None,
 ) -> list[dict[str, Any]]:
-    """Skróty osób, na których odpowiedź czeka pytanie zespołu („Asked of you”); inni nie dostają nic."""
+    """Skróty osób, na których odpowiedź czeka pytanie zespołu („Asked of you”) albo do których eskalowano sprawę
+    („Escalated to you”, T7); inni nie dostają nic."""
     day = now.astimezone(UTC).date().isoformat()
-    summaries = {it["id"]: str(it.get("summary") or it["id"])[:300] for it in items if it.get("status") == "open"}
+    open_items = {it["id"]: it for it in items if it.get("status") == "open"}
+    summaries = {i: str(it.get("summary") or i)[:300] for i, it in open_items.items()}
     out = []
     for person in people:
+        escalated = []
+        for item_id in escalations.escalated_to(person.sub) if escalations else []:
+            e = escalations.view(item_id) if escalations else None
+            if item_id not in open_items or e is None:
+                continue
+            escalated.append({"item": item_id, "summary": summaries[item_id], "by": e["by"]["name"][:80],
+                              "due": _due(open_items[item_id], config), **_link(config, "inbox")})  # fmt: skip
         mine = []
         for item_id in consults.asked_of(person.sub):
             view = consults.view(item_id, person.sub)
@@ -216,7 +265,7 @@ def person_digests(
                 continue
             mine.append({"item": item_id, "summary": summaries[item_id], "asked_by": view["decider"][:80],
                          "closes_at": view["closes_at"], **_link(config, "inbox")})  # fmt: skip
-        if not mine:
+        if not mine and not escalated:
             continue
         out.append({
             "type": "team.digest",
@@ -226,6 +275,7 @@ def person_digests(
             "waiting": {"total": 0, "items": []},
             "with_team": [],
             "asked_of_you": mine[:MAX_ITEMS],
+            "escalated_to_you": escalated[:MAX_ITEMS],
             "to_discuss": {"count": 0},
             "unreachable": [],
         })  # fmt: skip
@@ -244,7 +294,14 @@ def collect(
     people = consult.People(registry.root, now=lambda: now).all()
     return (
         approver_digest(items, consults, entries, now=now, config=config),
-        person_digests(items, consults, people, now=now, config=config),
+        person_digests(
+            items,
+            consults,
+            people,
+            now=now,
+            config=config,
+            escalations=escalate.Escalations(registry.root, now=lambda: now),
+        ),
         {p.sub: p.name for p in people},
     )
 

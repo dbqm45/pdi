@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/dbqm45/pdi/contract/event.schema.json",
-  "title": "Zdarzenie (kontrakt suity 0.26.0)",
+  "title": "Zdarzenie (kontrakt suity 0.27.0)",
   "description": "Koperta zdarzenia wymienianego między pdi, tf, ci_for_sdlc i ShipScope; treść (payload) zależy od typu.",
   "type": "object",
   "additionalProperties": false,
@@ -1252,6 +1252,65 @@
             }
           },
           "description": "Kogo zapytano o zdanie przed decyzją (0.26.0, DI Team T4 „Ask team”) i co odpowiedział; wszyscy zapytani, także ci bez odpowiedzi. Zespół doradza: decyduje `decided_by`. Brak, gdy nikogo nie pytano."
+        },
+        "escalation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "by_name",
+            "to_name",
+            "reason",
+            "at"
+          ],
+          "properties": {
+            "by_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "`sub` osoby, która eskalowała (DI Identity), gdy jest."
+            },
+            "by_name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Kto eskalował: decydent, który przekazał sprawę."
+            },
+            "to_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "`sub` osoby, do której eskalowano (DI Identity), gdy jest."
+            },
+            "to_name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Do kogo eskalowano: osoba, która od tej chwili decydowała o sprawie."
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Dlaczego sprawa wyszła poza zespół albo ponad niego."
+            },
+            "at": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+              "description": "Kiedy eskalowano, UTC."
+            },
+            "returned_at": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+              "description": "Kiedy adresat oddał sprawę eskalującemu, UTC; wtedy decydował znów eskalujący. Brak, gdy nie oddano."
+            },
+            "return_note": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Notatka adresata przy oddaniu sprawy."
+            }
+          },
+          "description": "Eskalacja sprawy przed decyzją (0.27.0, DI Team T7 „Escalate”, OM2 w pdi): kto przekazał decyzję o tej jednej sprawie, komu i dlaczego. Od eskalacji decyduje adresat, chyba że oddał sprawę (`returned_at`). Brak, gdy nie eskalowano."
         },
         "drafted_by": {
           "type": "string",

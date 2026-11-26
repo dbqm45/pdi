@@ -21,7 +21,20 @@ from mcp_types import ToolAnnotations
 from pydantic import AnyHttpUrl
 from typing_extensions import TypedDict  # pydantic na 3.11 wymaga TypedDict z typing_extensions
 
-from pdi import agenda, autonomy, consult, context, delays, forecast, mcp_auth, pr_state, process, stale, team_notify
+from pdi import (
+    agenda,
+    autonomy,
+    consult,
+    context,
+    delays,
+    escalate,
+    forecast,
+    mcp_auth,
+    pr_state,
+    process,
+    stale,
+    team_notify,
+)
 from pdi.changes import ChangeNotFound
 from pdi.dispatch import DispatchConfig
 from pdi.impact import ShipScopeConfig, read_connection
@@ -458,6 +471,12 @@ def build_server(
             view = consults.view(item["id"], "")
             if view is not None:
                 item["consultation"] = {k: v for k, v in view.items() if k not in ("mine", "is_asked", "decider_sub")}
+        escalations = escalate.Escalations(box.registry.root, now=box.registry.now)
+        for item in items:
+            # „Escalate” (T7, OM2): kto teraz decyduje o sprawie; agent nie eskaluje sam.
+            field = escalations.field(item["id"])
+            if field is not None:
+                item["escalation"] = field
         return {"items": items}
 
     @server.tool(annotations=_READ)

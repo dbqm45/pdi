@@ -1,6 +1,6 @@
 # Decision Record — specyfikacja pliku decyzji
 
-**Wersja:** kontrakt 0.26.0 (format od 0.14.0, pochodzenie od 0.16.0, odwracalność od 0.19.0, `applies_to` od 0.22.0, `consulted` od 0.26.0) · **Decyzje:** DR1–DR4 ([`docs/decyzje.md`](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md)) · **Schemat:**
+**Wersja:** kontrakt 0.27.0 (format od 0.14.0, pochodzenie od 0.16.0, odwracalność od 0.19.0, `applies_to` od 0.22.0, `consulted` od 0.26.0, `escalation` od 0.27.0) · **Decyzje:** DR1–DR4 ([`docs/decyzje.md`](https://github.com/dbqm45/pdi/blob/main/docs/decyzje.md)) · **Schemat:**
 [`decision.schema.json`](decision.schema.json) · **Walidator:** `pdi-validate` ·
 **Uzasadnienie i porównanie z MADR:** [`docs/propozycja-decision-record.md`](https://github.com/dbqm45/pdi/blob/main/docs/propozycja-decision-record.md)
 
@@ -48,6 +48,12 @@ do wyświetlenia. Brak przy decyzji automatu i w decyzjach zapisanych przed 0.25
 Od 0.26.0 opcjonalnie `consulted`: kogo decydent zapytał o zdanie przed decyzją („Ask team”, DI Team T4) i co
 każdy odpowiedział (`person_id`, `name`, `option`, `reason`; `option` i `reason` są `null`, gdy ktoś nie odpowiedział
 do zamknięcia). Zapytani doradzają; decyzję podejmuje i podpisuje `decided_by`. Brak pola znaczy, że nikogo nie pytano.
+
+Od 0.27.0 opcjonalnie `escalation`: decydent przekazał decyzję o tej jednej sprawie innej osobie („Escalate”, DI Team
+T7; OM2 w pdi). Pola: kto eskalował (`by_id`, `by_name`), do kogo (`to_id`, `to_name`), dlaczego (`reason`) i kiedy
+(`at`). Inaczej niż przy `consulted` zmienia się decydent: decyzję podejmuje i podpisuje adresat, więc `decided_by`
+to zwykle `to_name`. Gdy adresat oddał sprawę, są też `returned_at` i `return_note`, a decyduje znów eskalujący. Brak
+pola znaczy, że nie eskalowano.
 
 ## 4a. Czego dotyczy decyzja (`applies_to`)
 
@@ -149,7 +155,7 @@ plan: [`docs/plan-eksport-madr.md`](https://github.com/dbqm45/pdi/blob/main/docs
 ---
 record: decision
 schema: https://github.com/dbqm45/pdi/contract/decision.schema.json
-contract_version: 0.26.0
+contract_version: 0.27.0
 id: DEC-0041
 statement: Bulk konfiguracja ładowarek zaczyna od zmiany taryfy.
 why: Najczęstsza operacja w zgłoszeniach; restart i firmware mają inne ryzyka.

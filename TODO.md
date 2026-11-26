@@ -234,7 +234,7 @@ konsola pdi (`src/pdi/console.py`: tablica zmian, ślad, postęp fazy na żywo, 
   blokad, zapis decyzji ze spotkania; opcjonalnie eksport agendy.
 - [x] **T6 — skróty do Slacka/Teams** (zrobione 2026-11-26 dla Slacka: wiadomość do zapytanych przy „Ask team” i dzienny skrót, [plan](docs/plan-t6-skroty-slack.md); Teams osobno): dzienny skrót i powiadomienie „czeka na Ciebie” z linkiem. Nie własnym
   botem: przez wspólną aplikację kanałów suity (plan programu §3.7, krok CH2), zapisaną 2026-11-21.
-- [ ] **T7 — „Escalate” (na później, osobno od „Ask team”; pomysł właściciela zapisany 2026-11-20):** trzecia opcja
+- [x] **T7 — „Escalate”** (zrobione 2026-11-26: przekazanie decyzji o jednej sprawie, OM2, kontrakt 0.27.0, [plan](docs/plan-t7-escalate.md); pomysł właściciela zapisany 2026-11-20): trzecia opcja
   na karcie decyzji, obok „Decide” i „Ask team”. Służy do zgłoszenia sprawy **powyżej zespołu albo poza zespół** —
   gdy zespół nie może albo nie powinien rozstrzygać sam. Nie wchodzi do zakresu T4/T5; robimy dopiero po „Ask team”.
   Do ustalenia przy planie (to są pytania, nie decyzje):

@@ -50,7 +50,19 @@ from pathlib import Path
 from typing import Any, cast
 from urllib.parse import parse_qs, quote, urlsplit
 
-from pdi import agenda, autonomy, consult, delays, dispatch_local, pr_state, process, stale, suite_login, team_notify
+from pdi import (
+    agenda,
+    autonomy,
+    consult,
+    delays,
+    dispatch_local,
+    escalate,
+    pr_state,
+    process,
+    stale,
+    suite_login,
+    team_notify,
+)
 from pdi import trace as trace_mod
 from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig
@@ -210,6 +222,7 @@ class Deps:
         self.consults = consult.Consultations(registry.root, now=registry.now)
         self.people = consult.People(registry.root, now=registry.now)
         self.agenda = agenda.Order(registry.root)
+        self.escalations = escalate.Escalations(registry.root, now=registry.now)  # T7
         self.changes = ChangeStore(registry)
         self.checkout = checkout
         self.git = git or _git_run
@@ -766,6 +779,55 @@ def _ask_html(deps: Deps, item: dict[str, Any], viewer: Any) -> str:
     return verdict + f"<ul>{rows}</ul>" + effects_html
 
 
+def _escalate_html(deps: Deps, item: dict[str, Any], viewer: Any) -> str:
+    """„Escalate” (DI Team T7, OM2) na karcie: stan eskalacji, formularz przekazania decyzji i oddanie sprawy."""
+    if viewer is None or item.get("kind") == "pr_ready":
+        return ""
+    iid = _escape(item["id"])
+    limit = escalate.MAX_TEXT
+    e = deps.escalations.view(item["id"])
+    if e is not None and not e.get("returned_at"):
+        by, to = _escape(e["by"]["name"]), _escape(e["to"]["name"])
+        if e["to"]["sub"] == viewer.sub:
+            question = f"<p><small>Question: {_escape(e['question'])}</small></p>" if e.get("question") else ""
+            return (
+                f'<p class="pill warn">{by} escalated this to you</p>'
+                f"<p><small>Why: {_escape(e['reason'])}</small></p>{question}"
+                f'<form class="ask" method="post" action="/inbox/{iid}/give-back">'
+                "<details><summary>Give it back</summary>"
+                f'<p><input type="text" name="note" maxlength="{limit}" required placeholder="Why you give it back">'
+                ' <button type="submit">Give back</button></p></details></form>'
+            )
+        return (
+            f'<p class="pill warn">Escalated to {to} · since {_escape(e["at"])}</p>'
+            f"<p><small>By {by}: {_escape(e['reason'])}. Only {to} decides now.</small></p>"
+        )
+    note = ""
+    if e is not None and e.get("returned_at"):
+        note = f"<p><small>{_escape(e['to']['name'])} gave it back: {_escape(e.get('return_note') or '')}</small></p>"
+    if viewer.access != "decide":
+        return note
+    admin_only = escalate.protected(item)
+    choices = [
+        p
+        for p in deps.people.deciders()
+        if p.sub != viewer.sub and (not admin_only or (deps.people.get(p.sub) or {}).get("admin"))
+    ]
+    if not choices:
+        return note + "<p><small>Escalate: nobody else who can decide has signed in to this console yet.</small></p>"
+    options = "".join(f'<option value="{_escape(p.sub)}">{_escape(p.name)}</option>' for p in choices)
+    hint = " Protected decision: only admins." if admin_only else ""
+    picker = "<p><label>To " + '<select name="to">' + options + "</select></label></p>"
+    return note + (
+        f'<form class="ask" method="post" action="/inbox/{iid}/escalate"><details><summary>Escalate</summary>{picker}'
+        f'<p><input type="text" name="reason" maxlength="{limit}" required '
+        'placeholder="Why the team should not decide this alone"></p>'
+        f'<p><input type="text" name="question" maxlength="{limit}" placeholder="Question for them (optional)"></p>'
+        '<p><button type="submit">Escalate</button> '
+        f"<small>They decide this item now; the deadline stays.{hint}</small></p></details></form>"
+    )
+
+
 def _discuss_body(deps: Deps, viewer: Any, now: datetime, token: str = "") -> str:
     """„Discuss with team” (T5): sprawy z rozbieżnością zespołu według tego, co blokują, z decyzją ze spotkania."""
     deps.inbox.check_deadlines()
@@ -851,7 +913,7 @@ def _inbox_body(deps: Deps, token: str, viewer: Any = None) -> str:
             f'<span class="pill open">czeka</span></h2>'
             f"<p><strong>{_escape(item.get('summary'))}</strong></p>"
             f"{_risk_html(item)}{_pin_html(item)}"
-            f"{_ask_html(deps, item, viewer)}"
+            f"{_ask_html(deps, item, viewer)}{_escalate_html(deps, item, viewer)}"
             f'<form method="post" action="/inbox/{_escape(item["id"])}/decide?t={_escape(token)}">'
             f'<input type="hidden" name="t" value="{_escape(token)}">'
             f'<input type="hidden" name="loaded_at" value="{_escape(item["received_at"])}">'
@@ -1358,7 +1420,11 @@ def make_server(
                     )
                     return True
                 # „Ask team” (T4): kto logował się do tej konsoli, żeby dało się go zapytać (bez e-maila, DI3).
-                deps.people.seen(consult.Person(sub=signed_in.sub, name=signed_in.name))
+                deps.people.seen(
+                    consult.Person(sub=signed_in.sub, name=signed_in.name),
+                    decides=signed_in.access == "decide",
+                    admin=signed_in.admin,
+                )
                 ttl = suite_login.SESSION_TTL_SECONDS
                 session = f"{SESSION_COOKIE}={session_id}; Path=/; Max-Age={ttl}; HttpOnly; SameSite=Lax"
                 self._redirect("/", [clear, session])
@@ -1505,7 +1571,7 @@ def make_server(
             stale_review = re.match(r"^/problems/(PRB-[0-9]{1,9})/stale$", url.path)  # DV6
             # DI Team T4 „Ask team”: pytanie, odpowiedź zapytanego i wcześniejsze zamknięcie (tylko w trybie suity).
             team = (
-                re.match(r"^/inbox/([A-Za-z0-9._-]{1,128})/(ask|answer|close-ask)$", url.path)
+                re.match(r"^/inbox/([A-Za-z0-9._-]{1,128})/(ask|answer|close-ask|escalate|give-back)$", url.path)
                 if suite is not None
                 else None
             )
@@ -1577,6 +1643,12 @@ def make_server(
                 item = deps.inbox.get(item_id)
             except LookupError:
                 return self._html(404, "<h1>404</h1>")
+            holder = deps.escalations.holder(item_id)
+            if holder is not None and (self.session is None or self.session.sub != holder):
+                to = (deps.escalations.view(item_id) or {}).get("to", {}).get("name", holder)
+                return self._html(
+                    403, f"<h1>403</h1><p>This item was escalated to {_escape(to)}; only they decide.</p>"
+                )
             loaded_at = one("loaded_at")
             if loaded_at and loaded_at != item.get("received_at"):
                 msg = "Pozycja zmieniła się od czasu wczytania strony. Odśwież i spróbuj ponownie."
@@ -1747,6 +1819,8 @@ def make_server(
                         deps.consults.record_notice(item_id, team_notify.notify_asked(channels, item, c, at=at))
                 elif action == "answer":
                     deps.consults.answer(item_id, me, option=one("option"), reason=one("reason"))
+                elif action in ("escalate", "give-back"):
+                    return self._escalate(item, action, me, one)
                 else:
                     view = deps.consults.view(item_id, me.sub)
                     if view is None or view["decider_sub"] != me.sub:
@@ -1759,6 +1833,35 @@ def make_server(
             self.send_header("location", "/inbox")
             self.send_header("content-length", "0")
             self.end_headers()
+
+        def _escalate(self, item: dict[str, Any], action: str, me: consult.Person, one: Callable[[str], str]) -> None:
+            """„Escalate” (T7, OM2): przekazanie decyzji o tej sprawie albo jej oddanie przez adresata."""
+            item_id = item["id"]
+            try:
+                if action == "escalate":
+                    to_sub = one("to")
+                    target = deps.people.get(to_sub)
+                    to = consult.Person(sub=to_sub, name=str((target or {}).get("name") or to_sub))
+                    e = deps.escalations.escalate(
+                        item, by=me, to=to, reason=one("reason"), question=one("question"), people=deps.people
+                    )
+                    view = deps.consults.view(item_id, me.sub)
+                    if view is not None and view["status"] == "open":
+                        deps.consults.close(item_id)  # pytanie do zespołu zamyka się z tym, co zebrano
+                    channels = deps.inbox.channels
+                    if channels.url:
+                        at = deps.registry.now().astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+                        deps.escalations.record_notice(item_id, team_notify.notify_escalated(channels, item, e, at=at))
+                else:
+                    deps.escalations.give_back(item_id, me, note=one("note"))
+            except escalate.EscalationError as err:
+                status = 403 if "only the person" in str(err) else 409
+                return self._html(status, f"<h1>{status}</h1><p>{_escape(str(err))}</p>")
+            self.send_response(303)
+            self.send_header("location", "/inbox")
+            self.send_header("content-length", "0")
+            self.end_headers()
+            return None
 
         def _html(self, status: int, body: str) -> None:
             page = body if body.startswith("<!doctype") else _render_page("pdi", body, nonce=nonce)

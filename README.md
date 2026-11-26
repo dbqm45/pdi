@@ -315,6 +315,22 @@ Keycloak uruchomiony wcześniej ręcznie na 8180 trzeba zatrzymać (`sdlc up` po
 nowym kontenerze jest pusty, więc organizacje i role nadaje się na nowo (`npm run identity -- org …`, `role grant …`).
 Porty suity: Flags 3000, di-channels 3100, di-identity 3200, DI Definition 4317, Keycloak 8180.
 
+### „Escalate” w konsoli (DI Team T7, OM2)
+
+Trzecia opcja na karcie obok decyzji i „Ask team” ([plan](docs/plan-t7-escalate.md), `src/pdi/escalate.py`): decydent
+przekazuje decyzję o tej jednej sprawie innej osobie (OM2 w [`docs/decyzje.md`](docs/decyzje.md)).
+- **Do kogo:** osoba z suity z rolą `editor` albo `admin` w DI Decision, która logowała się do konsoli (`people.json`
+  zapisuje teraz, czy osoba może decydować i czy jest adminem). Typy chronione (triaż, ocena skutku, B5): tylko `admin`.
+- **Formularz:** adresat, powód (wymagany), pytanie do adresata (opcjonalne). Otwarte „Ask team” zamyka się z tym, co
+  zebrano.
+- **Kto decyduje:** od eskalacji tylko adresat — konsola (403) i MCP (`decide_inbox_item`) odmawiają innym. Adresat może
+  **oddać sprawę** z notatką („Give it back”); wtedy decyduje znów eskalujący.
+- **Termin** z OM1 się nie zmienia. Karta pokazuje „Escalated to X · since …”.
+- **Zapis:** `escalations/<pozycja>.json`; decyzja dostaje `escalation` (kontrakt 0.27.0): kto, do kogo, dlaczego,
+  kiedy, a po oddaniu `returned_at` i `return_note`.
+- **Slack:** adresat dostaje `team.escalated` (DI Channels `/pdi/escalated`), a w dziennym skrócie „Escalated to you”.
+- **Agent:** `list_inbox` pokazuje `escalation`; agent sam nie eskaluje.
+
 ### „Ask team” i dzienny skrót w Slacku (DI Team T6)
 
 Przez DI Channels, tym samym podpisem i z tymi samymi zmiennymi co „czeka na Ciebie” (`PDI_CHANNELS_URL`,
