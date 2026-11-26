@@ -21,7 +21,7 @@ from mcp_types import ToolAnnotations
 from pydantic import AnyHttpUrl
 from typing_extensions import TypedDict  # pydantic na 3.11 wymaga TypedDict z typing_extensions
 
-from pdi import autonomy, consult, context, delays, forecast, mcp_auth, pr_state, process, stale
+from pdi import agenda, autonomy, consult, context, delays, forecast, mcp_auth, pr_state, process, stale
 from pdi.changes import ChangeNotFound
 from pdi.dispatch import DispatchConfig
 from pdi.impact import ShipScopeConfig, read_connection
@@ -459,6 +459,24 @@ def build_server(
             if view is not None:
                 item["consultation"] = {k: v for k, v in view.items() if k not in ("mine", "is_asked", "decider_sub")}
         return {"items": items}
+
+    @server.tool(annotations=_READ)
+    def discussion_agenda() -> dict[str, list[dict[str, Any]]]:
+        """Agenda „Discuss with team” (DI Team T5): otwarte pozycje skrzynki, których konsultacja zespołu skończyła się
+        rozbieżnością albo prośbą o rozmowę na żywo, w kolejności tego, co blokują (wstrzymany przebieg, termin,
+        bramka trzymająca zmianę, liczba chętnych do rozmowy, czas czekania) albo w kolejności ustawionej przez
+        decydenta. Każda sprawa: item_id, summary, change, gate, reasons (słowami), options, answers zespołu
+        (jawne, bo pytanie jest zamknięte), effects. Tylko odczyt: decyduje człowiek.
+        """
+        box = open_inbox()
+        reg = box.registry
+        entries = agenda.build(
+            box.items(status="open"),
+            consult.Consultations(reg.root, now=reg.now),
+            order=agenda.Order(reg.root).get(),
+            now=reg.now(),
+        )
+        return {"items": entries}
 
     @server.tool(annotations=_WRITE)
     def add_option_effects(item_id: str, option: str, effects: str) -> dict[str, Any]:
