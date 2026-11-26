@@ -315,6 +315,26 @@ Keycloak uruchomiony wcześniej ręcznie na 8180 trzeba zatrzymać (`sdlc up` po
 nowym kontenerze jest pusty, więc organizacje i role nadaje się na nowo (`npm run identity -- org …`, `role grant …`).
 Porty suity: Flags 3000, di-channels 3100, di-identity 3200, DI Definition 4317, Keycloak 8180.
 
+### „Ask team” i dzienny skrót w Slacku (DI Team T6)
+
+Przez DI Channels, tym samym podpisem i z tymi samymi zmiennymi co „czeka na Ciebie” (`PDI_CHANNELS_URL`,
+`PDI_CHANNELS_SIGNING_SECRET`, `PDI_CONSOLE_URL` do linków) ([plan](docs/plan-t6-skroty-slack.md),
+`src/pdi/team_notify.py`):
+- **„Ask team”:** po zadaniu pytania w konsoli każda zapytana osoba dostaje wiadomość prywatną (`team.asked` na
+  `/pdi/asked`): kto pyta, o co, opcje, do kiedy, link „Answer in DI Decision”. pdi wysyła tylko `sub` osób z suity;
+  DI Channels znajduje je w Slacku przez di-identity (`GET /api/people/<sub>`), więc e-mail nie przechodzi przez pdi.
+  Kogo nie znaleziono, konsola pokazuje przy pytaniu („Not reachable in Slack: …”). Błąd wysyłki nie cofa pytania.
+- **Dzienny skrót** (`team.digest` na `/pdi/digest`): `pdi-digest` / `uv run sdlc digest`, cron w dni robocze tuż
+  przed 8:00. Zatwierdzający dostaje: co czeka na decyzję (do 10 najpilniejszych według etapu terminu OM1, z
+  liczbą wszystkich), pytania u zespołu (ile odpowiedzi, kiedy zamknięcie), liczbę spraw na agendzie „Discuss” i kogo
+  nie znaleziono w Slacku. Osoba, na której odpowiedź czeka pytanie, dostaje swoje „Asked of you”. Pusty skrót nie
+  idzie; ten sam dzień drugi raz to powtórka.
+- **Agent:** narzędzie MCP `daily_digest` (odczyt) daje ten sam skrót bez wysyłania; razem 36 narzędzi.
+
+```
+55 7 * * 1-5 /opt/homebrew/bin/uv run --directory /Users/<ty>/<ścieżka>/pdi sdlc digest >> ~/.sdlc/digest.log 2>&1
+```
+
 ### „Ask team” w konsoli (DI Team T4)
 
 Z logowaniem przez suitę decydent (`editor` albo `admin`) może przy pozycji skrzynki zapytać zespół o zdanie

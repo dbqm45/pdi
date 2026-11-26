@@ -660,6 +660,11 @@ class Inbox:
 
     # --- terminy (N3, operating model OM1 §4–§5) ---
 
+    @property
+    def channels(self) -> waiting.ChannelsConfig:
+        """Ustawienia DI Channels tej skrzynki (krok 17, T6): adres, sekret podpisu i adres konsoli do linków."""
+        return self._channels
+
     def check_deadlines(self, *, now: datetime | None = None) -> list[dict[str, Any]]:
         """Przypomnienia i skutki terminu dla otwartych pozycji; do uruchamiania często (`pdi-deadlines`, co godzinę).
 

@@ -181,12 +181,31 @@ class Consultations:
             "closes_at": c["closes_at"],
             "effects": dict(c.get("effects") or {}),
             "is_asked": mine is not None,
+            "unreachable": list((c.get("notice") or {}).get("unreachable") or []),
             "mine": {"option": mine["option"], "reason": mine["reason"]} if mine and mine.get("option") else None,
         }
         if closed:
             view["result"] = self._result(c)
             view["answers"] = [{"name": a["name"], "option": a["option"], "reason": a["reason"]} for a in c["asked"]]
         return view
+
+    def record_notice(self, item_id: str, notice: dict[str, Any]) -> None:
+        """Wynik wysyłki pytania do DI Channels (T6): `status`, `at` i kogo nie znaleziono w Slacku (`unreachable`)."""
+        with self._lock:
+            c = self._load(item_id)
+            if c is None:
+                raise ConsultError("this item is not with the team")
+            c["notice"] = {k: notice[k] for k in ("status", "at", "unreachable", "error") if k in notice}
+            _write_json(self._path(item_id), c)
+
+    def open_items(self) -> list[str]:
+        """Pozycje z otwartym pytaniem do zespołu (T6: „With the team” w dziennym skrócie)."""
+        out = []
+        for path in sorted(self.dir.glob("*.json")) if self.dir.exists() else []:
+            view = self.view(path.stem, "")
+            if view and view["status"] == "open":
+                out.append(path.stem)
+        return out
 
     def consulted(self, item_id: str) -> list[dict[str, Any]] | None:
         """`consulted` do decyzji (kontrakt 0.26.0): wszyscy zapytani, `None` w polach bez odpowiedzi."""

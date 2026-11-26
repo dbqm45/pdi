@@ -21,7 +21,7 @@ from mcp_types import ToolAnnotations
 from pydantic import AnyHttpUrl
 from typing_extensions import TypedDict  # pydantic na 3.11 wymaga TypedDict z typing_extensions
 
-from pdi import agenda, autonomy, consult, context, delays, forecast, mcp_auth, pr_state, process, stale
+from pdi import agenda, autonomy, consult, context, delays, forecast, mcp_auth, pr_state, process, stale, team_notify
 from pdi.changes import ChangeNotFound
 from pdi.dispatch import DispatchConfig
 from pdi.impact import ShipScopeConfig, read_connection
@@ -459,6 +459,19 @@ def build_server(
             if view is not None:
                 item["consultation"] = {k: v for k, v in view.items() if k not in ("mine", "is_asked", "decider_sub")}
         return {"items": items}
+
+    @server.tool(annotations=_READ)
+    def daily_digest() -> dict[str, Any]:
+        """Dzienny skrót DI Team T6, ten sam, który `sdlc digest` wysyła do Slacka: dla zatwierdzającego (`approver`:
+        co czeka na decyzję, najpilniejsze najpierw, z etapem terminu OM1; pytania u zespołu z liczbą odpowiedzi;
+        liczba spraw na agendzie „Discuss”; kogo nie znaleziono w Slacku) i dla osób, na których odpowiedź czeka
+        pytanie zespołu (`people`: name i asked_of_you). `approver` to null, gdy nic nie czeka. Tylko odczyt: nic nie
+        wysyła.
+        """
+        reg = open_inbox().registry
+        approver, personal, names = team_notify.collect(reg, ChannelsConfig.from_env(), now=reg.now())
+        people = [{"name": names.get(d["to"]["person"], ""), "asked_of_you": d["asked_of_you"]} for d in personal]
+        return {"approver": approver, "people": people}
 
     @server.tool(annotations=_READ)
     def discussion_agenda() -> dict[str, list[dict[str, Any]]]:
