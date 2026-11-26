@@ -1,6 +1,6 @@
 # DI Team T7 — „Escalate” — plan
 
-Stan: 2026-11-26, do przyjęcia przez właściciela. Źródło: `TODO.md`, sekcja „DI Team”, krok T7 (pomysł właściciela z
+Stan: 2026-11-26, decyzje 1–9 i OM2 przyjęte przez właściciela; kroki 1–4 zrobione, sprawdzone na żywo. Źródło: `TODO.md`, sekcja „DI Team”, krok T7 (pomysł właściciela z
 2026-11-20): trzecia opcja na karcie decyzji, obok „Decide” i „Ask team”, żeby przekazać sprawę **powyżej zespołu
 albo poza zespół**, gdy zespół nie może albo nie powinien rozstrzygać sam.
 
@@ -72,3 +72,19 @@ decyzją, a nie przemycić w kodzie.
   wyjściem poza decyzją adresata. Rozważyć później: eskalujący może cofnąć eskalację, gdy adresat milczy.
 - Lokalnie to dwie osoby w jednej konsoli; prawdziwe użycie zaczyna się z konsolą jako usługą.
 - OM2 to pierwszy wyłom w „jednym zatwierdzającym”; przegląd modelu 2027-01-03 powinien go ocenić.
+
+## Co wyszło przy wdrożeniu (2026-11-26)
+
+- **Trzy PR:** dbqm45/di-contract#36 (kontrakt 0.27.0), dbqm45/di-channels#14 (`/pdi/escalated`, „Escalated to you”),
+  pdi (ten krok).
+- **Odmowa decyzji** jest w `Inbox.decide()`, więc obejmuje i konsolę, i MCP: decyzja bez `decided_by_id` adresata
+  (np. z lokalnego serwera MCP bez logowania) jest odrzucana. Konsola odpowiada 403 jeszcze przed tym.
+- **Oddana sprawa** zostaje w zapisie: decyzja eskalującego ma `escalation` z `returned_at` i `return_note`. Ponowna
+  eskalacja po oddaniu przenosi poprzednią do `history`.
+- **Role w `people.json`:** konsola zapisuje przy logowaniu `decides` i `admin` (z ID tokenu); osoby zapisane przed
+  tą wersją nie są na liście adresatów, dopóki nie zalogują się ponownie.
+- **Na żywo** (lokalny Keycloak 26.4.7, konsola z logowaniem przez suitę, Playwright; `adm.test` dostał na czas próby
+  `di-decision:admin`, potem rolę cofnięto): `ola.test` eskalowała B2 do Adm Test; karta Oli: „Escalated to Adm Test”,
+  jej decyzja → 403; Adm widział powód i pytanie, zdecydował (`DEC-0001`, `escalation` od Oli do Adma). B5 (typ
+  chroniony): lista adresatów tylko z adminami; Adm oddał sprawę z notatką, Ola zdecydowała (`DEC-0002` z
+  `returned_at` i `return_note`). Wiadomości w Slacku nie sprawdzono (brak testowego Slacka).

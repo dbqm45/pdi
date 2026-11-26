@@ -32,6 +32,7 @@ from pdi import (
     capture,
     contract,
     dispatch_local,
+    escalate,
     flow,
     forecast,
     impact,
@@ -335,6 +336,7 @@ class Inbox:
         for key in (
             "decided_by_id",
             "consulted",
+            "escalation",
             "draft_edited",
             "automation",
             "applies_to",
@@ -767,6 +769,15 @@ class Inbox:
             raise ItemClosed(f"Pozycję {item_id} zastąpiła nowsza prośba {item['superseded_by']}.")
         if item["status"] != "open":
             raise ItemClosed(f"Pozycja {item_id} jest już zamknięta decyzją {item.get('decision')}.")
+        # T7 / OM2: sprawa eskalowana — decyduje tylko adresat; decyzja niesie `escalation` (kontrakt 0.27.0).
+        escalations = escalate.Escalations(self.registry.root, now=self.registry.now)
+        holder = escalations.holder(item_id)
+        if holder is not None and draft.get("decided_by_id") != holder:
+            to = (escalations.view(item_id) or {}).get("to", {}).get("name", holder)
+            raise ItemClosed(f"This item was escalated to {to}; only they decide (OM2).")
+        escalation = escalations.field(item_id)
+        if escalation is not None:
+            draft = {**draft, "escalation": escalation}
         if item["kind"] == "gate" and outcome not in GATE_OUTCOMES:
             raise InvalidDecision(f"Bramka wymaga outcome: jednego z {', '.join(GATE_OUTCOMES)}.")
         if item["kind"] == "impact_review" and outcome not in IMPACT_OUTCOMES:

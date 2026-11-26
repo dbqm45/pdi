@@ -235,17 +235,31 @@ class People:
         self.now = now
         self._lock = threading.Lock()
 
-    def _load(self) -> dict[str, dict[str, str]]:
+    def _load(self) -> dict[str, dict[str, Any]]:
         if not self.path.exists():
             return {}
         data = json.loads(self.path.read_text(encoding="utf-8"))
         return data if isinstance(data, dict) else {}
 
-    def seen(self, person: Person) -> None:
+    def seen(self, person: Person, *, decides: bool = False, admin: bool = False) -> None:
+        """Logowanie osoby: nazwa, data i czy może decydować (`decides`: editor albo admin; `admin`) — T7."""
         with self._lock:
             people = self._load()
-            people[person.sub] = {"name": person.name[:200], "last_sign_in": _iso(self.now())}
+            people[person.sub] = {
+                "name": person.name[:200],
+                "last_sign_in": _iso(self.now()),
+                "decides": bool(decides or admin),
+                "admin": bool(admin),
+            }
             _write_json(self.path, people)
+
+    def get(self, sub: str) -> dict[str, Any] | None:
+        entry = self._load().get(sub)
+        return entry if isinstance(entry, dict) else None
+
+    def deciders(self) -> list[Person]:
+        """Osoby, które mogą decydować (do wyboru w „Escalate”)."""
+        return [p for p in self.all() if (self.get(p.sub) or {}).get("decides")]
 
     def all(self) -> list[Person]:
         return sorted((Person(sub=s, name=p["name"]) for s, p in self._load().items()), key=lambda p: p.name)

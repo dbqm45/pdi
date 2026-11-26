@@ -1,7 +1,7 @@
 {
   "record": "decision",
   "schema": "https://github.com/dbqm45/pdi/contract/decision.schema.json",
-  "contract_version": "0.26.0",
+  "contract_version": "0.27.0",
   "id": "DEC-41",
   "statement": "Bulk konfiguracja ładowarek zaczyna od zmiany taryfy.",
   "why": "Najczęstsza operacja w zgłoszeniach; restart i firmware mają inne ryzyka.",
@@ -21,6 +21,14 @@
       "reason": null
     }
   ],
+  "escalation": {
+    "by_id": "9b1c3f0e-0000-4000-8000-000000000001",
+    "by_name": "Ola Test",
+    "to_id": "8f14e45f-ceea-467a-9b1d-6f7e2b3c4d5e",
+    "to_name": "po",
+    "reason": "Zakres dotyka bezpieczeństwa płatności; zespół nie powinien rozstrzygać sam.",
+    "at": "2026-11-26T09:30:00Z"
+  },
   "kind": "triage",
   "project": "control-tower",
   "source": {

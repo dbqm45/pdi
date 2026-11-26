@@ -35,6 +35,7 @@ FIELD_ORDER = (
     "decided_by",
     "decided_by_id",
     "consulted",
+    "escalation",
     "recorded_at",
     "kind",
     "decision_type",

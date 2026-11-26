@@ -1,6 +1,6 @@
 # Operating model — kto zatwierdza, w jakim terminie i co, gdy nie zatwierdzi
 
-Data: 2026-11-22 · Status: **przyjęty 2026-11-22 (decyzja właściciela, OM1)**, wariant z jednym zatwierdzającym · Realizuje
+Data: 2026-11-22 · Status: **przyjęty 2026-11-22 (decyzja właściciela, OM1)**, eskalacja dopisana 2026-11-26 (OM2), wariant z jednym zatwierdzającym · Realizuje
 P1 z [`plan-program-ai-wg-aplikacji.md`](plan-program-ai-wg-aplikacji.md) i krok 8 / N1 z
 [`plan-budowy-suity.md`](plan-budowy-suity.md) · Po przyjęciu: wpis w [`decyzje.md`](decyzje.md).
 
@@ -69,6 +69,10 @@ Godziny ciszy: **18:00–8:00 i weekendy** (Europe/Warsaw); powiadomienia z tego
 ## 5. Co się dzieje po terminie
 
 Przy jednym zatwierdzającym nie ma do kogo eskalować, więc model nie udaje eskalacji. Zamiast niej są trzy reguły.
+Wyjątek od 2026-11-26 (**OM2**, DI Team T7): decydent może sam przekazać decyzję o jednej sprawie innej osobie z
+rolą `editor` albo `admin` w DI Decision („Escalate”; przy typach chronionych tylko `admin`). Od tej chwili decyduje
+tylko adresat, dopóki nie odda sprawy z notatką. Termin się nie zmienia: przypomnienia, „wstrzymana” i lista do
+przeglądu idą do adresata. Decyzja zapisuje, kto eskalował, do kogo i dlaczego (`escalation`, kontrakt 0.27.0).
 
 **1. Bramka nigdy nie zatwierdza się sama.** Po terminie bramka zostaje otwarta. Dzieje się tyle:
 

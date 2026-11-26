@@ -20,6 +20,7 @@ jak je widać na ekranie. Miejsca, których nie sprawdzono w kodzie, są oznaczo
 8. [Jak sprawdzić gotowość historyjki](#jak-sprawdzić-gotowość-historyjki)
 9. [Jak podjąć decyzję na bramce](#jak-podjąć-decyzję-na-bramce)
 10. [Jak przedyskutować sprawę z zespołem](#jak-przedyskutować-sprawę-z-zespołem)
+    - [Jak eskalować sprawę poza zespół](#jak-eskalować-sprawę-poza-zespół)
 11. [Jak śledzić wdrożenia i status wydania](#jak-śledzić-wdrożenia-i-status-wydania)
 12. [Jak zarządzać flagami funkcji](#jak-zarządzać-flagami-funkcji)
 13. [Jak ocenić skutek wydania i pilnować metryk](#jak-ocenić-skutek-wydania-i-pilnować-metryk)
@@ -494,6 +495,26 @@ Agent nie odpowiada na pytanie zespołu, nie zamyka go i nie decyduje. To zawsze
 - Konsola nie wysyła powiadomień o pytaniu ani zaproszeń. Daj znać zapytanym sam, np. na czacie zespołu.
 - Na agendzie są tylko sprawy ze Skrzynki pdi. Sprawy z historyjek DI Definition i pokój planowania w sprintdecku
   dojdą osobno.
+
+### Jak eskalować sprawę poza zespół
+
+Gdy zespół nie może albo nie powinien rozstrzygać sam (np. sprawa dotyka bezpieczeństwa, budżetu albo innego
+zespołu), decydent przekazuje decyzję o **tej jednej sprawie** komuś innemu. Inaczej niż przy „Ask team”, od tej
+chwili decyduje adresat, nie Ty (decyzja OM2).
+
+1. Na karcie sprawy w **Skrzynce** rozwiń **Escalate**.
+2. Wybierz adresata z listy **To**. Są na niej osoby z rolą `editor` albo `admin` w DI Decision, które logowały się do
+   konsoli. Przy decyzjach chronionych (triaż, ocena skutku, wydanie B5) tylko osoby z rolą `admin`.
+3. Wpisz powód (wymagany) i, jeśli chcesz, pytanie do adresata. Kliknij **Escalate**.
+4. Karta pokazuje „Escalated to <adresat> · since …”. Ty już nie możesz zdecydować; otwarte pytanie do zespołu się
+   zamyka, a adresat widzi odpowiedzi.
+5. Adresat dostaje wiadomość w Slacku (gdy jest skonfigurowany) i widzi na karcie „<Ty> escalated this to you” z
+   powodem i pytaniem. Decyduje tak samo jak na każdej bramce: treść, uzasadnienie, przycisk wyniku.
+6. Jeśli adresat uzna, że to nie jego decyzja, klika **Give it back** z notatką. Wtedy karta pokazuje „<adresat> gave
+   it back: …” i decydujesz znów Ty.
+
+Termin sprawy się nie zmienia: przypomnienia i wstrzymanie zmiany idą do adresata. Decyzja zapisuje, kto eskalował, do
+kogo i dlaczego, a po oddaniu także notatkę adresata.
 
 ## Jak śledzić wdrożenia i status wydania
 
