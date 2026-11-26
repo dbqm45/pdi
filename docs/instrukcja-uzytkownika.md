@@ -706,7 +706,7 @@ W Claude Code możesz rozmawiać z suitą przez serwery MCP:
 
 | Serwer | Co daje |
 | --- | --- |
-| **pdi** | 35 narzędzi: 18 do odczytu (decyzje, Skrzynka, zmiany, ślad, zgłoszenia, przepływ, prognozy, autonomia, agenda) i 17 do zapisu (decyzje, zgłoszenia, triaż, terminy, skutki opcji, propozycje) |
+| **pdi** | 36 narzędzi: 19 do odczytu (decyzje, Skrzynka, zmiany, ślad, zgłoszenia, przepływ, prognozy, autonomia, agenda, dzienny skrót) i 17 do zapisu (decyzje, zgłoszenia, triaż, terminy, skutki opcji, propozycje) |
 | **shipscope** (DI Release) | sześć narzędzi tylko do odczytu nad API usługi: zmiany, plan wydania, flagi, środowiska, status elementu, metryki (nazw narzędzi nie sprawdzono); potrzebny token usługi `shps_…` z Settings → General → Service tokens |
 | DI Definition | odczyt gotowości (opis w `packages/mcp/README.md` repo ci_for_sdlc; nie sprawdzono) |
 
@@ -744,9 +744,26 @@ times the deadline: on the review list”. Wiadomość podaje, co i przy jakiej 
 Decision**. W godzinach ciszy (18:00–8:00, weekendy) czeka do 8:00 następnego dnia roboczego. W Slacku nie ma
 przycisków decyzji: decyzja zapada w DI Decision.
 
+### Pytanie od zespołu i dzienny skrót
+
+- **Gdy ktoś zapyta Cię przez „Ask team”**, dostajesz wiadomość prywatną: kto pyta, o co, jakie są opcje, do kiedy, i
+  link **Answer in DI Decision**. Odpowiadasz w konsoli (rozdział 10). Działa, gdy w Slacku masz ten sam e-mail co w
+  suicie; jeśli nie, decydent widzi przy pytaniu „Not reachable in Slack: <Twoje imię>”.
+- **Dzienny skrót** przychodzi w dni robocze o 8:00, tylko gdy coś na Ciebie czeka. Zatwierdzający widzi:
+  - **Waiting for your decision (N)**: do 10 najpilniejszych spraw (po terminie, wstrzymane, termin dziś) z
+    przyciskiem **Decide**;
+  - **With the team**: pytania do zespołu w toku, ile osób odpowiedziało i kiedy pytanie się zamyka;
+  - **To discuss**: ile spraw jest na agendzie, z linkiem **Open the agenda**;
+  - **Not reachable in Slack**: kogo nie udało się powiadomić.
+
+  Osoba zapytana widzi w swoim skrócie **Asked of you**, dopóki nie odpowie.
+
+Agent pokaże ten sam skrót w rozmowie (narzędzie `daily_digest`).
+
 Konfigurację robi administrator raz (`slack-setup.md` w repo di-channels): aplikacja Slack z manifestu, sekrety,
 adres usługi, identyfikator zatwierdzającego, połączenie z pdi i opcjonalnie z suitą (autor pytania jako osoba z
-suity). Dziś jeden zatwierdzający na instalację. Teams, głosowanie i odpowiedzi w wątku jeszcze nie działają.
+suity). Dziś jeden zatwierdzający na instalację; dzienny skrót wysyła `sdlc digest` z crona. Teams, głosowanie i odpowiedzi w
+wątku jeszcze nie działają.
 
 ## Sprintdeck
 
@@ -790,6 +807,7 @@ Pozostałe polecenia:
 | `sdlc deploy prod` | próbne wdrożenie (GitHub Deployment) repo próbnego |
 | `sdlc check` | ponownie wysyła gotowość zmian z DI Definition do pdi |
 | `sdlc deadlines` | terminy Skrzynki: przypomnienia, wstrzymanie, lista do przeglądu |
+| `sdlc digest` | dzienny skrót do Slacka (cron w dni robocze przed 8:00) |
 | `sdlc impact-review` | oceny skutku, których termin minął |
 | `sdlc forecast` | wyniki prognoz |
 | `sdlc mcp pdi` / `sdlc mcp shipscope` | serwer MCP dla Claude |

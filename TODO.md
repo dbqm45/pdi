@@ -232,7 +232,7 @@ konsola pdi (`src/pdi/console.py`: tablica zmian, ślad, postęp fazy na żywo, 
   w kontrakcie dostaje pole konsultacji (`consulted`: kto, opcja, uzasadnienie).
 - [x] **T5 — „Discuss with team” jako agenda** (zrobione 2026-11-26: `/discuss` w konsoli z danych pdi, [plan](docs/plan-t5-discuss-with-team.md); sprawy z historyjek DI Definition — gdy R5 da API, pokój sprintdecka — osobno): sprawy z rozbieżnością i oznaczone „talk live”, kolejność według
   blokad, zapis decyzji ze spotkania; opcjonalnie eksport agendy.
-- [ ] **T6 — skróty do Slacka/Teams:** dzienny skrót i powiadomienie „czeka na Ciebie” z linkiem. Nie własnym
+- [x] **T6 — skróty do Slacka/Teams** (zrobione 2026-11-26 dla Slacka: wiadomość do zapytanych przy „Ask team” i dzienny skrót, [plan](docs/plan-t6-skroty-slack.md); Teams osobno): dzienny skrót i powiadomienie „czeka na Ciebie” z linkiem. Nie własnym
   botem: przez wspólną aplikację kanałów suity (plan programu §3.7, krok CH2), zapisaną 2026-11-21.
 - [ ] **T7 — „Escalate” (na później, osobno od „Ask team”; pomysł właściciela zapisany 2026-11-20):** trzecia opcja
   na karcie decyzji, obok „Decide” i „Ask team”. Służy do zgłoszenia sprawy **powyżej zespołu albo poza zespół** —

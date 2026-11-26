@@ -50,7 +50,7 @@ from pathlib import Path
 from typing import Any, cast
 from urllib.parse import parse_qs, quote, urlsplit
 
-from pdi import agenda, autonomy, consult, delays, dispatch_local, pr_state, process, stale, suite_login
+from pdi import agenda, autonomy, consult, delays, dispatch_local, pr_state, process, stale, suite_login, team_notify
 from pdi import trace as trace_mod
 from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig
@@ -724,6 +724,11 @@ def _ask_html(deps: Deps, item: dict[str, Any], viewer: Any) -> str:
         head = (
             f'<p class="pill open">With team · {counts} · closes {_escape(view["closes_at"])}</p>'
             f"<p><small>Asked by {_escape(view['decider'])}: {_escape(', '.join(view['asked_names']))}</small></p>"
+            + (
+                f"<p><small>Not reachable in Slack: {_escape(', '.join(view['unreachable']))}</small></p>"
+                if view["unreachable"]
+                else ""
+            )
         )
         mine = ""
         if view["is_asked"]:
@@ -1732,9 +1737,14 @@ def make_server(
                     known = {p.sub: p for p in deps.people.all()}
                     asked = [known[k[4:]] for k in fields if k.startswith("ask_") and k[4:] in known]
                     hours = int(one("hours")) if one("hours").isdigit() else 0
-                    deps.consults.ask(
+                    c = deps.consults.ask(
                         item_id, decider=me, asked=asked, options=list(_options_for(item["kind"])), hours=hours
                     )
+                    # T6: zapytani dostają wiadomość w Slacku (DI Channels); błąd wysyłki nie cofa pytania.
+                    channels = deps.inbox.channels
+                    if channels.url:
+                        at = deps.registry.now().astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+                        deps.consults.record_notice(item_id, team_notify.notify_asked(channels, item, c, at=at))
                 elif action == "answer":
                     deps.consults.answer(item_id, me, option=one("option"), reason=one("reason"))
                 else:

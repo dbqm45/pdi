@@ -1,6 +1,6 @@
 # DI Team T6 — skróty do Slacka — plan
 
-Stan: 2026-11-26, do przyjęcia przez właściciela. Źródło: `TODO.md`, sekcja „DI Team”, krok T6: dzienny skrót i
+Stan: 2026-11-26, decyzje 1–7 przyjęte przez właściciela; kroki 1–3 zrobione, sprawdzone na żywo bez prawdziwego Slacka. Źródło: `TODO.md`, sekcja „DI Team”, krok T6: dzienny skrót i
 powiadomienie „czeka na Ciebie” z linkiem, przez wspólną aplikację kanałów suity (DI Channels), a nie własnym botem.
 
 ## Co jest dziś
@@ -80,3 +80,18 @@ Sprawdzone 2026-11-26 na `main` pdi i `dbqm45/di-channels`:
 - Lokalna konsola pdi ma adres `127.0.0.1`, więc link z wiadomości działa tylko na tym samym komputerze. Prawdziwy
   użytek zaczyna się z konsolą jako usługą.
 - Nowe API di-identity podaje e-mail. Dostaje je tylko konto usługowe z `people-reader`; dziś to tylko DI Channels.
+
+## Co wyszło przy wdrożeniu (2026-11-26)
+
+- **Trzy PR:** dbqm45/di-identity#13 (`GET /api/people/<sub>`, tylko klienci z `email: true`), dbqm45/di-channels#13
+  (`/pdi/asked`, `/pdi/digest`), pdi (ten krok).
+- **Moduł w pdi** nazywa się `team_notify.py` (nie `digest.py`), bo trzyma obie wiadomości.
+- **Etap terminu w skrócie** liczony jest z czasu (`waiting.stages()`), a nie z zapisanych przypomnień, więc skrót jest
+  dokładny także bez crona `sdlc deadlines`.
+- **„Not reachable in Slack”** obejmuje i brak osoby w Slacku, i błąd po drodze (np. Slack nie odpowiada); powód jest w
+  logu DI Channels, bez e-maila.
+- **Na żywo** (lokalny Keycloak 26.4.7, di-identity na 3200, di-channels na 3100, pdi): token usługi `di-channels` →
+  `GET /api/people/<sub>` dał osobę z e-mailem (200), konto bez zweryfikowanego adresu i nieznany `sub` 404, klient
+  spoza `OIDC_SERVICE_CLIENTS` 401; `team.asked` z pdi przeszło podpis, DI Channels zapytał di-identity, a pdi zapisał
+  obie osoby jako nieosiągalne, bo ta maszyna nie łączy się ze slack.com; skrót dał 502 i `failed` w pdi. **Prawdziwej
+  wiadomości w Slacku nie sprawdzono** (brak testowego workspace’u Slack).

@@ -831,7 +831,12 @@ def cmd_mcp(ctx: Ctx, name: str) -> int:
     return 0
 
 
-DAILY_RUNS = {"impact-review": "pdi-impact-review", "forecast": "pdi-forecast", "deadlines": "pdi-deadlines"}
+DAILY_RUNS = {
+    "impact-review": "pdi-impact-review",
+    "forecast": "pdi-forecast",
+    "deadlines": "pdi-deadlines",
+    "digest": "pdi-digest",
+}
 
 
 def cmd_daily(ctx: Ctx, name: str) -> int:
@@ -867,6 +872,9 @@ def main(argv: list[str] | None = None, *, ctx: Ctx | None = None) -> int:
     sub.add_parser("impact-review", help="otwiera oceny skutku, których termin minął (pdi-impact-review)")
     sub.add_parser("forecast", help="wyniki prognoz i czas przepływu dostarczonych zmian (pdi-forecast)")
     sub.add_parser("deadlines", help="przypomnienia i skutki terminów skrzynki wg OM1 (pdi-deadlines, cron co godzinę)")
+    sub.add_parser(
+        "digest", help="dzienny skrót do Slacka przez DI Channels (pdi-digest, cron w dni robocze przed 8:00)"
+    )
     image = sub.add_parser("image", help="obraz kontenera faz tf (Z8a): buduje, gdy go nie ma")
     image.add_argument("--force", action="store_true", help="buduje od nowa")
     mcp = sub.add_parser("mcp", help="(dla Claude Code) serwer MCP ze zmiennymi z ~/.sdlc/env")
