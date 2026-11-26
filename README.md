@@ -332,6 +332,8 @@ zacznie korzystać z tego razem z konsolą jako usługą.
 
 ### „Discuss with team” (DI Team T5)
 
+Cała ścieżka użytkownika, od pytania do decyzji na spotkaniu: [`docs/instrukcja-uzytkownika.md`](docs/instrukcja-uzytkownika.md).
+
 Strona `/discuss` ([plan](docs/plan-t5-discuss-with-team.md)) to agenda spraw, których „Ask team” skończyło się
 rozbieżnością albo prośbą o rozmowę na żywo. Kolejność wyznacza to, co sprawa blokuje:
 1. wstrzymany przebieg;
