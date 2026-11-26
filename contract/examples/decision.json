@@ -1,13 +1,26 @@
 {
   "record": "decision",
   "schema": "https://github.com/dbqm45/pdi/contract/decision.schema.json",
-  "contract_version": "0.25.0",
+  "contract_version": "0.26.0",
   "id": "DEC-41",
   "statement": "Bulk konfiguracja ładowarek zaczyna od zmiany taryfy.",
   "why": "Najczęstsza operacja w zgłoszeniach; restart i firmware mają inne ryzyka.",
   "decided_at": "2026-10-23",
   "decided_by": "po",
   "decided_by_id": "8f14e45f-ceea-467a-9b1d-6f7e2b3c4d5e",
+  "consulted": [
+    {
+      "person_id": "9b1c3f0e-0000-4000-8000-000000000002",
+      "name": "Adm Test",
+      "option": "approved",
+      "reason": "Plan pokrywa ryzyka z bramki."
+    },
+    {
+      "name": "Trzecia Osoba",
+      "option": null,
+      "reason": null
+    }
+  ],
   "kind": "triage",
   "project": "control-tower",
   "source": {

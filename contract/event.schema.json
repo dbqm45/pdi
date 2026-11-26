@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/dbqm45/pdi/contract/event.schema.json",
-  "title": "Zdarzenie (kontrakt suity 0.25.0)",
+  "title": "Zdarzenie (kontrakt suity 0.26.0)",
   "description": "Koperta zdarzenia wymienianego między pdi, tf, ci_for_sdlc i ShipScope; treść (payload) zależy od typu.",
   "type": "object",
   "additionalProperties": false,
@@ -1207,6 +1207,51 @@
           "minLength": 1,
           "maxLength": 200,
           "description": "Stały identyfikator osoby, która zdecydowała: `sub` z tożsamości suity (DI Identity, ADR 17). `decided_by` zostaje nazwą do wyświetlenia. Brak przy decyzji automatu i przy decyzjach sprzed 0.25.0."
+        },
+        "consulted": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "option",
+              "reason"
+            ],
+            "properties": {
+              "person_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "`sub` osoby z tożsamości suity (DI Identity), gdy jest."
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "option": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1,
+                "maxLength": 100,
+                "description": "Wybrana opcja (wynik pozycji albo `talk_live`); null, gdy osoba nie odpowiedziała do zamknięcia."
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Jedno zdanie uzasadnienia; null bez odpowiedzi."
+              }
+            }
+          },
+          "description": "Kogo zapytano o zdanie przed decyzją (0.26.0, DI Team T4 „Ask team”) i co odpowiedział; wszyscy zapytani, także ci bez odpowiedzi. Zespół doradza: decyduje `decided_by`. Brak, gdy nikogo nie pytano."
         },
         "drafted_by": {
           "type": "string",

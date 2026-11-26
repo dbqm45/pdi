@@ -315,6 +315,21 @@ Keycloak uruchomiony wcześniej ręcznie na 8180 trzeba zatrzymać (`sdlc up` po
 nowym kontenerze jest pusty, więc organizacje i role nadaje się na nowo (`npm run identity -- org …`, `role grant …`).
 Porty suity: Flags 3000, di-channels 3100, di-identity 3200, DI Definition 4317, Keycloak 8180.
 
+### „Ask team” w konsoli (DI Team T4)
+
+Z logowaniem przez suitę decydent (`editor` albo `admin`) może przy pozycji skrzynki zapytać zespół o zdanie
+([plan](docs/plan-t4-ask-team.md)).
+- **Kogo:** osoby, które logowały się już do tej konsoli (`people.json`: `sub` i nazwa, bez e-maila).
+- **Jak:** każda wybiera opcję pozycji albo „talk live” i dopisuje jedno zdanie.
+- **Ukrycie:** odpowiedzi są ukryte dla wszystkich, także dla decydenta, do zamknięcia. Pytanie zamyka termin
+  (4 h, 24 h albo 3 dni), komplet odpowiedzi albo decydent.
+- **Wynik:** przy zgodności szkic decyzji jest wypełniony; przy rozbieżności pozycja ma znacznik „To discuss”.
+- **Zapis:** decyzja zapisuje `consulted` (kto, co i dlaczego; kontrakt 0.26.0).
+- **Agent:** dopisuje skutki opcji (`add_option_effects`), ale nie głosuje.
+
+Tablica „Now” pokazuje „With team · N/M”. Lokalnie to kilka kont w jednej konsoli; zespół z różnych komputerów
+zacznie korzystać z tego razem z konsolą jako usługą.
+
 ### Zdalny serwer MCP z tokenami suity
 
 `pdi-mcp --http` ([plan](docs/plan-mcp-zdalny.md)) to ten sam serwer co w stdio, przez Streamable HTTP pod

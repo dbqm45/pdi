@@ -3,7 +3,7 @@
   "type": "decision.recorded",
   "occurred_at": "2026-10-27T12:00:00Z",
   "source": "ci_for_sdlc",
-  "contract_version": "0.25.0",
+  "contract_version": "0.26.0",
   "payload": {
     "decision_type": "finding.auto_close",
     "ref": "PAY-12/COV-001",
@@ -17,6 +17,19 @@
     "statement": "Pytanie o format daty zamknięte odpowiedzią z Confluence.",
     "decided_by": "anna.po",
     "decided_by_id": "8f14e45f-ceea-467a-9b1d-6f7e2b3c4d5e",
+    "consulted": [
+      {
+        "person_id": "9b1c3f0e-0000-4000-8000-000000000002",
+        "name": "Adm Test",
+        "option": "approved",
+        "reason": "Plan pokrywa ryzyka z bramki."
+      },
+      {
+        "name": "Trzecia Osoba",
+        "option": null,
+        "reason": null
+      }
+    ],
     "drafted_by": "ai",
     "draft_edited": false,
     "evidence": [

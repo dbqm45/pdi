@@ -50,7 +50,7 @@ from pathlib import Path
 from typing import Any, cast
 from urllib.parse import parse_qs, quote, urlsplit
 
-from pdi import autonomy, delays, dispatch_local, pr_state, process, stale, suite_login
+from pdi import autonomy, consult, delays, dispatch_local, pr_state, process, stale, suite_login
 from pdi import trace as trace_mod
 from pdi.changes import ChangeStore
 from pdi.dispatch import DispatchConfig
@@ -206,6 +206,9 @@ class Deps:
     ) -> None:
         self.registry = registry
         self.inbox = inbox or Inbox(registry)
+        # DI Team T4 „Ask team”: konsultacje przy pozycjach skrzynki i osoby, które logowały się przez suitę.
+        self.consults = consult.Consultations(registry.root, now=registry.now)
+        self.people = consult.People(registry.root, now=registry.now)
         self.changes = ChangeStore(registry)
         self.checkout = checkout
         self.git = git or _git_run
@@ -418,8 +421,10 @@ def _run_card(run: dict[str, Any], column: int, now: datetime, token: str) -> st
     return f'<li><div class="card">{head}{"".join(lines)}</div></li>'
 
 
-def _item_card(item: dict[str, Any], now: datetime, token: str) -> str:
-    """Pozycja skrzynki w kolumnie „Awaiting decision”: na co czeka; decyzja zawsze w skrzynce (link)."""
+def _item_card(item: dict[str, Any], now: datetime, token: str, team: dict[str, Any] | None = None) -> str:
+    """Pozycja skrzynki w kolumnie „Awaiting decision”: na co czeka; decyzja zawsze w skrzynce (link).
+
+    `team`: konsultacja „Ask team” (T4) widziana bez odpowiedzi innych — „With team · N/M” albo wynik po zamknięciu."""
     change = item.get("change")
     head = f'<span class="chg">{_escape(change)}</span> ' if change else ""
     gate = f'<span class="phase">{_escape(item.get("gate") or item.get("kind") or "")}</span>'
@@ -434,6 +439,14 @@ def _item_card(item: dict[str, Any], now: datetime, token: str) -> str:
         tail += '<div class="fresh"><b>wstrzymana</b> (2 × termin)</div>'
     elif "overdue" in notices:
         tail += '<div class="fresh"><b>po terminie</b></div>'
+    if team is not None:
+        if team["status"] == "open":
+            label = f"With team · {team['answered']}/{team['asked']} · closes {team['closes_at']}"
+        elif team["result"]["kind"] == "agree":
+            label = f"Team agrees: {team['result']['option']}"
+        else:
+            label = "To discuss" if team["result"]["kind"] == "discuss" else "Nobody answered"
+        tail += f'<div class="fresh"><b>{_escape(label)}</b></div>'
     return f'<li><div class="card">{head}{gate}<div><small>{summary}</small></div><div>{link}</div>{tail}</div></li>'
 
 
@@ -458,7 +471,9 @@ def _now_body(deps: Deps, token: str, who: str, now: datetime) -> str:
         if col is not None and not (col == 4 and len(columns[4]) >= NOW_DONE_MAX):
             columns[col].append(_run_card(run, col, now, token))
     if not who:
-        columns[2] = [_item_card(i, now, token) for i in deps.inbox.items(status="open")] + columns[2]
+        columns[2] = [
+            _item_card(i, now, token, deps.consults.view(i["id"], "")) for i in deps.inbox.items(status="open")
+        ] + columns[2]
     t = _escape(token)
     links = [f'<a href="/now?t={t}"{" class=on" if not who else ""}>wszyscy</a>']
     links += [
@@ -657,7 +672,94 @@ def _progress_panel(change: str, progress: dict[str, Any], token: str) -> str:
     )
 
 
-def _inbox_body(deps: Deps, token: str) -> str:
+ITEM_OPTIONS = {
+    "gate": ("approved", "changes_requested", "rejected"),
+    "impact_review": ("met", "not_met", "unknown"),
+    "problem": ("accepted", "rejected"),
+    "autonomy": ("approved", "rejected"),
+    "capture": ("approved", "rejected"),
+    "process": ("approved", "rejected"),
+}
+ASK_HOURS = (("4", "4 h"), ("24", "24 h"), ("72", "3 days"))
+
+
+def _options_for(kind: str) -> tuple[str, ...]:
+    return ITEM_OPTIONS.get(kind, ("approved",))
+
+
+def _ask_html(deps: Deps, item: dict[str, Any], viewer: Any) -> str:
+    """„Ask team” (DI Team T4) na karcie pozycji: pytanie, stan, odpowiedź zapytanego, wynik po zamknięciu.
+
+    Tylko z logowaniem przez suitę (`viewer` to sesja). Odpowiedzi innych są ukryte do zamknięcia dla wszystkich."""
+    if viewer is None or item.get("kind") == "pr_ready":
+        return ""
+    iid = _escape(item["id"])
+    view = deps.consults.view(item["id"], viewer.sub)
+    if view is None:
+        if viewer.access != "decide":
+            return ""
+        others = [p for p in deps.people.all() if p.sub != viewer.sub]
+        if not others:
+            return "<p><small>Ask team: nobody else has signed in to this console yet.</small></p>"
+        boxes = " ".join(
+            f'<label><input type="checkbox" name="ask_{_escape(p.sub)}" value="1"> {_escape(p.name)}</label>'
+            for p in others
+        )
+        hours = "".join(
+            f'<option value="{v}"{" selected" if v == "24" else ""}>{label}</option>' for v, label in ASK_HOURS
+        )
+        select = f'<select name="hours">{hours}</select>'
+        return (
+            f'<form class="ask" method="post" action="/inbox/{iid}/ask"><details><summary>Ask team</summary>'
+            f"<p>{boxes}</p><p><label>Closes in {select}</label> "
+            '<button type="submit">Ask</button> <small>Answers stay hidden from everyone, you too, until it closes. '
+            "The team advises; you decide.</small></p></details></form>"
+        )
+    effects = "".join(f"<li><strong>{_escape(o)}</strong>: {_escape(t)}</li>" for o, t in view["effects"].items())
+    effects_html = f"<p><small>Agent on the options:</small></p><ul>{effects}</ul>" if effects else ""
+    if view["status"] == "open":
+        counts = f"{view['answered']}/{view['asked']}"
+        head = (
+            f'<p class="pill open">With team · {counts} · closes {_escape(view["closes_at"])}</p>'
+            f"<p><small>Asked by {_escape(view['decider'])}: {_escape(', '.join(view['asked_names']))}</small></p>"
+        )
+        mine = ""
+        if view["is_asked"]:
+            current = view["mine"] or {}
+            radios = " ".join(
+                f'<label><input type="radio" name="option" value="{_escape(o)}"'
+                f"{' checked' if current.get('option') == o else ''} required> {_escape(o)}</label>"
+                for o in (*view["options"], consult.TALK_LIVE)
+            )
+            mine = (
+                f'<form class="ask" method="post" action="/inbox/{iid}/answer"><p><strong>Asked of you</strong> '
+                f'{radios}</p><p><input type="text" name="reason" maxlength="{consult.MAX_REASON}" required '
+                f'placeholder="One sentence: why" value="{_escape(current.get("reason") or "")}"> '
+                '<button type="submit">Answer</button></p></form>'
+            )
+        close = ""
+        if viewer.sub == view["decider_sub"]:
+            close = (
+                f'<form class="ask" method="post" action="/inbox/{iid}/close-ask">'
+                '<button type="submit">Close the question now</button></form>'
+            )
+        return head + effects_html + mine + close
+    result = view["result"]
+    if result["kind"] == "agree":
+        verdict = f'<p class="pill open">Team agrees: {_escape(result["option"])}</p>'
+    elif result["kind"] == "discuss":
+        verdict = '<p class="pill warn">To discuss</p>'
+    else:
+        verdict = '<p class="pill">Nobody answered</p>'
+    rows = "".join(
+        f"<li>{_escape(a['name'])}: <strong>{_escape(a['option'] or '—')}</strong>"
+        f"{' — ' + _escape(a['reason']) if a['reason'] else ''}</li>"
+        for a in view["answers"]
+    )
+    return verdict + f"<ul>{rows}</ul>" + effects_html
+
+
+def _inbox_body(deps: Deps, token: str, viewer: Any = None) -> str:
     deps.inbox.open_ready_prs()  # PR-y cięć po pętli PR (N2): pozycja dopiero przy green albo needs_human
     deps.inbox.check_deadlines()  # terminy z OM1 (N3): przypomnienia, „wstrzymana”, „do przeglądu”
     items = deps.inbox.items(status="open")
@@ -669,6 +771,13 @@ def _inbox_body(deps: Deps, token: str) -> str:
         q_html = _pr_ready_html(item) if item["kind"] == "pr_ready" else _render_questions(item["id"], questions)
         action_buttons = _action_buttons_for(item["kind"])
         link = f"/inbox/{_escape(item['id'])}?t={_escape(token)}"
+        # „Ask team” (T4): przy zgodności zespołu szkic decyzji jest już wypełniony — wystarczy przycisk.
+        statement_default = why_default = ""
+        team = deps.consults.view(item["id"], viewer.sub) if viewer is not None else None
+        if team and team["status"] == "closed" and team["result"]["kind"] == "agree":
+            option = team["result"]["option"]
+            statement_default = f"{_sanitize_text(item.get('summary'), limit=600)}: {option} (the team agrees)"
+            why_default = "; ".join(f"{a['name']}: {a['reason']}" for a in team["answers"] if a["reason"])
         rows.append(
             f'<section class="card">'
             f'<h2><a href="{link}">{_escape(item["id"])}</a> '
@@ -677,14 +786,15 @@ def _inbox_body(deps: Deps, token: str) -> str:
             f'<span class="pill open">czeka</span></h2>'
             f"<p><strong>{_escape(item.get('summary'))}</strong></p>"
             f"{_risk_html(item)}{_pin_html(item)}"
+            f"{_ask_html(deps, item, viewer)}"
             f'<form method="post" action="/inbox/{_escape(item["id"])}/decide?t={_escape(token)}">'
             f'<input type="hidden" name="t" value="{_escape(token)}">'
             f'<input type="hidden" name="loaded_at" value="{_escape(item["received_at"])}">'
             f"{q_html}"
             '<div class="row"><label>Treść decyzji (statement)</label>'
-            '<textarea name="statement" required maxlength="800"></textarea></div>'
+            f'<textarea name="statement" required maxlength="800">{_escape(statement_default)}</textarea></div>'
             '<div class="row"><label>Dlaczego (why)</label>'
-            '<textarea name="why" required maxlength="2000"></textarea></div>'
+            f'<textarea name="why" required maxlength="2000">{_escape(why_default[:2000])}</textarea></div>'
             f"{action_buttons}"
             "</form></section>"
         )
@@ -1160,7 +1270,7 @@ def make_server(
             if path == "/callback":
                 clear = f"{LOGIN_COOKIE}=; Path=/callback; Max-Age=0; HttpOnly; SameSite=Lax"
                 try:
-                    session_id, _ = suite.complete(
+                    session_id, signed_in = suite.complete(
                         self._redirect_uri(), code=params.get("code", ""), state=params.get("state", ""),
                         cookie_state=self._cookie(LOGIN_COOKIE),
                     )  # fmt: skip
@@ -1182,6 +1292,8 @@ def make_server(
                         '<a href="/login">Spróbuj ponownie</a>.</p>',
                     )
                     return True
+                # „Ask team” (T4): kto logował się do tej konsoli, żeby dało się go zapytać (bez e-maila, DI3).
+                deps.people.seen(consult.Person(sub=signed_in.sub, name=signed_in.name))
                 ttl = suite_login.SESSION_TTL_SECONDS
                 session = f"{SESSION_COOKIE}={session_id}; Path=/; Max-Age={ttl}; HttpOnly; SameSite=Lax"
                 self._redirect("/", [clear, session])
@@ -1210,7 +1322,9 @@ def make_server(
                 if path == "/" or path == "/board":
                     return self._html(200, _render_page("Tablica", _board_body(deps, token), nonce=nonce, token=token))
                 if path == "/inbox":
-                    return self._html(200, _render_page("Skrzynka", _inbox_body(deps, token), nonce=nonce, token=token))
+                    return self._html(
+                        200, _render_page("Skrzynka", _inbox_body(deps, token, self.session), nonce=nonce, token=token)
+                    )
                 if path == "/decisions":
                     return self._html(
                         200, _render_page("Decyzje", _decisions_body(deps, token), nonce=nonce, token=token)
@@ -1321,8 +1435,14 @@ def make_server(
             match = re.match(r"^/inbox/([A-Za-z0-9._-]{1,128})/decide$", url.path)
             triage = re.match(r"^/problems/(PRB-[0-9]{1,9})/triage$", url.path)
             stale_review = re.match(r"^/problems/(PRB-[0-9]{1,9})/stale$", url.path)  # DV6
+            # DI Team T4 „Ask team”: pytanie, odpowiedź zapytanego i wcześniejsze zamknięcie (tylko w trybie suity).
+            team = (
+                re.match(r"^/inbox/([A-Za-z0-9._-]{1,128})/(ask|answer|close-ask)$", url.path)
+                if suite is not None
+                else None
+            )
             logout = suite is not None and url.path == "/logout"
-            if match is None and triage is None and stale_review is None and not logout:
+            if match is None and triage is None and stale_review is None and team is None and not logout:
                 return self._html(404, "<h1>404</h1>")
             origin = self.headers.get("origin") or ""
             referer = self.headers.get("referer") or ""
@@ -1340,7 +1460,8 @@ def make_server(
                     return self._redirect("/login", [f"{SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax"])
                 if self.session is None:
                     return self._redirect("/login")
-                if self.session.access != "decide":
+                # Odpowiedzieć może każdy zapytany, także z rolą viewer; resztę zmian robi editor albo admin.
+                if self.session.access != "decide" and not (team is not None and team.group(2) == "answer"):
                     return self._html(403, "<h1>403</h1><p>Decydować może rola editor albo admin w DI Decision.</p>")
             length = self.headers.get("content-length", "")
             if not length.isdigit() or int(length) > MAX_BODY:
@@ -1357,6 +1478,8 @@ def make_server(
 
             if suite is None and not _token_ok(token, one("t")):
                 return self._html(404, "<h1>404</h1>")
+            if team is not None:
+                return self._team(team.group(1), team.group(2), fields, one)
             if triage is not None:
                 return self._triage(triage.group(1), one)
             if stale_review is not None:
@@ -1401,12 +1524,17 @@ def make_server(
             }
             if answers is not None:
                 draft["answers"] = answers
+            consulted = deps.consults.consulted(item_id) if suite is not None else None
+            if consulted:
+                draft["consulted"] = consulted  # kogo zapytano i co odpowiedział (kontrakt 0.26.0)
             try:
                 result = deps.inbox.decide(item_id, draft, outcome=outcome)
             except (InvalidDecision, ItemClosed) as e:
                 return self._html(409, f"<h1>409</h1><p>{_escape(str(e))}</p>")
             except ItemNotFound as e:
                 return self._html(404, f"<h1>404</h1><p>{_escape(str(e))}</p>")
+            if consulted:
+                deps.consults.close(item_id)
             back = f"/inbox?t={given_token(given=one('t'))}"
             warning = result.get("warning")
             if result.get("decision") is None:  # pozycja zamknięta bez wpisu w rejestrze (pr_ready, odrzucony szkic)
@@ -1500,6 +1628,39 @@ def make_server(
                 info += f'<p>Zmiana <a href="/trace/{_escape(change)}?t={_escape(token)}">{_escape(change)}</a>.</p>'
             info += f'<p><a href="/inbox?t={_escape(token)}">wróć do skrzynki</a></p>'
             return self._html(200, _render_page("Decyzja zapisana", info, nonce=nonce, token=token))
+
+        def _team(self, item_id: str, action: str, fields: Mapping[str, list[str]], one: Callable[[str], str]) -> None:
+            """„Ask team” (T4): `ask` i `close-ask` — decydent, `answer` — zapytany; potem z powrotem do skrzynki."""
+            assert self.session is not None  # noqa: S101 — trasa tylko w trybie suity, po sprawdzeniu sesji
+            me = consult.Person(sub=self.session.sub, name=self.session.name)
+            try:
+                item = deps.inbox.get(item_id)
+            except LookupError:
+                return self._html(404, "<h1>404</h1>")
+            if item.get("status") != "open":
+                return self._html(409, "<h1>409</h1><p>This item is already decided.</p>")
+            try:
+                if action == "ask":
+                    known = {p.sub: p for p in deps.people.all()}
+                    asked = [known[k[4:]] for k in fields if k.startswith("ask_") and k[4:] in known]
+                    hours = int(one("hours")) if one("hours").isdigit() else 0
+                    deps.consults.ask(
+                        item_id, decider=me, asked=asked, options=list(_options_for(item["kind"])), hours=hours
+                    )
+                elif action == "answer":
+                    deps.consults.answer(item_id, me, option=one("option"), reason=one("reason"))
+                else:
+                    view = deps.consults.view(item_id, me.sub)
+                    if view is None or view["decider_sub"] != me.sub:
+                        return self._html(403, "<h1>403</h1><p>Only the person who asked can close the question.</p>")
+                    deps.consults.close(item_id)
+            except consult.ConsultError as e:
+                status = 403 if "not asked" in str(e) else 409
+                return self._html(status, f"<h1>{status}</h1><p>{_escape(str(e))}</p>")
+            self.send_response(303)
+            self.send_header("location", "/inbox")
+            self.send_header("content-length", "0")
+            self.end_headers()
 
         def _html(self, status: int, body: str) -> None:
             page = body if body.startswith("<!doctype") else _render_page("pdi", body, nonce=nonce)
