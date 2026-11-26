@@ -457,6 +457,12 @@ Przy zgodności liczą się tylko osoby, które odpowiedziały; kto nie odpowied
 
 Na agendzie widać też, kto zadał pytanie (**asked by**), wszystkie odpowiedzi i opisy opcji od agenta.
 
+**Pokój w sprintdecku** (gdy administrator połączył pdi ze sprintdeckiem): przycisk **Open a room in sprintdeck** nad
+agendą otwiera pokój planowania, w którym każda sprawa z agendy to jedno zadanie z talią „Risk”, a Ty prowadzisz
+spotkanie. Sprintdeck poprosi o **Sign in with the suite**; potrzebna jest rola `member` w Sprintdecku (nadaje ją
+administrator organizacji). Link działa 50 minut. W pokoju zespół głosuje w ciemno i omawia rozbieżności, a decyzję
+wpisujesz potem na karcie sprawy w pdi (krok 7).
+
 ### Krok 7. Spotkanie i decyzja
 
 1. Na spotkaniu otwórz stronę **Discuss** i omawiajcie sprawy od góry.
@@ -791,9 +797,10 @@ wątku jeszcze nie działają.
 Sprintdeck (`dbqm45/sprintdeck`) to planning poker z „Consensus Engine”: zespół głosuje ukrytymi kartami, a aplikacja
 pomaga zrozumieć rozbieżności i dojść do wspólnej decyzji. Ma też talię ryzyka.
 
-Stan: MVP w budowie, **poza suitą**. Logowanie jest anonimowe, a zadania dodaje się ręcznie, bez importu z Jiry ani
-z pdi. Agenda „Discuss with team” nie zakłada jeszcze pokoju w sprintdecku; to osobny krok, gdy sprintdeck dostanie
-konta albo logowanie przez suitę. Uruchomienie lokalne: README repozytorium (`npm run dev`, baza w Dockerze).
+Stan: MVP w budowie. Pokój można założyć anonimowo albo po **Sign in with the suite** (klient `sprintdeck`, rola
+`member`, bez e-maila). Z agendy „Discuss with team” w pdi pokój powstaje jednym przyciskiem (rozdział 10). Zadania
+poza tym dodaje się ręcznie, bez importu z Jiry. Uruchomienie lokalne: README repozytorium (`npm run dev`, baza w
+Dockerze).
 
 ## Cała suita na jednym komputerze
 

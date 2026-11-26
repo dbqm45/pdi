@@ -59,6 +59,7 @@ from pdi import (
     escalate,
     pr_state,
     process,
+    sprintdeck,
     stale,
     suite_login,
     team_notify,
@@ -883,7 +884,16 @@ def _discuss_body(deps: Deps, viewer: Any, now: datetime, token: str = "") -> st
         f'<textarea readonly rows="12" style="width:100%">{_escape(md)}</textarea></details>'
     )
     hint = "<p><small>Ordered by what each item blocks; the decider may move them.</small></p>"
-    return f"<h1>Discuss with team</h1>{hint}{body}{export}"
+    room = ""
+    link = sprintdeck.room_link(entries, sprintdeck.SprintdeckConfig.from_env(), now=now) if decides else None
+    if link:
+        # Pokój na żywo z głosowaniem: sprintdeck (plan-pokoj-sprintdeck.md); decyzja dalej tutaj.
+        room = (
+            f'<p><a class="button" href="{_escape(link)}" target="_blank" rel="noopener noreferrer">'
+            "Open a room in sprintdeck</a> <small>One item per topic, the Risk deck, you as the host; "
+            "the link is valid for 50 minutes. Decide here after the session.</small></p>"
+        )
+    return f"<h1>Discuss with team</h1>{hint}{room}{body}{export}"
 
 
 def _inbox_body(deps: Deps, token: str, viewer: Any = None) -> str:
