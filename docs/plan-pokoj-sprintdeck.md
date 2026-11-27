@@ -32,7 +32,7 @@ decyzja 5 (sesja na żywo z głosowaniem zostaje w sprintdecku, pdi daje do niej
    na serwerze, wymaga sesji z suity i zakłada pokój z talią „Risk”: jedna sprawa = jedno zadanie (tytuł = opis
    sprawy, opis = zmiana, bramka, powody miejsca i odpowiedzi zespołu). Prowadzący to osoba, która otworzyła link.
 4. **Decyzja dalej w pdi:** sprintdeck służy do rozmowy i głosowania; decyzję zapisuje się na agendzie w pdi, jak w T5.
-   Powrót wyników ze sprintdecka do pdi: osobno.
+   Powrót wyników ze sprintdecka do pdi: zrobiony 2026-11-27, [plan](plan-wyniki-sprintdecka.md).
 5. **Bez zmiany kontraktu** (link to API pdi ↔ sprintdeck) i bez nowej zależności w czasie działania.
 
 ## Kroki

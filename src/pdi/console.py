@@ -224,6 +224,7 @@ class Deps:
         self.people = consult.People(registry.root, now=registry.now)
         self.agenda = agenda.Order(registry.root)
         self.escalations = escalate.Escalations(registry.root, now=registry.now)  # T7
+        self.sprint_results = sprintdeck.ResultsStore(registry.root)  # wyniki pokoju sprintdecka
         self.changes = ChangeStore(registry)
         self.checkout = checkout
         self.git = git or _git_run
@@ -829,6 +830,52 @@ def _escalate_html(deps: Deps, item: dict[str, Any], viewer: Any) -> str:
     )
 
 
+def _room_results_html(r: dict[str, Any] | None) -> str:
+    """Wyniki pokoju sprintdecka przy sprawie (plan-wyniki-sprintdecka.md): materiał do decyzji, nie decyzja."""
+    if not r:
+        return ""
+    votes = ", ".join(f"{_escape(k)} × {int(v)}" for k, v in r.get("votes", {}).items()) or "no revealed round"
+    final = f"Final: {_escape(r['final'])}" if r.get("final") else f"Not finished ({_escape(r.get('status', ''))})"
+    consensus = f" · {_escape(r['consensus'])}" if r.get("consensus") else ""
+    notes = "".join(f"<li>{_escape(n)}</li>" for n in r.get("notes", []))
+    room = r.get("room") or {}
+    rounds = int(r.get("rounds", 0))
+    link = (
+        f' · <a href="{_escape(room["url"])}" target="_blank" rel="noopener noreferrer">open the room</a>'
+        if str(room.get("url", "")).startswith(("http://", "https://"))
+        else ""
+    )
+    return (
+        f"<p><small><strong>From the sprintdeck room</strong> ({_escape(room.get('deck') or '')}, "
+        f"{rounds} round{'' if rounds == 1 else 's'}{link}): {final} · votes {votes}{consensus}</small></p>"
+        + (f"<ul>{notes}</ul>" if notes else "")
+    )
+
+
+def _room_results_preview(deps: Deps, results: dict[str, Any], *, decides: bool, d: str, s: str) -> str:
+    """Podgląd wyników z linku sprintdecka przed zapisem: co trafi do których spraw, co zostanie pominięte."""
+    open_items = {i["id"] for i in deps.inbox.items(status="open")}
+    rows, skipped = [], []
+    for it in results["items"]:
+        if it["ref"] in open_items:
+            rows.append(
+                f"<li><strong>{_escape(it['title'])}</strong>{_room_results_html({**it, 'room': results['room']})}</li>"
+            )
+        else:
+            skipped.append(it["title"])
+    room = results["room"]
+    form = (
+        '<form method="post" action="/discuss/results">'
+        f'<input type="hidden" name="d" value="{_escape(d)}"><input type="hidden" name="s" value="{_escape(s)}">'
+        '<button type="submit">Attach to the agenda</button> <small>The results become material on each item; '
+        "you still decide on the card.</small></form>"
+        if decides and rows
+        else ""
+    )
+    gone = f"<p><small>Not on the agenda: {_escape(', '.join(skipped))}</small></p>" if skipped else ""
+    return f"<h1>Results from sprintdeck</h1><p>{_escape(room['title'])}</p><ul>{''.join(rows)}</ul>{gone}{form}"
+
+
 def _discuss_body(deps: Deps, viewer: Any, now: datetime, token: str = "") -> str:
     """„Discuss with team” (T5): sprawy z rozbieżnością zespołu według tego, co blokują, z decyzją ze spotkania."""
     deps.inbox.check_deadlines()
@@ -873,6 +920,7 @@ def _discuss_body(deps: Deps, viewer: Any, now: datetime, token: str = "") -> st
             f"<p><small>Why now: {_escape('; '.join(e['reasons']))} · asked by {_escape(e['decider'])}</small></p>"
             f"<ul>{answers}</ul>"
             + (f"<p><small>Agent on the options:</small></p><ul>{effects}</ul>" if effects else "")
+            + _room_results_html(deps.sprint_results.get(e["item_id"]))
             + f"{decide}</section>"
         )
     md = agenda.markdown(entries, day=now.date().isoformat())
@@ -1460,6 +1508,24 @@ def make_server(
                 if path == "/now":
                     body = _now_body(deps, token, params.get("who", ""), clock())
                     return self._html(200, _render_page("Now", body, nonce=nonce, token=token))
+                if path == "/discuss/results" and suite is not None:
+                    # Wyniki pokoju sprintdecka: podgląd; zapis dopiero formularzem z tej strony (POST).
+                    try:
+                        results = sprintdeck.verify_results(
+                            sprintdeck.SprintdeckConfig.from_env(),
+                            params.get("d", ""),
+                            params.get("s", ""),
+                            now=clock(),
+                        )
+                    except sprintdeck.ResultsRefused as e:
+                        return self._html(
+                            400, f"<h1>400</h1><p>These results cannot be attached: {_escape(str(e))}.</p>"
+                        )
+                    decides = self.session is not None and self.session.access == "decide"
+                    preview = _room_results_preview(
+                        deps, results, decides=decides, d=params.get("d", ""), s=params.get("s", "")
+                    )
+                    return self._html(200, _render_page("Results from sprintdeck", preview, nonce=nonce, token=token))
                 if path == "/discuss":
                     body = _discuss_body(deps, self.session, clock(), token if suite is None else "")
                     return self._html(200, _render_page("Discuss with team", body, nonce=nonce, token=token))
@@ -1586,6 +1652,7 @@ def make_server(
                 else None
             )
             reorder = re.match(r"^/discuss/([A-Za-z0-9._-]{1,128})/(up|down)$", url.path)  # T5
+            room_results = suite is not None and url.path == "/discuss/results"  # wyniki pokoju sprintdecka
             logout = suite is not None and url.path == "/logout"
             if (
                 match is None
@@ -1593,6 +1660,7 @@ def make_server(
                 and stale_review is None
                 and team is None
                 and reorder is None
+                and not room_results
                 and not logout
             ):
                 return self._html(404, "<h1>404</h1>")
@@ -1632,6 +1700,20 @@ def make_server(
                 return self._html(404, "<h1>404</h1>")
             if team is not None:
                 return self._team(team.group(1), team.group(2), fields, one)
+            if room_results:
+                try:
+                    results = sprintdeck.verify_results(
+                        sprintdeck.SprintdeckConfig.from_env(), one("d"), one("s"), now=clock()
+                    )
+                except sprintdeck.ResultsRefused as e:
+                    return self._html(400, f"<h1>400</h1><p>These results cannot be attached: {_escape(str(e))}.</p>")
+                open_items = {i["id"] for i in deps.inbox.items(status="open")}
+                deps.sprint_results.save(results, now=clock(), open_items=open_items)
+                self.send_response(303)
+                self.send_header("location", "/discuss")
+                self.send_header("content-length", "0")
+                self.end_headers()
+                return None
             if reorder is not None:
                 entries = agenda.build(
                     deps.inbox.items(status="open"), deps.consults, order=deps.agenda.get(), now=clock()
