@@ -460,8 +460,13 @@ Na agendzie widać też, kto zadał pytanie (**asked by**), wszystkie odpowiedzi
 **Pokój w sprintdecku** (gdy administrator połączył pdi ze sprintdeckiem): przycisk **Open a room in sprintdeck** nad
 agendą otwiera pokój planowania, w którym każda sprawa z agendy to jedno zadanie z talią „Risk”, a Ty prowadzisz
 spotkanie. Sprintdeck poprosi o **Sign in with the suite**; potrzebna jest rola `member` w Sprintdecku (nadaje ją
-administrator organizacji). Link działa 50 minut. W pokoju zespół głosuje w ciemno i omawia rozbieżności, a decyzję
-wpisujesz potem na karcie sprawy w pdi (krok 7).
+administrator organizacji). Link działa 50 minut. W pokoju zespół głosuje w ciemno i omawia rozbieżności.
+
+Po sesji kliknij w podsumowaniu pokoju (**Summary**) **Send results to DI Decision**. Wrócisz do pdi na stronę
+**Results from sprintdeck**, która pokazuje dla każdej sprawy ocenę końcową, głosy (ile osób na którą kartę, bez
+nazwisk), stan zgody, liczbę rund i notatki. **Attach to the agenda** dołącza je do kart. Na agendzie przy sprawie
+pojawia się blok **From the sprintdeck room** z linkiem do pokoju. Decyzję wpisujesz potem na karcie sprawy (krok 7):
+wyniki z pokoju to materiał, nie decyzja.
 
 ### Krok 7. Spotkanie i decyzja
 

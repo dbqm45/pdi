@@ -32,6 +32,7 @@ from pdi import (
     mcp_auth,
     pr_state,
     process,
+    sprintdeck,
     stale,
     team_notify,
 )
@@ -498,7 +499,8 @@ def build_server(
         rozbieżnością albo prośbą o rozmowę na żywo, w kolejności tego, co blokują (wstrzymany przebieg, termin,
         bramka trzymająca zmianę, liczba chętnych do rozmowy, czas czekania) albo w kolejności ustawionej przez
         decydenta. Każda sprawa: item_id, summary, change, gate, reasons (słowami), options, answers zespołu
-        (jawne, bo pytanie jest zamknięte), effects. Tylko odczyt: decyduje człowiek.
+        (jawne, bo pytanie jest zamknięte), effects, a gdy prowadzący przyniósł wyniki z pokoju sprintdecka — room
+        (final, votes, consensus, rounds, notes, link do pokoju). Tylko odczyt: decyduje człowiek.
         """
         box = open_inbox()
         reg = box.registry
@@ -508,6 +510,11 @@ def build_server(
             order=agenda.Order(reg.root).get(),
             now=reg.now(),
         )
+        results = sprintdeck.ResultsStore(reg.root)
+        for e in entries:
+            room = results.get(e["item_id"])
+            if room is not None:
+                e["room"] = room  # wyniki pokoju sprintdecka: materiał do decyzji (plan-wyniki-sprintdecka.md)
         return {"items": entries}
 
     @server.tool(annotations=_WRITE)

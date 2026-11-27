@@ -97,3 +97,108 @@ def registry(tmp_path: Any) -> Registry:
     r = Registry(tmp_path / "registry")
     r.root.mkdir(parents=True, exist_ok=True)
     return r
+
+
+# --- wyniki pokoju z powrotem (docs/plan-wyniki-sprintdecka.md) ---
+
+
+def results_link(payload: dict[str, Any], secret: str = SECRET) -> str:
+    d = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+    s = hmac.new(secret.encode(), d.encode(), hashlib.sha256).hexdigest()
+    return f"/discuss/results?d={d}&s={s}"
+
+
+def results(**extra: Any) -> dict[str, Any]:
+    room = {"title": "Discuss with team — 2026-11-27", "url": "http://127.0.0.1:3000/r/NhkrbG3RxFqo", "deck": "Risk"}
+    first = {
+        "ref": "evt-1",
+        "title": "Prośba o bramkę B2",
+        "status": "estimated",
+        "final": "High",
+        "rounds": 2,
+        "votes": {"High": 3},
+        "consensus": "Full consensus",
+        "notes": ["Przegląd bezpieczeństwa przed B2 <b>"],
+    }
+    unknown = {
+        "ref": "evt-9",
+        "title": "Nieznana",
+        "status": "pending",
+        "final": None,
+        "rounds": 0,
+        "votes": {},
+        "consensus": None,
+        "notes": [],
+    }
+    return {"v": 1, "exp": int(datetime.now(UTC).timestamp()) + 600, "room": room, "items": [first, unknown],
+            **extra}  # fmt: skip
+
+
+def test_sd04_the_room_link_names_each_pdi_item_and_results_are_checked_like_the_link() -> None:
+    payload, _, _ = decode(sprintdeck.room_link([entry(1)], CFG, now=NOW))
+    assert payload["items"][0]["ref"] == "evt-1"
+    good = results()
+    d = base64.urlsafe_b64encode(json.dumps(good).encode()).decode().rstrip("=")
+    s = hmac.new(SECRET.encode(), d.encode(), hashlib.sha256).hexdigest()
+    now = datetime.now(UTC)
+    assert sprintdeck.verify_results(CFG, d, s, now=now)["room"]["deck"] == "Risk"
+    for bad_d, bad_s, reason in ((d, "0" * 64, "signature"), ("%%", s, "signature")):
+        with pytest.raises(sprintdeck.ResultsRefused, match=reason):
+            sprintdeck.verify_results(CFG, bad_d, bad_s, now=now)
+    old = base64.urlsafe_b64encode(json.dumps(results(exp=1)).encode()).decode().rstrip("=")
+    with pytest.raises(sprintdeck.ResultsRefused, match="expired"):
+        sprintdeck.verify_results(
+            CFG, old, hmac.new(SECRET.encode(), old.encode(), hashlib.sha256).hexdigest(), now=now
+        )
+    with pytest.raises(sprintdeck.ResultsRefused, match="off"):
+        sprintdeck.verify_results(sprintdeck.SprintdeckConfig(url=None, secret=None), d, s, now=now)
+
+
+def test_sd05_results_are_shown_first_then_attached_to_the_agenda_and_shown_on_the_card(
+    registry: Registry, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("PDI_SPRINTDECK_URL", "http://127.0.0.1:3000")
+    monkeypatch.setenv("PDI_SPRINTDECK_SECRET", SECRET)
+    write_gate(registry)
+    app = Console(registry, FakeIssuer(), monkeypatch)
+    try:
+        s = people(app)
+        ask(app, s["ola"], ["s-adm", "s-3"])
+        answer(app, s["adm"], "talk_live", "Omówmy na żywo.")
+        answer(app, s["viewer"], "rejected", "Za duże ryzyko.")
+        link = results_link(results())
+        status, _, page, _ = app.request("GET", link, cookie=s["ola"])
+        assert status == 200
+        assert "Results from sprintdeck" in page and "Prośba o bramkę B2" in page
+        assert "Not on the agenda: Nieznana" in page
+        assert not (registry.root / "sprintdeck-results").exists(), "nothing is stored before the decider confirms"
+        _, _, page, _ = app.request("GET", link, cookie=s["viewer"])
+        assert "Attach to the agenda" not in page, "a viewer sees, but does not attach"
+        d, sig = link.split("d=")[1].split("&s=")
+        assert app.request("POST", "/discuss/results", cookie=s["viewer"], form={"d": d, "s": sig})[0] == 403
+        assert app.request("POST", "/discuss/results", cookie=s["ola"], form={"d": d, "s": "0" * 64})[0] == 400
+        assert app.request("POST", "/discuss/results", cookie=s["ola"], form={"d": d, "s": sig})[0] == 303
+        stored = json.loads((registry.root / "sprintdeck-results" / "evt-1.json").read_text(encoding="utf-8"))
+        assert stored["final"] == "High" and stored["room"]["url"].endswith("/r/NhkrbG3RxFqo")
+        assert not (registry.root / "sprintdeck-results" / "evt-9.json").exists()
+        _, _, page, _ = app.request("GET", "/discuss", cookie=s["ola"])
+        assert "From the sprintdeck room" in page
+        assert "Final: High" in page and "High × 3" in page and "Full consensus" in page
+        assert "Przegląd bezpieczeństwa przed B2 &lt;b&gt;" in page
+    finally:
+        app.close()
+
+
+def test_sd06_the_agent_sees_the_room_results_on_the_agenda(registry: Registry) -> None:
+    import asyncio
+
+    from pdi import consult
+    from pdi.mcp_server import build_server
+    from tests.test_discuss import discuss
+
+    write_gate(registry)
+    discuss(consult.Consultations(registry.root, now=registry.now), "evt-1")
+    sprintdeck.ResultsStore(registry.root).save(results(), now=NOW, open_items={"evt-1"})
+    server = build_server(lambda: registry)
+    out = asyncio.run(server.call_tool("discussion_agenda", {})).structured_content
+    assert out["items"][0]["room"]["final"] == "High"

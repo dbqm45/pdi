@@ -324,6 +324,16 @@ agendy w części `#` adresu, podpisane HMAC-SHA256 i ważne 50 minut: tytuł, a
 opcje i odpowiedzi zespołu (do 30 spraw). Sprintdeck wymaga logowania przez suitę (klient `sprintdeck`, rola `member`)
 i zakłada pokój z talią „Risk”, w którym prowadzącym jest osoba z linku. Decyzję zapisuje się dalej tutaj, na agendzie.
 
+**Wyniki z powrotem** ([plan](docs/plan-wyniki-sprintdecka.md)): każda sprawa w linku ma `ref` (identyfikator
+pozycji), który pokój zapamiętuje przy zadaniu. Po sesji prowadzący klika w sprintdecku „Send results to DI Decision”.
+Serwer sprintdecka podpisuje wyniki zadań z pdi tym samym sekretem i odsyła przeglądarkę na
+`/discuss/results?d=…&s=…`. Wyniki to ocena końcowa, głosy ostatniej odkrytej rundy policzone po kartach (bez
+nazwisk), stan zgody, liczba rund i notatki. Strona pokazuje podgląd. Dopiero **Attach to the agenda** (`editor`,
+`admin`, formularz z tej samej strony) zapisuje je w `sprintdeck-results/<pozycja>.json`. Sprawy zamknięte albo
+nieznane są pomijane i wymienione. Karta sprawy na `/discuss` pokazuje blok „From the sprintdeck room”, a
+`discussion_agenda` (MCP) daje go w polu `room`. To materiał do decyzji: decyzję dalej wpisuje człowiek. Tylko z
+logowaniem przez suitę; konsola loguje samą ścieżkę, bez zapytania.
+
 ### „Escalate” w konsoli (DI Team T7, OM2)
 
 Trzecia opcja na karcie obok decyzji i „Ask team” ([plan](docs/plan-t7-escalate.md), `src/pdi/escalate.py`): decydent

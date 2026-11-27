@@ -230,7 +230,7 @@ konsola pdi (`src/pdi/console.py`: tablica zmian, ślad, postęp fazy na żywo, 
 - [x] **T4 — „Ask team” online** (zrobione 2026-11-25 w lokalnej konsoli z logowaniem przez suitę, [plan](docs/plan-t4-ask-team.md); dla zespołu z różnych komputerów — z konsolą jako usługą): przycisk na karcie decyzji, wybór osób, opcje z pytania, odpowiedzi ukryte do
   zamknięcia, skutki opcji od agenta, czas zamknięcia; wynik jako szkic decyzji z listą zapytanych; typ decyzji
   w kontrakcie dostaje pole konsultacji (`consulted`: kto, opcja, uzasadnienie).
-- [x] **T5 — „Discuss with team” jako agenda** (zrobione 2026-11-26: `/discuss` w konsoli z danych pdi, [plan](docs/plan-t5-discuss-with-team.md); sprawy z historyjek DI Definition — gdy R5 da API; pokój sprintdecka zrobiony 2026-11-26, [plan](docs/plan-pokoj-sprintdeck.md)): sprawy z rozbieżnością i oznaczone „talk live”, kolejność według
+- [x] **T5 — „Discuss with team” jako agenda** (zrobione 2026-11-26: `/discuss` w konsoli z danych pdi, [plan](docs/plan-t5-discuss-with-team.md); sprawy z historyjek DI Definition — gdy R5 da API; pokój sprintdecka zrobiony 2026-11-26, [plan](docs/plan-pokoj-sprintdeck.md), a wyniki z pokoju wracają na agendę od 2026-11-27, [plan](docs/plan-wyniki-sprintdecka.md)): sprawy z rozbieżnością i oznaczone „talk live”, kolejność według
   blokad, zapis decyzji ze spotkania; opcjonalnie eksport agendy.
 - [x] **T6 — skróty do Slacka/Teams** (zrobione 2026-11-26 dla Slacka: wiadomość do zapytanych przy „Ask team” i dzienny skrót, [plan](docs/plan-t6-skroty-slack.md); Teams osobno): dzienny skrót i powiadomienie „czeka na Ciebie” z linkiem. Nie własnym
   botem: przez wspólną aplikację kanałów suity (plan programu §3.7, krok CH2), zapisaną 2026-11-21.
