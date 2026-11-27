@@ -315,6 +315,15 @@ Keycloak uruchomiony wcześniej ręcznie na 8180 trzeba zatrzymać (`sdlc up` po
 nowym kontenerze jest pusty, więc organizacje i role nadaje się na nowo (`npm run identity -- org …`, `role grant …`).
 Porty suity: Flags 3000, di-channels 3100, di-identity 3200, DI Definition 4317, Keycloak 8180.
 
+### Pokój sprintdecka z agendy (DI Team T5, D-P11)
+
+Na stronie `/discuss` decydent (`editor`, `admin`) ma przycisk **Open a room in sprintdeck**, gdy ustawione są
+`PDI_SPRINTDECK_URL` (https; http tylko dla localhost) i `PDI_SPRINTDECK_SECRET` (ten sam w sprintdecku)
+([plan](docs/plan-pokoj-sprintdeck.md), `src/pdi/sprintdeck.py`). Link `<sprintdeck>/from-pdi#d=…&s=…` niesie sprawy
+agendy w części `#` adresu, podpisane HMAC-SHA256 i ważne 50 minut: tytuł, a w opisie zmiana, bramka, powody miejsca,
+opcje i odpowiedzi zespołu (do 30 spraw). Sprintdeck wymaga logowania przez suitę (klient `sprintdeck`, rola `member`)
+i zakłada pokój z talią „Risk”, w którym prowadzącym jest osoba z linku. Decyzję zapisuje się dalej tutaj, na agendzie.
+
 ### „Escalate” w konsoli (DI Team T7, OM2)
 
 Trzecia opcja na karcie obok decyzji i „Ask team” ([plan](docs/plan-t7-escalate.md), `src/pdi/escalate.py`): decydent
