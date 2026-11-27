@@ -96,7 +96,7 @@ Dla administratora organizacji (rola `di-admin:admin`). Konsola: `http://127.0.0
 | **People** | lista osób organizacji z rolami; **Add a person by e-mail** (osoba musi się raz zalogować); **Grant** i odebranie roli w produkcie; usunięcie osoby |
 | **Invitations** | **Create an invitation link**: wybierasz role, konsola pokazuje link raz; link działa raz i przez 7 dni; otwarte zaproszenie można odwołać |
 | **Agents** | agenci organizacji z właścicielem, celem i datą przeglądu; wyłączenie i włączenie agenta; wyłącznik wszystkich agentów organizacji |
-| **Sign-in** | własny dostawca tożsamości OpenID Connect organizacji: wystawca, identyfikator i sekret klienta, domena; **Save** |
+| **Sign-in** | własny dostawca tożsamości organizacji, OpenID Connect (wystawca, identyfikator i sekret klienta) albo SAML 2.0 (adres metadanych), oraz domena; **Save** |
 | **Change log** | kto, co i kiedy zmienił (When, Who, What, About) |
 
 ### Jak zaprosić osobę
@@ -109,12 +109,24 @@ Dla administratora organizacji (rola `di-admin:admin`). Konsola: `http://127.0.0
 
 ### Jak podłączyć logowanie organizacji
 
+Organizacja ma jednego dostawcę: OpenID Connect albo SAML 2.0. Zapisanie drugiego rodzaju zastępuje poprzedniego.
+
+**OpenID Connect:**
+
 1. **Sign-in** → podaj wystawcę (https), identyfikator i sekret klienta u swojego dostawcy, wybierz domenę → **Save**.
 2. Od tej chwili osoby z tej domeny przy logowaniu trafiają do Waszego dostawcy. Przy pierwszym logowaniu powstaje
    nowe konto członka organizacji; konta, które już istnieją (np. z Google), logują się po staremu.
 3. Role nadajesz dalej w konsoli, nie u dostawcy. Sekret zostaje w Keycloaku i nie jest nigdzie pokazywany.
 
-Na razie tylko OpenID Connect; SAML osobno.
+**SAML 2.0** (np. AD FS, Entra ID, Okta):
+
+1. U swojego dostawcy dodaj suitę jako usługodawcę z jej metadanych. Adres metadanych pokazuje strona **Sign-in**
+   (`…/broker/org-<organizacja>/endpoint/descriptor`); odpowiedź idzie przez HTTP-POST na adres `…/endpoint`.
+   Ustaw trwały identyfikator (NameID `persistent`) i podpisuj asercje. Jeśli możesz, wysyłaj e-mail, imię i
+   nazwisko (atrybuty X.500 albo roszczenia Microsoftu); inaczej osoba poda je raz przy pierwszym logowaniu.
+2. **Sign-in** → w części **SAML 2.0 provider** podaj adres metadanych swojego dostawcy (https), wybierz domenę →
+   **Save**. Metadane bez certyfikatu podpisu są odrzucane.
+3. Dalej jak przy OpenID Connect: nowe konto członka organizacji przy pierwszym logowaniu, role z konsoli.
 
 ### Agenci
 
