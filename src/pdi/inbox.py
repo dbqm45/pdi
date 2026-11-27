@@ -38,6 +38,7 @@ from pdi import (
     impact,
     phase_decisions,
     process,
+    quality,
     runs,
     waiting,
 )
@@ -464,6 +465,13 @@ class Inbox:
         return {"due": due, "basis": basis, "intent": intent["id"] if intent else None, "released_at": released_at}
 
     # --- ocena skutku (F5) ---
+
+    def flow_quality(self) -> dict[str, Any]:
+        """G7: kolejka bramek obok jakości wydań (`quality.report`), metryki PROD z ShipScope, jeśli ustawiony."""
+        now = self.registry.now()
+        start, end = quality.window(now)
+        days, error = impact.read_metrics(self._shipscope, start, end, get=self._shipscope_get)
+        return quality.report(self.changes.all(status=None), self.problems.all(), days, now=now, shipscope_error=error)
 
     def open_due_reviews(self, *, today: date | None = None) -> list[Item]:
         """Otwiera oceny skutku, których termin minął: dane z ShipScope i szkic wniosku (`pdi.impact`)."""

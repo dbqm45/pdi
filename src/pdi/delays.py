@@ -32,6 +32,9 @@ def _at(text: Any) -> datetime | None:
         return None
 
 
+parse_at = _at  # dla G7 (quality.py): ten sam parser chwil
+
+
 def _hours(start: datetime, end: datetime) -> float:
     return round(max(0.0, (end - start).total_seconds()) / 3600, 1)
 

@@ -878,6 +878,17 @@ def build_server(
         return delays.report(inbox.changes.all(status=None), inbox.items(status=None), now=inbox.registry.now())
 
     @server.tool(annotations=_READ)
+    def flow_quality() -> dict[str, Any]:
+        """Kolejka bramek obok jakości wydań (G7), ostatnie 8 tygodni ISO od najstarszego. weeks: requested,
+        decided, median_wait_hours, queue_end (bramki nierozstrzygnięte na koniec tygodnia, dla bieżącego — teraz),
+        z ShipScope deployments (udane), failed, rollbacks i cfr ((failed + rollbacks) / (deployments + failed); null
+        bez danych),
+        new_problems (PRB zgłoszone w tygodniu). signal: review_may_lag, gdy w ostatnim pełnym tygodniu kolejka i CFR
+        rosną razem — podpowiedź do rozmowy, nie alarm. shipscope: on i error (powód braku danych). Miary dla
+        systemu, nigdy dla osoby; tylko odczyt."""
+        return open_inbox().flow_quality()
+
+    @server.tool(annotations=_READ)
     def process_report() -> dict[str, list[dict[str, Any]]]:
         """Bramki do uproszczenia (DV1): dla każdej bramki okno ostatnich decyzji (jak licznik akceptacji szkiców),
         ile przeszło bez uwag (passed), ile zatrzymało zmianę (stopped: changes_requested, rejected), mediana czekania
