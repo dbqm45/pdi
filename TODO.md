@@ -88,9 +88,12 @@ Learnings” (C. Hobbs, 2026-10); wymagania sprawdzić w specyfikacji na modelco
   argumentami”, pozycja w `tf/docs/todo.md`, sekcja wzorców bezpieczeństwa) — razem z kartą MCP Apps niżej.
 - [x] (zrobione 2026-11-27: narzędzia usunięte z MCP, decyzje tylko przyciskiem, [plan](docs/plan-decyzje-tylko-przyciskiem.md)) To samo dla `decide_inbox_item` i `triage_problem` (agent zamyka pozycję skrzynki albo triaż po „tak” w czacie):
   szkic w konsoli albo decyzja tylko przyciskiem.
-- [ ] tf `mode-pdi` (`GUIDE.md`, skill `pdi-decisions`, `phase_run.py`) opisuje jeszcze `record_decision` z pełną treścią,
+- [x] (zrobione 2026-11-27: dbqm45/tf#456) tf `mode-pdi` (`GUIDE.md`, skill `pdi-decisions`, `phase_run.py`) opisuje jeszcze `record_decision` z pełną treścią,
   `supersede_decision` i `decide_inbox_item` — przepisać na szkic → zatwierdzenie w konsoli → `record_decision(draft_id,
   sha256)` (PR w tf).
+- [ ] Później (decyzja właściciela 2026-11-27): commit `40b0a3d` na `main` w tf ma linię `Co-authored-by: Claude`, dopisaną
+  przez GitHub przy scaleniu dbqm45/tf#456; usunąć przy uzgodnionym przepisaniu historii. Od 2026-11-27 żadnych
+  dopisków o AI w commitach i PR we wszystkich repo suity.
 - [x] Bez sesji protokołu: `pdi-mcp --http` działa bezstanowo (`stateless_http`, odpowiedzi JSON). Stan (np. szkic
   przed zatwierdzeniem) to jawny identyfikator z narzędzia. Przestarzałych Sampling/Roots/Logging nie używa.
 - [ ] Przed hostingiem: connector w Claude.ai (publiczny https, adres zwrotny Claude.ai w `di-decision-mcp`).
