@@ -415,6 +415,22 @@ decyzja ze spotkania (`source.kind: meeting`, z `consulted`). Pod listą jest Ma
 Agent czyta agendę narzędziem MCP `discussion_agenda`. Sprawy z historyjek DI Definition i pokój sprintdecka dojdą
 osobno.
 
+### Zapis decyzji tylko po zatwierdzeniu w konsoli
+
+Agent nie zapisze decyzji bez człowieka, także lokalnie przez stdio. Zapis przez MCP ma dwa kroki:
+1. `present_decision_draft` sprawdza szkic z kontraktem i odkłada go w `decision-drafts/DRF-n.yaml` z SHA-256
+   kanonicznej treści. Zwraca numer, skrót i link do konsoli (`PDI_CONSOLE_URL`, bez tokenu).
+2. Człowiek otwiera w konsoli **Drafts** → `DRF-n`, czyta surową treść (nie opis modelu) i klika **Approve** albo
+   **Reject** z powodem. Może to zrobić rola `editor`/`admin` w DI Decision albo, w trybie z tokenem, właściciel
+   konsoli.
+3. `record_decision(draft_id, sha256)` zapisuje dokładnie zatwierdzoną treść: przy zgodnym skrócie, najwyżej
+   godzinę po zatwierdzeniu i tylko raz.
+
+Zastąpienie decyzji to szkic z `supersedes` (`supersede_decision` zniknęło). Odrzucenie wraca do agenta z powodem.
+Bez `decided_by` w szkicu decyzję podpisuje osoba, która ją zatwierdziła. Przyciski w konsoli, `decision.recorded`
+z ci_for_sdlc i `tf decision add` działają jak dotąd. Plan:
+[`docs/plan-zapis-decyzji-po-zatwierdzeniu.md`](docs/plan-zapis-decyzji-po-zatwierdzeniu.md).
+
 ### Zdalny serwer MCP z tokenami suity
 
 `pdi-mcp --http` ([plan](docs/plan-mcp-zdalny.md)) to ten sam serwer co w stdio, przez Streamable HTTP pod

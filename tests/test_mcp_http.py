@@ -21,6 +21,7 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 
 from pdi import mcp_auth
+from pdi.drafts import DecisionDrafts
 from pdi.mcp_server import build_server
 from pdi.registry import Registry
 
@@ -269,7 +270,7 @@ async def test_mh09_viewer_sees_and_calls_only_read_tools(served: str) -> None:
     async def run(session: ClientSession) -> tuple[set[str], Any, Any]:
         tools = (await session.list_tools()).tools
         found = await session.call_tool("find_decisions", {})
-        write = await session.call_tool("record_decision", {
+        write = await session.call_tool("present_decision_draft", {
             "statement": "X", "why": "Y", "kind": "product", "drafted_by": "human",
             "source": {"kind": "claude-cli", "excerpt": "ustalamy"},
         })  # fmt: skip
@@ -284,11 +285,14 @@ async def test_mh09_viewer_sees_and_calls_only_read_tools(served: str) -> None:
 
 async def test_mh10_editor_records_a_decision_as_the_person_from_the_token(served: str, registry: Registry) -> None:
     async def run(session: ClientSession) -> Any:
-        return await session.call_tool("record_decision", {
+        shown = await session.call_tool("present_decision_draft", {
             "statement": "Próg zostaje na 199 zł.", "why": "Koszt paczki rośnie.", "kind": "product",
             "drafted_by": "human", "decided_at": "2026-11-25",
             "source": {"kind": "claude-cli", "excerpt": "ustalamy, że próg zostaje"},
         })  # fmt: skip
+        d = shown.structured_content
+        DecisionDrafts(registry).approve(d["draft_id"], d["sha256"], by={"name": "Adm Test", "sub": "person-adm"})
+        return await session.call_tool("record_decision", {"draft_id": d["draft_id"], "sha256": d["sha256"]})
 
     result = await session_call(served, token(), run)
     assert result.is_error is False, result.content

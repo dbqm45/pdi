@@ -720,6 +720,7 @@ Strony konsoli pdi tylko do odczytu, dla każdej roli:
 | **Skrzynka** | sprawy czekające na decyzję |
 | **Decyzje** | ostatnie 100 decyzji |
 | **Autonomia** | poziom autonomii każdego typu decyzji |
+| **Drafts** | szkice decyzji od agenta; zatwierdzasz albo odrzucasz z powodem, dopiero potem agent zapisuje decyzję |
 | **Przepływ** | gdzie zmiany czekają, czas bramek (mediana, p90), czekanie i praca; „Kolejka a jakość”: tydzień po tygodniu kolejka bramek obok wdrożeń na PROD, CFR i nowych zgłoszeń |
 | Ślad zmiany (`/trace/CHG-n`, z karty) | kroki, pliki zmiany, diff, postęp na żywo, pętla PR |
 
@@ -751,7 +752,9 @@ Skąd biorą się decyzje:
 - decyzje z tf (`decisions.md` zmiany) i z DI Definition (zamknięcia ustaleń);
 - rozmowa: agent proponuje szkice decyzji z wątku Slacka albo transkrypcji spotkania (z cytatami), a one czekają w
   Skrzynce na zatwierdzenie;
-- agent na Twoje polecenie (`record_decision`).
+- agent na Twoje polecenie (`/record-decision`). Agent wystawia szkic, a Ty zatwierdzasz go w konsoli: menu
+  **Drafts** → szkic → **Approve** albo **Reject** z powodem. Samo „tak” w czacie nie zapisze decyzji. Zgoda dotyczy
+  dokładnie pokazanej treści i jest ważna godzinę; zatwierdza rola `editor` albo `admin`.
 
 Gdzie szukać: menu **Decyzje** albo agent (`find_decisions`, `get_decision`).
 
@@ -761,7 +764,7 @@ W Claude Code możesz rozmawiać z suitą przez serwery MCP:
 
 | Serwer | Co daje |
 | --- | --- |
-| **pdi** | 36 narzędzi: 19 do odczytu (decyzje, Skrzynka, zmiany, ślad, zgłoszenia, przepływ, prognozy, autonomia, agenda, dzienny skrót) i 17 do zapisu (decyzje, zgłoszenia, triaż, terminy, skutki opcji, propozycje) |
+| **pdi** | 37 narzędzi: 20 do odczytu (decyzje, Skrzynka, zmiany, ślad, zgłoszenia, przepływ, kolejka a jakość, prognozy, autonomia, agenda, dzienny skrót) i 17 do zapisu (szkice decyzji i zapis po zatwierdzeniu, zgłoszenia, triaż, terminy, skutki opcji, propozycje) |
 | **shipscope** (DI Release) | sześć narzędzi tylko do odczytu nad API usługi: zmiany, plan wydania, flagi, środowiska, status elementu, metryki (nazw narzędzi nie sprawdzono); potrzebny token usługi `shps_…` z Settings → General → Service tokens |
 | DI Definition | odczyt gotowości (opis w `packages/mcp/README.md` repo ci_for_sdlc; nie sprawdzono) |
 
