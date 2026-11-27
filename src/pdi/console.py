@@ -1264,6 +1264,24 @@ def _flow_body(deps: Deps, token: str, now: datetime) -> str:
         )
         or "<tr><td colspan=4><small>brak zmian</small></td></tr>"
     )
+    q = deps.inbox.flow_quality()
+    dash = "—"
+    quality_rows = "".join(
+        f"<tr><td>{_escape(w['week'])}{' (bieżący)' if w['current'] else ''}</td><td>{w['requested']}</td>"
+        f"<td>{w['decided']}</td><td>{_h(w['median_wait_hours'])}</td><td>{w['queue_end']}</td>"
+        f"<td>{dash if w['deployments'] is None else w['deployments']}</td>"
+        f"<td>{dash if w['failed'] is None else w['failed'] + w['rollbacks']}</td>"
+        f"<td>{_share(w['cfr']) if w['cfr'] is not None else dash}</td><td>{w['new_problems']}</td></tr>"
+        for w in q["weeks"]
+    )
+    quality_note = (
+        f"<p><small>Bez danych z ShipScope: {_escape(q['shipscope']['error'])}</small></p>"
+        if q["shipscope"]["error"]
+        else ""
+    )
+    signal = (
+        f"<p><strong>{_escape(q['signal']['week'])}:</strong> {_escape(q['signal']['text'])}</p>" if q["signal"] else ""
+    )
     return (
         "<h1>Przepływ</h1>"
         "<p><small>Godziny zegarowe od prośby o bramkę do decyzji (DV4); czekanie — bramki otwarte, praca — reszta "
@@ -1278,6 +1296,15 @@ def _flow_body(deps: Deps, token: str, now: datetime) -> str:
         "<table><thead><tr><th>Rodzaj</th><th>Decyzje</th><th>Mediana do decyzji</th><th>p90</th>"
         "<th>Otwarte</th></tr></thead>"
         f"<tbody>{kind_rows}</tbody></table>"
+        "<h2>Kolejka a jakość</h2>"
+        "<p><small>Tydzień po tygodniu (ISO, UTC): bramki w pdi obok wdrożeń na PROD z ShipScope i nowych zgłoszeń. "
+        "CFR = (nieudane + rollbacki) / (udane + nieudane). Miary dla systemu, nie dla osób; rosnąca kolejka "
+        "przy rosnącym CFR podpowiada, że przegląd może nie nadążać (G7).</small></p>"
+        f"{signal}{quality_note}"
+        "<table><thead><tr><th>Tydzień</th><th>Prośby</th><th>Decyzje</th><th>Mediana czekania</th>"
+        "<th>Kolejka na koniec</th><th>Udane wdrożenia PROD</th><th>Nieudane i rollbacki</th><th>CFR</th>"
+        "<th>Nowe PRB</th>"
+        f"</tr></thead><tbody>{quality_rows}</tbody></table>"
         "<h2>Zmiany</h2>"
         "<table><thead><tr><th>Zmiana</th><th>czekanie</th><th>praca</th><th>udział czekania</th></tr></thead>"
         f"<tbody>{change_rows}</tbody></table>"

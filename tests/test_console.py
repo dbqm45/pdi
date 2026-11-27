@@ -908,6 +908,21 @@ def test_flow_page_without_changes_says_so(registry: Registry) -> None:
     assert status == 200 and "nic nie czeka" in body.decode("utf-8")
 
 
+def test_flow_page_puts_the_gate_queue_next_to_release_quality(registry: Registry) -> None:
+    """G7: tydzień po tygodniu kolejka bramek, CFR z ShipScope i nowe zgłoszenia; bez ShipScope — powód."""
+    server, url = _serve(console.Deps(registry, checkout=None))
+    try:
+        status, body, _ = _get(f"{url}/flow?t={TOKEN}")
+    finally:
+        server.shutdown()
+    page = body.decode("utf-8")
+    assert status == 200 and "<h2>Kolejka a jakość</h2>" in page
+    section = page.split("Kolejka a jakość", 1)[1].split("</table>", 1)[0]
+    assert "<th>Kolejka na koniec</th>" in section and "<th>CFR</th>" in section and "<th>Nowe PRB</th>" in section
+    assert section.count("<tr><td>") == 8
+    assert "PDI_SHIPSCOPE_URL" in page  # dlaczego kolumn ShipScope nie ma
+
+
 # --- DV2: ocena ryzyka zmiany (kontrakt 0.20.0) przy bramce, doradcza ---
 
 RISK = {

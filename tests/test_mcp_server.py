@@ -70,6 +70,7 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
         "propose_decisions_from_conversation",
         "list_decision_changes",
         "flow_delays",
+        "flow_quality",
         "process_report",
         "propose_process_changes",
         "change_context",
@@ -78,6 +79,7 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
     }
     assert tools["list_decision_changes"].annotations.read_only_hint is True
     assert tools["flow_delays"].annotations.read_only_hint is True
+    assert tools["flow_quality"].annotations.read_only_hint is True
     assert tools["process_report"].annotations.read_only_hint is True
     assert tools["propose_process_changes"].annotations.read_only_hint is False
     assert tools["propose_decisions_from_conversation"].annotations.read_only_hint is False
@@ -158,7 +160,7 @@ async def test_stdio_end_to_end(tmp_path: Path, make_draft: Draft) -> None:
         listed = await session.list_tools()
         result = await session.call_tool("record_decision", make_draft())
 
-    assert len(listed.tools) == 36
+    assert len(listed.tools) == 37
     assert json.loads(result.content[0].text)["id"] == "DEC-0001"
     assert (tmp_path / "rejestr" / "decisions" / "_ogolne" / "DEC-0001.md").is_file()
 
@@ -430,6 +432,13 @@ async def test_flow_delays_through_the_tool(server: Any) -> None:
     report = await call(server, "flow_delays", {})
 
     assert report == {"waiting": [], "gates": [], "items": [], "changes": []}
+
+
+async def test_flow_quality_through_the_tool_without_shipscope(server: Any) -> None:
+    report = await call(server, "flow_quality", {})
+
+    assert len(report["weeks"]) == 8 and report["signal"] is None
+    assert report["shipscope"]["on"] is False and "PDI_SHIPSCOPE_URL" in report["shipscope"]["error"]
 
 
 async def test_process_tools_without_history(server: Any) -> None:

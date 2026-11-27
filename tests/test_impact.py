@@ -272,3 +272,19 @@ def test_read_connection_without_config_reads_nothing() -> None:
 
     assert value is None and error is not None and "PDI_SHIPSCOPE_URL" in error
     assert get.calls == []
+
+
+def test_read_metrics_for_a_range_without_the_item() -> None:
+    from pdi.impact import read_metrics
+
+    shipscope = FakeShipScope()
+    config = ShipScopeConfig(url="https://shipscope.example.com/", token=TOKEN)
+    days, error = read_metrics(config, "2026-10-06", "2026-11-29", get=shipscope)
+    assert error is None and days == [{"date": "2026-10-23", "rollbacks": 0}]
+    assert [u for u, _ in shipscope.calls] == [
+        "https://shipscope.example.com/api/service/v1/metrics?from=2026-10-06&to=2026-11-29&format=json"
+    ]
+    days, error = read_metrics(config, "2026-10-06", "2026-11-29", get=FakeShipScope(503))
+    assert days is None and error is not None and "503" in error and TOKEN not in error
+    days, error = read_metrics(ShipScopeConfig(url=None), "2026-10-06", "2026-11-29", get=shipscope)
+    assert days is None and error is not None and "PDI_SHIPSCOPE_URL" in error

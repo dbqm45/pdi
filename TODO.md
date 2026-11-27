@@ -130,7 +130,7 @@ najlepiej udokumentowanym sygnałem wyprzedzającym przy kodzie od agentów jest
   - mediana i p90 czasu od `gate.requested` do `gate.decided`, w podziale na bramki B1–B5.
 
   Najpierw test na plikach w katalogu tymczasowym.
-- [ ] Para z wskaźnikiem opóźnionym z ShipScope: rollbacki i hotfiksy na wydanie (CFR) oraz nowe PRB po wydaniu
+- [x] (zrobione 2026-11-27: „Kolejka a jakość” na `/flow` i `flow_quality`, [plan](docs/plan-g7-kolejka-i-jakosc.md); hotfiksów i powiązania PRB z wydaniem dane jeszcze nie niosą) Para z wskaźnikiem opóźnionym z ShipScope: rollbacki i hotfiksy na wydanie (CFR) oraz nowe PRB po wydaniu
   (defekty u użytkownika). Rosnąca kolejka przy rosnącym CFR to sygnał zatoru przeglądu, a nie „więcej pracy”.
 - [ ] Dryf specyfikacji jako drugi wskaźnik wyprzedzający: sygnał z ci_for_sdlc (rozjazd definicji ze stanem) albo
   z `plan_drift.py` w tf. Do ustalenia, kto go emituje jako zdarzenie kontraktu.

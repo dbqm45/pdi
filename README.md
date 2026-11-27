@@ -183,6 +183,19 @@ każdym `feature.released` i raz dziennie z `pdi-forecast` dostarczona zmiana do
 `forecast_change` liczy prognozę od nowa, a `forecast_report` i `pdi-stats` pokazują kalibrację. Bez
 `PDI_SHIPSCOPE_URL` prognozy nie ma. Plan: [`docs/plan-g3-prognoza.md`](docs/plan-g3-prognoza.md).
 
+### Kolejka a jakość (G7)
+
+Strona „Przepływ” w konsoli i narzędzie MCP `flow_quality` (odczyt) zestawiają tydzień po tygodniu (8 tygodni ISO,
+UTC) wskaźniki wyprzedzające z pdi z opóźnionymi:
+- **z pdi:** prośby o bramkę, decyzje, mediana czekania i kolejka bramek na koniec tygodnia; nowe zgłoszenia (PRB);
+- **z ShipScope** (`/metrics`): udane i nieudane wdrożenia na PROD, rollbacki i CFR = (nieudane + rollbacki) /
+  (udane + nieudane).
+
+Gdy w ostatnim pełnym tygodniu kolejka i CFR rosną razem, strona podpowiada, że przegląd może nie nadążać. To
+podpowiedź do rozmowy, nie alarm. Miary dotyczą systemu, nigdy osoby. Bez `PDI_SHIPSCOPE_URL` albo przy błędzie
+kolumny ShipScope są puste, a strona podaje powód (bez tokenu). Plan:
+[`docs/plan-g7-kolejka-i-jakosc.md`](docs/plan-g7-kolejka-i-jakosc.md).
+
 ```bash
 PDI_REGISTRY_PATH=~/pdi-decisions PDI_SHIPSCOPE_URL=https://<ShipScope> PDI_SHIPSCOPE_TOKEN=<shps_…> \
 uv run pdi-forecast        # {"settled": [{"change": "CHG-12", "forecast": "ok", "actual": {"actual_days": 7.5, …}}]}
@@ -364,7 +377,7 @@ Przez DI Channels, tym samym podpisem i z tymi samymi zmiennymi co „czeka na C
   liczbą wszystkich), pytania u zespołu (ile odpowiedzi, kiedy zamknięcie), liczbę spraw na agendzie „Discuss” i kogo
   nie znaleziono w Slacku. Osoba, na której odpowiedź czeka pytanie, dostaje swoje „Asked of you”. Pusty skrót nie
   idzie; ten sam dzień drugi raz to powtórka.
-- **Agent:** narzędzie MCP `daily_digest` (odczyt) daje ten sam skrót bez wysyłania; razem 36 narzędzi.
+- **Agent:** narzędzie MCP `daily_digest` (odczyt) daje ten sam skrót bez wysyłania.
 
 ```
 55 7 * * 1-5 /opt/homebrew/bin/uv run --directory /Users/<ty>/<ścieżka>/pdi sdlc digest >> ~/.sdlc/digest.log 2>&1

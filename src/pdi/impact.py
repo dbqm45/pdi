@@ -198,6 +198,25 @@ def collect(
     return out
 
 
+def read_metrics(
+    config: ShipScopeConfig, start: str, end: str, *, get: Get | None = None
+) -> tuple[list[dict[str, Any]] | None, str | None]:
+    """Dzienne metryki PROD z ShipScope dla dni `start`–`end` (G7): `(dni, None)` albo `(None, błąd bez tokenu)`."""
+    problem = _config_problem(config)
+    if problem:
+        return None, problem
+    assert config.url is not None and config.token is not None  # noqa: S101 — sprawdzone wyżej
+    query = urllib.parse.urlencode({"from": start, "to": end, "format": "json"})
+    url = f"{config.url.rstrip('/')}/api/service/v1/metrics?{query}"
+    value, error = _read_json(get or _get, url, _headers(config.token), "metryki PROD")
+    if error:
+        return None, error
+    days = value.get("days")
+    if not (isinstance(days, list) and all(isinstance(d, dict) and isinstance(d.get("date"), str) for d in days)):
+        return None, "ShipScope zwrócił metryki w nieznanym kształcie."
+    return days, None
+
+
 def read_item(config: ShipScopeConfig, key: str, *, get: Get | None = None) -> tuple[dict[str, Any] | None, str | None]:
     """Status elementu (CHG, TSK, klucz Jiry) z ShipScope: `(element, None)` albo `(None, błąd bez tokenu)`."""
     problem = _config_problem(config)

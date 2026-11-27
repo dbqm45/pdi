@@ -720,8 +720,19 @@ Strony konsoli pdi tylko do odczytu, dla każdej roli:
 | **Skrzynka** | sprawy czekające na decyzję |
 | **Decyzje** | ostatnie 100 decyzji |
 | **Autonomia** | poziom autonomii każdego typu decyzji |
-| **Przepływ** | gdzie zmiany czekają, czas bramek (mediana, p90), czekanie i praca |
+| **Przepływ** | gdzie zmiany czekają, czas bramek (mediana, p90), czekanie i praca; „Kolejka a jakość”: tydzień po tygodniu kolejka bramek obok wdrożeń na PROD, CFR i nowych zgłoszeń |
 | Ślad zmiany (`/trace/CHG-n`, z karty) | kroki, pliki zmiany, diff, postęp na żywo, pętla PR |
+
+### Kolejka a jakość
+
+Na stronie **Przepływ** tabela „Kolejka a jakość” pokazuje ostatnie 8 tygodni:
+- prośby o bramkę, decyzje, medianę czekania i kolejkę na koniec tygodnia;
+- z ShipScope udane i nieudane wdrożenia na PROD, rollbacki oraz CFR (odsetek nieudanych wdrożeń i rollbacków);
+- nowe zgłoszenia problemów.
+
+Jeśli w ostatnim pełnym tygodniu kolejka i CFR wzrosły razem, nad tabelą pojawia się podpowiedź „przegląd może nie
+nadążać”. To temat do rozmowy, nie alarm, i dotyczy całego zespołu, nie osób. Bez połączenia z ShipScope kolumny
+wdrożeń są puste, a strona mówi dlaczego. Agent widzi to samo w narzędziu `flow_quality`.
 
 ### Autonomia
 
