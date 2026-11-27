@@ -6,7 +6,6 @@ from typing import Any
 import pytest
 
 from pdi import console
-from pdi.mcp_server import build_server
 from pdi.problems import ProblemStore
 from pdi.registry import InvalidDecision, Registry
 from tests.test_console import TOKEN, _get, _post, _serve
@@ -57,21 +56,16 @@ def anyio_backend() -> str:
     return "asyncio"
 
 
-@pytest.mark.anyio
-async def test_nc03_mcp_triage_problem_takes_no_code(registry: Registry, make_draft: Any) -> None:
+def test_nc03_triage_takes_no_code(registry: Registry, make_draft: Any) -> None:
+    """Triaż robi człowiek przyciskiem (agent nie ma triage_problem); ten sam ProblemStore.triage."""
     ProblemStore(registry).record(problem())
-    server = build_server(lambda: registry)
-    result = await server.call_tool(
-        "triage_problem",
-        {
-            "problem_id": "PRB-1",
-            "outcome": "rejected",
-            "rejection_reason": "no_code",
-            "no_code": {"kind": "existing_feature", "how": "Użyj eksportu zbiorczego w menu Raporty."},
-            **{k: v for k, v in make_draft().items() if k != "kind"},
-        },
+    ProblemStore(registry).triage(
+        "PRB-1",
+        "rejected",
+        {**make_draft(), "kind": "triage"},
+        rejection_reason="no_code",
+        no_code={"kind": "existing_feature", "how": "Użyj eksportu zbiorczego w menu Raporty."},
     )
-    assert result.is_error is False
     assert ProblemStore(registry).get("PRB-1")["no_code"]["kind"] == "existing_feature"
 
 

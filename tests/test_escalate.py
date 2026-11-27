@@ -191,7 +191,6 @@ def test_es05_the_addressee_gets_a_slack_message_and_sees_it_in_their_digest(
 
 
 def test_es06_the_agent_sees_the_escalation_and_cannot_decide_an_escalated_item(registry: Registry) -> None:
-    from mcp.server.mcpserver.exceptions import ToolError
 
     from pdi.mcp_server import build_server
 
@@ -204,8 +203,6 @@ def test_es06_the_agent_sees_the_escalation_and_cannot_decide_an_escalated_item(
     server = build_server(lambda: registry)
     listed = asyncio.run(server.call_tool("list_inbox", {}))
     assert listed.structured_content["items"][0]["escalation"]["to_name"] == "Adm Test"
-    args = {"item_id": "evt-1", "statement": "Tak.", "why": "Bo tak.", "drafted_by": "ai", "outcome": "approved",
-            "source": {"kind": "manual", "url": "http://x/inbox", "excerpt": "x"}}  # fmt: skip
-    with pytest.raises(ToolError, match="escalated"):
-        asyncio.run(server.call_tool("decide_inbox_item", args))
+    tools = {t.name for t in asyncio.run(server.list_tools())}
+    assert "decide_inbox_item" not in tools, "agent nie decyduje o pozycji skrzynki — tylko adresat przyciskiem"
     assert json.loads((registry.root / "people.json").read_text(encoding="utf-8"))["s-adm"]["admin"] is True

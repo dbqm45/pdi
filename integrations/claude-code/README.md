@@ -2,12 +2,13 @@
 
 Serwer MCP `pdi` (narzędzia `present_decision_draft` i `record_decision` — zapis tylko po zatwierdzeniu szkicu w konsoli,
 `find_decisions`, `get_decision` oraz skrzynka i zmiany:
-`list_inbox`, `decide_inbox_item`, `list_changes`, `get_change`, `retry_dispatch`)
+`list_inbox`, `list_changes`, `get_change`, `retry_dispatch`; o pozycjach skrzynki i triażu decyduje człowiek
+przyciskiem w konsoli)
 i komenda `/record-decision`. Specyfikacja: [dokument 14](../../docs/14-pdi-standalone.md).
 
 **Konsola w przeglądarce (Z3-lokalnie, DZ14).** Gdy pracujesz lokalnie z `sdlc up`, obok serwera MCP działa konsola
 `pdi-console` na `http://127.0.0.1:8788/` (port z `PDI_CONSOLE_PORT`, domyślnie 8788; token sesji w URL). Konsola i
-MCP czytają to samo (rejestr, skrzynkę, logi przebiegów), a decyzje z konsoli i z `decide_inbox_item` idą tą samą
+MCP czytają to samo (rejestr, skrzynkę, logi przebiegów), a decyzje z konsoli idą tą samą
 ścieżką przez `Inbox.decide` (ten sam kod, te same sprawdzenia PR-a, ten sam zapis w rejestrze). `sdlc open` otwiera
 Tablicę konsoli, a `sdlc status` pokazuje, czy konsola działa. Konsola pokazuje trzy pasy, ślad zmiany z panelem
 „Pliki” i bocznym postępem fazy na żywo (z `run.progress`); nic nie pisze do klonu produktu. Plan: [docs/plan-z3-lokalnie.md](../../docs/plan-z3-lokalnie.md).
@@ -51,7 +52,7 @@ cp ~/pdi/integrations/claude-code/record-decision.md ~/.claude/commands/
 cp ~/pdi/integrations/claude-code/decisions-from.md ~/.claude/commands/   # decyzje ze Slacka i spotkań (A5)
 ```
 
-**6. Próba:** uruchom `claude` w dowolnym projekcie, wpisz `/mcp` — `pdi` z 9 narzędziami. Ustal z Claude cokolwiek
+**6. Próba:** uruchom `claude` w dowolnym projekcie, wpisz `/mcp` — `pdi` z 34 narzędziami. Ustal z Claude cokolwiek
 drobnego, wpisz `/record-decision`, zatwierdź szkic. W `~/pdi-decisions/decisions/` pojawi się `DEC-0001.md`
 z commitem (`git -C ~/pdi-decisions log`). Push robisz sam: `git -C ~/pdi-decisions push`.
 
@@ -75,10 +76,10 @@ W Claude to samo daje narzędzie `list_decision_changes`.
 Opcjonalnie dopisz [`CLAUDE-fragment.md`](CLAUDE-fragment.md) do `~/.claude/CLAUDE.md` — Claude będzie sprawdzał
 wcześniejsze decyzje, zanim coś zaproponuje.
 
-Sprawdzenie: `claude mcp list` pokazuje `pdi` jako połączony; w sesji `/mcp` → `pdi` → 9 narzędzi.
+Sprawdzenie: `claude mcp list` pokazuje `pdi` jako połączony; w sesji `/mcp` → `pdi` → 34 narzędzia.
 
-**Fazy tf na tym komputerze (tryb lokalny, tylko do rozwoju).** Żeby zatwierdzenie bramki (`decide_inbox_item`) albo
-przyjęcie zgłoszenia (`triage_problem` z `accepted`) samo uruchamiało następną fazę w lokalnym klonie repo produktu,
+**Fazy tf na tym komputerze (tryb lokalny, tylko do rozwoju).** Żeby zatwierdzenie bramki albo
+przyjęcie zgłoszenia (przyciskiem w konsoli) samo uruchamiało następną fazę w lokalnym klonie repo produktu,
 bez GitHub Actions, dodaj do rejestracji serwera (i tak samo do `pdi-receiver`):
 ```bash
   -e PDI_DISPATCH=local \
@@ -118,11 +119,11 @@ Narzędzia i ograniczenia: `packages/mcp/README.md` w ci_for_sdlc, `adapters/mcp
 - „Co już zdecydowaliśmy o …?” — Claude wywołuje `find_decisions`.
 - „Które decyzje są gotowe do automatyzacji?” — `autonomy_report`: dla każdego typu decyzji odsetek szkiców AI
   zatwierdzonych bez zmian i rekomendacja poziomu (próg: 95% z ostatnich 30). `propose_autonomy_changes` wkłada
-  propozycje do skrzynki; zmiana poziomu to Twoja decyzja (`decide_inbox_item`), zapisana w `autonomy.yaml` rejestru.
+  propozycje do skrzynki; zmiana poziomu to Twoja decyzja (przycisk w Skrzynce konsoli), zapisana w `autonomy.yaml` rejestru.
 - „Które PR-y są gotowe?” — `list_inbox`: pozycja „PR gotowy do Twojego przeglądu” (kind `pr_ready`) pojawia się
   dopiero, gdy pętla PR agenta tf (N2) skończyła się zielonymi checkami i zamkniętymi uwagami albo przekazaniem do
   Ciebie (`needs_human`, np. „nie udało się po 2 rundach”). Pytania z pętli są w polu `open_questions` i w sekcji
-  „Przewodnik dokończenia” opisu PR; po przejrzeniu zamknij pozycję `decide_inbox_item` z `outcome: reviewed`
+  „Przewodnik dokończenia” opisu PR; po przejrzeniu zamknij pozycję przyciskiem „przejrzane” w konsoli
   (bez wpisu w rejestrze — scalasz w GitHubie). Rundy, koszt i powód: `get_change` (`pr_loop`) i `get_trace`.
 - „Kiedy będzie CHG-12?” — `forecast_change` (cięcia z ShipScope × tempo dostarczonych zmian, z przedziałem
   i wątpliwościami); „Jak trafne są prognozy?” — `forecast_report`.
