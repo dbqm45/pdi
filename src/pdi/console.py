@@ -50,12 +50,15 @@ from pathlib import Path
 from typing import Any, cast
 from urllib.parse import parse_qs, quote, urlsplit
 
+import yaml
+
 from pdi import (
     agenda,
     autonomy,
     consult,
     delays,
     dispatch_local,
+    drafts,
     escalate,
     pr_state,
     process,
@@ -287,6 +290,7 @@ def _nav(token: str) -> str:
         ("decisions", "Decyzje"),
         ("autonomy", "Autonomia"),
         ("flow", "Przepływ"),
+        ("drafts", "Drafts"),
     )
     return "<nav>" + "".join(f'<a href="/{path}?t={t}">{label}</a>' for path, label in pages) + "</nav>"
 
@@ -1144,6 +1148,63 @@ def _render_questions(item_id: str, questions: list[Any]) -> str:
     return "".join(rows)
 
 
+def _drafts_body(deps: Deps, token: str) -> str:
+    """Szkice decyzji od agenta czekające na człowieka (docs/plan-zapis-decyzji-po-zatwierdzeniu.md)."""
+    t = f"?t={_escape(token)}" if token else ""
+    rows = "".join(
+        f'<tr><td><a href="/drafts/{_escape(e["id"])}{t}">{_escape(e["id"])}</a></td>'
+        f"<td>{_escape(e.get('status'))}</td>"
+        f"<td>{_escape(_sanitize_text((e.get('decision') or {}).get('statement'), limit=160))}</td>"
+        f"<td>{_escape((e.get('presented_by') or {}).get('name'))}</td><td>{_escape(e.get('presented_at'))}</td></tr>"
+        for e in drafts.DecisionDrafts(deps.registry).all()[:100]
+    )
+    return (
+        "<h1>Decision drafts</h1>"
+        "<p><small>An agent records a decision only after a person approves its draft here; the approval covers "
+        "exactly the content shown and lasts an hour.</small></p>"
+        "<table><thead><tr><th>Draft</th><th>Status</th><th>Statement</th><th>From</th><th>When</th></tr></thead>"
+        f"<tbody>{rows or '<tr><td colspan=5><small>no drafts</small></td></tr>'}</tbody></table>"
+    )
+
+
+def _draft_body(deps: Deps, draft_id: str, token: str, *, decides: bool) -> str:
+    entry = drafts.DecisionDrafts(deps.registry).get(draft_id)
+    raw = yaml.safe_dump(entry.get("decision") or {}, allow_unicode=True, sort_keys=False)
+    status = str(entry.get("status") or "")
+    hidden = f'<input type="hidden" name="sha256" value="{_escape(entry.get("sha256"))}">' + (
+        f'<input type="hidden" name="t" value="{_escape(token)}">' if token else ""
+    )
+    base = f"/drafts/{_escape(draft_id)}"
+    actions = ""
+    if status == "pending" and decides:
+        actions = (
+            f'<form method="post" action="{base}/approve">{hidden}<button type="submit">Approve</button> '
+            "<small>The agent may then record exactly this content, within an hour, once.</small></form>"
+            f'<form method="post" action="{base}/reject">{hidden}'
+            '<p><label>Why not<br><textarea name="reason" rows="3" cols="80" maxlength="1000" required>'
+            '</textarea></label></p><button type="submit">Reject</button> '
+            "<small>The reason goes back to the agent for a better draft.</small></form>"
+        )
+    elif status == "pending":
+        actions = "<p class='read-only'>Only an editor or admin in DI Decision approves decisions.</p>"
+    supersedes = entry.get("supersedes")
+    extra = ""
+    if supersedes:
+        extra += f"<p>Supersedes <strong>{_escape(supersedes)}</strong>.</p>"
+    if entry.get("rejected_reason"):
+        extra += f"<p>Rejected: {_escape(entry.get('rejected_reason'))}</p>"
+    if entry.get("decision_id"):
+        extra += f"<p>Recorded as <strong>{_escape(entry.get('decision_id'))}</strong>.</p>"
+    return (
+        f"<h1>Draft {_escape(draft_id)}</h1>"
+        f"<p>Status: <strong>{_escape(status)}</strong> · from {_escape((entry.get('presented_by') or {}).get('name'))}"
+        f" · {_escape(entry.get('presented_at'))}</p>{extra}"
+        "<p><small>Exactly what will be recorded (written by the agent; read it, not a summary):</small></p>"
+        f"<pre>{_escape(raw)}</pre><p><small>SHA-256: <code>{_escape(entry.get('sha256'))}</code></small></p>"
+        f"{actions}"
+    )
+
+
 def _decisions_body(deps: Deps, token: str) -> str:
     rows = []
     for d in deps.registry.decisions()[-100:]:
@@ -1573,6 +1634,17 @@ def make_server(
                 if path == "/flow":
                     body = _flow_body(deps, token, clock())
                     return self._html(200, _render_page("Przepływ", body, nonce=nonce, token=token))
+                if path == "/drafts":
+                    return self._html(200, _render_page("Drafts", _drafts_body(deps, token if suite is None else ""),
+                                                        nonce=nonce, token=token))  # fmt: skip
+                draft_page = re.match(r"^/drafts/(DRF-[0-9]{1,9})$", path)
+                if draft_page is not None:
+                    decides = suite is None or (self.session is not None and self.session.access == "decide")
+                    try:
+                        body = _draft_body(deps, draft_page.group(1), token if suite is None else "", decides=decides)
+                    except drafts.DraftNotFound:
+                        return self._html(404, "<h1>404</h1><p>No such draft.</p>")
+                    return self._html(200, _render_page(draft_page.group(1), body, nonce=nonce, token=token))
                 if path.startswith("/trace/"):
                     return self._trace_route(path, params, token)
                 if path == "/sse/progress":
@@ -1681,8 +1753,10 @@ def make_server(
             reorder = re.match(r"^/discuss/([A-Za-z0-9._-]{1,128})/(up|down)$", url.path)  # T5
             room_results = suite is not None and url.path == "/discuss/results"  # wyniki pokoju sprintdecka
             logout = suite is not None and url.path == "/logout"
+            draft_action = re.match(r"^/drafts/(DRF-[0-9]{1,9})/(approve|reject)$", url.path)
             if (
-                match is None
+                draft_action is None
+                and match is None
                 and triage is None
                 and stale_review is None
                 and team is None
@@ -1725,6 +1799,8 @@ def make_server(
 
             if suite is None and not _token_ok(token, one("t")):
                 return self._html(404, "<h1>404</h1>")
+            if draft_action is not None:
+                return self._draft_action(draft_action.group(1), draft_action.group(2), one)
             if team is not None:
                 return self._team(team.group(1), team.group(2), fields, one)
             if room_results:
@@ -1832,6 +1908,30 @@ def make_server(
                 info += f"<p class='warn'>{_escape(warning)}</p>"
             info += f'<p><a href="{back}">wróć do skrzynki</a></p>'
             return self._html(200, _render_page("Decyzja zapisana", info, nonce=nonce, token=token))
+
+        def _draft_action(self, draft_id: str, action: str, one: Callable[[str], str]) -> None:
+            """Zatwierdzenie albo odrzucenie szkicu decyzji przez człowieka (rola decydująca sprawdzona wyżej)."""
+            by = {"name": self._decider(), **({"sub": self.session.sub} if self.session is not None else {})}
+            store = drafts.DecisionDrafts(deps.registry)
+            try:
+                if action == "approve":
+                    store.approve(draft_id, one("sha256"), by=by)
+                    info = (
+                        f"<h1>Draft {_escape(draft_id)} approved</h1><p>The agent can now record it with "
+                        "<code>record_decision</code> — within an hour, exactly this content.</p>"
+                    )
+                else:
+                    if not one("reason").strip():
+                        return self._html(400, "<h1>400</h1><p>Say why — the reason goes back to the agent.</p>")
+                    store.reject(draft_id, one("sha256"), by=by, reason=one("reason"))
+                    info = f"<h1>Draft {_escape(draft_id)} rejected</h1><p>The agent gets your reason.</p>"
+            except drafts.DraftNotFound:
+                return self._html(404, "<h1>404</h1><p>No such draft.</p>")
+            except drafts.DraftRefused as e:
+                return self._html(409, f"<h1>409</h1><p>{_escape(str(e))}</p>")
+            t = f"?t={_escape(one('t'))}" if suite is None else ""
+            info += f'<p><a href="/drafts{t}">all drafts</a></p>'
+            return self._html(200, _render_page("Draft", info, nonce=nonce, token=token))
 
         def _stale(self, problem_id: str, one: Callable[[str], str]) -> None:
             """DV6: decyzja o porzuconym zgłoszeniu — ten sam `ProblemStore.review_stale` co MCP."""

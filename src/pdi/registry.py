@@ -139,6 +139,27 @@ class Registry:
             touched.append(old_file)
         return self._commit(new, touched, f"{new['id']}: zastępuje {old_id}")
 
+    def check(self, draft: Decision, *, supersedes: str | None = None) -> None:
+        """Sprawdza szkic jak zapis, ale nic nie zapisuje (szkic czekający na zatwierdzenie w konsoli).
+        Bez `decided_by` szkic jest poprawny: wpisze go osoba, która zatwierdzi."""
+        self._reject_registry_fields(draft)
+        if supersedes:
+            old = self.get(supersedes)
+            if old["status"] != "recorded":
+                raise CannotSupersede(f"{supersedes} ma status {old['status']}.")
+        d = dict(draft)
+        if "project" in d:
+            d["project"] = project_slug(d["project"])
+        d.setdefault("decided_at", self._clock().date().isoformat())
+        d.setdefault("decided_by", "?")
+        if supersedes:
+            d["supersedes"] = supersedes
+        d["status"] = "recorded"
+        d["recorded_at"] = self._clock().astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        errors = schema_errors({**d, "id": "DEC-1"})
+        if errors:
+            raise InvalidDecision("Szkic decyzji niezgodny z kontraktem: " + "; ".join(errors))
+
     def _reject_registry_fields(self, draft: Decision) -> None:
         # Bez draft_edited szkic AI nie wchodzi do pomiaru autonomii (DA2, PRB-21); automat szkicu nie ma.
         if draft.get("drafted_by") == "ai" and "draft_edited" not in draft and "automation" not in draft:

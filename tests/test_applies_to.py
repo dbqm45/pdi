@@ -10,6 +10,7 @@ from pdi.inbox import Inbox
 from pdi.mcp_server import build_server
 from pdi.registry import InvalidDecision, Registry
 from tests.conftest import draft
+from tests.drafting import record_via_draft
 from tests.test_decision_recorded import recorded_event
 
 CASES = json.loads((contract.CONTRACT_DIR / "fixtures/applies-to/cases.json").read_text(encoding="utf-8"))
@@ -86,11 +87,10 @@ def anyio_backend() -> str:
 @pytest.mark.anyio
 async def test_at09_mcp_record_and_find_by_paths(registry: Registry) -> None:
     server = build_server(lambda: registry)
-    rec = await server.call_tool(
-        "record_decision", draft(statement="Moduł inbox nie importuje konsoli.", applies_to={"paths": ["src/pdi"]})
+    rec = await record_via_draft(
+        server, registry, draft(statement="Moduł inbox nie importuje konsoli.", applies_to={"paths": ["src/pdi"]})
     )
-    assert rec.is_error is False
-    dec_id = rec.structured_content["id"]
+    dec_id = rec["id"]
     found = await server.call_tool("find_decisions", {"paths": ["src/pdi/inbox.py"]})
     assert found.is_error is False
     hits = found.structured_content["decisions"]

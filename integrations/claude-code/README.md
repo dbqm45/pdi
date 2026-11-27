@@ -1,6 +1,7 @@
 # pdi w Claude Code
 
-Serwer MCP `pdi` (narzędzia `record_decision`, `find_decisions`, `get_decision`, `supersede_decision` oraz skrzynka i zmiany:
+Serwer MCP `pdi` (narzędzia `present_decision_draft` i `record_decision` — zapis tylko po zatwierdzeniu szkicu w konsoli,
+`find_decisions`, `get_decision` oraz skrzynka i zmiany:
 `list_inbox`, `decide_inbox_item`, `list_changes`, `get_change`, `retry_dispatch`)
 i komenda `/record-decision`. Specyfikacja: [dokument 14](../../docs/14-pdi-standalone.md).
 

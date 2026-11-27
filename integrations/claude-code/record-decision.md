@@ -1,7 +1,7 @@
 ---
-description: Zapisz decyzję z bieżącej rozmowy w rejestrze pdi (szkic → zatwierdzenie → zapis)
+description: Zapisz decyzję z bieżącej rozmowy w rejestrze pdi (szkic → zatwierdzenie w konsoli → zapis)
 argument-hint: "[opcjonalnie: której decyzji dotyczy zapis]"
-allowed-tools: Bash(git rev-parse --show-toplevel), mcp__pdi__find_decisions, mcp__pdi__get_decision, mcp__pdi__record_decision, mcp__pdi__supersede_decision
+allowed-tools: Bash(git rev-parse --show-toplevel), mcp__pdi__find_decisions, mcp__pdi__get_decision, mcp__pdi__present_decision_draft, mcp__pdi__record_decision
 ---
 
 Zapisz w rejestrze pdi decyzję z tej rozmowy. $ARGUMENTS
@@ -13,7 +13,7 @@ Zapisz w rejestrze pdi decyzję z tej rozmowy. $ARGUMENTS
    albo pomiń `project`. Pokaż projekt w szkicu — człowiek może go zmienić.
 3. **Sprawdź wcześniejsze decyzje:** `find_decisions` z 2–4 słowami kluczowymi tematu (bez filtra projektu —
    decyzje z innych projektów też mogą być ważne). Jeśli nowa decyzja zmienia
-   wcześniejszą, zaproponuj zastąpienie (`supersede_decision`) zamiast nowego wpisu.
+   wcześniejszą, zaproponuj zastąpienie (`supersedes: DEC-n` w szkicu) zamiast nowego wpisu.
 4. **Przygotuj szkic** wyłącznie z treści rozmowy:
    - `statement` — co zdecydowano, jedno zdanie; `why` — 1–5 zdań uzasadnienia;
    - `options` — rozważane opcje, jeśli padły, z oznaczeniem wybranej;
@@ -28,10 +28,13 @@ Zapisz w rejestrze pdi decyzję z tej rozmowy. $ARGUMENTS
      `drafted_by: "ai"`.
    **Nie dopisuj uzasadnień, liczb ani założeń, których nie było w rozmowie.** Jeśli dla decyzji typu
    `product` lub `intent` brakuje założenia nośnego albo uzasadnienia — zadaj najwyżej 2 krótkie pytania.
-5. **Pokaż szkic zwięźle** (jedna linia na pole, bez pustych pól) i zapytaj: „Zapisać? (tak / popraw: …)”.
-6. **Zapisz dopiero po wyraźnym „tak”** przez `record_decision` (albo `supersede_decision`). Poprawki nanieś
-   i zapisz w jednym kroku, bez ponownego pytania, chyba że poprawka zmienia treść decyzji.
-   Podaj `draft_edited`: `false`, gdy człowiek zatwierdził szkic bez zmian, `true`, gdy cokolwiek poprawił — z tego
-   pdi liczy, które typy decyzji są gotowe do automatyzacji (`autonomy_report`). Jeśli decyzja ma znany typ
-   (katalog w `autonomy_report`, np. `review.light`), podaj też `decision_type`.
-7. Odpowiedz jedną linią: `Zapisano DEC-nnnn: <statement>` (przy duplikacie: „już zapisane jako DEC-nnnn”).
+5. **Pokaż szkic zwięźle** (jedna linia na pole, bez pustych pól) i zapytaj: „Wystawić do zatwierdzenia? (tak /
+   popraw: …)”. Poprawki nanieś przed wystawieniem.
+6. **Wystaw szkic** przez `present_decision_draft` (z `supersedes`, gdy zastępuje decyzję). Podaj `draft_edited`:
+   `false`, gdy człowiek przyjął Twój szkic bez zmian, `true`, gdy cokolwiek poprawił — z tego pdi liczy, które typy
+   decyzji są gotowe do automatyzacji (`autonomy_report`). Jeśli decyzja ma znany typ (katalog w `autonomy_report`,
+   np. `review.light`), podaj też `decision_type`. Podaj człowiekowi `approve_url` (albo: konsola pdi, `sdlc open`
+   → Drafts → DRF-n) i poczekaj. **Zatwierdza tylko człowiek, w konsoli — „tak” w czacie nie wystarcza.**
+7. **Zapisz** przez `record_decision` z `draft_id` i `sha256`, gdy człowiek powie, że zatwierdził. Odrzucenie wraca
+   z powodem — popraw szkic według niego i wystaw nowy. Zgoda jest ważna godzinę.
+8. Odpowiedz jedną linią: `Zapisano DEC-nnnn: <statement>` (przy duplikacie: „już zapisane jako DEC-nnnn”).

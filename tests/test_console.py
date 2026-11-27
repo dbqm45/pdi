@@ -543,6 +543,7 @@ def test_menu_links_keep_the_token(registry: Registry) -> None:
             "/decisions",
             "/autonomy",
             "/flow",
+            "/drafts",
         ]
         for link in links:
             assert f"t={TOKEN}" in link

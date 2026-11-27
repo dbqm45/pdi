@@ -10,9 +10,11 @@ from mcp import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 from mcp.server.mcpserver.exceptions import ToolError
 
+from pdi.drafts import DecisionDrafts
 from pdi.inbox import Inbox
 from pdi.mcp_server import build_server
 from pdi.registry import Registry
+from tests.drafting import record_via_draft
 from tests.test_inbox import gate_event, metric_event, released_event, stage_event
 
 Draft = Callable[..., dict[str, Any]]
@@ -39,10 +41,10 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
     tools = {t.name: t for t in await server.list_tools()}
 
     assert set(tools) == {
+        "present_decision_draft",
         "record_decision",
         "find_decisions",
         "get_decision",
-        "supersede_decision",
         "list_inbox",
         "decide_inbox_item",
         "list_changes",
@@ -99,17 +101,19 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
     assert tools["decide_inbox_item"].annotations.read_only_hint is False
     assert tools["find_decisions"].annotations.read_only_hint is True
     assert tools["record_decision"].annotations.read_only_hint is False
-    record_params = tools["record_decision"].input_schema["properties"]
+    assert set(tools["record_decision"].input_schema["properties"]) == {"draft_id", "sha256"}
+    assert tools["present_decision_draft"].annotations.read_only_hint is False
+    record_params = tools["present_decision_draft"].input_schema["properties"]
     assert {"statement", "why", "kind", "source", "drafted_by", "assumptions", "project"} <= set(record_params)
-    assert {"decision_type", "draft_edited"} <= set(record_params)
+    assert {"decision_type", "draft_edited", "supersedes"} <= set(record_params)
     assert {"decision_type", "draft_edited"} <= set(tools["decide_inbox_item"].input_schema["properties"])
-    for name in ("record_decision", "supersede_decision", "decide_inbox_item"):
+    for name in ("present_decision_draft", "decide_inbox_item"):
         assert {"consequences", "confirmation"} <= set(tools[name].input_schema["properties"]), name
     assert {"project", "app"} <= set(tools["find_decisions"].input_schema["properties"])
 
 
-async def test_record_then_find_and_get(server: Any, make_draft: Draft) -> None:
-    saved = await call(server, "record_decision", make_draft())
+async def test_record_then_find_and_get(server: Any, registry: Registry, make_draft: Draft) -> None:
+    saved = await record_via_draft(server, registry, make_draft())
 
     found = await call(server, "find_decisions", {"query": "próg dostawy"})
     got = await call(server, "get_decision", {"decision_id": saved["id"]})
@@ -119,21 +123,35 @@ async def test_record_then_find_and_get(server: Any, make_draft: Draft) -> None:
     assert got["why"] == make_draft()["why"]
 
 
-async def test_supersede_through_tool(server: Any, make_draft: Draft) -> None:
-    await call(server, "record_decision", make_draft())
+async def test_supersede_through_a_draft(server: Any, registry: Registry, make_draft: Draft) -> None:
+    await record_via_draft(server, registry, make_draft())
 
-    new = await call(
-        server,
-        "supersede_decision",
-        {"old_decision_id": "DEC-0001", **make_draft(statement="Próg obniżamy do 149 zł.")},
+    new = await record_via_draft(
+        server, registry, {"supersedes": "DEC-0001", **make_draft(statement="Próg obniżamy do 149 zł.")}
     )
 
     assert new["supersedes"] == "DEC-0001"
 
 
+async def test_the_model_cannot_record_without_the_human(
+    server: Any, registry: Registry, make_draft: Draft, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Zapis tylko po zatwierdzeniu w konsoli: szkic czeka, a odrzucenie wraca z powodem."""
+    monkeypatch.setenv("PDI_CONSOLE_URL", "http://127.0.0.1:8788/")
+    shown = await call(server, "present_decision_draft", make_draft())
+    assert shown["approve_url"] == f"http://127.0.0.1:8788/drafts/{shown['draft_id']}"
+    assert "?t=" not in shown["approve_url"]
+    with pytest.raises(ToolError, match="czeka na zatwierdzenie"):
+        await server.call_tool("record_decision", {"draft_id": shown["draft_id"], "sha256": shown["sha256"]})
+    DecisionDrafts(registry).reject(shown["draft_id"], shown["sha256"], by={"name": "Ola"}, reason="Za ogólne.")
+    with pytest.raises(ToolError, match="Za ogólne"):
+        await server.call_tool("record_decision", {"draft_id": shown["draft_id"], "sha256": shown["sha256"]})
+    assert registry.decisions() == []
+
+
 async def test_contract_violation_returns_fix_hint(server: Any, make_draft: Draft) -> None:
     with pytest.raises(ToolError, match="success_metric"):
-        await server.call_tool("record_decision", make_draft(success_metric={"metric": "marża"}))
+        await server.call_tool("present_decision_draft", make_draft(success_metric={"metric": "marża"}))
 
 
 async def test_unknown_id_returns_hint(server: Any) -> None:
@@ -146,7 +164,7 @@ async def test_missing_registry_path_returns_setup_hint(monkeypatch: pytest.Monk
     server = build_server()
 
     with pytest.raises(ToolError, match="PDI_REGISTRY_PATH"):
-        await server.call_tool("record_decision", make_draft())
+        await server.call_tool("present_decision_draft", make_draft())
 
 
 async def test_stdio_end_to_end(tmp_path: Path, make_draft: Draft) -> None:
@@ -158,7 +176,9 @@ async def test_stdio_end_to_end(tmp_path: Path, make_draft: Draft) -> None:
     async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
         await session.initialize()
         listed = await session.list_tools()
-        result = await session.call_tool("record_decision", make_draft())
+        shown = json.loads((await session.call_tool("present_decision_draft", make_draft())).content[0].text)
+        DecisionDrafts(Registry(tmp_path / "rejestr")).approve(shown["draft_id"], shown["sha256"], by={"name": "Ola"})
+        result = await session.call_tool("record_decision", {"draft_id": shown["draft_id"], "sha256": shown["sha256"]})
 
     assert len(listed.tools) == 37
     assert json.loads(result.content[0].text)["id"] == "DEC-0001"
@@ -297,9 +317,9 @@ async def test_change_tools_return_hints(server: Any) -> None:
 
 async def test_autonomy_through_tools(server: Any, registry: Registry, make_draft: Draft) -> None:
     for n in range(30):
-        await call(
+        await record_via_draft(
             server,
-            "record_decision",
+            registry,
             make_draft(
                 statement=f"Pytanie {n} zamknięte cytatem.", decision_type="finding.auto_close", draft_edited=False
             ),
@@ -376,7 +396,7 @@ async def test_ai_draft_needs_draft_edited_and_triage_keeps_it(
     from tests.test_problems import problem
 
     with pytest.raises(ToolError, match="draft_edited"):
-        await call(server, "record_decision", make_draft(draft_edited=None))
+        await call(server, "present_decision_draft", make_draft(draft_edited=None))
     await call(server, "record_problem", problem())
     args = {"problem_id": "PRB-1", "outcome": "accepted", "change": "CHG-12", **make_draft(draft_edited=True)}
     triaged = await call(server, "triage_problem", args)
@@ -392,9 +412,9 @@ def test_instructions_say_how_to_fill_drafted_by_and_draft_edited(server: Any) -
 async def test_consequences_and_confirmation_through_record_decision(
     server: Any, registry: Registry, make_draft: Draft
 ) -> None:
-    saved = await call(
+    saved = await record_via_draft(
         server,
-        "record_decision",
+        registry,
         make_draft(
             consequences=[{"text": "Marża zostaje dodatnia.", "effect": "good"}],
             confirmation={"how": "Raport marży", "kind": "metric"},
@@ -407,8 +427,8 @@ async def test_consequences_and_confirmation_through_record_decision(
     assert got["record"] == "decision"
 
 
-async def test_find_decisions_by_app_through_the_tool(server: Any, make_draft: Draft) -> None:
-    await call(server, "record_decision", make_draft(statement="Z pdi."))
+async def test_find_decisions_by_app_through_the_tool(server: Any, registry: Registry, make_draft: Draft) -> None:
+    await record_via_draft(server, registry, make_draft(statement="Z pdi."))
 
     own = await call(server, "find_decisions", {"app": "pdi"})
     other = await call(server, "find_decisions", {"app": "tf"})
@@ -417,8 +437,8 @@ async def test_find_decisions_by_app_through_the_tool(server: Any, make_draft: D
     assert other["decisions"] == []
 
 
-async def test_list_decision_changes_through_the_tool(server: Any, make_draft: Draft) -> None:
-    await call(server, "record_decision", make_draft(statement="A."))
+async def test_list_decision_changes_through_the_tool(server: Any, registry: Registry, make_draft: Draft) -> None:
+    await record_via_draft(server, registry, make_draft(statement="A."))
 
     first = await call(server, "list_decision_changes", {})
     second = await call(server, "list_decision_changes", {"since": first["next"]})
