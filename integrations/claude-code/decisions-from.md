@@ -1,7 +1,7 @@
 ---
 description: Wyciągnij decyzje z wątku Slacka albo transkrypcji spotkania do skrzynki pdi (szkice z cytatami → zatwierdzenie każdej)
 argument-hint: "[link do wątku albo nagrania; ścieżka do pliku transkrypcji]"
-allowed-tools: Read, mcp__pdi__find_decisions, mcp__pdi__propose_decisions_from_conversation, mcp__pdi__list_inbox, mcp__pdi__decide_inbox_item
+allowed-tools: Read, mcp__pdi__find_decisions, mcp__pdi__propose_decisions_from_conversation, mcp__pdi__list_inbox
 ---
 
 Wyciągnij decyzje z rozmowy do skrzynki pdi. $ARGUMENTS
@@ -22,7 +22,6 @@ Wyciągnij decyzje z rozmowy do skrzynki pdi. $ARGUMENTS
    cytatem albo pomiń.
 5. **Pokaż listę zwięźle:** numer, `statement`, cytat, ewentualnie „już rozstrzygnięte w DEC-nnnn”. Zapytaj:
    „Które zapisać? (np. 1, 3; popraw 2: …; odrzuć 4)”.
-6. **Zamknij każdą pozycję dopiero po odpowiedzi** przez `decide_inbox_item`: zatwierdzone — `outcome: approved`
-   ze `statement` i `why` (poprawionymi, jeśli człowiek poprawił), `source` z pozycji, `drafted_by: "ai"`;
-   odrzucone — `outcome: rejected` z powodem w `why` (bez wpisu w rejestrze). `draft_edited` pdi liczy sam.
-7. Odpowiedz krótko: `Zapisano DEC-nnnn: …` dla każdej zatwierdzonej, `Odrzucone: n`.
+6. **Nie zamykaj pozycji sam.** Szkice czekają w Skrzynce konsoli pdi (`sdlc open` → Skrzynka): człowiek
+   zatwierdza albo odrzuca każdy przyciskiem. `draft_edited` pdi liczy sam.
+7. Odpowiedz krótko: ile szkiców czeka w Skrzynce i ile odrzucił pdi (cytat spoza tekstu).

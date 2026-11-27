@@ -4,7 +4,6 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
-from mcp.server.mcpserver.exceptions import ToolError
 
 from pdi import console, stale
 from pdi.mcp_server import build_server
@@ -100,17 +99,13 @@ def anyio_backend() -> str:
 
 
 @pytest.mark.anyio
-async def test_st05_mcp_lists_and_reviews(reg: Registry, clock: Clock) -> None:
+async def test_st05_mcp_lists_and_the_decision_is_a_button(reg: Registry, clock: Clock) -> None:
     seed(reg)
     clock.now = START + timedelta(days=95)
     server = build_server(lambda: reg)
     listed = (await server.call_tool("stale_problems", {})).structured_content["problems"]
     assert [r["problem"] for r in listed] == ["PRB-1", "PRB-2"]
-    args = {k: v for k, v in draft(statement="Zamykamy.").items() if k != "kind"}
-    done = await server.call_tool("review_stale_problem", {"problem_id": "PRB-2", "outcome": "close", **args})
-    assert done.is_error is False and ProblemStore(reg).get("PRB-2")["status"] == "rejected"
-    with pytest.raises(ToolError):
-        await server.call_tool("review_stale_problem", {"problem_id": "PRB-3", "outcome": "close", **args})
+    assert "review_stale_problem" not in {t.name for t in await server.list_tools()}, "decyzja tylko przyciskiem"
 
 
 def test_st06_console_shows_stale_problems_with_two_buttons(reg: Registry, clock: Clock) -> None:

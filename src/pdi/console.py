@@ -23,7 +23,7 @@ Bezpieczeństwo:
   wyświetlane w `<pre>` po escapie.
 - Pliki artefaktów: tylko biała lista nazw pod `docs/project/changes/<CHG>/`; bez symlinków; rozmiar ≤ 256 KiB;
   binarne i „sekretowe” (`.env`, nazwa z KEY/TOKEN/SECRET) odrzucone z 403.
-- Decyzje przyciskami idą dokładnie tą samą ścieżką co `decide_inbox_item` (ten sam kod `Inbox.decide`):
+- Decyzje o pozycjach skrzynki i triaż tylko przyciskami (agent nie ma ich w MCP); kod `Inbox.decide`:
   sprawdzenie PR-a dla `approved` (PRB-2), odmowa dla zmienionej pod ręką pozycji (409), `source.kind: console`.
 
 Źródła 2026-11-06: code.claude.com/docs/en/cli-reference, code.claude.com/docs/en/headless,
@@ -1039,7 +1039,7 @@ def _stale_cards(deps: Deps, token: str) -> str:
 
 
 def _triage_cards(deps: Deps, token: str) -> str:
-    """Zgłoszenia z formularza czekające na triaż (ta sama ścieżka co `triage_problem` w MCP)."""
+    """Zgłoszenia z formularza czekające na triaż; triaż robi tylko człowiek, przyciskiem (agent nie ma go w MCP)."""
     waiting = [p for p in deps.inbox.problems.all() if p.get("status") in TRIAGE_OPEN]
     if not waiting:
         return ""
@@ -1069,8 +1069,14 @@ def _triage_cards(deps: Deps, token: str) -> str:
             '<div class="row"><label>Bez kodu: rodzaj i co zrobić (tylko przy powodzie „bez kodu”)</label>'
             f'<select name="no_code_kind"><option value="">—</option>{kinds}</select>'
             '<textarea name="no_code_how" maxlength="2000"></textarea></div>'
+            '<div class="row"><label>Warunek powrotu (tylko przy park), np. „3 nowe zgłoszenia”</label>'
+            '<input type="text" name="return_when" maxlength="200"></div>'
+            '<div class="row"><label>Oryginał (tylko przy duplicate), np. PRB-1</label>'
+            '<input type="text" name="duplicate_of" maxlength="20" pattern="PRB-[0-9]{1,9}"></div>'
             '<div class="row">'
             '<button name="outcome" value="accepted">accept (załóż CHG)</button> '
+            '<button class="alt" name="outcome" value="parked">park</button> '
+            '<button class="alt" name="outcome" value="duplicate">duplicate</button> '
             '<button class="warn" name="outcome" value="rejected">reject</button>'
             "</div></form></section>"
         )
@@ -1078,7 +1084,7 @@ def _triage_cards(deps: Deps, token: str) -> str:
 
 
 def _action_buttons_for(kind: str) -> str:
-    """Zestaw przycisków decyzji per rodzaj pozycji (ta sama ścieżka co `decide_inbox_item`)."""
+    """Zestaw przycisków decyzji per rodzaj pozycji (`Inbox.decide`; agent nie decyduje o pozycjach przez MCP)."""
     if kind == "gate":
         return (
             '<div class="row">'
@@ -1104,7 +1110,7 @@ def _action_buttons_for(kind: str) -> str:
         )
     if kind == "pr_ready":
         return '<div class="row"><button name="outcome" value="reviewed">przejrzane</button></div>'
-    if kind in ("autonomy", "capture"):
+    if kind in ("autonomy", "capture", "process"):
         return (
             '<div class="row">'
             '<button name="outcome" value="approved">approve</button> '
@@ -1963,10 +1969,16 @@ def make_server(
             )
 
         def _triage(self, problem_id: str, one: Callable[[str], str]) -> None:
-            """Triaż zgłoszenia przyciskiem: ten sam `ProblemStore.triage` co narzędzie MCP `triage_problem`."""
+            """Triaż zgłoszenia przyciskiem (`ProblemStore.triage`); jedyna droga triażu."""
             outcome = one("outcome")
-            if outcome not in ("accepted", "rejected"):
-                return self._html(400, "<h1>400</h1><p>outcome: accepted albo rejected.</p>")
+            if outcome not in ("accepted", "rejected", "parked", "duplicate"):
+                return self._html(400, "<h1>400</h1><p>outcome: accepted, rejected, parked albo duplicate.</p>")
+            return_when = _sanitize_text(one("return_when"), limit=200) or None
+            duplicate_of = one("duplicate_of").strip() or None
+            if outcome == "parked" and not return_when:
+                return self._html(409, "<h1>409</h1><p>Odłożenie wymaga warunku powrotu.</p>")
+            if outcome == "duplicate" and not (duplicate_of and re.fullmatch(r"PRB-[0-9]{1,9}", duplicate_of)):
+                return self._html(409, "<h1>409</h1><p>Duplikat wymaga oryginału (PRB-n).</p>")
             statement = _sanitize_text(one("statement"), limit=800)
             why = _sanitize_text(one("why"), limit=2000)
             if not statement or not why:
@@ -1997,6 +2009,8 @@ def make_server(
                     draft,
                     rejection_reason=reason if outcome == "rejected" else None,
                     rejection_note=why if outcome == "rejected" else None,
+                    return_when=return_when if outcome == "parked" else None,
+                    duplicate_of=duplicate_of if outcome == "duplicate" else None,
                     no_code=no_code,
                 )
             except InvalidDecision as e:

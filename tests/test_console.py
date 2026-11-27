@@ -624,6 +624,37 @@ def test_triage_reject_needs_a_reason_and_a_token(registry: Registry) -> None:
         server.shutdown()
 
 
+def test_triage_by_button_parks_and_marks_duplicates(registry: Registry) -> None:
+    """Agent nie triażuje przez MCP (docs/plan-decyzje-tylko-przyciskiem.md): konsola ma wszystkie wyniki triażu."""
+    from pdi.problems import ProblemStore
+
+    store = ProblemStore(registry)
+    store.record(_problem_draft())
+    store.record(_problem_draft(title="Drugie"))
+    store.record(_problem_draft(title="Trzecie"))
+    server, url = _serve(console.Deps(registry, checkout=None))
+    try:
+        _, page, _ = _get(f"{url}/inbox?t={TOKEN}")
+        text = page.decode("utf-8")
+        assert 'value="parked"' in text and 'name="return_when"' in text
+        assert 'value="duplicate"' in text and 'name="duplicate_of"' in text
+        form = {"t": TOKEN, "statement": "Odkładamy.", "why": "Jedno zgłoszenie to za mało.", "outcome": "parked"}
+        assert _post(f"{url}/problems/PRB-2/triage?t={TOKEN}", form)[0] == 409  # bez warunku powrotu
+        form["return_when"] = "3 nowe zgłoszenia"
+        assert _post(f"{url}/problems/PRB-2/triage?t={TOKEN}", form)[0] == 200
+        assert store.get("PRB-2")["status"] == "parked" and store.get("PRB-2")["return_when"] == "3 nowe zgłoszenia"
+        dup = {"t": TOKEN, "statement": "Duplikat PRB-1.", "why": "To samo.", "outcome": "duplicate"}
+        assert _post(f"{url}/problems/PRB-3/triage?t={TOKEN}", dup)[0] == 409  # bez oryginału
+        assert _post(f"{url}/problems/PRB-3/triage?t={TOKEN}", {**dup, "duplicate_of": "PRB-1"})[0] == 200
+        assert store.get("PRB-3")["duplicate_of"] == "PRB-1"
+    finally:
+        server.shutdown()
+
+
+def test_process_proposals_can_be_rejected_by_button() -> None:
+    assert 'value="rejected"' in console._action_buttons_for("process")
+
+
 def test_main_builds_the_inbox_like_the_mcp_server(registry: Registry, monkeypatch: pytest.MonkeyPatch) -> None:
     """Konsola tworzyła Inbox bez konfiguracji: decyzja przyciskiem nie uruchamiała następnej fazy ani nie sprawdzała
     PR (PRB-2). Teraz te same ustawienia ze środowiska co serwer MCP."""

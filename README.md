@@ -21,8 +21,8 @@ ShipScope wysyła podpisane zdarzenia kontraktu: `release.stage_changed` (flaga 
 innego etapu) i `feature.released` (linia wydania u ludzi; `release: R1` = MVP). `pdi-receiver` je odbiera,
 sprawdza podpis i schemat, a w katalogu rejestru zapisuje pozycje `inbox/<ID zdarzenia>.yaml` (z commitem, gdy to
 repo git): bramkę dla zmiany etapu. W Claude `list_inbox` pokazuje, co czeka,
-a `decide_inbox_item` zapisuje decyzję (`kind: gate` z wynikiem albo `kind: product`, zawsze z `links.chg`) i zamyka
-pozycję. Wydanie MVP planuje ocenę skutku (niżej). Plan i zakres: [`docs/plan-g15-pdi.md`](docs/plan-g15-pdi.md).
+a decyzję podejmuje człowiek przyciskiem w konsoli (Skrzynka): pdi zapisuje ją (`kind: gate` z wynikiem albo
+`kind: product`, zawsze z `links.chg`) i zamyka pozycję. Wydanie MVP planuje ocenę skutku (niżej). Plan i zakres: [`docs/plan-g15-pdi.md`](docs/plan-g15-pdi.md).
 
 Od F4 ([plan](docs/plan-f4-pdi.md)) skrzynka przyjmuje też `gate.requested` z tf i ci_for_sdlc (B1, B2, B3,
 `design-review`, `approve-for-implementation`, B4, B5) oraz `readiness.changed` z ci_for_sdlc (`ready` = prośba o
@@ -158,7 +158,7 @@ o intencji (najnowszej obowiązującej z `links.chg` i `success_metric`), albo d
 `open_due_impact_reviews`) otwiera pozycje `impact-<CHG>-R1`, których termin minął: czyta z API usług ShipScope status
 zmiany i dzienny szereg PROD od wydania i szkicuje wniosek (`draft.verdict`). `met`/`not_met` tylko dla metryki z
 ShipScope (`deployments`, `failed_deployments`, `rollbacks` — suma; `lead_time_days_median` — mediana) z celem typu
-`<= 1`; inaczej `unknown` z powodem. Człowiek potwierdza wynik: `decide_inbox_item` z `outcome` `met`, `not_met` albo
+`<= 1`; inaczej `unknown` z powodem. Człowiek potwierdza wynik przyciskiem w konsoli: `met`, `not_met` albo
 `unknown`; decyzja zależy od decyzji o intencji i dostaje odczyt jako dowód. Plan:
 [`docs/plan-f5-ocena-skutku.md`](docs/plan-f5-ocena-skutku.md).
 
@@ -214,14 +214,14 @@ wklejenia). `live=false` nie pyta ShipScope; przy `live` najwyżej 20 odczytów 
 
 tf (`metric_watch.py check --send`, tryb `mode-pdi`) wysyła na `/events/tf` podpisane `metric.breached`, gdy metryka
 PROD z ShipScope wyjdzie poza 3σ. Skrzynka otwiera wtedy pozycję `kind: problem` („nowy problem do triażu”), którą
-`decide_inbox_item` zamyka z `outcome` `accepted` albo `rejected` jako decyzję `kind: triage` z odczytem pasma jako
+człowiek zamyka przyciskiem `accepted` albo `rejected` jako decyzję `kind: triage` z odczytem pasma jako
 dowodem. Plan: [`docs/plan-f5-metric-breached.md`](docs/plan-f5-metric-breached.md).
 
 ### Zgłoszenia i powiadomienia zgłaszającego (F5)
 
 `record_problem` zapisuje zgłoszenie `problems/PRB-n.yaml` w kształcie `contract/problem.schema.json` (kto nie może
-czego, z jakim skutkiem, od kogo i którędy); `triage_problem` (`accepted` ze zmianą, `rejected`, `parked`,
-`duplicate`) zapisuje decyzję `kind: triage` z `links.prb` i wynik w zgłoszeniu. Zgłaszający dostaje podpisane
+czego, z jakim skutkiem, od kogo i którędy); triaż przyciskiem w konsoli (`accepted` ze zmianą, `rejected`,
+`parked`, `duplicate`) zapisuje decyzję `kind: triage` z `links.prb` i wynik w zgłoszeniu. Zgłaszający dostaje podpisane
 `problem.notification` na `PDI_NOTIFY_URL` (sekret `PDI_NOTIFY_SIGNING_SECRET`, nagłówki `X-PDI-*`) po triażu, po
 wydaniu zmiany z tego zgłoszenia (każda linia) i po ocenie jej skutku; odbiorca (workflow Slacka, przekaźnik e-mail,
 automatyzacja Jiry) wybiera kanał po `reporter` i `channel`. Dziennik wysyłek: `notifications/<PRB>.yaml`;
@@ -276,7 +276,7 @@ Bez crona terminy sprawdzają się tylko przy otwarciu skrzynki w konsoli (`sdlc
   `update_problem` (opis, `ready` → `ready_for_triage`), `find_similar_problems`.
 - **Wzbogacenie**: triaż `duplicate` dopisuje oryginałowi liczbę zgłoszeń, dowód i powiązanie; odłożone z progiem „N
   nowe zgłoszenia” wraca do triażu po tylu duplikatach.
-- **Przyjęcie**: `triage_problem` z `accepted` bez `change` nadaje kolejny `CHG-n`, zakłada stan zmiany, zostawia
+- **Przyjęcie**: triaż `accepted` bez `change` nadaje kolejny `CHG-n`, zakłada stan zmiany, zostawia
   `problem.accepted` w `outbox/` i uruchamia w tf fazę `intent` (wejścia `source` i `problem`); persona tf pisze
   `intent.md`, otwiera PR i prosi o B1. Plan: [`docs/plan-f3-pdi.md`](docs/plan-f3-pdi.md).
 
@@ -355,7 +355,7 @@ przekazuje decyzję o tej jednej sprawie innej osobie (OM2 w [`docs/decyzje.md`]
   zapisuje teraz, czy osoba może decydować i czy jest adminem). Typy chronione (triaż, ocena skutku, B5): tylko `admin`.
 - **Formularz:** adresat, powód (wymagany), pytanie do adresata (opcjonalne). Otwarte „Ask team” zamyka się z tym, co
   zebrano.
-- **Kto decyduje:** od eskalacji tylko adresat — konsola (403) i MCP (`decide_inbox_item`) odmawiają innym. Adresat może
+- **Kto decyduje:** od eskalacji tylko adresat — konsola odmawia innym (403); agent nie decyduje o pozycjach. Adresat może
   **oddać sprawę** z notatką („Give it back”); wtedy decyduje znów eskalujący.
 - **Termin** z OM1 się nie zmienia. Karta pokazuje „Escalated to X · since …”.
 - **Zapis:** `escalations/<pozycja>.json`; decyzja dostaje `escalation` (kontrakt 0.27.0): kto, do kogo, dlaczego,
@@ -431,6 +431,15 @@ Bez `decided_by` w szkicu decyzję podpisuje osoba, która ją zatwierdziła. Pr
 z ci_for_sdlc i `tf decision add` działają jak dotąd. Plan:
 [`docs/plan-zapis-decyzji-po-zatwierdzeniu.md`](docs/plan-zapis-decyzji-po-zatwierdzeniu.md).
 
+### Decyzje o skrzynce i triaż tylko przyciskiem
+
+Agent nie zamyka pozycji skrzynki i nie triażuje zgłoszeń. Narzędzia `decide_inbox_item`, `triage_problem` i
+`review_stale_problem` zniknęły z MCP (34 narzędzia). Agent czyta skrzynkę i zgłoszenia, wystawia propozycje i szkice
+oraz podaje człowiekowi link do konsoli. Bramki, oceny skutku, problemy z pasm, propozycje autonomii i procesu,
+szkice z rozmów, PR do przeglądu, triaż (także **park** z warunkiem powrotu i **duplicate** z oryginałem) oraz
+zgłoszenia porzucone rozstrzyga się przyciskami. Plan:
+[`docs/plan-decyzje-tylko-przyciskiem.md`](docs/plan-decyzje-tylko-przyciskiem.md).
+
 ### Zdalny serwer MCP z tokenami suity
 
 `pdi-mcp --http` ([plan](docs/plan-mcp-zdalny.md)) to ten sam serwer co w stdio, przez Streamable HTTP pod
@@ -486,7 +495,7 @@ Resztę robi sam:
 Konsola pdi w przeglądarce (Z3-lokalnie, DZ14) żyje na `http://127.0.0.1:8788/` (port z `PDI_CONSOLE_PORT`); otwiera się
 jednym `sdlc open` razem z tokenem sesji w URL. Trzy pasy („Zaprojektuj i zbuduj”, „Oceń i wydaj”, „Wdróż, obserwuj,
 ulepszaj”), ślad zmiany z panelem „Pliki” i bocznym postępem na żywo z `run.progress` (DZ18), skrzynka z przyciskami
-decyzji. Decyzje z konsoli idą tą samą ścieżką co `decide_inbox_item` (ten sam kod, te same sprawdzenia PR-a).
+decyzji. Decyzje o pozycjach skrzynki i triaż są tylko w konsoli (agent ich nie podejmuje przez MCP).
 Bezpieczeństwo: nasłuch na `127.0.0.1` z hardcode, token w URL i w POST (bez tokenu odpowiada 404), CSP bez
 `unsafe-inline`, same-origin, bez wrzucania treści, która wygląda na sekret. Rozmowa, wywiad, powiadomienia i usługa
 na produkcji zostają w Z3 (po DA4).

@@ -13,6 +13,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from pdi.drafts import DecisionDrafts
 from pdi.inbox import Inbox
 from pdi.mcp_server import build_server
+from pdi.problems import ProblemStore
 from pdi.registry import Registry
 from tests.drafting import record_via_draft
 from tests.test_inbox import gate_event, metric_event, released_event, stage_event
@@ -46,7 +47,6 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
         "find_decisions",
         "get_decision",
         "list_inbox",
-        "decide_inbox_item",
         "list_changes",
         "get_change",
         "retry_dispatch",
@@ -57,7 +57,6 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
         "record_problem",
         "list_problems",
         "get_problem",
-        "triage_problem",
         "retry_problem_notifications",
         "clarify_problem",
         "update_problem",
@@ -77,7 +76,6 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
         "propose_process_changes",
         "change_context",
         "stale_problems",
-        "review_stale_problem",
     }
     assert tools["list_decision_changes"].annotations.read_only_hint is True
     assert tools["flow_delays"].annotations.read_only_hint is True
@@ -91,14 +89,12 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
     assert tools["propose_autonomy_changes"].annotations.read_only_hint is False
     assert tools["find_similar_problems"].annotations.read_only_hint is True
     assert tools["list_problems"].annotations.read_only_hint is True
-    assert tools["triage_problem"].annotations.read_only_hint is False
     assert tools["get_trace"].annotations.read_only_hint is True
     assert tools["get_shipscope_connection"].annotations.read_only_hint is True
     assert tools["open_due_impact_reviews"].annotations.read_only_hint is False
     assert tools["list_changes"].annotations.read_only_hint is True
     assert tools["retry_dispatch"].annotations.read_only_hint is False
     assert tools["list_inbox"].annotations.read_only_hint is True
-    assert tools["decide_inbox_item"].annotations.read_only_hint is False
     assert tools["find_decisions"].annotations.read_only_hint is True
     assert tools["record_decision"].annotations.read_only_hint is False
     assert set(tools["record_decision"].input_schema["properties"]) == {"draft_id", "sha256"}
@@ -106,9 +102,7 @@ async def test_exposes_task_oriented_tools(server: Any) -> None:
     record_params = tools["present_decision_draft"].input_schema["properties"]
     assert {"statement", "why", "kind", "source", "drafted_by", "assumptions", "project"} <= set(record_params)
     assert {"decision_type", "draft_edited", "supersedes"} <= set(record_params)
-    assert {"decision_type", "draft_edited"} <= set(tools["decide_inbox_item"].input_schema["properties"])
-    for name in ("present_decision_draft", "decide_inbox_item"):
-        assert {"consequences", "confirmation"} <= set(tools[name].input_schema["properties"]), name
+    assert {"consequences", "confirmation"} <= set(tools["present_decision_draft"].input_schema["properties"])
     assert {"project", "app"} <= set(tools["find_decisions"].input_schema["properties"])
 
 
@@ -180,30 +174,35 @@ async def test_stdio_end_to_end(tmp_path: Path, make_draft: Draft) -> None:
         DecisionDrafts(Registry(tmp_path / "rejestr")).approve(shown["draft_id"], shown["sha256"], by={"name": "Ola"})
         result = await session.call_tool("record_decision", {"draft_id": shown["draft_id"], "sha256": shown["sha256"]})
 
-    assert len(listed.tools) == 37
+    assert len(listed.tools) == 34
     assert json.loads(result.content[0].text)["id"] == "DEC-0001"
     assert (tmp_path / "rejestr" / "decisions" / "_ogolne" / "DEC-0001.md").is_file()
+
+
+def decide(registry: Registry, args: dict[str, Any]) -> dict[str, Any]:
+    """Decyzja o pozycji skrzynki tak, jak robi ją przycisk w konsoli (agent nie decyduje przez MCP)."""
+    args = dict(args)
+    item_id, outcome = args.pop("item_id"), args.pop("outcome", None)
+    return Inbox(registry).decide(item_id, args, outcome=outcome)
+
+
+async def test_agent_cannot_decide_inbox_items_triage_or_stale_problems(server: Any) -> None:
+    """docs/plan-decyzje-tylko-przyciskiem.md: decyzje o pozycjach skrzynki i zgłoszeniach tylko przyciskiem."""
+    names = {t.name for t in await server.list_tools()}
+    assert not {"decide_inbox_item", "triage_problem", "review_stale_problem"} & names
+    assert "konsol" in server.instructions and "decide_inbox_item" not in server.instructions
 
 
 async def test_inbox_list_and_decide_through_tools(server: Any, registry: Registry, make_draft: Draft) -> None:
     Inbox(registry).receive(stage_event())
 
     listed = await call(server, "list_inbox", {})
-    decided = await call(server, "decide_inbox_item", {"item_id": "evt-stage-1", "outcome": "approved", **make_draft()})
+    decided = decide(registry, {"item_id": "evt-stage-1", "outcome": "approved", **make_draft()})
 
     assert [i["id"] for i in listed["items"]] == ["evt-stage-1"]
     assert decided["decision"]["kind"] == "gate"
     assert decided["decision"]["links"] == {"chg": "CHG-12"}
     assert (await call(server, "list_inbox", {}))["items"] == []
-
-
-async def test_decide_inbox_item_errors_return_hints(server: Any, registry: Registry, make_draft: Draft) -> None:
-    Inbox(registry).receive(stage_event())
-
-    with pytest.raises(ToolError, match="list_inbox"):
-        await server.call_tool("decide_inbox_item", {"item_id": "evt-nie-ma", **make_draft()})
-    with pytest.raises(ToolError, match="outcome"):
-        await server.call_tool("decide_inbox_item", {"item_id": "evt-stage-1", **make_draft()})
 
 
 async def test_decide_inbox_item_takes_answers_to_gate_questions(
@@ -212,15 +211,12 @@ async def test_decide_inbox_item_takes_answers_to_gate_questions(
     Inbox(registry).receive(gate_event(questions=["Czy build.json zostaje w repo?"]))
     answers = [{"question": "Czy build.json zostaje w repo?", "answer": "Nie."}]
 
-    decided = await call(
-        server,
-        "decide_inbox_item",
+    decided = decide(
+        registry,
         {"item_id": "evt-gate-1", "outcome": "approved", "answers": answers, **make_draft()},
     )
 
     assert decided["decision"]["answers"] == answers
-    tools = {t.name: t for t in await server.list_tools()}
-    assert "answers" in tools["decide_inbox_item"].input_schema["properties"]
 
 
 async def test_changes_through_tools(
@@ -228,7 +224,7 @@ async def test_changes_through_tools(
 ) -> None:
     monkeypatch.delenv("PDI_DISPATCH_REPO", raising=False)
     Inbox(registry).receive(gate_event())
-    await call(server, "decide_inbox_item", {"item_id": "evt-gate-1", "outcome": "approved", **make_draft()})
+    decide(registry, {"item_id": "evt-gate-1", "outcome": "approved", **make_draft()})
 
     listed = await call(server, "list_changes", {})
     got = await call(server, "get_change", {"change": "CHG-12"})
@@ -248,9 +244,7 @@ async def test_impact_review_through_tools(
 
     early = await call(server, "open_due_impact_reviews", {"today": "2026-11-21"})
     opened = await call(server, "open_due_impact_reviews", {"today": "2026-11-22"})
-    decided = await call(
-        server, "decide_inbox_item", {"item_id": "impact-CHG-12-R1", "outcome": "not_met", **make_draft()}
-    )
+    decided = decide(registry, {"item_id": "impact-CHG-12-R1", "outcome": "not_met", **make_draft()})
 
     assert early == {"opened": []}
     assert [i["id"] for i in opened["opened"]] == ["impact-CHG-12-R1"]
@@ -274,7 +268,7 @@ async def test_problem_triage_through_tool(server: Any, registry: Registry, make
     Inbox(registry).receive(metric_event())
 
     args = {"item_id": "tf-metric-rollbacks-2026-10-10", "outcome": "accepted", **make_draft()}
-    decided = await call(server, "decide_inbox_item", args)
+    decided = decide(registry, args)
 
     assert decided["decision"]["kind"] == "triage"
 
@@ -287,9 +281,7 @@ async def test_problem_record_and_triage_through_tools(
 
     recorded = await call(server, "record_problem", problem())
     listed = await call(server, "list_problems", {})
-    triaged = await call(
-        server, "triage_problem", {"problem_id": "PRB-1", "outcome": "accepted", "change": "CHG-12", **make_draft()}
-    )
+    triaged = ProblemStore(registry).triage("PRB-1", "accepted", {**make_draft(), "kind": "triage"}, change="CHG-12")
 
     assert recorded["id"] == "PRB-1"
     assert [p["id"] for p in listed["problems"]] == ["PRB-1"]
@@ -304,8 +296,6 @@ async def test_problem_record_and_triage_through_tools(
     assert asked["problem"]["status"] == "clarifying"
     assert (ready["status"], ready["frequency"]) == ("ready_for_triage", "co tydzień")
     assert [s["id"] for s in similar["similar"]] == ["PRB-1"]
-    with pytest.raises(ToolError, match="duplicate_of"):
-        await server.call_tool("triage_problem", {"problem_id": "PRB-2", "outcome": "duplicate", **make_draft()})
 
 
 async def test_change_tools_return_hints(server: Any) -> None:
@@ -328,9 +318,8 @@ async def test_autonomy_through_tools(server: Any, registry: Registry, make_draf
     report = await call(server, "autonomy_report", {})
     row = next(r for r in report["types"] if r["decision_type"] == "finding.auto_close")
     proposed = await call(server, "propose_autonomy_changes", {})
-    decided = await call(
-        server,
-        "decide_inbox_item",
+    decided = decide(
+        registry,
         {"item_id": proposed["items"][0]["id"], "outcome": "approved", **make_draft(statement="Poziom 2.")},
     )
 
@@ -373,9 +362,8 @@ async def test_decisions_from_conversation_through_tools(server: Any, registry: 
         },
     )
     item = proposed["items"][0]
-    decided = await call(
-        server,
-        "decide_inbox_item",
+    decided = decide(
+        registry,
         {
             "item_id": item["id"],
             "outcome": "approved",
@@ -398,8 +386,8 @@ async def test_ai_draft_needs_draft_edited_and_triage_keeps_it(
     with pytest.raises(ToolError, match="draft_edited"):
         await call(server, "present_decision_draft", make_draft(draft_edited=None))
     await call(server, "record_problem", problem())
-    args = {"problem_id": "PRB-1", "outcome": "accepted", "change": "CHG-12", **make_draft(draft_edited=True)}
-    triaged = await call(server, "triage_problem", args)
+    draft = {**make_draft(draft_edited=True), "kind": "triage"}
+    triaged = ProblemStore(registry).triage("PRB-1", "accepted", draft, change="CHG-12")
 
     assert registry.get(triaged["decision"]["id"])["draft_edited"] is True
 

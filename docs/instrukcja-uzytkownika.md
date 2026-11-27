@@ -198,7 +198,8 @@ Dla decydenta (`editor` albo `admin` w DI Decision).
      istniejąca funkcja) i opis.
 4. Zgłaszający dostaje powiadomienie.
 
-Odłożenie (`parked`) i duplikat są dostępne tylko przez agenta (MCP `triage_problem`). Zgłoszenia odłożone ponad 90
+Na tej samej karcie są też **park** (wpisz warunek powrotu, np. „3 nowe zgłoszenia”) i **duplicate** (wpisz
+oryginał, np. PRB-1). Triaż robisz tylko Ty, w konsoli — agent go nie wykona. Zgłoszenia odłożone ponad 90
 dni wracają w sekcji **Zgłoszenia porzucone**: **zamknij** albo **zwaliduj ponownie**.
 
 ## Jak prowadzić zmianę z agentem
@@ -764,7 +765,7 @@ W Claude Code możesz rozmawiać z suitą przez serwery MCP:
 
 | Serwer | Co daje |
 | --- | --- |
-| **pdi** | 37 narzędzi: 20 do odczytu (decyzje, Skrzynka, zmiany, ślad, zgłoszenia, przepływ, kolejka a jakość, prognozy, autonomia, agenda, dzienny skrót) i 17 do zapisu (szkice decyzji i zapis po zatwierdzeniu, zgłoszenia, triaż, terminy, skutki opcji, propozycje) |
+| **pdi** | 34 narzędzia: 20 do odczytu (decyzje, Skrzynka, zmiany, ślad, zgłoszenia, przepływ, kolejka a jakość, prognozy, autonomia, agenda, dzienny skrót) i 14 do zapisu (szkice decyzji i zapis po zatwierdzeniu, zgłoszenia, terminy, skutki opcji, propozycje); decyzje o Skrzynce i triaż tylko przyciskiem w konsoli |
 | **shipscope** (DI Release) | sześć narzędzi tylko do odczytu nad API usługi: zmiany, plan wydania, flagi, środowiska, status elementu, metryki (nazw narzędzi nie sprawdzono); potrzebny token usługi `shps_…` z Settings → General → Service tokens |
 | DI Definition | odczyt gotowości (opis w `packages/mcp/README.md` repo ci_for_sdlc; nie sprawdzono) |
 
@@ -775,7 +776,8 @@ shipscope`.
 Przykłady próśb: „co czeka na moją decyzję?”, „pokaż ślad CHG-12”, „zapisz zgłoszenie: …”, „przygotuj podsumowanie
 agendy na spotkanie”, „czy EBO-123 jest już na PROD?”.
 
-Agent nie decyduje na bramkach i nie odpowiada za zespół. Zapisy przez agenta niosą Twój identyfikator z logowania.
+Agent nie decyduje na bramkach, nie zamyka spraw w Skrzynce, nie triażuje zgłoszeń i nie odpowiada za zespół —
+to zawsze przycisk w konsoli. Zapisy przez agenta niosą Twój identyfikator z logowania.
 
 ## Slack
 

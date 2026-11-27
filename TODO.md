@@ -86,8 +86,11 @@ Learnings” (C. Hobbs, 2026-10); wymagania sprawdzić w specyfikacji na modelco
   listę wystawcy.
 - [x] (zrobione 2026-11-27: `present_decision_draft` → zatwierdzenie w konsoli → `record_decision(draft_id, sha256)`, zawsze, także stdio; [plan](docs/plan-zapis-decyzji-po-zatwierdzeniu.md)) Zapis decyzji i zastępowanie jako narzędzia wysokiego ryzyka z potwierdzeniem (wzorzec „zgoda związana z
   argumentami”, pozycja w `tf/docs/todo.md`, sekcja wzorców bezpieczeństwa) — razem z kartą MCP Apps niżej.
-- [ ] To samo dla `decide_inbox_item` i `triage_problem` (agent zamyka pozycję skrzynki albo triaż po „tak” w czacie):
+- [x] (zrobione 2026-11-27: narzędzia usunięte z MCP, decyzje tylko przyciskiem, [plan](docs/plan-decyzje-tylko-przyciskiem.md)) To samo dla `decide_inbox_item` i `triage_problem` (agent zamyka pozycję skrzynki albo triaż po „tak” w czacie):
   szkic w konsoli albo decyzja tylko przyciskiem.
+- [ ] tf `mode-pdi` (`GUIDE.md`, skill `pdi-decisions`, `phase_run.py`) opisuje jeszcze `record_decision` z pełną treścią,
+  `supersede_decision` i `decide_inbox_item` — przepisać na szkic → zatwierdzenie w konsoli → `record_decision(draft_id,
+  sha256)` (PR w tf).
 - [x] Bez sesji protokołu: `pdi-mcp --http` działa bezstanowo (`stateless_http`, odpowiedzi JSON). Stan (np. szkic
   przed zatwierdzeniem) to jawny identyfikator z narzędzia. Przestarzałych Sampling/Roots/Logging nie używa.
 - [ ] Przed hostingiem: connector w Claude.ai (publiczny https, adres zwrotny Claude.ai w `di-decision-mcp`).
